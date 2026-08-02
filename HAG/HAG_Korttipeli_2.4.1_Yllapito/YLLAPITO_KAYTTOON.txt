@@ -1,0 +1,24 @@
+HAG 2.4.1 – ylläpidon käyttöönotto
+
+1. Avaa Firebase Console → Authentication.
+2. Valitse Sign-in method ja ota Email/Password käyttöön.
+3. Avaa Authentication → Users → Add user.
+4. Luo oma ylläpitotunnuksesi sähköpostilla ja salasanalla.
+5. Kopioi luodun käyttäjän UID Users-listasta.
+6. Avaa Firestore → Rules.
+7. Kopioi tiedoston firestore.rules sisältö sääntöeditoriin.
+8. Korvaa tekstissä ADMIN_UID omalla UID-tunnuksellasi.
+9. Paina Publish.
+
+Pelin oikeassa alakulmassa näkyy pieni rataskuvake. Sen kautta voit:
+- poistaa valitun pelaajan nykyisen lukuvuoden tulokset
+- poistaa valitun pelaajan kaikki HAG-aikatulokset
+- nollata nykyisen lukuvuoden kaikki HAG-aikatulokset
+
+Poistot koskevat vain gameId:tä hag-korttipeli-aika-v1.
+Vanha pistepohjainen tulostaulukko ei muutu.
+
+Tärkeää:
+- Älä kirjoita salasanaa index.html-tiedostoon.
+- Poisto onnistuu vain käyttäjältä, jonka UID on Firestore-säännöissä.
+- Jokainen poistettu dokumentti lasketaan Firestore-poistoksi.
