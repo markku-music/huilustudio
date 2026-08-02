@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>H–A–G-korttipeli 2.0</title>
+<title>H–A–G-korttipeli 2.1</title>
 <style>
 :root{
   font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, sans-serif;
@@ -51,11 +51,11 @@ footer{text-align:center;color:#648090;font-size:13px;font-weight:650;padding-to
 .start-screen{width:min(620px,94vw);background:rgba(255,250,240,.97);border-radius:30px;padding:30px;box-shadow:var(--shadow);text-align:center}
 .start-screen h2{font-size:clamp(30px,6vw,48px);margin:0 0 8px}.start-screen p{margin:0 0 20px;color:#547184;font-weight:700}
 .name-row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}.name-input{width:min(330px,100%);border:3px solid rgba(76,168,200,.35);border-radius:16px;padding:13px 16px;font:inherit;font-weight:850;font-size:18px;color:var(--ink);background:white;outline:none}.name-input:focus{border-color:var(--blue)}
-.mic-name{width:52px;height:52px;border:0;border-radius:16px;background:var(--yellow);font-size:24px;cursor:pointer;box-shadow:0 8px 18px rgba(35,74,92,.15)}.name-help{min-height:24px;margin:12px 0 16px!important;font-size:14px}.name-help.error{color:#9b3028}.name-help.live{color:#257147}
+.name-help{min-height:24px;margin:12px 0 16px!important;font-size:14px}.name-help.error{color:#9b3028}.name-help.live{color:#257147}
 .score-card{margin:18px auto 0;padding:16px;border-radius:20px;background:#eef8fb;max-width:420px}.score-big{font-size:40px;font-weight:950;color:var(--ink)}.score-meta{font-weight:800;color:#547184}
-.leaderboard{margin-top:22px;text-align:left;background:white;border-radius:20px;padding:16px;box-shadow:inset 0 0 0 2px rgba(76,168,200,.12)}.leaderboard h3{margin:0 0 10px;text-align:center}.leaderboard ol{margin:0;padding-left:30px}.leaderboard li{padding:5px 4px;font-weight:800}.leaderboard .row{display:flex;justify-content:space-between;gap:16px}.leaderboard-status{text-align:center;color:#648090;font-size:14px;font-weight:700}
+.leaderboard{margin-top:22px;text-align:left;background:white;border-radius:20px;padding:16px;box-shadow:inset 0 0 0 2px rgba(76,168,200,.12)}.period-tabs{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:0 0 12px}.period-tab{border:0;border-radius:999px;padding:8px 12px;background:#e8f2f5;color:var(--ink);font-weight:850;cursor:pointer}.period-tab.active{background:var(--blue);color:white}.period-info{text-align:center;color:#648090;font-size:12px;font-weight:750;margin:-4px 0 10px}.leaderboard h3{margin:0 0 10px;text-align:center}.leaderboard ol{margin:0;padding-left:30px}.leaderboard li{padding:5px 4px;font-weight:800}.leaderboard .row{display:flex;justify-content:space-between;gap:16px}.leaderboard-status{text-align:center;color:#648090;font-size:14px;font-weight:700}
 .player-pill{display:none;padding:9px 13px;border-radius:999px;background:rgba(255,255,255,.82);font-weight:850;font-size:14px}.player-pill.show{display:block}
-@media(max-width:620px){.start-screen{padding:23px 18px}.name-row{align-items:stretch}.name-input{width:100%}.mic-name{width:100%}.leaderboard{padding:14px}.player-pill{font-size:12px;padding:7px 10px}}
+@media(max-width:620px){.start-screen{padding:23px 18px}.name-row{align-items:stretch}.name-input{width:100%}.leaderboard{padding:14px}.player-pill{font-size:12px;padding:7px 10px}.period-tab{padding:7px 9px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -69,15 +69,20 @@ footer{text-align:center;color:#648090;font-size:13px;font-weight:650;padding-to
 
   <section id="startView" class="start-screen">
     <h2>Tervetuloa peliin!</h2>
-    <p>Sano tai kirjoita pelinimesi. Tarkista nimi ennen aloittamista.</p>
+    <p>Kirjoita pelinimesi. Peli muistaa viimeksi käytetyn nimen tällä laitteella.</p>
     <div class="name-row">
       <input id="playerName" class="name-input" type="text" maxlength="20" autocomplete="off" placeholder="Pelinimi" aria-label="Pelinimi">
-      <button id="nameMicButton" class="mic-name" title="Sano pelinimi" aria-label="Sano pelinimi">🎤</button>
     </div>
-    <p id="nameHelp" class="name-help">Paina mikrofonia ja sano nimesi yhdellä kertaa.</p>
+    <p id="nameHelp" class="name-help">Pelinimi näkyy pistetaulukossa.</p>
     <button id="startButton" class="btn primary">Aloita peli</button>
     <div class="leaderboard">
       <h3>HAG Top 10</h3>
+      <div class="period-tabs" data-leaderboard-tabs>
+        <button class="period-tab active" data-period="week">Tämä viikko</button>
+        <button class="period-tab" data-period="semester">Tämä lukukausi</button>
+        <button class="period-tab" data-period="all">Kaikkien aikojen</button>
+      </div>
+      <div id="startPeriodInfo" class="period-info"></div>
       <div id="startLeaderboardStatus" class="leaderboard-status">Haetaan tuloksia…</div>
       <ol id="startLeaderboard"></ol>
     </div>
@@ -105,6 +110,12 @@ footer{text-align:center;color:#648090;font-size:13px;font-weight:650;padding-to
     </div>
     <div class="leaderboard">
       <h3>HAG Top 10</h3>
+      <div class="period-tabs" data-leaderboard-tabs>
+        <button class="period-tab active" data-period="week">Tämä viikko</button>
+        <button class="period-tab" data-period="semester">Tämä lukukausi</button>
+        <button class="period-tab" data-period="all">Kaikkien aikojen</button>
+      </div>
+      <div id="finishPeriodInfo" class="period-info"></div>
       <div id="finishLeaderboardStatus" class="leaderboard-status">Haetaan tuloksia…</div>
       <ol id="finishLeaderboard"></ol>
     </div>
@@ -450,22 +461,24 @@ const firebaseConfig = {
 
 const GAME_ID = "hag-korttipeli";
 const listeners = new Set();
-let latestScores = [];
+let rawScores = [];
 let db = null;
 
-function normalizeRows(rows){
-  const best = new Map();
-  for(const row of rows){
-    const name = String(row.playerName || '').trim();
-    const score = Number(row.score || 0);
-    if(!name || !Number.isFinite(score)) continue;
-    const key = name.toLocaleLowerCase('fi-FI');
-    if(!best.has(key) || score > best.get(key).score) best.set(key,{name,score});
-  }
-  return [...best.values()].sort((a,b)=>b.score-a.score || a.name.localeCompare(b.name,'fi-FI')).slice(0,10);
+function dateFromValue(value){
+  if(!value) return null;
+  if(typeof value.toDate === 'function') return value.toDate();
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
-function broadcast(){ for(const fn of listeners) fn(latestScores); }
-function subscribe(fn){ listeners.add(fn); fn(latestScores); return ()=>listeners.delete(fn); }
+function normalizeRows(rows){
+  return rows.map(row=>({
+    name:String(row.playerName || '').trim(),
+    score:Number(row.score || 0),
+    createdAt:dateFromValue(row.createdAt)
+  })).filter(row=>row.name && Number.isFinite(row.score));
+}
+function broadcast(){ for(const fn of listeners) fn(rawScores); }
+function subscribe(fn){ listeners.add(fn); fn(rawScores); return ()=>listeners.delete(fn); }
 function pendingKey(){ return 'hag-pending-scores-v2'; }
 function getPending(){ try{return JSON.parse(localStorage.getItem(pendingKey())||'[]')}catch{return []} }
 function setPending(items){ localStorage.setItem(pendingKey(),JSON.stringify(items)); }
@@ -481,7 +494,6 @@ async function flushPending(){
 }
 async function saveScore(playerName,score,durationSeconds){
   const payload={playerName:String(playerName).trim().slice(0,20),score:Math.round(score),gameId:GAME_ID,durationSeconds:Math.round(durationSeconds)};
-  // Nykyiset Firestore-säännöt sallivat vain neljä kenttää, joten duration jää paikalliseksi.
   const firestorePayload={playerName:payload.playerName,score:payload.score,gameId:GAME_ID,createdAt:serverTimestamp()};
   if(!db){setPending([...getPending(),{playerName:payload.playerName,score:payload.score,gameId:GAME_ID}]);throw new Error('offline');}
   try{await addDoc(collection(db,'scores'),firestorePayload);return true;}
@@ -490,10 +502,10 @@ async function saveScore(playerName,score,durationSeconds){
 try{
   db=getFirestore(initializeApp(firebaseConfig));
   const q=query(collection(db,'scores'),where('gameId','==',GAME_ID));
-  onSnapshot(q,snap=>{latestScores=normalizeRows(snap.docs.map(d=>d.data()));broadcast();flushPending();},()=>{broadcast();});
+  onSnapshot(q,snap=>{rawScores=normalizeRows(snap.docs.map(d=>d.data()));broadcast();flushPending();},()=>{broadcast();});
   flushPending();
 }catch(err){console.warn('Firebase ei käynnistynyt:',err);}
-window.HAGFirebase={saveScore,subscribe,getScores:()=>latestScores};
+window.HAGFirebase={saveScore,subscribe,getScores:()=>rawScores};
 window.dispatchEvent(new Event('hag-firebase-ready'));
 </script>
 <script>
@@ -517,6 +529,8 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
   let playerName = '';
   let roundStartedAt = 0;
   let lastScore = 0;
+  let allScores = [];
+  let activePeriod = 'week';
 
   const settings = {...M.DEFAULTS, referenceEnabled:false, liveReferenceEnabled:false};
   const engine = new M.MicrophoneEngine(settings, onEngineUpdate);
@@ -637,32 +651,63 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
     if(window.HAGFirebase)return Promise.resolve();
     return new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(new Error('Firebase timeout')),5000);window.addEventListener('hag-firebase-ready',()=>{clearTimeout(t);resolve();},{once:true});});
   }
-  function renderLeaderboard(listId,statusId,scores){
-    const list=$(listId),status=$(statusId); list.innerHTML='';
-    if(!scores.length){status.textContent='Ei tuloksia vielä. Ensimmäinen ennätys odottaa tekijäänsä!';return;}
+  function startOfWeek(date=new Date()){
+    const d=new Date(date); d.setHours(0,0,0,0);
+    const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d;
+  }
+  function semesterRange(date=new Date()){
+    const year=date.getFullYear();
+    return date.getMonth()>=7
+      ? {start:new Date(year,7,1),end:new Date(year+1,0,1),label:`Syyslukukausi ${year}`}
+      : {start:new Date(year,0,1),end:new Date(year,7,1),label:`Kevätlukukausi ${year}`};
+  }
+  function periodDefinition(period){
+    const now=new Date();
+    if(period==='week'){
+      const start=startOfWeek(now),end=new Date(start);end.setDate(end.getDate()+7);
+      return {start,end,label:`Viikko ${start.toLocaleDateString('fi-FI')}–${new Date(end-1).toLocaleDateString('fi-FI')}`};
+    }
+    if(period==='semester') return semesterRange(now);
+    return {start:null,end:null,label:'Kaikkien aikojen parhaat tulokset'};
+  }
+  function scoresForPeriod(scores,period){
+    const def=periodDefinition(period);
+    const filtered=scores.filter(item=>{
+      if(!def.start) return true;
+      return item.createdAt && item.createdAt>=def.start && item.createdAt<def.end;
+    });
+    const best=new Map();
+    filtered.forEach(item=>{
+      const key=item.name.toLocaleLowerCase('fi-FI');
+      if(!best.has(key)||item.score>best.get(key).score) best.set(key,item);
+    });
+    return [...best.values()].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,'fi-FI')).slice(0,10);
+  }
+  function renderLeaderboard(listId,statusId,infoId,scores){
+    const list=$(listId),status=$(statusId),info=$(infoId); list.innerHTML='';
+    info.textContent=periodDefinition(activePeriod).label;
+    const visible=scoresForPeriod(scores,activePeriod);
+    if(!visible.length){status.textContent='Tällä ajanjaksolla ei ole vielä tuloksia.';return;}
     status.textContent='';
-    scores.forEach((item,i)=>{const li=document.createElement('li');const row=document.createElement('span');row.className='row';const name=document.createElement('span');name.textContent=item.name;const score=document.createElement('span');score.textContent=item.score.toLocaleString('fi-FI');row.append(name,score);li.appendChild(row);list.appendChild(li);});
+    visible.forEach(item=>{const li=document.createElement('li');const row=document.createElement('span');row.className='row';const name=document.createElement('span');name.textContent=item.name;const score=document.createElement('span');score.textContent=item.score.toLocaleString('fi-FI');row.append(name,score);li.appendChild(row);list.appendChild(li);});
+  }
+  function renderAllLeaderboards(){
+    renderLeaderboard('startLeaderboard','startLeaderboardStatus','startPeriodInfo',allScores);
+    renderLeaderboard('finishLeaderboard','finishLeaderboardStatus','finishPeriodInfo',allScores);
+    document.querySelectorAll('.period-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.period===activePeriod));
   }
   function connectLeaderboards(){
-    const connect=()=>window.HAGFirebase.subscribe(scores=>{renderLeaderboard('startLeaderboard','startLeaderboardStatus',scores);renderLeaderboard('finishLeaderboard','finishLeaderboardStatus',scores);});
+    const connect=()=>window.HAGFirebase.subscribe(scores=>{allScores=scores;renderAllLeaderboards();});
     if(window.HAGFirebase)connect();else window.addEventListener('hag-firebase-ready',connect,{once:true});
   }
   function cleanName(value){return String(value||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,20);}
   function startGame(){
     const name=cleanName($('playerName').value);
-    if(!name){$('nameHelp').textContent='Kirjoita tai sano ensin pelinimi.';$('nameHelp').className='name-help error';$('playerName').focus();return;}
+    if(!name){$('nameHelp').textContent='Kirjoita ensin pelinimi.';$('nameHelp').className='name-help error';$('playerName').focus();return;}
     playerName=name;localStorage.setItem('hag-player-name',playerName);$('playerPill').textContent='Pelaaja: '+playerName;$('playerPill').classList.add('show');newRound();
   }
   function changePlayer(){engine.stop();completed=true;$('finishView').classList.remove('show');$('playView').style.display='none';$('startView').style.display='block';$('playerName').focus();}
-  function startNameRecognition(){
-    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!Recognition){$('nameHelp').textContent='Tämä selain ei tue puheentunnistusta. Kirjoita nimi kenttään.';$('nameHelp').className='name-help error';return;}
-    const r=new Recognition();r.lang='fi-FI';r.interimResults=false;r.maxAlternatives=1;
-    $('nameHelp').textContent='Kuuntelen nimeä…';$('nameHelp').className='name-help live';
-    r.onresult=e=>{const name=cleanName(e.results[0][0].transcript.replace(/[.!?]$/,''));$('playerName').value=name;$('nameHelp').textContent='Kuulinko oikein: '+name+'? Voit korjata nimeä ennen aloitusta.';$('nameHelp').className='name-help';};
-    r.onerror=()=>{$('nameHelp').textContent='Nimeä ei saatu tunnistettua. Kokeile uudelleen tai kirjoita se.';$('nameHelp').className='name-help error';};
-    r.start();
-  }
+
 
   $('micButton').addEventListener('click',async()=>engine.running?engine.stop():engine.start());
   $('newButton').addEventListener('click',newRound);
@@ -670,11 +715,13 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
   $('changePlayerButton').addEventListener('click',changePlayer);
   $('startButton').addEventListener('click',startGame);
   $('playerName').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
-  $('nameMicButton').addEventListener('click',startNameRecognition);
+  document.querySelectorAll('[data-leaderboard-tabs]').forEach(group=>group.addEventListener('click',e=>{const period=e.target.dataset.period;if(!period)return;activePeriod=period;localStorage.setItem('hag-score-period',period);renderAllLeaderboards();}));
   $('testButton').addEventListener('click',()=> $('testControls').classList.toggle('show'));
   $('testControls').addEventListener('click',e=>{const n=e.target.dataset.note;if(!n||completed||!accepting)return;if(n===currentTarget())acceptCorrect();else{$('prompt').textContent=`Kortissa on ${currentTarget()}, kokeile uudelleen`;}});
   window.addEventListener('beforeunload',()=>engine.stop());
   $('playerName').value=localStorage.getItem('hag-player-name')||'';
+  activePeriod=localStorage.getItem('hag-score-period')||'week';
+  if(!['week','semester','all'].includes(activePeriod))activePeriod='week';
   connectLeaderboards();
 })();
 </script>
