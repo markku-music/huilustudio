@@ -1,19 +1,50 @@
 <!DOCTYPE html>
 <html lang="fi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Huilupelit</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Huilupelit</title>
+<style>
+:root{--ink:#26364a;--shadow:0 16px 35px rgba(57,66,88,.16)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:ui-rounded,"SF Pro Rounded","Trebuchet MS",system-ui,sans-serif;color:var(--ink);background:linear-gradient(145deg,#fff5cb,#f6d894 48%,#f0bd79)}
+body{min-height:100vh;padding:28px 22px}
+.page{width:min(1220px,100%);margin:auto}
+header{text-align:center;margin:4px 0 26px}
+h1{margin:0;font-size:clamp(42px,7vw,78px);line-height:.95;color:#203a63;text-shadow:0 4px 0 #fff}
+.lead{margin:13px 0 0;font-size:clamp(18px,2.3vw,28px);font-weight:800;color:#53647b}
+.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.game-card{position:relative;overflow:hidden;border-radius:28px;background:rgba(255,253,247,.96);box-shadow:var(--shadow);border:4px solid rgba(255,255,255,.9)}
+.game-card.active{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);min-height:390px;text-decoration:none;color:inherit;transition:.18s}
+.game-card.active:hover{transform:translateY(-4px);box-shadow:0 22px 42px rgba(57,66,88,.22)}
+.thumb img{width:100%;height:100%;min-height:390px;object-fit:cover;display:block}
+.game-info{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:34px 30px;background:linear-gradient(160deg,#fffdf6,#fff1c5)}
+.game-info h2{margin:0;font-size:clamp(30px,4vw,52px);line-height:1;color:#1d5594}
+.game-info p{margin:14px 0 22px;font-size:clamp(18px,2vw,24px);font-weight:800;color:#55677c}
+.play{display:inline-flex;align-items:center;justify-content:center;min-width:150px;min-height:58px;padding:14px 24px;border-radius:999px;background:#31a85b;color:#fff;font-size:22px;font-weight:950;box-shadow:0 8px 0 #217a40}
+.placeholder{min-height:235px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.placeholder:nth-child(2){background:#bde8fa}.placeholder:nth-child(3){background:#ffd0df}.placeholder:nth-child(4){background:#d8efb8}.placeholder:nth-child(5){background:#e6d4ff}
+.icon{font-size:58px;line-height:1}.placeholder h3{margin:14px 0 8px;font-size:27px}
+.soon{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.78);font-size:15px;font-weight:950;color:#6a7180}
+footer{text-align:center;margin-top:24px;font-size:14px;font-weight:800;color:rgba(38,54,74,.62)}
+@media(max-width:900px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}.game-card.active{grid-column:1/-1;grid-template-columns:1fr}.thumb img{min-height:300px}.game-info{align-items:center;text-align:center;padding:26px}}
+@media(max-width:560px){body{padding:18px 14px}.games{grid-template-columns:1fr;gap:16px}.game-card.active{grid-column:auto}.placeholder{min-height:190px}.thumb img{min-height:245px}.game-info{padding:22px}}
+</style>
 </head>
 <body>
-  <h1>Huilupelit</h1>
-
-  <p>
-    <a href="./HAG-korttipeli/">Avaa H–A–G-korttipeli</a>
-  </p>
-
-  <p>
-    <a href="./HAG_Korttipeli_2.0/">Avaa HAG_korttipeli_2.0</a>
-  </p>
+<main class="page">
+<header><h1>Huilupelit</h1><p class="lead">Valitse peli ja aloita!</p></header>
+<section class="games" aria-label="Pelit">
+<a class="game-card active" href="./HAG/" aria-label="Avaa HAG-korttipeli">
+<div class="thumb"><img src="./assets/hag-thumbnail.png" alt="HAG-korttipeli"></div>
+<div class="game-info"><h2>HAG-korttipeli</h2><p>Soita H, A tai G</p><span class="play">Pelaa</span></div>
+</a>
+<article class="game-card placeholder"><div class="icon">🥁</div><h3>Rytmipeli</h3><span class="soon">Tulossa pian</span></article>
+<article class="game-card placeholder"><div class="icon">🖐️</div><h3>Sormituspeli</h3><span class="soon">Tulossa pian</span></article>
+<article class="game-card placeholder"><div class="icon">👂</div><h3>Kuuntelupeli</h3><span class="soon">Tulossa pian</span></article>
+<article class="game-card placeholder"><div class="icon">🎵</div><h3>Säveljahti</h3><span class="soon">Tulossa pian</span></article>
+</section>
+<footer>Uusia pelejä lisätään myöhemmin.</footer>
+</main>
 </body>
 </html>
