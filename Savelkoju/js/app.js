@@ -60,6 +60,8 @@ let levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
 let currentLevel=levelConfig[0];
 let currentPlayerProgress={};
 let currentUnlockedLevelIds=['level_hag'];
+let teacherPlayMode=false;
+let teacherAdminUid=null;
 
 let target='A';
 let cabinetWasOpenedDuringGame=false;
@@ -282,7 +284,8 @@ async function getPlayer(id){
 async function writePlayer(player){
   player.updatedAt=Date.now();
   if(db){
-    if(!auth?.currentUser||auth.currentUser.uid!==player.id)throw new Error('Pelaajaistunto ei ole aktiivinen.');
+    if(!auth?.currentUser)throw new Error('Pelaajaistunto ei ole aktiivinen.');
+    if(auth.currentUser.uid!==player.id&&!teacherPlayMode)throw new Error('Pelaajaistunto ei ole aktiivinen.');
     const compact=compactPlayer(player);
     compact.authEmail=String(player.authEmail||playerAuthEmail(player.id));
     const batch=db.batch();
@@ -1011,7 +1014,52 @@ document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
 });
 document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 
-loadLevelConfig().then(async()=>{applyLevel(levelConfig[0]);const q=new URLSearchParams(location.search);const pid=q.get('playerId'),code=q.get('code');if(pid&&code&&db&&auth){try{const pub=await db.collection('publicPlayers').doc(pid).get();if(!pub.exists)throw new Error('Pelaajaa ei löytynyt');const player=hydratePlayer({id:pub.id,...pub.data()});if(auth.currentUser)await auth.signOut();const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(code));const full=await getPlayer(cred.user.uid);if(!full)throw new Error('Pelaajaprofiilia ei löytynyt');document.getElementById('startOverlay').style.display='none';await selectPlayer(full);await beginGame();history.replaceState({},'',location.pathname);}catch(e){console.error('Admin-käynnistys epäonnistui',e);alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));}}}).catch(console.warn);
+function waitForFirebaseUser(timeoutMs=6000){
+  if(!auth)return Promise.resolve(null);
+  if(auth.currentUser)return Promise.resolve(auth.currentUser);
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=user=>{if(done)return;done=true;clearTimeout(timer);unsub?.();resolve(user||null)};
+    const unsub=auth.onAuthStateChanged(finish,()=>finish(null));
+    const timer=setTimeout(()=>finish(auth.currentUser),timeoutMs);
+  });
+}
+
+loadLevelConfig().then(async()=>{
+  applyLevel(levelConfig[0]);
+  const q=new URLSearchParams(location.search);
+  const pid=q.get('playerId'),code=q.get('code'),teacher=q.get('teacher')==='1';
+  if(pid&&teacher&&db&&auth){
+    try{
+      const user=await waitForFirebaseUser();
+      if(!user)throw new Error('Kirjaudu ensin Huilustudio Adminiin.');
+      const adminDoc=await db.collection('admins').doc(user.uid).get();
+      if(!adminDoc.exists)throw new Error('Kirjautuneella käyttäjällä ei ole opettajan oikeuksia.');
+      teacherPlayMode=true;teacherAdminUid=user.uid;
+      const full=await getPlayer(pid);
+      if(!full)throw new Error('Pelaajaprofiilia ei löytynyt.');
+      document.getElementById('startOverlay').style.display='none';
+      await selectPlayer(full);
+      await beginGame();
+      history.replaceState({},'',location.pathname);
+    }catch(e){
+      console.error('Opettajan oppilasnäkymä epäonnistui',e);
+      alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));
+    }
+  }else if(pid&&code&&db&&auth){
+    try{
+      const pub=await db.collection('publicPlayers').doc(pid).get();
+      if(!pub.exists)throw new Error('Pelaajaa ei löytynyt');
+      const player=hydratePlayer({id:pub.id,...pub.data()});
+      if(auth.currentUser)await auth.signOut();
+      const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(code));
+      const full=await getPlayer(cred.user.uid);
+      if(!full)throw new Error('Pelaajaprofiilia ei löytynyt');
+      document.getElementById('startOverlay').style.display='none';
+      await selectPlayer(full);await beginGame();history.replaceState({},'',location.pathname);
+    }catch(e){console.error('Admin-käynnistys epäonnistui',e);alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));}
+  }
+}).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
 ensureMicrophoneEngine();

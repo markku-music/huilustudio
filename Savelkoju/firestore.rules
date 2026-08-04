@@ -14,7 +14,7 @@ service cloud.firestore {
       allow create, read, update: if isOwner(uid) || isAdmin();
       allow delete: if isAdmin();
       match /sessions/{sessionId} {
-        allow create: if isOwner(uid);
+        allow create: if isOwner(uid) || isAdmin();
         allow read, update, delete: if isAdmin();
       }
     }
