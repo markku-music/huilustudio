@@ -60,8 +60,6 @@ let levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
 let currentLevel=levelConfig[0];
 let currentPlayerProgress={};
 let currentUnlockedLevelIds=['level_hag'];
-let teacherPlayMode=false;
-let teacherAdminUid=null;
 
 let target='A';
 let cabinetWasOpenedDuringGame=false;
@@ -74,7 +72,6 @@ let paused=false;
 let accepting=true;
 let aimTime=0;
 let microphoneEngine=null;
-let microphoneStartPromise=null;
 let lastAccepted=0;
 let roundStartedAt=0;
 let missCount=0;
@@ -154,8 +151,6 @@ function compactPlayer(player){
     displayName:String(player.displayName||'Pelaaja').slice(0,60),
     displayNameLower:normalizePlayerKey(player.displayNameLower||player.displayName||'Pelaaja'),
     code:String(player.code||randomCode()).replace(/\D/g,'').slice(0,3),
-    authSecret:String(player.authSecret||player.authLoginCode||player.code||'').slice(0,64),
-    authLoginCode:String(player.authSecret||player.authLoginCode||player.code||'').slice(0,64),
     avatar:String(player.avatar||fallbackAvatar(player.id||player.displayName)).slice(0,4),
     cabinetIds:compactCabinet(Array.isArray(player.cabinet)?player.cabinet:player.cabinetIds),
     createdAt:Number(player.createdAt)||Date.now(),
@@ -233,7 +228,7 @@ async function saveLocalPlayers(players){
 function playerAuthEmail(id){
   return `player-${String(id).replace(/[^a-zA-Z0-9_-]/g,'')}@savelkoju.app`;
 }
-function playerPassword(secret){ return `Skj!${String(secret||'').slice(0,64)}`; }
+function playerPassword(code){ return `Skj!${String(code).replace(/\D/g,'').slice(0,3)}`; }
 function publicPlayer(player){
   const p=compactPlayer(player);
   return {
@@ -287,8 +282,7 @@ async function getPlayer(id){
 async function writePlayer(player){
   player.updatedAt=Date.now();
   if(db){
-    if(!auth?.currentUser)throw new Error('Pelaajaistunto ei ole aktiivinen.');
-    if(auth.currentUser.uid!==player.id&&!teacherPlayMode)throw new Error('Pelaajaistunto ei ole aktiivinen.');
+    if(!auth?.currentUser||auth.currentUser.uid!==player.id)throw new Error('Pelaajaistunto ei ole aktiivinen.');
     const compact=compactPlayer(player);
     compact.authEmail=String(player.authEmail||playerAuthEmail(player.id));
     const batch=db.batch();
@@ -323,7 +317,7 @@ async function deletePlayer(id,code){
   const list=await localPlayers();
   await saveLocalPlayers(list.filter(p=>p.id!==id));
 }
-async function reserveUniqueCode(uid,authSecret=null){
+async function reserveUniqueCode(uid){
   for(let i=0;i<1000;i++){
     const code=randomCode();
     try{
@@ -331,7 +325,7 @@ async function reserveUniqueCode(uid,authSecret=null){
         const ref=db.collection('playerCodes').doc(code);
         const snap=await tx.get(ref);
         if(snap.exists)throw new Error('CODE_TAKEN');
-        tx.set(ref,{uid,authSecret:String(authSecret||code),createdAt:Date.now(),updatedAt:Date.now()});
+        tx.set(ref,{uid,createdAt:Date.now()});
       });
       return code;
     }catch(err){
@@ -399,15 +393,18 @@ for(let i=0;i<14;i++){
 }
 
 async function loadLevelConfig(){
-  // Vakaa käynnistys: tasovalikko ei saa koskaan riippua verkkoyhteydestä,
-  // Firestore-oikeuksista tai kirjautumissession valmistumisesta.
-  levelConfig=DEFAULT_LEVELS.map(level=>({
-    ...level,
-    notes:[...level.notes]
-  }));
+  if(!db){levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));return levelConfig;}
+  try{
+    const snap=await db.collection('gameConfig').doc('levels').collection('items').orderBy('order').get();
+    if(!snap.empty){
+      levelConfig=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(x=>x.active!==false&&Array.isArray(x.notes)&&x.notes.length)
+        .map((x,i)=>({name:'Taso '+(i+1),stars:i+1,requiredPerfectRuns:10,targetTime:null,active:true,...x,notes:x.notes.map(String)}))
+        .sort((a,b)=>(a.order||0)-(b.order||0));
+    }else levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
+  }catch(err){console.warn('Tasomäärityksiä ei voitu ladata, käytetään oletuksia',err);levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));}
   return levelConfig;
 }
-
 function normalizeProgress(player){
   currentPlayerProgress=(player?.levelProgress&&typeof player.levelProgress==='object')?structuredClone(player.levelProgress):{};
   currentUnlockedLevelIds=Array.isArray(player?.unlockedLevelIds)&&player.unlockedLevelIds.length?[...new Set(player.unlockedLevelIds.map(String))]:[levelConfig[0]?.id||'level_hag'];
@@ -433,8 +430,7 @@ function applyLevel(level){
 }
 async function showLevelChooser(){
   await loadLevelConfig();
-  // Pelaajan eteneminen on ladattu jo selectPlayer()-vaiheessa. Älä tee tässä
-  // uutta Firestore-lukua, jotta tasovalikko ja mikrofoni avautuvat varmasti.
+  const p=currentPlayerId?await getPlayer(currentPlayerId):null;if(p)normalizeProgress(p);
   const box=document.getElementById('levelChoices');box.innerHTML='';
   document.getElementById('levelPlayerSummary').textContent=currentPlayerName+' · '+('⭐'.repeat(starsForPlayer()));
   levelConfig.forEach(level=>{
@@ -443,48 +439,14 @@ async function showLevelChooser(){
     const b=document.createElement('button');b.className='levelChoice'+(unlocked?'':' locked');b.disabled=!unlocked;
     b.innerHTML='<span class="levelStars">'+('⭐'.repeat(Number(level.stars)||1))+'</span><strong>'+escapeHtml(level.name||level.id)+'</strong><small>Sävelet: '+escapeHtml(level.notes.join(' '))+'</small><small>'+(unlocked?((progress.perfectRuns||0)+' / '+(level.requiredPerfectRuns||10)+' virheetöntä'):'🔒 Lukittu')+'</small>';
     if(currentLevel?.id===level.id&&unlocked)b.innerHTML+='<span class="levelActiveBadge">Nykyinen</span>';
-    if(unlocked){
-      // Mikrofonilupa pyydetään yhdestä tavallisesta click-tapahtumasta.
-      // Pointerdown-käynnistys saattoi Safarissa avata lupakyselyn ja samalla
-      // peruuttaa sitä seuraavan click-tapahtuman, jolloin peli jäi puoliksi käyntiin.
-      b.addEventListener('click',()=>startSelectedLevel(level));
-    }
-    box.appendChild(b);
+    if(unlocked)b.addEventListener('click',()=>startSelectedLevel(level));box.appendChild(b);
   });
   document.getElementById('levelOverlay').style.display='grid';
 }
 async function startSelectedLevel(level){
-  applyLevel(level);
-  document.getElementById('levelOverlay').style.display='none';
-
-  // Käynnistä mikrofoni heti käyttäjän tasopainalluksesta. Safari ja iPad voivat
-  // estää getUserMedia-pyynnön, jos ennen sitä odotetaan Firebase-kutsuja.
-  try{
-    if(!microphoneEngine||!microphoneEngine.running)await startMic();
-  }catch(err){
-    console.error('Mikrofonin käynnistys epäonnistui:',err);
-    showMessage('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa ja yritä uudelleen.');
-    document.getElementById('levelOverlay').style.display='grid';
-    return;
-  }
-
-  resetGame();
-
-  // Profiilin tasovalinta tallennetaan vasta mikrofonin käynnistyksen jälkeen.
-  // Tallennusvirhe ei saa estää itse peliä.
-  if(currentPlayerId){
-    try{
-      const p=await getPlayer(currentPlayerId);
-      if(p){
-        p.currentLevelId=level.id;
-        p.unlockedLevelIds=currentUnlockedLevelIds;
-        p.levelProgress=currentPlayerProgress;
-        await writePlayer(p);
-      }
-    }catch(err){
-      console.warn('Tasovalinnan tallennus epäonnistui:',err);
-    }
-  }
+  applyLevel(level);document.getElementById('levelOverlay').style.display='none';
+  if(currentPlayerId){const p=await getPlayer(currentPlayerId);if(p){p.currentLevelId=level.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;await writePlayer(p);}}
+  if(!microphoneEngine||!microphoneEngine.running)await startMic();resetGame();
 }
 async function updateLevelProgress(durationMs){
   if(!currentPlayerId||!currentLevel)return null;
@@ -828,10 +790,7 @@ function updateMicrophoneUi(output){
   if(output.status==='signal'){
     const finnishNote=pitchClassToFinnish[output.pitchClass] || output.display || '–';
     listen.firstChild.textContent=`KUULEN: ${finnishNote}`;
-    // Hyväksy kaikki kulloisellakin tasolla käytössä olevat sävelet.
-    // Aiemmin vain G, A ja H rekisteröityivät, joten C/F/D/E-tasoilla
-    // mikrofoni näytti olevan päällä mutta osumia ei koskaan tullut.
-    if(NOTES.includes(finnishNote)) hitTarget(finnishNote);
+    if(['G','A','H'].includes(finnishNote)) hitTarget(finnishNote);
   }else{
     listen.firstChild.textContent=statusNames[output.status] || 'KUUNTELEN…';
   }
@@ -856,9 +815,8 @@ function ensureMicrophoneEngine(){
 
 async function startMic(){
   const engine=ensureMicrophoneEngine();
-  if(!engine)throw new Error('Microphone Engineä ei voitu ladata.');
+  if(!engine)return;
   await engine.start();
-  if(!engine.running)throw new Error('Mikrofoni ei käynnistynyt.');
 }
 
 async function startForNamedPlayer(){
@@ -883,19 +841,19 @@ async function startForNamedPlayer(){
           const ref=db.collection('playerCodes').doc(code);
           const snap=await tx.get(ref);
           if(snap.exists)throw new Error('CODE_TAKEN');
-          tx.set(ref,{uid:createdUser.uid,authSecret:code,createdAt:Date.now(),updatedAt:Date.now()});
+          tx.set(ref,{uid:createdUser.uid,createdAt:Date.now()});
         });
       }catch(e){
         code=await reserveUniqueCode(createdUser.uid);
         await createdUser.updatePassword(playerPassword(code));
       }
-      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authSecret:code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player);
       await selectPlayer(player);
       pendingPlayer=player;
     }else{
       const code=await uniqueRandomCode();
-      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authSecret:code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player); await selectPlayer(player); pendingPlayer=player;
     }
     document.getElementById('codeTitle').textContent='Pelaaja luotu!';
@@ -949,10 +907,7 @@ document.getElementById('codeContinue').addEventListener('click',async()=>{
         player=cached||pendingPlayer;
       }else{
         if(auth.currentUser)await auth.signOut();
-        const codeDoc=await db.collection('playerCodes').doc(code).get();
-        if(!codeDoc.exists||String(codeDoc.data()?.uid)!==String(pendingPlayer.id))throw new Error('Pelikoodi ei täsmää.');
-        const authSecret=String(codeDoc.data()?.authSecret||codeDoc.data()?.authLoginCode||code);
-        const cred=await auth.signInWithEmailAndPassword(email,playerPassword(authSecret));
+        const cred=await auth.signInWithEmailAndPassword(email,playerPassword(code));
         player=await getPlayer(cred.user.uid);
       }
     }else if(code!==String(pendingPlayer.code))throw new Error('Pelikoodi ei täsmää.');
@@ -1056,55 +1011,7 @@ document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
 });
 document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 
-function waitForFirebaseUser(timeoutMs=12000){
-  if(!auth)return Promise.resolve(null);
-  if(auth.currentUser)return Promise.resolve(auth.currentUser);
-  return new Promise(resolve=>{
-    let done=false;
-    const finish=user=>{if(done)return;done=true;clearTimeout(timer);unsub?.();resolve(user||null)};
-    const unsub=auth.onAuthStateChanged(finish,()=>finish(null));
-    const timer=setTimeout(()=>finish(auth.currentUser),timeoutMs);
-  });
-}
-
-loadLevelConfig().then(async()=>{
-  applyLevel(levelConfig[0]);
-  const q=new URLSearchParams(location.search);
-  const pid=q.get('playerId'),code=q.get('code'),teacher=q.get('teacher')==='1';
-  if(pid&&teacher&&db&&auth){
-    try{
-      const user=await waitForFirebaseUser();
-      if(!user)throw new Error('Kirjaudu ensin Huilustudio Adminiin.');
-      const adminDoc=await db.collection('admins').doc(user.uid).get();
-      if(!adminDoc.exists)throw new Error('Kirjautuneella käyttäjällä ei ole opettajan oikeuksia.');
-      teacherPlayMode=true;teacherAdminUid=user.uid;
-      const full=await getPlayer(pid);
-      if(!full)throw new Error('Pelaajaprofiilia ei löytynyt.');
-      document.getElementById('startOverlay').style.display='none';
-      await selectPlayer(full);
-      await beginGame();
-      history.replaceState({},'',location.pathname);
-    }catch(e){
-      console.error('Opettajan oppilasnäkymä epäonnistui',e);
-      alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));
-    }
-  }else if(pid&&code&&db&&auth){
-    try{
-      const pub=await db.collection('publicPlayers').doc(pid).get();
-      if(!pub.exists)throw new Error('Pelaajaa ei löytynyt');
-      const player=hydratePlayer({id:pub.id,...pub.data()});
-      if(auth.currentUser)await auth.signOut();
-      const codeDoc=await db.collection('playerCodes').doc(code).get();
-      if(!codeDoc.exists||String(codeDoc.data()?.uid)!==String(pid))throw new Error('Pelikoodi ei täsmää.');
-      const authSecret=String(codeDoc.data()?.authSecret||codeDoc.data()?.authLoginCode||code);
-      const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(authSecret));
-      const full=await getPlayer(cred.user.uid);
-      if(!full)throw new Error('Pelaajaprofiilia ei löytynyt');
-      document.getElementById('startOverlay').style.display='none';
-      await selectPlayer(full);await beginGame();history.replaceState({},'',location.pathname);
-    }catch(e){console.error('Admin-käynnistys epäonnistui',e);alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));}
-  }
-}).catch(console.warn);
+loadLevelConfig().then(()=>applyLevel(levelConfig[0])).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
 ensureMicrophoneEngine();
