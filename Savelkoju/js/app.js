@@ -1,13 +1,18 @@
 (()=>{
 'use strict';
 
-const NOTES=['H','A','G'];
+let NOTES=['H','A','G'];
+const ALL_NOTES=['H','A','G','C','F','D','E'];
 const positions={
   H:{x:323,y:550,cx:364,cy:591},
   A:{x:587,y:550,cx:628,cy:591},
-  G:{x:852,y:550,cx:893,cy:591}
+  G:{x:852,y:550,cx:893,cy:591},
+  C:{x:1116,y:550,cx:1157,cy:591},
+  F:{x:323,y:279,cx:364,cy:320},
+  D:{x:587,y:279,cx:628,cy:320},
+  E:{x:852,y:279,cx:893,cy:320}
 };
-const pitchClassToFinnish={11:'H',9:'A',7:'G'};
+const pitchClassToFinnish={11:'H',9:'A',7:'G',0:'C',5:'F',2:'D',4:'E'};
 const reticle=document.getElementById('reticle');
 const spark=document.getElementById('spark');
 const targetFlash=document.getElementById('targetFlash');
@@ -15,7 +20,11 @@ const pling=document.getElementById('pling');
 const targetZones={
   H:document.getElementById('zoneH'),
   A:document.getElementById('zoneA'),
-  G:document.getElementById('zoneG')
+  G:document.getElementById('zoneG'),
+  C:document.getElementById('zoneC'),
+  F:document.getElementById('zoneF'),
+  D:document.getElementById('zoneD'),
+  E:document.getElementById('zoneE')
 };
 const targetLabel=document.getElementById('targetLabel');
 const scoreValue=document.getElementById('scoreValue');
@@ -39,6 +48,21 @@ const prizeCatalog=[
   {id:'gift',icon:'🎁',name:'Yllätyspaketti'}
 ];
 
+
+const DEFAULT_LEVELS=[
+  {id:'level_hag',name:'Aloittelija',stars:1,order:1,notes:['H','A','G'],unlockNote:null,targetTime:8,requiredPerfectRuns:10,active:true},
+  {id:'level_c',name:'Soittaja',stars:2,order:2,notes:['H','A','G','C'],unlockNote:'C',targetTime:10,requiredPerfectRuns:10,active:true},
+  {id:'level_f',name:'Säveltaitaja',stars:3,order:3,notes:['H','A','G','C','F'],unlockNote:'F',targetTime:12,requiredPerfectRuns:10,active:true},
+  {id:'level_d',name:'Mestari',stars:4,order:4,notes:['H','A','G','C','F','D'],unlockNote:'D',targetTime:14,requiredPerfectRuns:10,active:true},
+  {id:'level_e',name:'Virtuoosi',stars:5,order:5,notes:['H','A','G','C','F','D','E'],unlockNote:'E',targetTime:16,requiredPerfectRuns:10,active:true}
+];
+let levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
+let currentLevel=levelConfig[0];
+let currentPlayerProgress={};
+let currentUnlockedLevelIds=['level_hag'];
+let teacherPlayMode=false;
+let teacherAdminUid=null;
+
 let target='A';
 let cabinetWasOpenedDuringGame=false;
 let cabinetOpenedFromPrize=false;
@@ -50,6 +74,7 @@ let paused=false;
 let accepting=true;
 let aimTime=0;
 let microphoneEngine=null;
+let microphoneStartPromise=null;
 let lastAccepted=0;
 let roundStartedAt=0;
 let missCount=0;
@@ -119,16 +144,26 @@ function expandCabinet(cabinetIds){
   const byId=new Map(prizeCatalog.map(p=>[String(p.id),p]));
   return compactCabinet(cabinetIds).map(id=>byId.get(String(id))).filter(Boolean);
 }
+const PLAYER_AVATARS=['🦊','🐼','🐻','🐰','🦉','🐸','🦁','🐧'];
+function fallbackAvatar(seed=''){let n=0;for(const ch of String(seed))n=(n*31+ch.codePointAt(0))>>>0;return PLAYER_AVATARS[n%PLAYER_AVATARS.length];}
+let selectedNewAvatar=PLAYER_AVATARS[0];
+function renderAvatarChoices(){const box=document.getElementById('avatarChoices');if(!box)return;box.innerHTML='';PLAYER_AVATARS.forEach((avatar,i)=>{const b=document.createElement('button');b.type='button';b.className='avatarChoice'+(avatar===selectedNewAvatar?' selected':'');b.textContent=avatar;b.setAttribute('aria-label','Valitse hahmo '+avatar);b.setAttribute('aria-pressed',avatar===selectedNewAvatar?'true':'false');b.addEventListener('click',()=>{selectedNewAvatar=avatar;renderAvatarChoices()});box.appendChild(b)});}
 function compactPlayer(player){
   return {
     id:String(player.id||randomId()),
     displayName:String(player.displayName||'Pelaaja').slice(0,60),
     displayNameLower:normalizePlayerKey(player.displayNameLower||player.displayName||'Pelaaja'),
     code:String(player.code||randomCode()).replace(/\D/g,'').slice(0,3),
+    authSecret:String(player.authSecret||player.authLoginCode||player.code||'').slice(0,64),
+    authLoginCode:String(player.authSecret||player.authLoginCode||player.code||'').slice(0,64),
+    avatar:String(player.avatar||fallbackAvatar(player.id||player.displayName)).slice(0,4),
     cabinetIds:compactCabinet(Array.isArray(player.cabinet)?player.cabinet:player.cabinetIds),
     createdAt:Number(player.createdAt)||Date.now(),
     lastPlayedAt:Number(player.lastPlayedAt)||Date.now(),
-    updatedAt:Number(player.updatedAt)||Date.now()
+    updatedAt:Number(player.updatedAt)||Date.now(),
+    currentLevelId:String(player.currentLevelId||'level_hag'),
+    unlockedLevelIds:Array.isArray(player.unlockedLevelIds)&&player.unlockedLevelIds.length?player.unlockedLevelIds.map(String):['level_hag'],
+    levelProgress:(player.levelProgress&&typeof player.levelProgress==='object')?player.levelProgress:{}
   };
 }
 function hydratePlayer(player){
@@ -198,17 +233,20 @@ async function saveLocalPlayers(players){
 function playerAuthEmail(id){
   return `player-${String(id).replace(/[^a-zA-Z0-9_-]/g,'')}@savelkoju.app`;
 }
-function playerPassword(code){ return `Skj!${String(code).replace(/\D/g,'').slice(0,3)}`; }
+function playerPassword(secret){ return `Skj!${String(secret||'').slice(0,64)}`; }
 function publicPlayer(player){
   const p=compactPlayer(player);
   return {
     displayName:p.displayName,
     displayNameLower:p.displayNameLower,
+    avatar:p.avatar,
     authEmail:String(player.authEmail||playerAuthEmail(p.id)),
     cabinetCount:p.cabinetIds.length,
     lastPlayedAt:p.lastPlayedAt,
     createdAt:p.createdAt,
-    updatedAt:p.updatedAt
+    updatedAt:p.updatedAt,
+    currentLevelId:p.currentLevelId,
+    highestStars:Math.max(1,...p.unlockedLevelIds.map(id=>levelConfig.find(l=>l.id===id)?.stars||1))
   };
 }
 async function searchPublicPlayers(prefix, pageSize=20, afterDoc=null){
@@ -249,7 +287,8 @@ async function getPlayer(id){
 async function writePlayer(player){
   player.updatedAt=Date.now();
   if(db){
-    if(!auth?.currentUser||auth.currentUser.uid!==player.id)throw new Error('Pelaajaistunto ei ole aktiivinen.');
+    if(!auth?.currentUser)throw new Error('Pelaajaistunto ei ole aktiivinen.');
+    if(auth.currentUser.uid!==player.id&&!teacherPlayMode)throw new Error('Pelaajaistunto ei ole aktiivinen.');
     const compact=compactPlayer(player);
     compact.authEmail=String(player.authEmail||playerAuthEmail(player.id));
     const batch=db.batch();
@@ -284,7 +323,7 @@ async function deletePlayer(id,code){
   const list=await localPlayers();
   await saveLocalPlayers(list.filter(p=>p.id!==id));
 }
-async function reserveUniqueCode(uid){
+async function reserveUniqueCode(uid,authSecret=null){
   for(let i=0;i<1000;i++){
     const code=randomCode();
     try{
@@ -292,7 +331,7 @@ async function reserveUniqueCode(uid){
         const ref=db.collection('playerCodes').doc(code);
         const snap=await tx.get(ref);
         if(snap.exists)throw new Error('CODE_TAKEN');
-        tx.set(ref,{uid,createdAt:Date.now()});
+        tx.set(ref,{uid,authSecret:String(authSecret||code),createdAt:Date.now(),updatedAt:Date.now()});
       });
       return code;
     }catch(err){
@@ -349,7 +388,7 @@ async function selectPlayer(player){
   currentPlayerId=player.id; currentPlayerName=player.displayName; currentPlayerKey=normalizePlayerKey(currentPlayerName);
   currentPlayerCode=player.code; currentPlayerAuthEmail=String(player.authEmail||playerAuthEmail(player.id)); cabinet=Array.isArray(player.cabinet)?player.cabinet:[];
   cabinetCount.textContent=cabinet.length; await rememberRecent(player.id);
-  const label=document.getElementById('currentPlayer'); label.textContent=currentPlayerName+' · '+cabinet.length+' palkintoa'; label.style.display='block';
+  normalizeProgress(player);updatePlayerBadge();
   player.lastPlayedAt=Date.now(); await writePlayer(player);
 }
 
@@ -357,6 +396,112 @@ for(let i=0;i<14;i++){
   const b=document.createElement('span');
   b.className='bar';
   meter.appendChild(b);
+}
+
+async function loadLevelConfig(){
+  // Vakaa käynnistys: tasovalikko ei saa koskaan riippua verkkoyhteydestä,
+  // Firestore-oikeuksista tai kirjautumissession valmistumisesta.
+  levelConfig=DEFAULT_LEVELS.map(level=>({
+    ...level,
+    notes:[...level.notes]
+  }));
+  return levelConfig;
+}
+
+function normalizeProgress(player){
+  currentPlayerProgress=(player?.levelProgress&&typeof player.levelProgress==='object')?structuredClone(player.levelProgress):{};
+  currentUnlockedLevelIds=Array.isArray(player?.unlockedLevelIds)&&player.unlockedLevelIds.length?[...new Set(player.unlockedLevelIds.map(String))]:[levelConfig[0]?.id||'level_hag'];
+  const first=levelConfig[0]?.id||'level_hag';if(!currentUnlockedLevelIds.includes(first))currentUnlockedLevelIds.unshift(first);
+  const wanted=levelConfig.find(l=>l.id===player?.currentLevelId&&currentUnlockedLevelIds.includes(l.id));
+  currentLevel=wanted||[...levelConfig].reverse().find(l=>currentUnlockedLevelIds.includes(l.id))||levelConfig[0];
+}
+function starsForPlayer(){return Math.max(1,...currentUnlockedLevelIds.map(id=>levelConfig.find(l=>l.id===id)?.stars||1));}
+function updatePlayerBadge(){
+  if(!currentPlayerName)return;
+  const label=document.getElementById('currentPlayer');
+  label.innerHTML=escapeHtml(currentPlayerName)+' · '+cabinet.length+' palkintoa <span class="rankStars">'+('⭐'.repeat(starsForPlayer()))+'</span>';
+  label.style.display='block';
+}
+function applyLevel(level){
+  currentLevel=level||levelConfig[0];NOTES=[...currentLevel.notes];
+  ALL_NOTES.forEach(note=>{
+    const active=NOTES.includes(note);
+    const zone=targetZones[note];if(zone&&zone.classList.contains('extraTarget'))zone.classList.toggle('active',active);
+    const btn=document.getElementById('btn'+note);if(btn&&btn.classList.contains('extraNoteBtn'))btn.classList.toggle('active',active);
+  });
+  if(!NOTES.includes(target))target=NOTES[0]||'H';setTarget(target);
+}
+async function showLevelChooser(){
+  await loadLevelConfig();
+  // Pelaajan eteneminen on ladattu jo selectPlayer()-vaiheessa. Älä tee tässä
+  // uutta Firestore-lukua, jotta tasovalikko ja mikrofoni avautuvat varmasti.
+  const box=document.getElementById('levelChoices');box.innerHTML='';
+  document.getElementById('levelPlayerSummary').textContent=currentPlayerName+' · '+('⭐'.repeat(starsForPlayer()));
+  levelConfig.forEach(level=>{
+    const unlocked=currentUnlockedLevelIds.includes(level.id);
+    const progress=currentPlayerProgress[level.id]||{};
+    const b=document.createElement('button');b.className='levelChoice'+(unlocked?'':' locked');b.disabled=!unlocked;
+    b.innerHTML='<span class="levelStars">'+('⭐'.repeat(Number(level.stars)||1))+'</span><strong>'+escapeHtml(level.name||level.id)+'</strong><small>Sävelet: '+escapeHtml(level.notes.join(' '))+'</small><small>'+(unlocked?((progress.perfectRuns||0)+' / '+(level.requiredPerfectRuns||10)+' virheetöntä'):'🔒 Lukittu')+'</small>';
+    if(currentLevel?.id===level.id&&unlocked)b.innerHTML+='<span class="levelActiveBadge">Nykyinen</span>';
+    if(unlocked){
+      // Mikrofonilupa pyydetään yhdestä tavallisesta click-tapahtumasta.
+      // Pointerdown-käynnistys saattoi Safarissa avata lupakyselyn ja samalla
+      // peruuttaa sitä seuraavan click-tapahtuman, jolloin peli jäi puoliksi käyntiin.
+      b.addEventListener('click',()=>startSelectedLevel(level));
+    }
+    box.appendChild(b);
+  });
+  document.getElementById('levelOverlay').style.display='grid';
+}
+async function startSelectedLevel(level){
+  applyLevel(level);
+  document.getElementById('levelOverlay').style.display='none';
+
+  // Käynnistä mikrofoni heti käyttäjän tasopainalluksesta. Safari ja iPad voivat
+  // estää getUserMedia-pyynnön, jos ennen sitä odotetaan Firebase-kutsuja.
+  try{
+    if(!microphoneEngine||!microphoneEngine.running)await startMic();
+  }catch(err){
+    console.error('Mikrofonin käynnistys epäonnistui:',err);
+    showMessage('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa ja yritä uudelleen.');
+    document.getElementById('levelOverlay').style.display='grid';
+    return;
+  }
+
+  resetGame();
+
+  // Profiilin tasovalinta tallennetaan vasta mikrofonin käynnistyksen jälkeen.
+  // Tallennusvirhe ei saa estää itse peliä.
+  if(currentPlayerId){
+    try{
+      const p=await getPlayer(currentPlayerId);
+      if(p){
+        p.currentLevelId=level.id;
+        p.unlockedLevelIds=currentUnlockedLevelIds;
+        p.levelProgress=currentPlayerProgress;
+        await writePlayer(p);
+      }
+    }catch(err){
+      console.warn('Tasovalinnan tallennus epäonnistui:',err);
+    }
+  }
+}
+async function updateLevelProgress(durationMs){
+  if(!currentPlayerId||!currentLevel)return null;
+  const perfect=missCount===0;const id=currentLevel.id;
+  const progress={perfectRuns:0,bestTimeMs:null,speedPromotion:false,...(currentPlayerProgress[id]||{})};
+  if(perfect)progress.perfectRuns=(Number(progress.perfectRuns)||0)+1;
+  if(Number.isFinite(durationMs)&&(progress.bestTimeMs==null||durationMs<progress.bestTimeMs))progress.bestTimeMs=durationMs;
+  const speed=perfect&&Number(currentLevel.targetTime)>0&&durationMs<=Number(currentLevel.targetTime)*1000;
+  if(speed)progress.speedPromotion=true;currentPlayerProgress[id]=progress;
+  const idx=levelConfig.findIndex(l=>l.id===id);const next=levelConfig[idx+1];
+  let promotion=null;
+  if(next&&!currentUnlockedLevelIds.includes(next.id)&&(speed||progress.perfectRuns>=Number(currentLevel.requiredPerfectRuns||10))){
+    currentUnlockedLevelIds.push(next.id);promotion={next,speed};
+  }
+  const p=await getPlayer(currentPlayerId);
+  if(p){p.cabinet=cabinet;p.currentLevelId=promotion?.next?.id||currentLevel.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;p.lastPlayedAt=Date.now();await writePlayer(p);}
+  updatePlayerBadge();return promotion;
 }
 
 function fitStage(){
@@ -368,10 +513,10 @@ fitStage();
 
 async function saveCabinet(){
   cabinetCount.textContent=cabinet.length;
-  if(currentPlayerName){document.getElementById('currentPlayer').textContent=currentPlayerName+' · '+cabinet.length+' palkintoa';}
+  if(currentPlayerName)updatePlayerBadge();
   if(currentPlayerId){
     const p=await getPlayer(currentPlayerId);
-    if(p){p.cabinet=cabinet;p.lastPlayedAt=Date.now();await writePlayer(p);}
+    if(p){p.cabinet=cabinet;p.currentLevelId=currentLevel?.id||p.currentLevelId;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;p.lastPlayedAt=Date.now();await writePlayer(p);}
   }
 }
 
@@ -430,7 +575,7 @@ function showSpark(note){
 }
 
 function targetColor(note){
-  return {H:'#d6543d',A:'#efbd39',G:'#4e91bb'}[note] || '#efbd39';
+  return {H:'#d6543d',A:'#efbd39',G:'#4e91bb',C:'#8d6cc4',F:'#61a85b',D:'#e98545',E:'#d56c91'}[note] || '#efbd39';
 }
 
 function playHitEffects(note){
@@ -542,7 +687,9 @@ async function saveSession(prize){
     playerId:currentPlayerId,
     displayName:currentPlayerName,
     gameId:'savelkoju',
-    levelId:'hag',
+    levelId:currentLevel?.id||'level_hag',
+    levelName:currentLevel?.name||'Aloittelija',
+    stars:Number(currentLevel?.stars)||1,
     score:Number(score)||0,
     targets:10,
     misses:Number(missCount)||0,
@@ -561,11 +708,10 @@ async function finishGame(){
   reticle.style.opacity='0';
 
   const prize=choosePrize();
+  const durationMs=roundStartedAt?Math.max(0,Date.now()-roundStartedAt):null;
   cabinet.push(prize);
   cabinetCount.textContent=cabinet.length;
-  if(currentPlayerName){
-    document.getElementById('currentPlayer').textContent=currentPlayerName+' · '+cabinet.length+' palkintoa';
-  }
+  if(currentPlayerName)updatePlayerBadge();
 
   // Näytä palkinto ja jatkopainikkeet heti. Pilvitallennus ei saa koskaan
   // pysäyttää pelin loppunäkymää verkkokatkon, kirjautumisvirheen tai hitaan
@@ -573,6 +719,12 @@ async function finishGame(){
   document.getElementById('prizeIcon').textContent=prize.icon;
   document.getElementById('prizeTitle').textContent='Sait palkinnon: '+prize.name+'!';
   document.getElementById('prizeInfo').textContent='Palkintokaapissa on nyt '+cabinet.length+' palkintoa.';
+  const progressPromise=updateLevelProgress(durationMs);
+  progressPromise.then(promotion=>{
+    if(!promotion)return;
+    document.getElementById('prizeTitle').textContent=(promotion.speed?'⚡ PIKAYLENNYS! ':'UUSI TASO! ')+('⭐'.repeat(Number(promotion.next.stars)||1));
+    document.getElementById('prizeInfo').textContent='Uusi sävel '+(promotion.next.unlockNote||promotion.next.notes.at(-1))+' avattu. Sait myös palkinnon: '+prize.name+'.';
+  }).catch(err=>console.warn('Tasojen tallennus epäonnistui',err));
 
   const scene=document.getElementById('prizeScene');
   buildConfetti();
@@ -586,7 +738,7 @@ async function finishGame(){
 
   // Tallenna taustalla. Mahdollinen virhe ilmoitetaan konsolissa, mutta
   // Pelaa uudelleen -painike toimii aina.
-  Promise.allSettled([saveCabinet(),saveSession(prize)]).then(results=>{
+  Promise.allSettled([progressPromise,saveSession(prize)]).then(results=>{
     results.forEach(r=>{if(r.status==='rejected')console.warn('Kierroksen tallennus epäonnistui',r.reason);});
   });
 }
@@ -674,9 +826,12 @@ function updateMicrophoneUi(output){
   };
 
   if(output.status==='signal'){
-    const finnishNote=({7:'G',9:'A',11:'H'})[output.pitchClass] || output.display || '–';
+    const finnishNote=pitchClassToFinnish[output.pitchClass] || output.display || '–';
     listen.firstChild.textContent=`KUULEN: ${finnishNote}`;
-    if(['G','A','H'].includes(finnishNote)) hitTarget(finnishNote);
+    // Hyväksy kaikki kulloisellakin tasolla käytössä olevat sävelet.
+    // Aiemmin vain G, A ja H rekisteröityivät, joten C/F/D/E-tasoilla
+    // mikrofoni näytti olevan päällä mutta osumia ei koskaan tullut.
+    if(NOTES.includes(finnishNote)) hitTarget(finnishNote);
   }else{
     listen.firstChild.textContent=statusNames[output.status] || 'KUUNTELEN…';
   }
@@ -701,8 +856,9 @@ function ensureMicrophoneEngine(){
 
 async function startMic(){
   const engine=ensureMicrophoneEngine();
-  if(!engine)return;
+  if(!engine)throw new Error('Microphone Engineä ei voitu ladata.');
   await engine.start();
+  if(!engine.running)throw new Error('Mikrofoni ei käynnistynyt.');
 }
 
 async function startForNamedPlayer(){
@@ -727,19 +883,19 @@ async function startForNamedPlayer(){
           const ref=db.collection('playerCodes').doc(code);
           const snap=await tx.get(ref);
           if(snap.exists)throw new Error('CODE_TAKEN');
-          tx.set(ref,{uid:createdUser.uid,createdAt:Date.now()});
+          tx.set(ref,{uid:createdUser.uid,authSecret:code,createdAt:Date.now(),updatedAt:Date.now()});
         });
       }catch(e){
         code=await reserveUniqueCode(createdUser.uid);
         await createdUser.updatePassword(playerPassword(code));
       }
-      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authSecret:code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player);
       await selectPlayer(player);
       pendingPlayer=player;
     }else{
       const code=await uniqueRandomCode();
-      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authSecret:code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player); await selectPlayer(player); pendingPlayer=player;
     }
     document.getElementById('codeTitle').textContent='Pelaaja luotu!';
@@ -761,9 +917,10 @@ async function beginGame(){
   document.getElementById('codeOverlay').style.display='none';
   document.getElementById('generatedCode').classList.add('hidden');
   document.getElementById('playerCode').classList.remove('hidden'); document.getElementById('codeCancel').classList.remove('hidden'); document.getElementById('codeContinue').textContent='Jatka peliä';
-  if(!microphoneEngine || !microphoneEngine.running)await startMic(); resetGame();
+  await showLevelChooser();
 }
 
+renderAvatarChoices();
 document.getElementById('showSearchBtn').addEventListener('click',()=>{showStartView('searchView');document.getElementById('playerSearch').focus();});
 document.getElementById('showNewBtn').addEventListener('click',()=>{showStartView('newView');document.getElementById('playerName').focus();});
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showStartView('homeView')));
@@ -792,7 +949,10 @@ document.getElementById('codeContinue').addEventListener('click',async()=>{
         player=cached||pendingPlayer;
       }else{
         if(auth.currentUser)await auth.signOut();
-        const cred=await auth.signInWithEmailAndPassword(email,playerPassword(code));
+        const codeDoc=await db.collection('playerCodes').doc(code).get();
+        if(!codeDoc.exists||String(codeDoc.data()?.uid)!==String(pendingPlayer.id))throw new Error('Pelikoodi ei täsmää.');
+        const authSecret=String(codeDoc.data()?.authSecret||codeDoc.data()?.authLoginCode||code);
+        const cred=await auth.signInWithEmailAndPassword(email,playerPassword(authSecret));
         player=await getPlayer(cred.user.uid);
       }
     }else if(code!==String(pendingPlayer.code))throw new Error('Pelikoodi ei täsmää.');
@@ -866,6 +1026,8 @@ document.getElementById('teacherCloseBtn').addEventListener('click',async()=>{
 document.getElementById('btnH').addEventListener('click',()=>hitTarget('H'));
 document.getElementById('btnA').addEventListener('click',()=>hitTarget('A'));
 document.getElementById('btnG').addEventListener('click',()=>hitTarget('G'));
+['C','F','D','E'].forEach(n=>document.getElementById('btn'+n).addEventListener('click',()=>hitTarget(n)));
+document.getElementById('levelCancelBtn').addEventListener('click',()=>{document.getElementById('levelOverlay').style.display='none';document.getElementById('startOverlay').style.display='grid';showStartView('homeView');});
 
 addEventListener('keydown',e=>{
   if(typeof e.key !== 'string') return;
@@ -884,9 +1046,9 @@ document.getElementById('soundBtn').addEventListener('click',e=>{
   e.currentTarget.textContent=e.currentTarget.textContent==='🔊'?'🔇':'🔊';
 });
 
-document.getElementById('continueBtn').addEventListener('click',()=>{
+document.getElementById('continueBtn').addEventListener('click',async()=>{
   document.getElementById('prizeOverlay').style.display='none';
-  resetGame();
+  await showLevelChooser();
 });
 document.getElementById('cabinetBtn').addEventListener('click',()=>openCabinet('game'));
 document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
@@ -894,6 +1056,55 @@ document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
 });
 document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 
+function waitForFirebaseUser(timeoutMs=12000){
+  if(!auth)return Promise.resolve(null);
+  if(auth.currentUser)return Promise.resolve(auth.currentUser);
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=user=>{if(done)return;done=true;clearTimeout(timer);unsub?.();resolve(user||null)};
+    const unsub=auth.onAuthStateChanged(finish,()=>finish(null));
+    const timer=setTimeout(()=>finish(auth.currentUser),timeoutMs);
+  });
+}
+
+loadLevelConfig().then(async()=>{
+  applyLevel(levelConfig[0]);
+  const q=new URLSearchParams(location.search);
+  const pid=q.get('playerId'),code=q.get('code'),teacher=q.get('teacher')==='1';
+  if(pid&&teacher&&db&&auth){
+    try{
+      const user=await waitForFirebaseUser();
+      if(!user)throw new Error('Kirjaudu ensin Huilustudio Adminiin.');
+      const adminDoc=await db.collection('admins').doc(user.uid).get();
+      if(!adminDoc.exists)throw new Error('Kirjautuneella käyttäjällä ei ole opettajan oikeuksia.');
+      teacherPlayMode=true;teacherAdminUid=user.uid;
+      const full=await getPlayer(pid);
+      if(!full)throw new Error('Pelaajaprofiilia ei löytynyt.');
+      document.getElementById('startOverlay').style.display='none';
+      await selectPlayer(full);
+      await beginGame();
+      history.replaceState({},'',location.pathname);
+    }catch(e){
+      console.error('Opettajan oppilasnäkymä epäonnistui',e);
+      alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));
+    }
+  }else if(pid&&code&&db&&auth){
+    try{
+      const pub=await db.collection('publicPlayers').doc(pid).get();
+      if(!pub.exists)throw new Error('Pelaajaa ei löytynyt');
+      const player=hydratePlayer({id:pub.id,...pub.data()});
+      if(auth.currentUser)await auth.signOut();
+      const codeDoc=await db.collection('playerCodes').doc(code).get();
+      if(!codeDoc.exists||String(codeDoc.data()?.uid)!==String(pid))throw new Error('Pelikoodi ei täsmää.');
+      const authSecret=String(codeDoc.data()?.authSecret||codeDoc.data()?.authLoginCode||code);
+      const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(authSecret));
+      const full=await getPlayer(cred.user.uid);
+      if(!full)throw new Error('Pelaajaprofiilia ei löytynyt');
+      document.getElementById('startOverlay').style.display='none';
+      await selectPlayer(full);await beginGame();history.replaceState({},'',location.pathname);
+    }catch(e){console.error('Admin-käynnistys epäonnistui',e);alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));}
+  }
+}).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
 ensureMicrophoneEngine();

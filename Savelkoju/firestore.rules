@@ -14,14 +14,14 @@ service cloud.firestore {
       allow create, read, update: if isOwner(uid) || isAdmin();
       allow delete: if isAdmin();
       match /sessions/{sessionId} {
-        allow create: if isOwner(uid);
+        allow create: if isOwner(uid) || isAdmin();
         allow read, update, delete: if isAdmin();
       }
     }
     match /playerCodes/{code} {
-      allow get: if signedIn();
-      allow list: if false;
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       allow update: if false;
     }
