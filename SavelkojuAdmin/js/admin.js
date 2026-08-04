@@ -78,44 +78,8 @@ async function openPlayer(p){
 
 let rewardCache={bear:'🧸',train:'🚂',dino:'🦖',frog:'🐸',trumpet:'🎺',star:'⭐',duck:'🦆',crown:'👑',robot:'🤖',gift:'🎁'};function rewardIcon(id){return rewardCache[id]||'🏅'}
 async function updatePlayer(p,data){const now=Date.now();await db.collection('players').doc(p.id).set({...data,updatedAt:now},{merge:true});const pub={};if('cabinetIds'in data)pub.cabinetCount=data.cabinetIds.length;if('avatar'in data)pub.avatar=data.avatar;if(Object.keys(pub).length)await db.collection('publicPlayers').doc(p.id).set({...pub,updatedAt:now},{merge:true})}
-async function changeCode(p){
-  const button=$('#newCode');
-  if(button){button.disabled=true;button.textContent='Vaihdetaan…'}
-  try{
-    const mappings=await db.collection('playerCodes').where('uid','==',p.id).get();
-    let authSecret=String(p.authSecret||p.authLoginCode||'');
-    if(!authSecret){
-      for(const d of mappings.docs){
-        const data=d.data()||{};
-        authSecret=String(data.authSecret||data.authLoginCode||'');
-        if(authSecret)break;
-      }
-    }
-    if(!authSecret){
-      const entered=prompt('Anna pelaajan viimeksi varmasti toiminut kolminumeroinen koodi. Sitä tarvitaan vain tämän vanhan profiilin korjaukseen.',String(p.code||''));
-      if(entered===null)return;
-      authSecret=String(entered).replace(/\D/g,'').slice(0,3);
-      if(authSecret.length!==3)throw new Error('Anna kolminumeroinen viimeksi toimiva koodi.');
-    }
-    let code='';
-    for(let i=0;i<1000;i++){
-      const candidate=String(Math.floor(100+Math.random()*900));
-      const ref=db.collection('playerCodes').doc(candidate);
-      if(!(await ref.get()).exists){code=candidate;break}
-    }
-    if(!code)throw new Error('Vapaata pelikoodia ei löytynyt.');
-    const batch=db.batch();
-    mappings.docs.forEach(d=>batch.delete(d.ref));
-    batch.set(db.collection('playerCodes').doc(code),{uid:p.id,authSecret,createdAt:Date.now(),updatedAt:Date.now()});
-    batch.set(db.collection('players').doc(p.id),{code,authSecret,authLoginCode:authSecret,updatedAt:Date.now()},{merge:true});
-    await batch.commit();
-    p.code=code;p.authSecret=authSecret;p.authLoginCode=authSecret;
-    alert('Uusi pelikoodi: '+code+'\nKaikki vanhat koodivaraukset poistettiin. Uusi koodi toimii heti.');
-    $('#playerDialog').close();await openPlayer(p);await loadPlayers(true);
-  }catch(e){console.error(e);alert('Pelikoodin vaihtaminen epäonnistui: '+(e.message||'virhe'))}
-  finally{if(button){button.disabled=false;button.textContent='Luo uusi koodi'}}
-}
-async function removePlayer(p){if(!confirm('Poistetaanko '+p.displayName+' pysyvästi?'))return;const mappings=await db.collection('playerCodes').where('uid','==',p.id).get();const b=db.batch();b.delete(db.collection('players').doc(p.id));b.delete(db.collection('publicPlayers').doc(p.id));mappings.docs.forEach(d=>b.delete(d.ref));await b.commit();$('#playerDialog').close();loadPlayers(true);loadOverview()}
+async function changeCode(p){let code;let authLoginCode=String(p.authLoginCode||'').replace(/\D/g,'').slice(0,3);if(!authLoginCode){const entered=prompt('Anna pelaajan viimeksi toimiva pelikoodi. Tätä tarvitaan vain kerran vanhan profiilin päivittämiseen.',String(p.code||''));if(entered===null)return;authLoginCode=String(entered).replace(/\D/g,'').slice(0,3);if(authLoginCode.length!==3)return alert('Anna kolminumeroinen viimeksi toimiva koodi.')}for(let i=0;i<1000;i++){code=String(Math.floor(100+Math.random()*900));try{await db.runTransaction(async tx=>{const n=db.collection('playerCodes').doc(code),o=db.collection('playerCodes').doc(String(p.code));if((await tx.get(n)).exists)throw Error('taken');tx.set(n,{uid:p.id,authLoginCode,createdAt:Date.now()});tx.delete(o);tx.update(db.collection('players').doc(p.id),{code,authLoginCode,updatedAt:Date.now()})});break}catch(e){if(e.message!=='taken')throw e}}if(!code)throw new Error('Vapaata pelikoodia ei löytynyt.');p.code=code;p.authLoginCode=authLoginCode;alert('Uusi pelikoodi: '+code+'\nVanha koodi ei enää toimi.');$('#playerDialog').close();openPlayer(p);loadPlayers(true)}
+async function removePlayer(p){if(!confirm('Poistetaanko '+p.displayName+' pysyvästi?'))return;const b=db.batch();b.delete(db.collection('players').doc(p.id));b.delete(db.collection('publicPlayers').doc(p.id));b.delete(db.collection('playerCodes').doc(String(p.code)));await b.commit();$('#playerDialog').close();loadPlayers(true);loadOverview()}
 async function loadLevels(){const s=await db.collection('gameConfig').doc('levels').collection('items').orderBy('order').get();levelCache=s.empty?[...DEFAULT_LEVELS]:s.docs.map(d=>({id:d.id,...d.data()}));$('#levelList').innerHTML=s.docs.map(d=>itemRow('level',d.id,d.data())).join('')||'<p>Ei tasoja vielä.</p>';wireEditButtons()}
 async function loadRewards(){const s=await db.collection('gameConfig').doc('rewards').collection('items').orderBy('order').get();s.docs.forEach(d=>rewardCache[d.id]=d.data().icon||'🏅');$('#rewardList').innerHTML=s.docs.map(d=>itemRow('reward',d.id,d.data())).join('')||'<p>Ei omia palkintoasetuksia. Pelin oletuspalkinnot ovat käytössä.</p>';wireEditButtons()}
 function itemRow(type,id,x){const info=type==='level'?`${'⭐'.repeat(Number(x.stars)||1)} · ${esc((x.notes||[]).join(' '))} · uusi ${esc(x.unlockNote||'–')} · ⚡ ${x.targetTime||'–'} s · ${x.requiredPerfectRuns||0} virheetöntä · ${x.active===false?'piilotettu':'käytössä'}`:`${esc(x.icon||'🏅')} ${esc(x.name||id)}`;return `<div class="row"><div><b>${esc(x.name||id)}</b><div class="muted">${info}</div></div><div class="actions"><button class="secondary editItem" data-type="${type}" data-id="${esc(id)}">Muokkaa</button><button class="danger deleteItem" data-type="${type}" data-id="${esc(id)}">Poista</button></div></div>`}

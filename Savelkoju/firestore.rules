@@ -20,7 +20,7 @@ service cloud.firestore {
     }
     match /playerCodes/{code} {
       allow get: if true;
-      allow list: if isAdmin();
+      allow list: if false;
       allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       allow update: if false;
