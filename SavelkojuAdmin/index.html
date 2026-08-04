@@ -13,6 +13,6 @@
 <section id="levels" class="view hidden"><div class="top"><div><h2>Tasot</h2><p class="muted">Muutokset tulevat peliin seuraavalla avauskerralla. Tunniste kannattaa pitää muuttumattomana.</p></div><div class="actions"><button id="previewLevels" class="secondary">Esikatselu</button><button id="resetLevels" class="secondary">Palauta oletukset</button><button id="addLevel" class="primary">Lisää taso</button></div></div><div id="levelPreview" class="levelPreview hidden"></div><div id="levelList" class="list"></div></section>
 <section id="rewards" class="view hidden"><div class="top"><div><h2>Palkinnot</h2><p class="muted">Palkinnot tallennetaan tunnisteina. Emoji ja nimi voidaan vaihtaa myöhemmin.</p></div><button id="addReward" class="primary">Lisää palkinto</button></div><div id="rewardList" class="list"></div></section>
 </main>
-<dialog id="playerDialog"><div id="playerDetail"></div><form method="dialog" style="margin-top:16px"><button class="secondary">Sulje</button></form></dialog>
+<dialog id="playerDialog" class="playerDialog"><button id="closePlayerDialog" class="dialogClose" type="button" aria-label="Sulje">×</button><div id="playerDetail"></div></dialog>
 <dialog id="editDialog"><h2 id="editTitle"></h2><div id="editFields"></div><div class="actions" style="margin-top:14px"><button id="saveEdit" class="primary">Tallenna</button><button id="cancelEdit" class="secondary">Peruuta</button></div></dialog>
 <script src="js/admin.js"></script></body></html>
