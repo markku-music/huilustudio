@@ -153,7 +153,8 @@ function compactPlayer(player){
     displayName:String(player.displayName||'Pelaaja').slice(0,60),
     displayNameLower:normalizePlayerKey(player.displayNameLower||player.displayName||'Pelaaja'),
     code:String(player.code||randomCode()).replace(/\D/g,'').slice(0,3),
-    authLoginCode:String(player.authLoginCode||player.code||'').replace(/\D/g,'').slice(0,3),
+    authSecret:String(player.authSecret||player.authLoginCode||player.code||'').slice(0,64),
+    authLoginCode:String(player.authSecret||player.authLoginCode||player.code||'').slice(0,64),
     avatar:String(player.avatar||fallbackAvatar(player.id||player.displayName)).slice(0,4),
     cabinetIds:compactCabinet(Array.isArray(player.cabinet)?player.cabinet:player.cabinetIds),
     createdAt:Number(player.createdAt)||Date.now(),
@@ -231,7 +232,7 @@ async function saveLocalPlayers(players){
 function playerAuthEmail(id){
   return `player-${String(id).replace(/[^a-zA-Z0-9_-]/g,'')}@savelkoju.app`;
 }
-function playerPassword(code){ return `Skj!${String(code).replace(/\D/g,'').slice(0,3)}`; }
+function playerPassword(secret){ return `Skj!${String(secret||'').slice(0,64)}`; }
 function publicPlayer(player){
   const p=compactPlayer(player);
   return {
@@ -321,7 +322,7 @@ async function deletePlayer(id,code){
   const list=await localPlayers();
   await saveLocalPlayers(list.filter(p=>p.id!==id));
 }
-async function reserveUniqueCode(uid,authLoginCode=null){
+async function reserveUniqueCode(uid,authSecret=null){
   for(let i=0;i<1000;i++){
     const code=randomCode();
     try{
@@ -329,7 +330,7 @@ async function reserveUniqueCode(uid,authLoginCode=null){
         const ref=db.collection('playerCodes').doc(code);
         const snap=await tx.get(ref);
         if(snap.exists)throw new Error('CODE_TAKEN');
-        tx.set(ref,{uid,authLoginCode:String(authLoginCode||code),createdAt:Date.now()});
+        tx.set(ref,{uid,authSecret:String(authSecret||code),createdAt:Date.now(),updatedAt:Date.now()});
       });
       return code;
     }catch(err){
@@ -845,19 +846,19 @@ async function startForNamedPlayer(){
           const ref=db.collection('playerCodes').doc(code);
           const snap=await tx.get(ref);
           if(snap.exists)throw new Error('CODE_TAKEN');
-          tx.set(ref,{uid:createdUser.uid,authLoginCode:code,createdAt:Date.now()});
+          tx.set(ref,{uid:createdUser.uid,authSecret:code,createdAt:Date.now(),updatedAt:Date.now()});
         });
       }catch(e){
         code=await reserveUniqueCode(createdUser.uid);
         await createdUser.updatePassword(playerPassword(code));
       }
-      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authSecret:code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player);
       await selectPlayer(player);
       pendingPlayer=player;
     }else{
       const code=await uniqueRandomCode();
-      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,authSecret:code,authLoginCode:code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player); await selectPlayer(player); pendingPlayer=player;
     }
     document.getElementById('codeTitle').textContent='Pelaaja luotu!';
@@ -913,8 +914,8 @@ document.getElementById('codeContinue').addEventListener('click',async()=>{
         if(auth.currentUser)await auth.signOut();
         const codeDoc=await db.collection('playerCodes').doc(code).get();
         if(!codeDoc.exists||String(codeDoc.data()?.uid)!==String(pendingPlayer.id))throw new Error('Pelikoodi ei täsmää.');
-        const authLoginCode=String(codeDoc.data()?.authLoginCode||code);
-        const cred=await auth.signInWithEmailAndPassword(email,playerPassword(authLoginCode));
+        const authSecret=String(codeDoc.data()?.authSecret||codeDoc.data()?.authLoginCode||code);
+        const cred=await auth.signInWithEmailAndPassword(email,playerPassword(authSecret));
         player=await getPlayer(cred.user.uid);
       }
     }else if(code!==String(pendingPlayer.code))throw new Error('Pelikoodi ei täsmää.');
@@ -1058,8 +1059,8 @@ loadLevelConfig().then(async()=>{
       if(auth.currentUser)await auth.signOut();
       const codeDoc=await db.collection('playerCodes').doc(code).get();
       if(!codeDoc.exists||String(codeDoc.data()?.uid)!==String(pid))throw new Error('Pelikoodi ei täsmää.');
-      const authLoginCode=String(codeDoc.data()?.authLoginCode||code);
-      const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(authLoginCode));
+      const authSecret=String(codeDoc.data()?.authSecret||codeDoc.data()?.authLoginCode||code);
+      const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(authSecret));
       const full=await getPlayer(cred.user.uid);
       if(!full)throw new Error('Pelaajaprofiilia ei löytynyt');
       document.getElementById('startOverlay').style.display='none';
