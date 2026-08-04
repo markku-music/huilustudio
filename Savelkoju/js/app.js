@@ -1,13 +1,18 @@
 (()=>{
 'use strict';
 
-const NOTES=['H','A','G'];
+let NOTES=['H','A','G'];
+const ALL_NOTES=['H','A','G','C','F','D','E'];
 const positions={
   H:{x:323,y:550,cx:364,cy:591},
   A:{x:587,y:550,cx:628,cy:591},
-  G:{x:852,y:550,cx:893,cy:591}
+  G:{x:852,y:550,cx:893,cy:591},
+  C:{x:1116,y:550,cx:1157,cy:591},
+  F:{x:323,y:279,cx:364,cy:320},
+  D:{x:587,y:279,cx:628,cy:320},
+  E:{x:852,y:279,cx:893,cy:320}
 };
-const pitchClassToFinnish={11:'H',9:'A',7:'G'};
+const pitchClassToFinnish={11:'H',9:'A',7:'G',0:'C',5:'F',2:'D',4:'E'};
 const reticle=document.getElementById('reticle');
 const spark=document.getElementById('spark');
 const targetFlash=document.getElementById('targetFlash');
@@ -15,7 +20,11 @@ const pling=document.getElementById('pling');
 const targetZones={
   H:document.getElementById('zoneH'),
   A:document.getElementById('zoneA'),
-  G:document.getElementById('zoneG')
+  G:document.getElementById('zoneG'),
+  C:document.getElementById('zoneC'),
+  F:document.getElementById('zoneF'),
+  D:document.getElementById('zoneD'),
+  E:document.getElementById('zoneE')
 };
 const targetLabel=document.getElementById('targetLabel');
 const scoreValue=document.getElementById('scoreValue');
@@ -38,6 +47,19 @@ const prizeCatalog=[
   {id:'robot',icon:'🤖',name:'Robotti'},
   {id:'gift',icon:'🎁',name:'Yllätyspaketti'}
 ];
+
+
+const DEFAULT_LEVELS=[
+  {id:'level_hag',name:'Aloittelija',stars:1,order:1,notes:['H','A','G'],unlockNote:null,targetTime:8,requiredPerfectRuns:10,active:true},
+  {id:'level_c',name:'Soittaja',stars:2,order:2,notes:['H','A','G','C'],unlockNote:'C',targetTime:10,requiredPerfectRuns:10,active:true},
+  {id:'level_f',name:'Säveltaitaja',stars:3,order:3,notes:['H','A','G','C','F'],unlockNote:'F',targetTime:12,requiredPerfectRuns:10,active:true},
+  {id:'level_d',name:'Mestari',stars:4,order:4,notes:['H','A','G','C','F','D'],unlockNote:'D',targetTime:14,requiredPerfectRuns:10,active:true},
+  {id:'level_e',name:'Virtuoosi',stars:5,order:5,notes:['H','A','G','C','F','D','E'],unlockNote:'E',targetTime:16,requiredPerfectRuns:10,active:true}
+];
+let levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
+let currentLevel=levelConfig[0];
+let currentPlayerProgress={};
+let currentUnlockedLevelIds=['level_hag'];
 
 let target='A';
 let cabinetWasOpenedDuringGame=false;
@@ -128,7 +150,10 @@ function compactPlayer(player){
     cabinetIds:compactCabinet(Array.isArray(player.cabinet)?player.cabinet:player.cabinetIds),
     createdAt:Number(player.createdAt)||Date.now(),
     lastPlayedAt:Number(player.lastPlayedAt)||Date.now(),
-    updatedAt:Number(player.updatedAt)||Date.now()
+    updatedAt:Number(player.updatedAt)||Date.now(),
+    currentLevelId:String(player.currentLevelId||'level_hag'),
+    unlockedLevelIds:Array.isArray(player.unlockedLevelIds)&&player.unlockedLevelIds.length?player.unlockedLevelIds.map(String):['level_hag'],
+    levelProgress:(player.levelProgress&&typeof player.levelProgress==='object')?player.levelProgress:{}
   };
 }
 function hydratePlayer(player){
@@ -208,7 +233,9 @@ function publicPlayer(player){
     cabinetCount:p.cabinetIds.length,
     lastPlayedAt:p.lastPlayedAt,
     createdAt:p.createdAt,
-    updatedAt:p.updatedAt
+    updatedAt:p.updatedAt,
+    currentLevelId:p.currentLevelId,
+    highestStars:Math.max(1,...p.unlockedLevelIds.map(id=>levelConfig.find(l=>l.id===id)?.stars||1))
   };
 }
 async function searchPublicPlayers(prefix, pageSize=20, afterDoc=null){
@@ -349,7 +376,7 @@ async function selectPlayer(player){
   currentPlayerId=player.id; currentPlayerName=player.displayName; currentPlayerKey=normalizePlayerKey(currentPlayerName);
   currentPlayerCode=player.code; currentPlayerAuthEmail=String(player.authEmail||playerAuthEmail(player.id)); cabinet=Array.isArray(player.cabinet)?player.cabinet:[];
   cabinetCount.textContent=cabinet.length; await rememberRecent(player.id);
-  const label=document.getElementById('currentPlayer'); label.textContent=currentPlayerName+' · '+cabinet.length+' palkintoa'; label.style.display='block';
+  normalizeProgress(player);updatePlayerBadge();
   player.lastPlayedAt=Date.now(); await writePlayer(player);
 }
 
@@ -357,6 +384,80 @@ for(let i=0;i<14;i++){
   const b=document.createElement('span');
   b.className='bar';
   meter.appendChild(b);
+}
+
+async function loadLevelConfig(){
+  if(!db){levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));return levelConfig;}
+  try{
+    const snap=await db.collection('gameConfig').doc('levels').collection('items').orderBy('order').get();
+    if(!snap.empty){
+      levelConfig=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(x=>x.active!==false&&Array.isArray(x.notes)&&x.notes.length)
+        .map((x,i)=>({name:'Taso '+(i+1),stars:i+1,requiredPerfectRuns:10,targetTime:null,active:true,...x,notes:x.notes.map(String)}))
+        .sort((a,b)=>(a.order||0)-(b.order||0));
+    }else levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
+  }catch(err){console.warn('Tasomäärityksiä ei voitu ladata, käytetään oletuksia',err);levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));}
+  return levelConfig;
+}
+function normalizeProgress(player){
+  currentPlayerProgress=(player?.levelProgress&&typeof player.levelProgress==='object')?structuredClone(player.levelProgress):{};
+  currentUnlockedLevelIds=Array.isArray(player?.unlockedLevelIds)&&player.unlockedLevelIds.length?[...new Set(player.unlockedLevelIds.map(String))]:[levelConfig[0]?.id||'level_hag'];
+  const first=levelConfig[0]?.id||'level_hag';if(!currentUnlockedLevelIds.includes(first))currentUnlockedLevelIds.unshift(first);
+  const wanted=levelConfig.find(l=>l.id===player?.currentLevelId&&currentUnlockedLevelIds.includes(l.id));
+  currentLevel=wanted||[...levelConfig].reverse().find(l=>currentUnlockedLevelIds.includes(l.id))||levelConfig[0];
+}
+function starsForPlayer(){return Math.max(1,...currentUnlockedLevelIds.map(id=>levelConfig.find(l=>l.id===id)?.stars||1));}
+function updatePlayerBadge(){
+  if(!currentPlayerName)return;
+  const label=document.getElementById('currentPlayer');
+  label.innerHTML=escapeHtml(currentPlayerName)+' · '+cabinet.length+' palkintoa <span class="rankStars">'+('⭐'.repeat(starsForPlayer()))+'</span>';
+  label.style.display='block';
+}
+function applyLevel(level){
+  currentLevel=level||levelConfig[0];NOTES=[...currentLevel.notes];
+  ALL_NOTES.forEach(note=>{
+    const active=NOTES.includes(note);
+    const zone=targetZones[note];if(zone&&zone.classList.contains('extraTarget'))zone.classList.toggle('active',active);
+    const btn=document.getElementById('btn'+note);if(btn&&btn.classList.contains('extraNoteBtn'))btn.classList.toggle('active',active);
+  });
+  if(!NOTES.includes(target))target=NOTES[0]||'H';setTarget(target);
+}
+async function showLevelChooser(){
+  await loadLevelConfig();
+  const p=currentPlayerId?await getPlayer(currentPlayerId):null;if(p)normalizeProgress(p);
+  const box=document.getElementById('levelChoices');box.innerHTML='';
+  document.getElementById('levelPlayerSummary').textContent=currentPlayerName+' · '+('⭐'.repeat(starsForPlayer()));
+  levelConfig.forEach(level=>{
+    const unlocked=currentUnlockedLevelIds.includes(level.id);
+    const progress=currentPlayerProgress[level.id]||{};
+    const b=document.createElement('button');b.className='levelChoice'+(unlocked?'':' locked');b.disabled=!unlocked;
+    b.innerHTML='<span class="levelStars">'+('⭐'.repeat(Number(level.stars)||1))+'</span><strong>'+escapeHtml(level.name||level.id)+'</strong><small>Sävelet: '+escapeHtml(level.notes.join(' '))+'</small><small>'+(unlocked?((progress.perfectRuns||0)+' / '+(level.requiredPerfectRuns||10)+' virheetöntä'):'🔒 Lukittu')+'</small>';
+    if(currentLevel?.id===level.id&&unlocked)b.innerHTML+='<span class="levelActiveBadge">Nykyinen</span>';
+    if(unlocked)b.addEventListener('click',()=>startSelectedLevel(level));box.appendChild(b);
+  });
+  document.getElementById('levelOverlay').style.display='grid';
+}
+async function startSelectedLevel(level){
+  applyLevel(level);document.getElementById('levelOverlay').style.display='none';
+  if(currentPlayerId){const p=await getPlayer(currentPlayerId);if(p){p.currentLevelId=level.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;await writePlayer(p);}}
+  if(!microphoneEngine||!microphoneEngine.running)await startMic();resetGame();
+}
+async function updateLevelProgress(durationMs){
+  if(!currentPlayerId||!currentLevel)return null;
+  const perfect=missCount===0;const id=currentLevel.id;
+  const progress={perfectRuns:0,bestTimeMs:null,speedPromotion:false,...(currentPlayerProgress[id]||{})};
+  if(perfect)progress.perfectRuns=(Number(progress.perfectRuns)||0)+1;
+  if(Number.isFinite(durationMs)&&(progress.bestTimeMs==null||durationMs<progress.bestTimeMs))progress.bestTimeMs=durationMs;
+  const speed=perfect&&Number(currentLevel.targetTime)>0&&durationMs<=Number(currentLevel.targetTime)*1000;
+  if(speed)progress.speedPromotion=true;currentPlayerProgress[id]=progress;
+  const idx=levelConfig.findIndex(l=>l.id===id);const next=levelConfig[idx+1];
+  let promotion=null;
+  if(next&&!currentUnlockedLevelIds.includes(next.id)&&(speed||progress.perfectRuns>=Number(currentLevel.requiredPerfectRuns||10))){
+    currentUnlockedLevelIds.push(next.id);promotion={next,speed};
+  }
+  const p=await getPlayer(currentPlayerId);
+  if(p){p.cabinet=cabinet;p.currentLevelId=promotion?.next?.id||currentLevel.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;p.lastPlayedAt=Date.now();await writePlayer(p);}
+  updatePlayerBadge();return promotion;
 }
 
 function fitStage(){
@@ -368,10 +469,10 @@ fitStage();
 
 async function saveCabinet(){
   cabinetCount.textContent=cabinet.length;
-  if(currentPlayerName){document.getElementById('currentPlayer').textContent=currentPlayerName+' · '+cabinet.length+' palkintoa';}
+  if(currentPlayerName)updatePlayerBadge();
   if(currentPlayerId){
     const p=await getPlayer(currentPlayerId);
-    if(p){p.cabinet=cabinet;p.lastPlayedAt=Date.now();await writePlayer(p);}
+    if(p){p.cabinet=cabinet;p.currentLevelId=currentLevel?.id||p.currentLevelId;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;p.lastPlayedAt=Date.now();await writePlayer(p);}
   }
 }
 
@@ -430,7 +531,7 @@ function showSpark(note){
 }
 
 function targetColor(note){
-  return {H:'#d6543d',A:'#efbd39',G:'#4e91bb'}[note] || '#efbd39';
+  return {H:'#d6543d',A:'#efbd39',G:'#4e91bb',C:'#8d6cc4',F:'#61a85b',D:'#e98545',E:'#d56c91'}[note] || '#efbd39';
 }
 
 function playHitEffects(note){
@@ -542,7 +643,9 @@ async function saveSession(prize){
     playerId:currentPlayerId,
     displayName:currentPlayerName,
     gameId:'savelkoju',
-    levelId:'hag',
+    levelId:currentLevel?.id||'level_hag',
+    levelName:currentLevel?.name||'Aloittelija',
+    stars:Number(currentLevel?.stars)||1,
     score:Number(score)||0,
     targets:10,
     misses:Number(missCount)||0,
@@ -561,11 +664,10 @@ async function finishGame(){
   reticle.style.opacity='0';
 
   const prize=choosePrize();
+  const durationMs=roundStartedAt?Math.max(0,Date.now()-roundStartedAt):null;
   cabinet.push(prize);
   cabinetCount.textContent=cabinet.length;
-  if(currentPlayerName){
-    document.getElementById('currentPlayer').textContent=currentPlayerName+' · '+cabinet.length+' palkintoa';
-  }
+  if(currentPlayerName)updatePlayerBadge();
 
   // Näytä palkinto ja jatkopainikkeet heti. Pilvitallennus ei saa koskaan
   // pysäyttää pelin loppunäkymää verkkokatkon, kirjautumisvirheen tai hitaan
@@ -573,6 +675,12 @@ async function finishGame(){
   document.getElementById('prizeIcon').textContent=prize.icon;
   document.getElementById('prizeTitle').textContent='Sait palkinnon: '+prize.name+'!';
   document.getElementById('prizeInfo').textContent='Palkintokaapissa on nyt '+cabinet.length+' palkintoa.';
+  const progressPromise=updateLevelProgress(durationMs);
+  progressPromise.then(promotion=>{
+    if(!promotion)return;
+    document.getElementById('prizeTitle').textContent=(promotion.speed?'⚡ PIKAYLENNYS! ':'UUSI TASO! ')+('⭐'.repeat(Number(promotion.next.stars)||1));
+    document.getElementById('prizeInfo').textContent='Uusi sävel '+(promotion.next.unlockNote||promotion.next.notes.at(-1))+' avattu. Sait myös palkinnon: '+prize.name+'.';
+  }).catch(err=>console.warn('Tasojen tallennus epäonnistui',err));
 
   const scene=document.getElementById('prizeScene');
   buildConfetti();
@@ -586,7 +694,7 @@ async function finishGame(){
 
   // Tallenna taustalla. Mahdollinen virhe ilmoitetaan konsolissa, mutta
   // Pelaa uudelleen -painike toimii aina.
-  Promise.allSettled([saveCabinet(),saveSession(prize)]).then(results=>{
+  Promise.allSettled([progressPromise,saveSession(prize)]).then(results=>{
     results.forEach(r=>{if(r.status==='rejected')console.warn('Kierroksen tallennus epäonnistui',r.reason);});
   });
 }
@@ -674,7 +782,7 @@ function updateMicrophoneUi(output){
   };
 
   if(output.status==='signal'){
-    const finnishNote=({7:'G',9:'A',11:'H'})[output.pitchClass] || output.display || '–';
+    const finnishNote=pitchClassToFinnish[output.pitchClass] || output.display || '–';
     listen.firstChild.textContent=`KUULEN: ${finnishNote}`;
     if(['G','A','H'].includes(finnishNote)) hitTarget(finnishNote);
   }else{
@@ -761,7 +869,7 @@ async function beginGame(){
   document.getElementById('codeOverlay').style.display='none';
   document.getElementById('generatedCode').classList.add('hidden');
   document.getElementById('playerCode').classList.remove('hidden'); document.getElementById('codeCancel').classList.remove('hidden'); document.getElementById('codeContinue').textContent='Jatka peliä';
-  if(!microphoneEngine || !microphoneEngine.running)await startMic(); resetGame();
+  await showLevelChooser();
 }
 
 document.getElementById('showSearchBtn').addEventListener('click',()=>{showStartView('searchView');document.getElementById('playerSearch').focus();});
@@ -866,6 +974,8 @@ document.getElementById('teacherCloseBtn').addEventListener('click',async()=>{
 document.getElementById('btnH').addEventListener('click',()=>hitTarget('H'));
 document.getElementById('btnA').addEventListener('click',()=>hitTarget('A'));
 document.getElementById('btnG').addEventListener('click',()=>hitTarget('G'));
+['C','F','D','E'].forEach(n=>document.getElementById('btn'+n).addEventListener('click',()=>hitTarget(n)));
+document.getElementById('levelCancelBtn').addEventListener('click',()=>{document.getElementById('levelOverlay').style.display='none';document.getElementById('startOverlay').style.display='grid';showStartView('homeView');});
 
 addEventListener('keydown',e=>{
   if(typeof e.key !== 'string') return;
@@ -884,9 +994,9 @@ document.getElementById('soundBtn').addEventListener('click',e=>{
   e.currentTarget.textContent=e.currentTarget.textContent==='🔊'?'🔇':'🔊';
 });
 
-document.getElementById('continueBtn').addEventListener('click',()=>{
+document.getElementById('continueBtn').addEventListener('click',async()=>{
   document.getElementById('prizeOverlay').style.display='none';
-  resetGame();
+  await showLevelChooser();
 });
 document.getElementById('cabinetBtn').addEventListener('click',()=>openCabinet('game'));
 document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
@@ -894,6 +1004,7 @@ document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
 });
 document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 
+loadLevelConfig().then(()=>applyLevel(levelConfig[0])).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
 ensureMicrophoneEngine();
