@@ -74,6 +74,7 @@ let paused=false;
 let accepting=true;
 let aimTime=0;
 let microphoneEngine=null;
+let microphoneStartPromise=null;
 let lastAccepted=0;
 let roundStartedAt=0;
 let missCount=0;
@@ -444,19 +445,34 @@ async function showLevelChooser(){
     const b=document.createElement('button');b.className='levelChoice'+(unlocked?'':' locked');b.disabled=!unlocked;
     b.innerHTML='<span class="levelStars">'+('⭐'.repeat(Number(level.stars)||1))+'</span><strong>'+escapeHtml(level.name||level.id)+'</strong><small>Sävelet: '+escapeHtml(level.notes.join(' '))+'</small><small>'+(unlocked?((progress.perfectRuns||0)+' / '+(level.requiredPerfectRuns||10)+' virheetöntä'):'🔒 Lukittu')+'</small>';
     if(currentLevel?.id===level.id&&unlocked)b.innerHTML+='<span class="levelActiveBadge">Nykyinen</span>';
-    if(unlocked)b.addEventListener('click',()=>startSelectedLevel(level));box.appendChild(b);
+    if(unlocked){
+      // Käynnistä mikrofonipyyntö jo kosketuksen/painalluksen alussa. Tämä säilyttää
+      // Safari- ja iPad-selainten vaatiman suoran käyttäjäaktivoinnin myös silloin,
+      // kun peliin on tultu normaalin pelaajahaun ja kirjautumisen kautta.
+      b.addEventListener('pointerdown',()=>{
+        if(!microphoneEngine||!microphoneEngine.running){
+          microphoneStartPromise=startMic();
+          microphoneStartPromise.catch(()=>{});
+        }
+      });
+      b.addEventListener('click',()=>startSelectedLevel(level,microphoneStartPromise));
+    }
+    box.appendChild(b);
   });
   document.getElementById('levelOverlay').style.display='grid';
 }
-async function startSelectedLevel(level){
+async function startSelectedLevel(level,primedMicPromise=null){
   applyLevel(level);
   document.getElementById('levelOverlay').style.display='none';
 
   // Käynnistä mikrofoni heti käyttäjän tasopainalluksesta. Safari ja iPad voivat
   // estää getUserMedia-pyynnön, jos ennen sitä odotetaan Firebase-kutsuja.
   try{
-    if(!microphoneEngine||!microphoneEngine.running)await startMic();
+    if(primedMicPromise)await primedMicPromise;
+    else if(!microphoneEngine||!microphoneEngine.running)await startMic();
+    microphoneStartPromise=null;
   }catch(err){
+    microphoneStartPromise=null;
     console.error('Mikrofonin käynnistys epäonnistui:',err);
     showMessage('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa ja yritä uudelleen.');
     document.getElementById('levelOverlay').style.display='grid';
