@@ -14,7 +14,7 @@ button{font:inherit}
 #game{position:fixed;inset:0;overflow:hidden;background:#83c8e7}
 #stage{
   position:absolute;left:50%;top:50%;width:1536px;height:1024px;
-  transform-origin:center center;background:url("savelkoju_tausta.png") center/100% 100% no-repeat;
+  transform-origin:center center;background:url("../savelkoju_tausta.png") center/100% 100% no-repeat;
   box-shadow:0 0 60px rgba(0,0,0,.28)
 }
 #targetingLayer{position:absolute;inset:0;pointer-events:none}
