@@ -1,5 +1,5 @@
 const cfg={apiKey:'AIzaSyCHSTODIddId7jxP41X315gx4s-pfQ1l44',authDomain:'savelkoju.firebaseapp.com',projectId:'savelkoju',storageBucket:'savelkoju.firebasestorage.app',messagingSenderId:'628559357855',appId:'1:628559357855:web:af1896e724516187abbfaa'};
-firebase.initializeApp(cfg);const auth=firebase.auth(),db=firebase.firestore();let lastPlayerDoc=null,currentEdit=null,levelCache=[];
+firebase.initializeApp(cfg);const auth=firebase.auth(),db=firebase.firestore();auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.warn);let lastPlayerDoc=null,currentEdit=null,levelCache=[];
 const DEFAULT_LEVELS=[{id:'level_hag',name:'Aloittelija',stars:1,order:1,notes:['H','A','G'],unlockNote:'',targetTime:8,requiredPerfectRuns:10,active:true},{id:'level_c',name:'Soittaja',stars:2,order:2,notes:['H','A','G','C'],unlockNote:'C',targetTime:10,requiredPerfectRuns:10,active:true},{id:'level_f',name:'Säveltaitaja',stars:3,order:3,notes:['H','A','G','C','F'],unlockNote:'F',targetTime:12,requiredPerfectRuns:10,active:true},{id:'level_d',name:'Mestari',stars:4,order:4,notes:['H','A','G','C','F','D'],unlockNote:'D',targetTime:14,requiredPerfectRuns:10,active:true},{id:'level_e',name:'Virtuoosi',stars:5,order:5,notes:['H','A','G','C','F','D','E'],unlockNote:'E',targetTime:16,requiredPerfectRuns:10,active:true}];
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));const PLAYER_AVATARS=['🦊','🐼','🐻','🐰','🦉','🐸','🦁','🐧'];function fallbackAvatar(seed=''){let n=0;for(const ch of String(seed))n=(n*31+ch.codePointAt(0))>>>0;return PLAYER_AVATARS[n%PLAYER_AVATARS.length]}function starsFor(p){const n=Number(p.highestStars)||Math.max(1,Array.isArray(p.unlockedLevelIds)?p.unlockedLevelIds.length:1);return '⭐'.repeat(Math.min(9,n))}function rewardPreview(ids=[]){const shown=ids.slice(0,4).map(rewardIcon).join('');return shown+(ids.length>4?' +'+(ids.length-4):'')}
 function dateOf(v){return v?.toDate?v.toDate():new Date(Number(v)||0)}function fmt(v){const d=dateOf(v);return isNaN(d)?'–':d.toLocaleString('fi-FI')}function relativeTime(v){const d=dateOf(v);if(isNaN(d))return 'Ei vielä pelannut';const now=new Date(),diff=now-d;const same=now.toDateString()===d.toDateString();const yesterday=new Date(now);yesterday.setDate(now.getDate()-1);const t=d.toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'});if(same)return 'Tänään '+t;if(yesterday.toDateString()===d.toDateString())return 'Eilen '+t;const days=Math.floor(diff/86400000);if(days>1&&days<14)return days+' pv sitten';return d.toLocaleDateString('fi-FI')}
@@ -49,7 +49,28 @@ async function openPlayer(p){
     <div class="detailLayout"><div><section class="sectionBlock"><h3>Pelaajan hahmo</h3><div class="avatarAdminChoices">${PLAYER_AVATARS.map(a=>`<button type="button" class="avatarAdminChoice ${a===avatar?'active':''}" data-avatar="${a}">${a}</button>`).join('')}</div><div class="codeCard"><div class="codeLabel">Pelaajan koodi</div><div class="codeNumber">${esc(p.code)}</div><div class="codeActions"><button id="copyCode" class="secondary">Kopioi koodi</button><button id="newCode" class="secondary">Luo uusi koodi</button></div></div><h3>Palkintovitriini</h3><div class="cabinetWood">${rewards.length?rewards.map((r,i)=>`<span class="rewardItem" title="Palkinto ${i+1}">${rewardIcon(r)}</span>`).join(''):'<span class="cabinetEmpty">Palkintokaappi on vielä tyhjä.</span>'}</div><details class="settingsGroup"><summary>Pelaajan asetukset</summary><div class="dangerZone"><h4>Vaaralliset toiminnot</h4><div class="actions"><button id="clearCab" class="secondary">Nollaa palkintokaappi</button><button id="deletePlayer" class="danger">Poista pelaaja</button></div></div></details></section><section class="sectionBlock notesBlock"><div class="notesHead"><h3>Opettajan muistiinpanot</h3><span class="muted">${notesUpdated}</span></div><textarea id="teacherNotes" class="teacherNotes" placeholder="Kirjoita tähän esimerkiksi seuraavan tunnin muistutus…">${esc(p.teacherNotes||'')}</textarea><div class="actions"><button id="saveNotes" class="primary">Tallenna muistiinpanot</button></div><div id="notesStatus" class="notesStatus"></div></section></div><section class="sectionBlock"><h3>Harjoitusaikajana</h3><div class="sessionList">${sessionRows}</div></section></div>`;
   $('#playerDialog').showModal();
   document.querySelectorAll('.avatarAdminChoice').forEach(b=>b.onclick=async()=>{await updatePlayer(p,{avatar:b.dataset.avatar});p.avatar=b.dataset.avatar;$('#playerDialog').close();openPlayer(p);loadPlayers(true)});
-  $('#playAsStudent').onclick=()=>{const url=new URL('../Savelkoju/',location.href);url.searchParams.set('playerId',p.id);url.searchParams.set('teacher','1');window.open(url,'_blank','noopener')};
+  $('#playAsStudent').onclick=async()=>{
+    const btn=$('#playAsStudent');
+    btn.disabled=true;
+    const original=btn.textContent;
+    btn.textContent='Avataan…';
+    try{
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      const user=auth.currentUser;
+      if(!user)throw new Error('Opettajan kirjautuminen ei ole enää voimassa. Kirjaudu uudelleen.');
+      if(!(await isAdmin(user)))throw new Error('Kirjautuneella käyttäjällä ei ole opettajan oikeuksia.');
+      await user.getIdToken(true);
+      const url=new URL('../Savelkoju/',location.href);
+      url.searchParams.set('playerId',p.id);
+      url.searchParams.set('teacher','1');
+      location.assign(url.toString());
+    }catch(e){
+      console.error('Oppilaan pelin avaaminen epäonnistui',e);
+      alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));
+      btn.disabled=false;
+      btn.textContent=original;
+    }
+  };
   $('#copyCode').onclick=async()=>{try{await navigator.clipboard.writeText(String(p.code));$('#copyCode').textContent='Kopioitu!'}catch{prompt('Kopioi pelikoodi:',String(p.code))}};$('#newCode').onclick=()=>changeCode(p);
   $('#saveNotes').onclick=async()=>{const btn=$('#saveNotes'),status=$('#notesStatus');btn.disabled=true;status.textContent='Tallennetaan…';try{const notes=$('#teacherNotes').value.trim(),now=Date.now();await updatePlayer(p,{teacherNotes:notes,teacherNotesUpdatedAt:now});p.teacherNotes=notes;p.teacherNotesUpdatedAt=now;status.textContent='Muistiinpanot tallennettu.'}catch(e){status.textContent='Tallennus epäonnistui: '+e.message}finally{btn.disabled=false}};
   $('#clearCab').onclick=async()=>{if(confirm('Tyhjennetäänkö palkintokaappi?')){await updatePlayer(p,{cabinetIds:[]});p.cabinetIds=[];$('#playerDialog').close();openPlayer(p);loadPlayers(true)}};$('#deletePlayer').onclick=()=>removePlayer(p)

@@ -1018,7 +1018,7 @@ document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
 });
 document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 
-function waitForFirebaseUser(timeoutMs=6000){
+function waitForFirebaseUser(timeoutMs=12000){
   if(!auth)return Promise.resolve(null);
   if(auth.currentUser)return Promise.resolve(auth.currentUser);
   return new Promise(resolve=>{
