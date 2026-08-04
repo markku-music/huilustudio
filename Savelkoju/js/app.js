@@ -399,18 +399,15 @@ for(let i=0;i<14;i++){
 }
 
 async function loadLevelConfig(){
-  if(!db){levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));return levelConfig;}
-  try{
-    const snap=await db.collection('gameConfig').doc('levels').collection('items').orderBy('order').get();
-    if(!snap.empty){
-      levelConfig=snap.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(x=>x.active!==false&&Array.isArray(x.notes)&&x.notes.length)
-        .map((x,i)=>({name:'Taso '+(i+1),stars:i+1,requiredPerfectRuns:10,targetTime:null,active:true,...x,notes:x.notes.map(String)}))
-        .sort((a,b)=>(a.order||0)-(b.order||0));
-    }else levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));
-  }catch(err){console.warn('Tasomäärityksiä ei voitu ladata, käytetään oletuksia',err);levelConfig=DEFAULT_LEVELS.map(x=>({...x,notes:[...x.notes]}));}
+  // Vakaa käynnistys: tasovalikko ei saa koskaan riippua verkkoyhteydestä,
+  // Firestore-oikeuksista tai kirjautumissession valmistumisesta.
+  levelConfig=DEFAULT_LEVELS.map(level=>({
+    ...level,
+    notes:[...level.notes]
+  }));
   return levelConfig;
 }
+
 function normalizeProgress(player){
   currentPlayerProgress=(player?.levelProgress&&typeof player.levelProgress==='object')?structuredClone(player.levelProgress):{};
   currentUnlockedLevelIds=Array.isArray(player?.unlockedLevelIds)&&player.unlockedLevelIds.length?[...new Set(player.unlockedLevelIds.map(String))]:[levelConfig[0]?.id||'level_hag'];
@@ -436,7 +433,8 @@ function applyLevel(level){
 }
 async function showLevelChooser(){
   await loadLevelConfig();
-  const p=currentPlayerId?await getPlayer(currentPlayerId):null;if(p)normalizeProgress(p);
+  // Pelaajan eteneminen on ladattu jo selectPlayer()-vaiheessa. Älä tee tässä
+  // uutta Firestore-lukua, jotta tasovalikko ja mikrofoni avautuvat varmasti.
   const box=document.getElementById('levelChoices');box.innerHTML='';
   document.getElementById('levelPlayerSummary').textContent=currentPlayerName+' · '+('⭐'.repeat(starsForPlayer()));
   levelConfig.forEach(level=>{
