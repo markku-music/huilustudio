@@ -868,6 +868,7 @@ document.getElementById('btnA').addEventListener('click',()=>hitTarget('A'));
 document.getElementById('btnG').addEventListener('click',()=>hitTarget('G'));
 
 addEventListener('keydown',e=>{
+  if(typeof e.key !== 'string') return;
   const n=e.key.toUpperCase();
   if(NOTES.includes(n))hitTarget(n);
 });
