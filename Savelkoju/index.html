@@ -5,20 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#82c8e8">
-<title>Sävelkoju 0.9.0 Tasot</title>
+<title>Sävelkoju 0.7.0 Turvallinen pilvitallennus</title>
 <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 <div id="game">
   <div id="stage">
     <div id="targetingLayer">
-      <div id="zoneH" class="targetZone" data-note="H"></div>
-      <div id="zoneA" class="targetZone" data-note="A"></div>
-      <div id="zoneG" class="targetZone" data-note="G"></div>
-      <div id="zoneC" class="targetZone extraTarget" data-note="C"></div>
-      <div id="zoneF" class="targetZone extraTarget" data-note="F"></div>
-      <div id="zoneD" class="targetZone extraTarget" data-note="D"></div>
-      <div id="zoneE" class="targetZone extraTarget" data-note="E"></div>
+      <div id="zoneH" class="targetZone"></div>
+      <div id="zoneA" class="targetZone"></div>
+      <div id="zoneG" class="targetZone"></div>
       <div id="reticle"><div id="reticleRing"></div><div id="reticleDot"></div></div>
       <div id="spark"></div>
       <div id="targetFlash" class="targetFlash"></div>
@@ -49,10 +45,6 @@
       <button id="btnH" class="noteBtn">H</button>
       <button id="btnA" class="noteBtn">A</button>
       <button id="btnG" class="noteBtn">G</button>
-      <button id="btnC" class="noteBtn extraNoteBtn">C</button>
-      <button id="btnF" class="noteBtn extraNoteBtn">F</button>
-      <button id="btnD" class="noteBtn extraNoteBtn">D</button>
-      <button id="btnE" class="noteBtn extraNoteBtn">E</button>
     </div>
     <div id="listen">KUUNTELEN…<div id="meter"></div></div>
     <div id="prompt">SOITA<strong id="targetLabel">A</strong></div>
@@ -86,7 +78,6 @@
         <button class="backBtn" data-back>← Takaisin</button>
         <h2>Uusi pelaaja</h2>
         <input id="playerName" class="textInput" type="text" maxlength="20" autocomplete="name" placeholder="Nimi" aria-label="Pelaajan nimi">
-        <fieldset class="avatarPicker"><legend>Valitse oma hahmo</legend><div id="avatarChoices" class="avatarChoices" role="radiogroup" aria-label="Pelaajan hahmo"></div></fieldset>
         <div id="nameError" aria-live="polite"></div>
         <button id="startBtn" class="primary">Luo pelaaja</button>
       </section>
@@ -122,15 +113,6 @@
         <button id="teacherMoreBtn" class="secondary hidden">Näytä lisää</button>
         <button id="teacherCloseBtn" class="secondary">Sulje</button>
       </section>
-    </div>
-  </div>
-
-  <div id="levelOverlay">
-    <div class="modalCard panel levelCard">
-      <h2>Valitse taso</h2>
-      <p id="levelPlayerSummary"></p>
-      <div id="levelChoices" class="levelChoices"></div>
-      <button id="levelCancelBtn" class="secondary">Takaisin</button>
     </div>
   </div>
 
