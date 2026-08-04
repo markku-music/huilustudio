@@ -449,9 +449,37 @@ async function showLevelChooser(){
   document.getElementById('levelOverlay').style.display='grid';
 }
 async function startSelectedLevel(level){
-  applyLevel(level);document.getElementById('levelOverlay').style.display='none';
-  if(currentPlayerId){const p=await getPlayer(currentPlayerId);if(p){p.currentLevelId=level.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;await writePlayer(p);}}
-  if(!microphoneEngine||!microphoneEngine.running)await startMic();resetGame();
+  applyLevel(level);
+  document.getElementById('levelOverlay').style.display='none';
+
+  // Käynnistä mikrofoni heti käyttäjän tasopainalluksesta. Safari ja iPad voivat
+  // estää getUserMedia-pyynnön, jos ennen sitä odotetaan Firebase-kutsuja.
+  try{
+    if(!microphoneEngine||!microphoneEngine.running)await startMic();
+  }catch(err){
+    console.error('Mikrofonin käynnistys epäonnistui:',err);
+    showMessage('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa ja yritä uudelleen.');
+    document.getElementById('levelOverlay').style.display='grid';
+    return;
+  }
+
+  resetGame();
+
+  // Profiilin tasovalinta tallennetaan vasta mikrofonin käynnistyksen jälkeen.
+  // Tallennusvirhe ei saa estää itse peliä.
+  if(currentPlayerId){
+    try{
+      const p=await getPlayer(currentPlayerId);
+      if(p){
+        p.currentLevelId=level.id;
+        p.unlockedLevelIds=currentUnlockedLevelIds;
+        p.levelProgress=currentPlayerProgress;
+        await writePlayer(p);
+      }
+    }catch(err){
+      console.warn('Tasovalinnan tallennus epäonnistui:',err);
+    }
+  }
 }
 async function updateLevelProgress(durationMs){
   if(!currentPlayerId||!currentLevel)return null;
@@ -820,8 +848,9 @@ function ensureMicrophoneEngine(){
 
 async function startMic(){
   const engine=ensureMicrophoneEngine();
-  if(!engine)return;
+  if(!engine)throw new Error('Microphone Engineä ei voitu ladata.');
   await engine.start();
+  if(!engine.running)throw new Error('Mikrofoni ei käynnistynyt.');
 }
 
 async function startForNamedPlayer(){
