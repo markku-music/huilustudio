@@ -141,12 +141,17 @@ function expandCabinet(cabinetIds){
   const byId=new Map(prizeCatalog.map(p=>[String(p.id),p]));
   return compactCabinet(cabinetIds).map(id=>byId.get(String(id))).filter(Boolean);
 }
+const PLAYER_AVATARS=['🦊','🐼','🐻','🐰','🦉','🐸','🦁','🐧'];
+function fallbackAvatar(seed=''){let n=0;for(const ch of String(seed))n=(n*31+ch.codePointAt(0))>>>0;return PLAYER_AVATARS[n%PLAYER_AVATARS.length];}
+let selectedNewAvatar=PLAYER_AVATARS[0];
+function renderAvatarChoices(){const box=document.getElementById('avatarChoices');if(!box)return;box.innerHTML='';PLAYER_AVATARS.forEach((avatar,i)=>{const b=document.createElement('button');b.type='button';b.className='avatarChoice'+(avatar===selectedNewAvatar?' selected':'');b.textContent=avatar;b.setAttribute('aria-label','Valitse hahmo '+avatar);b.setAttribute('aria-pressed',avatar===selectedNewAvatar?'true':'false');b.addEventListener('click',()=>{selectedNewAvatar=avatar;renderAvatarChoices()});box.appendChild(b)});}
 function compactPlayer(player){
   return {
     id:String(player.id||randomId()),
     displayName:String(player.displayName||'Pelaaja').slice(0,60),
     displayNameLower:normalizePlayerKey(player.displayNameLower||player.displayName||'Pelaaja'),
     code:String(player.code||randomCode()).replace(/\D/g,'').slice(0,3),
+    avatar:String(player.avatar||fallbackAvatar(player.id||player.displayName)).slice(0,4),
     cabinetIds:compactCabinet(Array.isArray(player.cabinet)?player.cabinet:player.cabinetIds),
     createdAt:Number(player.createdAt)||Date.now(),
     lastPlayedAt:Number(player.lastPlayedAt)||Date.now(),
@@ -229,6 +234,7 @@ function publicPlayer(player){
   return {
     displayName:p.displayName,
     displayNameLower:p.displayNameLower,
+    avatar:p.avatar,
     authEmail:String(player.authEmail||playerAuthEmail(p.id)),
     cabinetCount:p.cabinetIds.length,
     lastPlayedAt:p.lastPlayedAt,
@@ -841,13 +847,13 @@ async function startForNamedPlayer(){
         code=await reserveUniqueCode(createdUser.uid);
         await createdUser.updatePassword(playerPassword(code));
       }
-      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:createdUser.uid,authEmail:provisionalEmail,displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player);
       await selectPlayer(player);
       pendingPlayer=player;
     }else{
       const code=await uniqueRandomCode();
-      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
+      const player={id:randomId(),displayName:name,displayNameLower:normalizePlayerKey(name),avatar:selectedNewAvatar,code,cabinet:[],createdAt:Date.now(),lastPlayedAt:Date.now()};
       await writePlayer(player); await selectPlayer(player); pendingPlayer=player;
     }
     document.getElementById('codeTitle').textContent='Pelaaja luotu!';
@@ -872,6 +878,7 @@ async function beginGame(){
   await showLevelChooser();
 }
 
+renderAvatarChoices();
 document.getElementById('showSearchBtn').addEventListener('click',()=>{showStartView('searchView');document.getElementById('playerSearch').focus();});
 document.getElementById('showNewBtn').addEventListener('click',()=>{showStartView('newView');document.getElementById('playerName').focus();});
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showStartView('homeView')));
