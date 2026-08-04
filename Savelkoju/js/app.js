@@ -1011,7 +1011,7 @@ document.getElementById('openCabinetFromPrize').addEventListener('click',()=>{
 });
 document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 
-loadLevelConfig().then(()=>applyLevel(levelConfig[0])).catch(console.warn);
+loadLevelConfig().then(async()=>{applyLevel(levelConfig[0]);const q=new URLSearchParams(location.search);const pid=q.get('playerId'),code=q.get('code');if(pid&&code&&db&&auth){try{const pub=await db.collection('publicPlayers').doc(pid).get();if(!pub.exists)throw new Error('Pelaajaa ei löytynyt');const player=hydratePlayer({id:pub.id,...pub.data()});if(auth.currentUser)await auth.signOut();const cred=await auth.signInWithEmailAndPassword(String(player.authEmail||playerAuthEmail(pid)),playerPassword(code));const full=await getPlayer(cred.user.uid);if(!full)throw new Error('Pelaajaprofiilia ei löytynyt');document.getElementById('startOverlay').style.display='none';await selectPlayer(full);await beginGame();history.replaceState({},'',location.pathname);}catch(e){console.error('Admin-käynnistys epäonnistui',e);alert('Oppilaan peliä ei voitu avata automaattisesti: '+(e.message||'virhe'));}}}).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
 ensureMicrophoneEngine();
