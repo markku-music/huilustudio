@@ -1,0 +1,14 @@
+SÄVELKOJU 0.6.3 – FIREBASE KYTKETTY
+
+Pohja: Sävelkoju 0.5.6 Palkintokaappi säilyy
+
+Muutokset:
+- Oikean Savelkoju-Firebase-projektin asetukset lisätty index.html-tiedostoon.
+- Pelaajaprofiilit ja palkintokaapit tallentuvat Firestoreen.
+- Kolminumeroiset pelikoodit tarkistetaan Firestoren pelaajalistaa vasten.
+- Viimeksi pelanneet säilyvät edelleen laitekohtaisesti IndexedDB:ssä.
+- Mukana Firestore-testisäännöt ja päivitetty testausohje.
+
+Huomaa:
+- Peli kannattaa avata GitHub Pagesin kautta, ei suoraan file://-osoitteesta.
+- Testisäännöt ovat avoimet ja pitää myöhemmin lukita.

@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Kehitystestaus. Lukitse ennen julkista käyttöönottoa.
+    match /players/{playerId} {
+      allow read, write: if true;
+    }
+  }
+}
