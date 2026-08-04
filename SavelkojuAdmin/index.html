@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="fi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Huilustudio Admin</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="css/admin.css"></head><body>
+<section id="login" class="login"><div class="panel"><h1>Huilustudio Admin</h1><p>Kirjaudu opettajan Firebase-tunnuksella.</p><label>Sähköposti<input id="email" type="email"></label><br><label>Salasana<input id="password" type="password"></label><br><button id="loginBtn" class="primary">Kirjaudu</button><p id="loginStatus" class="status"></p></div></section>
+<main id="app" class="shell hidden"><header class="top"><div><h1 style="margin:0">Huilustudio Admin</h1><div id="userLabel" class="muted"></div></div><button id="logoutBtn" class="secondary">Kirjaudu ulos</button></header>
+<nav class="tabs"><button class="secondary tab active" data-tab="overview">Yhteenveto</button><button class="secondary tab" data-tab="players">Oppilaat</button><button class="secondary tab" data-tab="levels">Tasot</button><button class="secondary tab" data-tab="rewards">Palkinnot</button></nav>
+<section id="overview" class="view"><div class="grid"><div class="metric">Oppilaita<b id="mPlayers">0</b></div><div class="metric">Pelattuja kierroksia<b id="mSessions">0</b></div><div class="metric">Virheettömiä<b id="mPerfect">0</b></div><div class="metric">Palkintoja yhteensä<b id="mRewards">0</b></div></div><div class="panel" style="margin-top:14px"><h2>Viimeisimmät harjoitukset</h2><div id="recentSessions" class="list"></div></div></section>
+<section id="players" class="view hidden"><div class="toolbar"><input id="playerSearch" placeholder="Hae nimen alulla"><button id="searchBtn" class="primary">Hae</button><button id="reloadPlayers" class="secondary">Uusimmat</button></div><div id="playerList" class="list"></div><button id="moreBtn" class="secondary" style="margin-top:12px">Näytä lisää</button></section>
+<section id="levels" class="view hidden"><div class="top"><div><h2>Tasot</h2><p class="muted">Voit muuttaa tasomäärityksiä ilman pelaajaprofiilien remonttia.</p></div><button id="addLevel" class="primary">Lisää taso</button></div><div id="levelList" class="list"></div></section>
+<section id="rewards" class="view hidden"><div class="top"><div><h2>Palkinnot</h2><p class="muted">Palkinnot tallennetaan tunnisteina. Emoji ja nimi voidaan vaihtaa myöhemmin.</p></div><button id="addReward" class="primary">Lisää palkinto</button></div><div id="rewardList" class="list"></div></section>
+</main>
+<dialog id="playerDialog"><div id="playerDetail"></div><form method="dialog" style="margin-top:16px"><button class="secondary">Sulje</button></form></dialog>
+<dialog id="editDialog"><h2 id="editTitle"></h2><div id="editFields"></div><div class="actions" style="margin-top:14px"><button id="saveEdit" class="primary">Tallenna</button><button id="cancelEdit" class="secondary">Peruuta</button></div></dialog>
+<script src="js/admin.js"></script></body></html>

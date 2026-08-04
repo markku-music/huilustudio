@@ -1,0 +1,30 @@
+SÄVELKOJU 0.7.0 – TURVALLINEN PILVITALLENNUS
+
+Uutta:
+- Firebase Authentication myös pelaajille. Oppilas näkee edelleen vain 3-numeroisen pelikoodin.
+- Opettajan näkymä käyttää oikeaa Firebase Email/Password -kirjautumista.
+- Firestore-säännöt rajaavat yksityisen pelaajadokumentin vain pelaajalle ja opettajalle.
+- Pelaajahaku käyttää publicPlayers-hakemistoa eikä lataa enää 500 pelaajaa kerralla.
+- Opettajan lista käyttää 50 pelaajan sivutusta.
+- Firestoren offline-välimuisti on käytössä Chrome-, Safari- ja Firefox-selaimissa.
+- Pelikoodit varataan playerCodes-kokoelmassa transaktiolla.
+
+TÄRKEÄ SIIRTYMÄHUOMIO:
+0.6.3-version vanhat testipelaajat eivät ole Firebase Auth -tunnuksia. Luo testipelaajat uudelleen 0.7.0-versiossa. Vanhoja dokumentteja voi poistaa Firestoresta testauksen jälkeen.
+
+KÄYTTÖÖNOTTO:
+1. Firebase Console > Authentication > Sign-in method > ota Email/Password käyttöön.
+2. Authentication > Users > Add user. Luo opettajalle oikea sähköposti ja salasana.
+3. Kopioi opettajan UID Authentication-listasta.
+4. Firestore > Data: luo kokoelma admins ja dokumentti, jonka Document ID on opettajan UID. Lisää kenttä role = "teacher".
+5. Firestore > Rules: korvaa säännöt tämän paketin firestore.rules-tiedostolla ja Publish.
+6. Julkaise koko kansio GitHub Pagesiin.
+7. Luo uusi testipelaaja. Firestoreen syntyvät collections: players, publicPlayers ja playerCodes.
+
+OFFLINE:
+- Nykyinen kirjautunut pelaaja voi jatkaa ja kirjoitukset jonoutuvat, kun Firestoren välimuisti on käytettävissä.
+- Toisen pelaajan ensimmäinen kirjautuminen ilman verkkoyhteyttä ei onnistu, koska Firebase Authentication tarvitsee yhteyden.
+- Kun yhteys palaa, Firestore synkronoi jonossa olevat muutokset. Saman dokumentin yhtäaikaisissa muutoksissa viimeisin kirjoitus voittaa.
+
+HUOMIO 3-NUMEROISESTA KOODISTA:
+Koodi on lapselle helppo, mutta ei vahva salasana. Sovellus muuntaa sen Firebase Authin vaatiman vähintään 6-merkkisen salasanan muotoon sisäisesti. Älä käytä profiileissa arkaluonteisia henkilötietoja.
