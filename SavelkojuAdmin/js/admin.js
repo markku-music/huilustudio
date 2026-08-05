@@ -23,6 +23,70 @@ async function loadPlayers(reset=false){
 $('#playerSearch').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadPlayers(true),180)});
 $('#playerSearch').addEventListener('keydown',e=>{if(e.key==='Enter'&&firstVisiblePlayer){e.preventDefault();openPlayer(firstVisiblePlayer)}});
 $('#reloadPlayers').onclick=()=>{$('#playerSearch').value='';loadPlayers(true)};$('#moreBtn').onclick=()=>loadPlayers(false);
+
+async function deleteRefsInBatches(refs,status){
+  const chunkSize=450;
+  for(let i=0;i<refs.length;i+=chunkSize){
+    const batch=db.batch();
+    refs.slice(i,i+chunkSize).forEach(ref=>batch.delete(ref));
+    await batch.commit();
+    if(status)status.textContent=`Poistetaan… ${Math.min(i+chunkSize,refs.length)}/${refs.length}`;
+  }
+}
+
+async function deleteAllPlayers(){
+  const btn=$('#deleteAllPlayers'),status=$('#deleteAllStatus');
+  if(!confirm('Tämä poistaa pysyvästi kaikki oppilaat, pelikoodit, palkinnot ja harjoitushistorian. Tätä ei voi perua. Jatketaanko?'))return;
+  const answer=prompt('Vahvista kirjoittamalla TYHJENNÄ');
+  if(answer!=='TYHJENNÄ'){
+    status.textContent='Tyhjennys peruttiin.';
+    return;
+  }
+  btn.disabled=true;
+  status.classList.remove('error','success');
+  status.textContent='Haetaan poistettavat oppilastiedot…';
+  try{
+    const players=await db.collection('players').get();
+    if(players.empty){
+      status.textContent='Oppilaslista on jo tyhjä.';
+      status.classList.add('success');
+      await loadOverview();
+      await loadPlayers(true);
+      return;
+    }
+    const sessionRefs=[];
+    for(let i=0;i<players.docs.length;i++){
+      const playerDoc=players.docs[i];
+      status.textContent=`Haetaan harjoitushistoriaa… ${i+1}/${players.docs.length}`;
+      const sessions=await playerDoc.ref.collection('sessions').get();
+      sessions.docs.forEach(d=>sessionRefs.push(d.ref));
+    }
+    if(sessionRefs.length){
+      status.textContent=`Poistetaan ${sessionRefs.length} harjoitusta…`;
+      await deleteRefsInBatches(sessionRefs,status);
+    }
+    const rootRefs=[];
+    players.docs.forEach(d=>{
+      const data=d.data();
+      rootRefs.push(d.ref,db.collection('publicPlayers').doc(d.id));
+      if(data.code!==undefined&&data.code!==null&&String(data.code).trim())rootRefs.push(db.collection('playerCodes').doc(String(data.code)));
+    });
+    status.textContent='Poistetaan oppilaat ja pelikoodit…';
+    await deleteRefsInBatches(rootRefs,status);
+    lastPlayerDoc=null;firstVisiblePlayer=null;
+    $('#playerSearch').value='';
+    await Promise.all([loadPlayers(true),loadOverview()]);
+    status.textContent=`Valmis. ${players.size} oppilasta ja ${sessionRefs.length} harjoitusta poistettiin.`;
+    status.classList.add('success');
+  }catch(e){
+    console.error('Kaikkien oppilaiden poisto epäonnistui',e);
+    status.textContent='Tyhjennys epäonnistui: '+e.message;
+    status.classList.add('error');
+  }finally{
+    btn.disabled=false;
+  }
+}
+$('#deleteAllPlayers').onclick=deleteAllPlayers;
 async function openPlayer(p){
   const fresh=await db.collection('players').doc(p.id).get();
   if(fresh.exists)p={id:fresh.id,...fresh.data()};
