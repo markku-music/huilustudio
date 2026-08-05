@@ -452,27 +452,8 @@ async function showLevelChooser(){
 }
 async function startSelectedLevel(level){
   applyLevel(level);document.getElementById('levelOverlay').style.display='none';
-
-  // Chrome säilyttää mikrofonin ja AudioContextin käyttäjäaktivoinnin
-  // varmimmin, kun käynnistys tehdään heti painalluksen jälkeen ennen
-  // verkko- tai Firebase-odotuksia.
-  if(!microphoneEngine||!microphoneEngine.running)await startMic();
-  resetGame();
-
-  // Tason tallennus ei saa viivästyttää mikrofonin käynnistymistä tai peliä.
-  if(currentPlayerId)saveSelectedLevelInBackground(level);
-}
-async function saveSelectedLevelInBackground(level){
-  try{
-    const p=await getPlayer(currentPlayerId);
-    if(!p)return;
-    p.currentLevelId=level.id;
-    p.unlockedLevelIds=currentUnlockedLevelIds;
-    p.levelProgress=currentPlayerProgress;
-    await writePlayer(p);
-  }catch(error){
-    console.warn('Valitun tason tallennus epäonnistui:',error);
-  }
+  if(currentPlayerId){const p=await getPlayer(currentPlayerId);if(p){p.currentLevelId=level.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;await writePlayer(p);}}
+  if(!microphoneEngine||!microphoneEngine.running)await startMic();resetGame();
 }
 async function updateLevelProgress(durationMs){
   if(!currentPlayerId||!currentLevel)return null;
@@ -803,54 +784,6 @@ function closeCabinet(){
   cabinetWasOpenedDuringGame = false;
 }
 
-
-function formatDiagnosticMs(value){
-  return Number.isFinite(value) ? `${(value*1000).toFixed(1)} ms` : 'ei saatavilla';
-}
-function diagnosticBoolean(value){
-  if(value===true)return 'päällä';
-  if(value===false)return 'pois';
-  return 'ei ilmoitettu';
-}
-function setDiagnosticText(id,value){
-  const element=document.getElementById(id);
-  if(element)element.textContent=value;
-}
-function refreshPassiveDiagnostics(){
-  const panel=document.getElementById('diagnosticsPanel');
-  if(!panel?.classList.contains('open'))return;
-  const engine=microphoneEngine;
-  const context=engine?.audioContext;
-  const track=engine?.stream?.getAudioTracks?.()[0];
-  const settings=track?.getSettings?.()||{};
-  const output=engine?.lastOutput||{};
-  const db=Number(output.db);
-  const level=Number.isFinite(db)?Math.max(0,Math.min(100,((db+80)/70)*100)):0;
-
-  setDiagnosticText('diagDevice',track?.label||'ei vielä avattu');
-  setDiagnosticText('diagContextState',context?.state||'ei avattu');
-  setDiagnosticText('diagSampleRate',context?.sampleRate?`${context.sampleRate} Hz`:(settings.sampleRate?`${settings.sampleRate} Hz`:'–'));
-  setDiagnosticText('diagBaseLatency',formatDiagnosticMs(context?.baseLatency));
-  setDiagnosticText('diagOutputLatency',formatDiagnosticMs(context?.outputLatency));
-  setDiagnosticText('diagChannels',String(settings.channelCount??'–'));
-  setDiagnosticText('diagEchoCancellation',diagnosticBoolean(settings.echoCancellation));
-  setDiagnosticText('diagNoiseSuppression',diagnosticBoolean(settings.noiseSuppression));
-  setDiagnosticText('diagAutoGain',diagnosticBoolean(settings.autoGainControl));
-  setDiagnosticText('diagDb',Number.isFinite(db)?`${db.toFixed(1)} dBFS`:'–');
-  setDiagnosticText('diagFrequency',Number.isFinite(output.frequency)?`${output.frequency.toFixed(1)} Hz`:'–');
-  setDiagnosticText('diagNote',output.noteName||output.display||'–');
-  setDiagnosticText('diagConfidence',Number.isFinite(output.confidence)?`${output.confidence.toFixed(1)} %`:'–');
-  setDiagnosticText('diagStatus',output.status||'idle');
-  const bar=document.getElementById('diagLevelBar');
-  if(bar)bar.style.width=`${level}%`;
-}
-function setDiagnosticsOpen(open){
-  const panel=document.getElementById('diagnosticsPanel');
-  panel?.classList.toggle('open',Boolean(open));
-  panel?.setAttribute('aria-hidden',open?'false':'true');
-  if(open)refreshPassiveDiagnostics();
-}
-
 function updateMicrophoneUi(output){
   const bars=[...meter.children];
   const db=Number(output.db ?? -160);
@@ -1100,12 +1033,6 @@ document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 loadLevelConfig().then(()=>applyLevel(levelConfig[0])).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
-document.getElementById('diagnosticsBtn')?.addEventListener('click',()=>{
-  const panel=document.getElementById('diagnosticsPanel');
-  setDiagnosticsOpen(!panel?.classList.contains('open'));
-});
-document.getElementById('diagnosticsClose')?.addEventListener('click',()=>setDiagnosticsOpen(false));
-setInterval(refreshPassiveDiagnostics,400);
 ensureMicrophoneEngine();
 addEventListener('beforeunload',()=>microphoneEngine?.stop());
 })();
