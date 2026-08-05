@@ -437,3 +437,17 @@ button{font:inherit}
 .avatarPicker{border:0;margin:14px 0 12px;padding:0}.avatarPicker legend{font-weight:900;margin-bottom:8px}.avatarChoices{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.avatarChoice{width:52px;height:52px;border:3px solid var(--ink);border-radius:16px;background:#fffaf0;font-size:28px;display:grid;place-items:center;padding:0}.avatarChoice.selected{background:var(--yellow);box-shadow:0 0 0 4px rgba(239,189,57,.35);transform:translateY(-2px)}
 
 .generatedCode{font-size:64px;font-weight:900;letter-spacing:.18em;margin:18px 0}
+
+
+/* 0.9.4 äänidiagnostiikka */
+#diagnosticsPanel{position:absolute;z-index:58;top:92px;right:18px;width:min(430px,calc(100vw - 36px));padding:15px 16px;display:none;background:rgba(255,250,240,.97);box-shadow:0 12px 34px rgba(0,0,0,.24)}
+#diagnosticsPanel.open{display:block}
+.diagnosticsHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:19px}
+#diagnosticsClose{width:34px;height:34px;border:3px solid var(--ink);border-radius:11px;background:#fff;font-size:24px;font-weight:900;line-height:1;cursor:pointer}
+.diagnosticsGrid{display:grid;grid-template-columns:minmax(125px,.8fr) minmax(0,1.2fr);gap:5px 12px;align-items:start;font-size:13px}
+.diagnosticsGrid span{opacity:.72;font-weight:800}
+.diagnosticsGrid b{min-width:0;overflow-wrap:anywhere;text-align:right}
+.diagnosticsMeter{height:11px;margin:12px 0 8px;border:2px solid var(--ink);border-radius:999px;overflow:hidden;background:#d9d9d9}
+#diagLevelBar{display:block;width:0;height:100%;background:currentColor;transition:width .08s linear}
+#diagnosticsPanel small{display:block;line-height:1.3;opacity:.7}
+@media(max-width:650px){#diagnosticsPanel{top:148px;right:10px;width:calc(100vw - 20px)}.diagnosticsGrid{grid-template-columns:112px minmax(0,1fr)}}

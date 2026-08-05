@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#82c8e8">
-<title>Sävelkoju 0.9.2</title>
+<title>Sävelkoju 0.9.4</title>
 <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
@@ -37,9 +37,36 @@
     <div id="tools">
       <button id="cabinetBtn" class="iconBtn" title="Palkintokaappi">🏆</button>
       <button id="settingsBtn" class="iconBtn" title="Opettajan asetukset">⚙️</button>
+      <button id="diagnosticsBtn" class="iconBtn" title="Äänidiagnostiikka">🎛️</button>
       <button id="pauseBtn" class="iconBtn">Ⅱ</button>
       <button id="soundBtn" class="iconBtn">🔊</button>
     </div>
+  </div>
+
+  <div id="diagnosticsPanel" class="panel" aria-live="polite">
+    <div class="diagnosticsHeader">
+      <strong>Äänidiagnostiikka</strong>
+      <button id="diagnosticsClose" type="button" aria-label="Sulje diagnostiikka">×</button>
+    </div>
+    <div class="diagnosticsGrid">
+      <span>Mikrofoni</span><b id="diagDevice">–</b>
+      <span>AudioContext</span><b id="diagContextState">–</b>
+      <span>Näytetaajuus</span><b id="diagSampleRate">–</b>
+      <span>Peruslatenssi</span><b id="diagBaseLatency">–</b>
+      <span>Ulostulolatenssi</span><b id="diagOutputLatency">–</b>
+      <span>Kanavat</span><b id="diagChannels">–</b>
+      <span>Kaikupoisto</span><b id="diagEchoCancellation">–</b>
+      <span>Kohinanpoisto</span><b id="diagNoiseSuppression">–</b>
+      <span>Automaattivahvistus</span><b id="diagAutoGain">–</b>
+      <span>Tulotaso</span><b id="diagDb">–</b>
+      <span>Taajuus</span><b id="diagFrequency">–</b>
+      <span>Tunnistettu sävel</span><b id="diagNote">–</b>
+      <span>Luottamus</span><b id="diagConfidence">–</b>
+      <span>Vakaus</span><b id="diagStability">–</b>
+      <span>Tila</span><b id="diagStatus">–</b>
+    </div>
+    <div class="diagnosticsMeter"><i id="diagLevelBar"></i></div>
+    <small>Paneeli ei muuta ääniasetuksia. Se näyttää selaimen ja äänilaitteen todelliset arvot.</small>
   </div>
 
   <div id="message" class="panel"></div>
