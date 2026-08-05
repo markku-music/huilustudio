@@ -116,6 +116,13 @@ document.getElementById('syncBadge').textContent=firebaseReady?'☁️ Firebase 
 function normalizePlayerKey(name){
   return name.trim().toLocaleLowerCase('fi-FI').replace(/\s+/g,' ').normalize('NFKC');
 }
+function debounce(fn,delay=250){
+  let timer=0;
+  return (...args)=>{
+    clearTimeout(timer);
+    timer=setTimeout(()=>fn(...args),delay);
+  };
+}
 function randomCode(){ return String(Math.floor(100+Math.random()*900)); }
 async function uniqueRandomCode(){
   const local=await localPlayers();
@@ -470,7 +477,11 @@ function fitStage(){
   const s=Math.min(innerWidth/1536,innerHeight/1024);
   stage.style.transform=`translate(-50%,-50%) scale(${s})`;
 }
-addEventListener('resize',fitStage);
+let fitStageFrame=0;
+addEventListener('resize',()=>{
+  cancelAnimationFrame(fitStageFrame);
+  fitStageFrame=requestAnimationFrame(fitStage);
+});
 fitStage();
 
 async function saveCabinet(){
@@ -884,15 +895,23 @@ document.getElementById('showNewBtn').addEventListener('click',()=>{showStartVie
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showStartView('homeView')));
 document.getElementById('startBtn').addEventListener('click',startForNamedPlayer);
 document.getElementById('playerName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();startForNamedPlayer();}});
-document.getElementById('playerSearch').addEventListener('input',async e=>{
-  const q=normalizePlayerKey(e.target.value); const box=document.getElementById('searchResults'); box.innerHTML='';
+let playerSearchRequest=0;
+const runPlayerSearch=debounce(async value=>{
+  const requestId=++playerSearchRequest;
+  const q=normalizePlayerKey(value);
+  const box=document.getElementById('searchResults');
+  box.innerHTML='';
   if(!q)return;
   try{
     const result=await searchPublicPlayers(q,20);
+    if(requestId!==playerSearchRequest)return;
     result.players.forEach(p=>box.appendChild(playerButton(p)));
     if(!result.players.length)box.textContent='Pelaajaa ei löytynyt.';
-  }catch(err){box.textContent='Hakua ei voitu tehdä: '+(err?.message||'virhe');}
-});
+  }catch(err){
+    if(requestId===playerSearchRequest)box.textContent='Hakua ei voitu tehdä: '+(err?.message||'virhe');
+  }
+},300);
+document.getElementById('playerSearch').addEventListener('input',e=>runPlayerSearch(e.target.value));
 document.getElementById('codeContinue').addEventListener('click',async()=>{
   if(!document.getElementById('generatedCode').classList.contains('hidden')){await beginGame();return;}
   const code=document.getElementById('playerCode').value.replace(/\D/g,'');
@@ -966,7 +985,7 @@ document.getElementById('teacherLoginBtn').addEventListener('click',async()=>{
     document.getElementById('teacherLogin').classList.add('hidden');document.getElementById('teacherPanel').classList.remove('hidden');renderTeacherList(true);
   }catch(err){console.error(err);error.textContent=err?.message||'Kirjautuminen epäonnistui.';}
 });
-document.getElementById('teacherSearch').addEventListener('input',()=>renderTeacherList(true));
+document.getElementById('teacherSearch').addEventListener('input',debounce(()=>renderTeacherList(true),300));
 document.getElementById('teacherMoreBtn').addEventListener('click',()=>renderTeacherList(false));
 document.getElementById('teacherCancelBtn').addEventListener('click',()=>document.getElementById('teacherOverlay').style.display='none');
 document.getElementById('teacherCloseBtn').addEventListener('click',async()=>{

@@ -435,3 +435,5 @@ button{font:inherit}
 @media(max-width:700px){.levelChoices{grid-template-columns:1fr}}
 
 .avatarPicker{border:0;margin:14px 0 12px;padding:0}.avatarPicker legend{font-weight:900;margin-bottom:8px}.avatarChoices{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.avatarChoice{width:52px;height:52px;border:3px solid var(--ink);border-radius:16px;background:#fffaf0;font-size:28px;display:grid;place-items:center;padding:0}.avatarChoice.selected{background:var(--yellow);box-shadow:0 0 0 4px rgba(239,189,57,.35);transform:translateY(-2px)}
+
+.generatedCode{font-size:64px;font-weight:900;letter-spacing:.18em;margin:18px 0}
