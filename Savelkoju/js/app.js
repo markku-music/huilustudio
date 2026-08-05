@@ -72,10 +72,6 @@ let paused=false;
 let accepting=true;
 let aimTime=0;
 let microphoneEngine=null;
-let diagnosticsOpen=false;
-let diagnosticsLastMidi=null;
-let diagnosticsStableFrames=0;
-let diagnosticsTotalFrames=0;
 let lastAccepted=0;
 let roundStartedAt=0;
 let missCount=0;
@@ -807,6 +803,7 @@ function closeCabinet(){
   cabinetWasOpenedDuringGame = false;
 }
 
+
 function formatDiagnosticMs(value){
   return Number.isFinite(value) ? `${(value*1000).toFixed(1)} ms` : 'ei saatavilla';
 }
@@ -816,33 +813,21 @@ function diagnosticBoolean(value){
   return 'ei ilmoitettu';
 }
 function setDiagnosticText(id,value){
-  const el=document.getElementById(id);
-  if(el)el.textContent=value;
+  const element=document.getElementById(id);
+  if(element)element.textContent=value;
 }
-function updateDiagnostics(output={}){
-  if(!diagnosticsOpen)return;
+function refreshPassiveDiagnostics(){
+  const panel=document.getElementById('diagnosticsPanel');
+  if(!panel?.classList.contains('open'))return;
   const engine=microphoneEngine;
   const context=engine?.audioContext;
   const track=engine?.stream?.getAudioTracks?.()[0];
   const settings=track?.getSettings?.()||{};
-
-  if(output.status==='signal' && Number.isFinite(output.midi)){
-    diagnosticsTotalFrames++;
-    if(output.midi===diagnosticsLastMidi)diagnosticsStableFrames++;
-    else{diagnosticsLastMidi=output.midi;diagnosticsStableFrames=1;}
-  }else if(output.status==='unstable' || output.status==='waiting'){
-    diagnosticsTotalFrames++;
-    diagnosticsStableFrames=Math.max(0,diagnosticsStableFrames-1);
-  }
-  if(diagnosticsTotalFrames>120){
-    diagnosticsTotalFrames=Math.ceil(diagnosticsTotalFrames/2);
-    diagnosticsStableFrames=Math.ceil(diagnosticsStableFrames/2);
-  }
-  const stability=diagnosticsTotalFrames ? Math.round(100*diagnosticsStableFrames/diagnosticsTotalFrames) : 0;
+  const output=engine?.lastOutput||{};
   const db=Number(output.db);
   const level=Number.isFinite(db)?Math.max(0,Math.min(100,((db+80)/70)*100)):0;
 
-  setDiagnosticText('diagDevice',track?.label||settings.deviceId||'ei vielä avattu');
+  setDiagnosticText('diagDevice',track?.label||'ei vielä avattu');
   setDiagnosticText('diagContextState',context?.state||'ei avattu');
   setDiagnosticText('diagSampleRate',context?.sampleRate?`${context.sampleRate} Hz`:(settings.sampleRate?`${settings.sampleRate} Hz`:'–'));
   setDiagnosticText('diagBaseLatency',formatDiagnosticMs(context?.baseLatency));
@@ -855,22 +840,18 @@ function updateDiagnostics(output={}){
   setDiagnosticText('diagFrequency',Number.isFinite(output.frequency)?`${output.frequency.toFixed(1)} Hz`:'–');
   setDiagnosticText('diagNote',output.noteName||output.display||'–');
   setDiagnosticText('diagConfidence',Number.isFinite(output.confidence)?`${output.confidence.toFixed(1)} %`:'–');
-  setDiagnosticText('diagStability',`${stability} %`);
-  setDiagnosticText('diagStatus',output.status||'–');
+  setDiagnosticText('diagStatus',output.status||'idle');
   const bar=document.getElementById('diagLevelBar');
   if(bar)bar.style.width=`${level}%`;
 }
 function setDiagnosticsOpen(open){
-  diagnosticsOpen=Boolean(open);
-  document.getElementById('diagnosticsPanel')?.classList.toggle('open',diagnosticsOpen);
-  if(diagnosticsOpen){
-    diagnosticsLastMidi=null;diagnosticsStableFrames=0;diagnosticsTotalFrames=0;
-    updateDiagnostics(microphoneEngine?.lastOutput||{});
-  }
+  const panel=document.getElementById('diagnosticsPanel');
+  panel?.classList.toggle('open',Boolean(open));
+  panel?.setAttribute('aria-hidden',open?'false':'true');
+  if(open)refreshPassiveDiagnostics();
 }
 
 function updateMicrophoneUi(output){
-  updateDiagnostics(output);
   const bars=[...meter.children];
   const db=Number(output.db ?? -160);
   const level=Math.max(0,Math.min(1,(db+70)/55));
@@ -1119,8 +1100,12 @@ document.getElementById('closeCabinet').addEventListener('click',closeCabinet);
 loadLevelConfig().then(()=>applyLevel(levelConfig[0])).catch(console.warn);
 setTarget('A');
 showStartView('homeView');
-document.getElementById('diagnosticsBtn')?.addEventListener('click',()=>setDiagnosticsOpen(!diagnosticsOpen));
+document.getElementById('diagnosticsBtn')?.addEventListener('click',()=>{
+  const panel=document.getElementById('diagnosticsPanel');
+  setDiagnosticsOpen(!panel?.classList.contains('open'));
+});
 document.getElementById('diagnosticsClose')?.addEventListener('click',()=>setDiagnosticsOpen(false));
+setInterval(refreshPassiveDiagnostics,400);
 ensureMicrophoneEngine();
 addEventListener('beforeunload',()=>microphoneEngine?.stop());
 })();
