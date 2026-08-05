@@ -452,8 +452,27 @@ async function showLevelChooser(){
 }
 async function startSelectedLevel(level){
   applyLevel(level);document.getElementById('levelOverlay').style.display='none';
-  if(currentPlayerId){const p=await getPlayer(currentPlayerId);if(p){p.currentLevelId=level.id;p.unlockedLevelIds=currentUnlockedLevelIds;p.levelProgress=currentPlayerProgress;await writePlayer(p);}}
-  if(!microphoneEngine||!microphoneEngine.running)await startMic();resetGame();
+
+  // Chrome säilyttää mikrofonin ja AudioContextin käyttäjäaktivoinnin
+  // varmimmin, kun käynnistys tehdään heti painalluksen jälkeen ennen
+  // verkko- tai Firebase-odotuksia.
+  if(!microphoneEngine||!microphoneEngine.running)await startMic();
+  resetGame();
+
+  // Tason tallennus ei saa viivästyttää mikrofonin käynnistymistä tai peliä.
+  if(currentPlayerId)saveSelectedLevelInBackground(level);
+}
+async function saveSelectedLevelInBackground(level){
+  try{
+    const p=await getPlayer(currentPlayerId);
+    if(!p)return;
+    p.currentLevelId=level.id;
+    p.unlockedLevelIds=currentUnlockedLevelIds;
+    p.levelProgress=currentPlayerProgress;
+    await writePlayer(p);
+  }catch(error){
+    console.warn('Valitun tason tallennus epäonnistui:',error);
+  }
 }
 async function updateLevelProgress(durationMs){
   if(!currentPlayerId||!currentLevel)return null;
