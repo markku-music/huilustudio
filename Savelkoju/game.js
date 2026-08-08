@@ -44,6 +44,23 @@ async function playFinaleSoundUntilEnd(){
 }
 function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
 addEventListener('resize',fitStage);fitStage();
+
+if(window.visualViewport){
+  let lastViewportHeight=window.visualViewport.height;
+  window.visualViewport.addEventListener('resize',()=>{
+    const currentHeight=window.visualViewport.height;
+
+    // Kun näppäimistö sulkeutuu, visual viewport kasvaa selvästi.
+    if(currentHeight > lastViewportHeight + 80){
+      setTimeout(()=>{
+        window.scrollTo(0,0);
+        fitStage();
+      },120);
+    }
+
+    lastViewportHeight=currentHeight;
+  });
+}
 function captureSessionName(){
   const name=window.SavelkojuScoreboard.cleanName(sessionName.value);
   if(!name){
@@ -376,6 +393,19 @@ $('changePlayerBtn').addEventListener('click',changePlayer);
 function beginNameEntry(){
   levelChooser.classList.add('name-entry-hidden');
 }
+function restoreViewportAfterKeyboard(){
+  // iPad Safari voi jättää visual viewportin hieman väärään kohtaan
+  // virtuaalinäppäimistön sulkeuduttua. Palautetaan sekä scroll että stage.
+  requestAnimationFrame(()=>{
+    window.scrollTo(0,0);
+    fitStage();
+  });
+  setTimeout(()=>{
+    window.scrollTo(0,0);
+    fitStage();
+  },220);
+}
+
 function finishNameEntry(){
   const name=sessionName.value.trim();
   if(!name){
@@ -386,6 +416,7 @@ function finishNameEntry(){
   sessionName.classList.remove('name-needed');
   sessionName.blur();
   levelChooser.classList.remove('name-entry-hidden');
+  restoreViewportAfterKeyboard();
 }
 sessionName.addEventListener('focus',beginNameEntry);
 sessionName.addEventListener('keydown',e=>{

@@ -182,3 +182,11 @@ VERSIO 3.5.5 – ADMIN-RATAS + SALASANAN VAIHTO
 - Uusi salasana kysytään kahteen kertaan.
 - Firebase vaatii salasanalle vähintään 6 merkkiä.
 - Jos kirjautuminen on liian vanha, peli pyytää kirjautumaan ulos ja takaisin sisään ennen vaihtoa.
+
+
+VERSIO 3.5.6 – IPAD NÄPPÄIMISTÖN VIEWPORT-KORJAUS
+- Valmis-nappi sulkee nimikentän näppäimistön kuten ennen.
+- Näppäimistön sulkeuduttua scroll palautetaan ylös (0,0).
+- fitStage() ajetaan uudelleen heti ja vielä 220 ms kuluttua.
+- visualViewport.resize toimii varmistuksena iPad Safarissa:
+  kun näppäimistö sulkeutuu ja viewport kasvaa, näkymä palautetaan ja skaalataan uudelleen.
