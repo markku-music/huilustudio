@@ -190,3 +190,13 @@ VERSIO 3.5.6 – IPAD NÄPPÄIMISTÖN VIEWPORT-KORJAUS
 - fitStage() ajetaan uudelleen heti ja vielä 220 ms kuluttua.
 - visualViewport.resize toimii varmistuksena iPad Safarissa:
   kun näppäimistö sulkeutuu ja viewport kasvaa, näkymä palautetaan ja skaalataan uudelleen.
+
+
+VERSIO 3.5.7 – PWA
+- Sävelkoju on nyt asennettava Progressive Web App.
+- Lisätty manifest.webmanifest, service worker ja sovelluskuvakkeet.
+- iPad/iPhone: Lisää Koti-valikkoon Safarista.
+- Android: Asenna sovellus / Lisää aloitusnäyttöön Chromesta.
+- Standalone-tila poistaa normaalin selainkäyttöliittymän.
+- Paikalliset peliresurssit toimivat välimuistista myös yhteyden katketessa.
+- Firebase-tulostaulu tarvitsee edelleen verkkoyhteyden.
