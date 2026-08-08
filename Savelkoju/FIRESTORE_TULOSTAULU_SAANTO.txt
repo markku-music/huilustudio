@@ -1,0 +1,35 @@
+Lisää tämä lohko nykyisen firestore.rules-tiedoston
+match /databases/{database}/documents { ... } -lohkon SISÄLLE:
+
+    match /scoreboards/{levelId}/scores/{scoreId} {
+      allow read: if true;
+
+      allow create: if
+        levelId in ['1', '2', '3'] &&
+        request.resource.data.keys().hasOnly([
+          'playerName',
+          'levelName',
+          'timeMs',
+          'createdAt'
+        ]) &&
+        request.resource.data.playerName is string &&
+        request.resource.data.playerName.size() >= 1 &&
+        request.resource.data.playerName.size() <= 20 &&
+        request.resource.data.levelName is string &&
+        request.resource.data.levelName.size() >= 1 &&
+        request.resource.data.levelName.size() <= 30 &&
+        request.resource.data.timeMs is int &&
+        request.resource.data.timeMs >= 1000 &&
+        request.resource.data.timeMs <= 600000 &&
+        request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+Tämän jälkeen julkaise Firestore-säännöt Firebase Consolessa.
+
+HUOM:
+- Pelaajan ei tarvitse kirjautua.
+- Tuloksia voi lukea kuka tahansa.
+- Pelistä voi vain LISÄTÄ uuden tuloksen.
+- Peli ei voi muuttaa tai poistaa vanhoja tuloksia.

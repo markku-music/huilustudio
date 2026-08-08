@@ -5,162 +5,102 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#82c8e8">
-<title>Sävelkoju 0.9.2</title>
-<link rel="stylesheet" href="css/main.css">
+<title>Sävelkoju</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="game">
   <div id="stage">
-    <div id="targetingLayer">
-      <div id="zoneH" class="targetZone" data-note="H"></div>
-      <div id="zoneA" class="targetZone" data-note="A"></div>
-      <div id="zoneG" class="targetZone" data-note="G"></div>
-      <div id="zoneC" class="targetZone extraTarget" data-note="C"></div>
-      <div id="zoneF" class="targetZone extraTarget" data-note="F"></div>
-      <div id="zoneD" class="targetZone extraTarget" data-note="D"></div>
-      <div id="zoneE" class="targetZone extraTarget" data-note="E"></div>
-      <div id="reticle"><div id="reticleRing"></div><div id="reticleDot"></div></div>
-      <div id="spark"></div>
-      <div id="targetFlash" class="targetFlash"></div>
-      <div id="pling">PLING!</div>
+    <div id="progressLamps" class="progress-lamps" aria-label="Edistyminen">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
     </div>
+    <div id="reticle"><i></i></div>
+    <div id="flash"></div>
+    <div id="hitText">PLING!</div>
   </div>
 
-  <div id="currentPlayer" style="display:none"></div>
-
-  <div id="hud">
-    <div id="statusPanel" class="panel">
-      <div class="metric"><small>PISTEET</small><strong id="scoreValue">0</strong></div>
-      <div class="metric"><small>MAALEJA</small><strong><span id="roundValue">1</span>/10</strong></div>
-      <div class="metric"><small>PALKINTOJA</small><strong id="cabinetCount">0</strong></div>
+  <div id="hud" class="panel hidden">
+    <div><small>OSUMAT</small><strong><span id="score">0</span>/10</strong></div>
+    <div>
+      <small id="levelNameHud">ENSISÄVELET</small>
+      <span id="heard">MIKROFONI EI OLE PÄÄLLÄ</span>
     </div>
-    <div id="tools">
-      <button id="cabinetBtn" class="iconBtn" title="Palkintokaappi">🏆</button>
-      <button id="settingsBtn" class="iconBtn" title="Opettajan asetukset">⚙️</button>
-      <button id="pauseBtn" class="iconBtn">Ⅱ</button>
-      <button id="soundBtn" class="iconBtn">🔊</button>
-    </div>
+    <div><small>SOITA</small><strong id="targetNote">A</strong></div>
   </div>
 
   <div id="message" class="panel"></div>
 
-  <div id="bottom" class="panel">
-    <div id="buttons">
-      <button id="btnH" class="noteBtn">H</button>
-      <button id="btnA" class="noteBtn">A</button>
-      <button id="btnG" class="noteBtn">G</button>
-      <button id="btnC" class="noteBtn extraNoteBtn">C</button>
-      <button id="btnF" class="noteBtn extraNoteBtn">F</button>
-      <button id="btnD" class="noteBtn extraNoteBtn">D</button>
-      <button id="btnE" class="noteBtn extraNoteBtn">E</button>
-    </div>
-    <div id="listen">KUUNTELEN…<div id="meter"></div></div>
-    <div id="prompt">SOITA<strong id="targetLabel">A</strong></div>
-  </div>
-
-  <div id="startOverlay">
-    <div class="card panel">
+  <div id="levelOverlay" class="overlay">
+    <div class="level-card panel">
       <h1>Sävelkoju</h1>
-      <div id="syncBadge" class="syncBadge">Paikallinen testitila</div>
-
-      <section id="homeView">
-        <p><strong>Kuka pelaa tänään?</strong></p>
-        <div id="recentSection" class="playerSection">
-          <h3>Viimeksi pelanneet</h3>
-          <div id="recentPlayers" class="recentGrid"></div>
-        </div>
-        <div class="startActions">
-          <button id="showSearchBtn" class="secondary">🔍 Etsi pelaaja</button>
-          <button id="showNewBtn" class="primary">✨ Uusi pelaaja</button>
-        </div>
-      </section>
-
-      <section id="searchView" class="hidden">
-        <button class="backBtn" data-back>← Takaisin</button>
-        <h2>Etsi pelaaja</h2>
-        <input id="playerSearch" class="textInput" type="search" maxlength="20" placeholder="Kirjoita nimen alku" aria-label="Etsi pelaaja">
-        <div id="searchResults" class="searchResults playerSection"></div>
-      </section>
-
-      <section id="newView" class="hidden">
-        <button class="backBtn" data-back>← Takaisin</button>
-        <h2>Uusi pelaaja</h2>
-        <input id="playerName" class="textInput" type="text" maxlength="20" autocomplete="name" placeholder="Nimi" aria-label="Pelaajan nimi">
-        <fieldset class="avatarPicker"><legend>Valitse oma hahmo</legend><div id="avatarChoices" class="avatarChoices" role="radiogroup" aria-label="Pelaajan hahmo"></div></fieldset>
-        <div id="nameError" aria-live="polite"></div>
-        <button id="startBtn" class="primary">Luo pelaaja</button>
-      </section>
-    </div>
-  </div>
-
-  <div id="codeOverlay">
-    <div class="modalCard panel">
-      <h2 id="codeTitle">Anna pelikoodisi</h2>
-      <p id="codeHelp"></p>
-      <div id="generatedCode" class="generatedCode hidden" aria-live="assertive"></div>
-      <input id="playerCode" class="textInput codeBoxes" inputmode="numeric" maxlength="3" placeholder="___" aria-label="Kolminumeroinen pelikoodi">
-      <div id="codeError" class="nameError" aria-live="polite"></div>
-      <button id="codeContinue" class="primary">Jatka peliä</button>
-      <button id="codeCancel" class="secondary">Peruuta</button>
-    </div>
-  </div>
-
-  <div id="teacherOverlay">
-    <div class="modalCard panel">
-      <h2>Opettajan asetukset</h2>
-      <section id="teacherLogin">
-        <p>Kirjaudu opettajan Firebase-tunnuksella.</p>
-        <input id="teacherEmail" class="textInput" type="email" autocomplete="username" placeholder="Sähköposti">
-        <input id="teacherPassword" class="textInput" type="password" autocomplete="current-password" placeholder="Salasana">
-        <div id="teacherError" aria-live="polite"></div>
-        <button id="teacherLoginBtn" class="primary">Avaa oppilaslista</button>
-        <button id="teacherCancelBtn" class="secondary">Sulje</button>
-      </section>
-      <section id="teacherPanel" class="hidden">
-        <input id="teacherSearch" class="textInput" type="search" placeholder="Hae oppilasta nimellä">
-        <div id="teacherList" class="teacherList"></div>
-        <button id="teacherMoreBtn" class="secondary hidden">Näytä lisää</button>
-        <button id="teacherCloseBtn" class="secondary">Sulje</button>
-      </section>
-    </div>
-  </div>
-
-  <div id="levelOverlay">
-    <div class="modalCard panel levelCard">
-      <h2>Valitse taso</h2>
-      <p id="levelPlayerSummary"></p>
-      <div id="levelChoices" class="levelChoices"></div>
-      <button id="levelCancelBtn" class="secondary">Takaisin</button>
-    </div>
-  </div>
-
-  <div id="prizeOverlay">
-    <div id="prizeScene" class="panel">
-      <div id="confettiLayer"></div>
-      <div id="prizeGlow"></div>
-      <div id="prizeIcon">🧸</div>
-      <div id="prizeTitle">Sait palkinnon: Nalle!</div>
-      <div id="prizeInfo">Palkinto lisättiin omaan palkintokaappiisi.</div>
-      <div id="prizeButtons">
-        <button id="openCabinetFromPrize" class="secondary">Palkintokaappi</button>
-        <button id="continueBtn" class="primary">Pelaa uudelleen</button>
+      <div class="session-name-box direct-name">
+        <input id="sessionName" maxlength="20" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
       </div>
+      <div id="levelChooser">
+        <p class="lead">Valitse peli</p>
+      <div class="levels">
+        <button class="level-btn" data-level="1"><b>ENSISÄVELET</b><span>G · A · H</span></button>
+        <button class="level-btn" data-level="2"><b>TASAPAINOTEMPPU</b><span>C · H · A · G</span></button>
+        <button class="level-btn" data-level="3"><b>SORMISIRKUS</b><span>D · C · H · A · G</span></button>
+      </div>
+      <div class="menu-actions">
+  <button id="helpBtn" class="help-btn" type="button">▶ KATSO OHJE</button>
+  <button id="scoreboardBtn" class="help-btn scoreboard-btn" type="button">🏆 TULOSTAULU</button>
+</div>
+    
+      </div>
+</div>
+  </div>
+
+  <div id="videoOverlay" class="video-overlay hidden" aria-hidden="true">
+    <div class="video-wrap">
+      <video id="helpVideo" playsinline preload="metadata">
+        <source src="Infovideo.mp4" type="video/mp4">
+      </video>
+      <button id="closeVideoBtn" class="video-close" type="button" aria-label="Sulje ohje">✕</button>
     </div>
   </div>
 
-  <div id="cabinetOverlay">
-    <div id="cabinetCard" class="panel">
-      <h2>Oma palkintokaappi</h2>
-      <div id="cabinetGrid"></div>
-      <button id="closeCabinet" class="primary">Sulje</button>
+  <div id="finishOverlay" class="overlay hidden">
+    <div class="card panel finish-card">
+      <h1>Hienoa!</h1>
+      <p id="finishLevel"></p>
+      <strong id="timeResult" class="time"></strong>
+
+      <div class="save-score">
+        <p id="saveStatus" class="score-status" aria-live="polite"></p>
+      </div>
+
+      <div class="finish-board">
+        <h2>Parhaat ajat</h2>
+        <ol id="finishScores" class="score-list"></ol>
+      </div>
+
+      <button id="againBtn">Pelaa uudestaan</button>
+      <button id="levelsBtn" class="secondary">Valitse toinen peli</button>
+      <button id="changePlayerBtn" class="secondary change-player">Vaihda pelaajaa</button>
+    </div>
+  </div>
+
+  <div id="scoreboardOverlay" class="overlay hidden">
+    <div class="scoreboard-panel panel">
+      <button id="closeScoreboardBtn" class="board-close" type="button" aria-label="Sulje tulostaulu">✕</button>
+      <h1>Tulostaulu</h1>
+      <div class="score-tabs" role="tablist" aria-label="Pelitaso">
+        <button class="score-tab active" data-score-level="1" type="button">ENSISÄVELET</button>
+        <button class="score-tab" data-score-level="2" type="button">TASAPAINOTEMPPU</button>
+        <button class="score-tab" data-score-level="3" type="button">SORMISIRKUS</button>
+      </div>
+      <ol id="scoreboardScores" class="score-list big"></ol>
+      <p id="scoreboardStatus" class="score-status" aria-live="polite"></p>
     </div>
   </div>
 </div>
-
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-<script src="engine/nuottikompassi-microphone-engine-1.0.js"></script>
-<script src="js/app.js"></script>
+<script src="microphone-engine.js"></script>
+<script src="scoreboard.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

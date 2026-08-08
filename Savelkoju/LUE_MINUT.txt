@@ -1,14 +1,112 @@
-SÄVELKOJU 0.6.3 – FIREBASE KYTKETTY
+SÄVELKOJU 3 TASOA 1.1 – OHJEVIDEO
 
-Pohja: Sävelkoju 0.5.6 Palkintokaappi säilyy
+Uutta tässä versiossa:
+- Tasonvalinnassa oma “KATSO OHJE” -painike.
+- Infovideo avautuu koko pelin päälle.
+- Videon voi sulkea X-painikkeesta.
+- Videon loputtua palataan automaattisesti tasonvalintaan.
+- Mikrofonimoottori pysäytetään ohjevideon ajaksi.
+- Alkuperäinen MOV on muunnettu H.264/AAC MP4:ksi selainyhteensopivuuden parantamiseksi.
 
-Muutokset:
-- Oikean Savelkoju-Firebase-projektin asetukset lisätty index.html-tiedostoon.
-- Pelaajaprofiilit ja palkintokaapit tallentuvat Firestoreen.
-- Kolminumeroiset pelikoodit tarkistetaan Firestoren pelaajalistaa vasten.
-- Viimeksi pelanneet säilyvät edelleen laitekohtaisesti IndexedDB:ssä.
-- Mukana Firestore-testisäännöt ja päivitetty testausohje.
+Tasot:
+1. ENSISÄVELET – G A H
+2. TASAPAINOTEMPPU – C H A G
+3. SORMISIRKUS – D C H A G
 
-Huomaa:
-- Peli kannattaa avata GitHub Pagesin kautta, ei suoraan file://-osoitteesta.
-- Testisäännöt ovat avoimet ja pitää myöhemmin lukita.
+
+VERSIO 1.2
+- Mikrofonilupa pyydetään vain ensimmäisen pelikerran yhteydessä.
+- Tasonvaihdossa mikrofonistreamia ei suljeta, vaan se keskeytetään.
+- Ohjevideon aikana mikrofoni on mykistetty ja analyysi keskeytetty.
+- Uusi taso jatkaa samalla mikrofonistreamilla ilman uutta lupapyyntöä.
+
+
+VERSIO 1.3 – FIREBASE-TULOSTAULU
+- Tasonvalintaan lisätty TULOSTAULU.
+- Jokaisella kolmella pelillä on oma Top 10 -lista.
+- Pelin lopussa pelaaja voi kirjoittaa nimensä ja tallentaa ajan.
+- Nimi muistetaan samalla laitteella seuraavaa pelikertaa varten.
+- Firebase-projekti: nykyinen Savelkoju-projekti.
+- Pelaajatiliä tai kirjautumista ei tarvita.
+- Firestoreen tallennetaan vain nimi, taso, aika ja palvelimen aikaleima.
+- Mukana FIRESTORE_TULOSTAULU_SAANTO.txt, jonka sääntölohko pitää lisätä
+  nykyisiin Firestore-sääntöihin ennen kuin tallennus toimii.
+
+
+VERSIO 1.4
+- Pelaajan nimeä ei enää tallenneta selaimen localStorageen.
+- Tämä poistaa Storage quota -virheen.
+- Firebase-tulostaulu toimii kuten ennenkin.
+
+
+VERSIO 1.5 – OSUMAÄÄNI
+- Mukana käyttäjän Hit.wav.
+- Ääni käynnistyy täsmälleen hyväksytyn osuman hetkellä yhdessä osuma-animaation kanssa.
+- Ääni esiladataan, jotta osumaan ei tule tarkoituksellista viivettä.
+
+
+VERSIO 1.6 – EDISTYMISLAMPUT
+- Pelikuvaan lisätty 10 tivolilamppua.
+- Jokainen hyväksytty osuma sytyttää yhden lampun.
+- Juuri syttynyt lamppu tekee pienen pop-animaation.
+- Loppuvilkutusta ei ole vielä lisätty.
+
+
+VERSIO 1.7 – VIIMEINEN LAMPPU
+- 10. osuman jälkeen loppulätkä odottaa 0,9 s normaalia pidempään.
+- Viimeinen lamppu ehtii tehdä pop-animaation ja näkyä syttyneenä ennen tulosruutua.
+
+
+VERSIO 1.8 – RANDOM LAMPPUFINAALI
+- 10. osuman jälkeen lamput vilkkuvat satunnaisesti noin 1,5 sekuntia.
+- Vilkutus on tarkoituksella rauhallinen, ei strobomainen.
+- Lopuksi kaikki 10 lamppua syttyvät yhtä aikaa noin 0,65 sekunniksi.
+- Tulosruutu tulee vasta animaation jälkeen.
+
+
+VERSIO 1.9 – LAMPPU-OSUMAÄÄNI
+- Osumaääni vaihdettu käyttäjän Lamppu.wav-tiedostoon.
+- Muu 1.8-version toiminta ja random-lamppufinaali säilyvät ennallaan.
+
+
+VERSIO 2.0 – SIRKUSMUSA LAMPPUFINAALIIN
+- Käyttäjän Sirkusmusa.wav soi 10. osuman random-lamppuanimaation aikana.
+- 10. osuman normaali Lamppu.wav soi ensin.
+- Sirkusmusiikki käynnistyy, kun satunnainen tivolivilkutus alkaa.
+
+
+VERSIO 2.5 – AUTOMAATTINEN TULOSTALLENNUS
+- Tulos tallentuu Firebaseen automaattisesti kierroksen päätyttyä.
+- Tallenna tulos -nappi poistettu.
+- Loppulätkä näyttää tason Top 10 -listan.
+- Juuri pelattu tulos korostetaan listassa, jos se mahtuu Top 10:een.
+- Tasonvalinnan Top 3 päivittyy automaattisesti.
+
+
+VERSIO 2.7 – EI TULOKSIA ALKURUUDUSSA
+- Alkunäkymässä ei näytetä tuloksia.
+- Alussa näkyvät vain Nimi, kolme tasoa, Katso ohje ja Tulostaulu.
+- Loppulätkä näyttää juuri pelatun tason Top 10:n.
+- Juuri pelattu tulos korostetaan listassa.
+- Valitse toinen peli palauttaa samaan tasonvalintaan ja session nimi säilyy.
+
+
+VERSIO 2.8 – LOPPULÄTKÄ FINAALIN AIKANA
+- Korostetun oman tuloksen tähti poistettu.
+- 10. osuman jälkeen sirkusmusiikki, random-valoshow ja loppulätkän feidaus alkavat samaan aikaan.
+- Tulostaulu latautuu ja tulos tallentuu samalla kun finaalishow jatkuu taustalla.
+
+
+VERSIO 2.9 – JATKUVA FINAALIVILKUTUS
+- Random-lamput eivät enää lopeta vilkkumista 1,5 sekunnin jälkeen.
+- Vilkutus jatkuu loppulätkän taustalla niin kauan, kunnes pelaaja painaa
+  Pelaa uudestaan tai Valitse toinen peli.
+- Napin painaminen pysäyttää finaalivilkutuksen ja palauttaa lamput normaalitilaan.
+
+
+VERSIO 3.0 – VAIHDA PELAAJAA
+- Loppulätkään lisätty “Vaihda pelaajaa”.
+- Nappi pysäyttää finaalivilkutuksen.
+- Session pelaajan nimi tyhjennetään.
+- Palataan alkuruutuun ja Nimi-kenttä aktivoituu uudelle pelaajalle.
+- “Valitse toinen peli” säilyttää edelleen saman pelaajan nimen.
