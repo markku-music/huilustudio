@@ -190,7 +190,7 @@ h1{font-size:clamp(23px,4vw,34px);line-height:1;margin:0}.subtitle{margin:5px 0 
 <main class="game">
 
   <section id="startView" class="start-screen">
-    <h2>Soita H, A tai G</h2>
+    <h2>Sävelkortit G-C</h2>
     <div class="name-row">
       <input id="playerName" class="name-input" type="text" maxlength="20" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
       <button id="startButton" class="btn primary">Aloita</button>
@@ -724,8 +724,8 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
   };
   const M = window.NuottikompassiMicrophoneEngine;
   const $ = id => document.getElementById(id);
-  const NOTES = ["G","A","H","C","D"];
-  const PITCH_CLASS = {7:"G", 9:"A", 11:"H", 0:"C", 2:"D"};
+  const NOTES = ["G","A","H","C"];
+  const PITCH_CLASS = {7:"G", 9:"A", 11:"H", 0:"C"};
   const HOLD_MS = 230;
   const RELEASE_MS = 150;
   const HISTORY_KEY = 'hag-korttipeli-edellinen-kierros';
@@ -752,7 +752,7 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
     const previousSequence = window.RandomEngine.HistoryStore.load(HISTORY_KEY);
     const result = window.RandomEngine.generate({
       items: NOTES,
-      length: 8,
+      length: 15,
       maxConsecutive: 2,
       maxDifferentRepeatedRuns: 1,
       requireAll: true,
