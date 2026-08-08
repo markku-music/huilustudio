@@ -150,3 +150,35 @@ VERSIO 3.5 – NIMEN VALMIS + JPG-TAUSTAT
   taso 1 = D ja C huputettu
   taso 2 = D huputettu
   taso 3 = kaikki taulut näkyvissä
+
+
+VERSIO 3.5.2 – LOPPULÄTKÄ POIS TASONVAIHDOSSA
+- “Valitse toinen peli” poistaa nyt myös finale-fade-luokan.
+- Loppulätkä häviää varmasti ennen tasonvalintanäkymää.
+
+
+VERSIO 3.5.3 – VIDEO RESPONSIVE + FINAALI LOPPUUN
+- Ohjevideo skaalautuu aina selainikkunaan kuvasuhteensa säilyttäen.
+- iPad/iPhone safe area huomioidaan.
+- Finaalimusiikki soi kokonaan loppuun ennen tulosruutua.
+- Random-valoshow jatkuu koko finaalimusiikin ajan.
+- Musiikin loputtua kaikki lamput jäävät vielä noin 0,42 s päälle.
+- Vasta tämän jälkeen tulokset näytetään.
+
+
+VERSIO 3.5.4 – ADMIN-TULOSTEN NOLLAUS
+- Alkunäkymään lisätty ADMIN.
+- Admin kirjautuu Firebase Authenticationin sähköposti/salasana-tunnuksella.
+- Oikeus tarkistetaan Firestoren admins/{uid}-dokumentista.
+- Nykyisen lukukauden tulokset voi nollata taso kerrallaan tai kaikilta kolmelta.
+- Vanhojen lukukausien arkistoa ei poisteta.
+- Mukana valmis firestore.rules ja ohje admin-käyttäjän määrittämiseen.
+
+
+VERSIO 3.5.5 – ADMIN-RATAS + SALASANAN VAIHTO
+- ADMIN-tekstinappi poistettu tasonvalinnasta.
+- Admin avataan pienestä rataskuvakkeesta oikeassa alakulmassa.
+- Kirjautunut admin voi vaihtaa oman Firebase Auth -salasanansa admin-näkymässä.
+- Uusi salasana kysytään kahteen kertaan.
+- Firebase vaatii salasanalle vähintään 6 merkkiä.
+- Jos kirjautuminen on liian vanha, peli pyytää kirjautumaan ulos ja takaisin sisään ennen vaihtoa.

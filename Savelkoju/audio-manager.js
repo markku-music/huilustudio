@@ -172,6 +172,55 @@ class SavelkojuAudioManager {
     this.playHtml('hit',{volume:1});
   }
 
+  async playFinaleUntilEnd(){
+    this.stopFinale();
+
+    if(this.mode==='webaudio'){
+      const buffer=this.buffers.get('finale');
+      if(buffer){
+        return new Promise(resolve=>{
+          const source=this.playWebBuffer(buffer,{volume:1});
+          this.finaleSource=source;
+          source.onended=()=>{
+            if(this.finaleSource===source) this.finaleSource=null;
+            resolve();
+          };
+        });
+      }
+    }
+
+    const audio=this.htmlAudio['finale'];
+    if(!audio) return;
+
+    return new Promise(resolve=>{
+      try{
+        audio.pause();
+        audio.currentTime=0;
+        audio.volume=1;
+        audio.loop=false;
+        this.finaleSource=audio;
+
+        const done=()=>{
+          audio.removeEventListener('ended',done);
+          if(this.finaleSource===audio) this.finaleSource=null;
+          resolve();
+        };
+
+        audio.addEventListener('ended',done,{once:true});
+        const p=audio.play();
+        if(p && typeof p.catch==='function'){
+          p.catch(()=>{
+            audio.removeEventListener('ended',done);
+            if(this.finaleSource===audio) this.finaleSource=null;
+            resolve();
+          });
+        }
+      }catch(e){
+        resolve();
+      }
+    });
+  }
+
   playFinale(){
     this.stopFinale();
 

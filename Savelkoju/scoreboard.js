@@ -73,5 +73,71 @@ async function loadScores(levelId,limit=10){
     .slice(0,limit);
 }
 
-window.SavelkojuScoreboard={init,saveScore,loadScores,cleanName,currentSemester};
+
+async function signInAdmin(email,password){
+  if(!init()) throw new Error('Firebase ei latautunut.');
+  const cred=await firebase.auth().signInWithEmailAndPassword(String(email||'').trim(),String(password||''));
+  const uid=cred.user.uid;
+  const adminDoc=await db.collection('admins').doc(uid).get();
+  if(!adminDoc.exists){
+    await firebase.auth().signOut();
+    throw new Error('Tällä käyttäjällä ei ole admin-oikeuksia.');
+  }
+  return {uid,email:cred.user.email||''};
+}
+
+async function signOutAdmin(){
+  if(window.firebase?.auth) await firebase.auth().signOut();
+}
+
+async function getCurrentAdmin(){
+  if(!init()) return null;
+  const user=firebase.auth().currentUser;
+  if(!user) return null;
+  const adminDoc=await db.collection('admins').doc(user.uid).get();
+  return adminDoc.exists ? {uid:user.uid,email:user.email||''} : null;
+}
+
+async function deleteCurrentSemesterScores(levelId){
+  if(!init()) throw new Error('Firebase ei latautunut.');
+  const admin=await getCurrentAdmin();
+  if(!admin) throw new Error('Admin-kirjautuminen vaaditaan.');
+
+  const semester=currentSemester();
+  const T=firebase.firestore.Timestamp;
+  const col=db.collection('scoreboards').doc(String(levelId)).collection('scores');
+
+  const snap=await col
+    .where('createdAt','>=',T.fromDate(semester.start))
+    .where('createdAt','<',T.fromDate(semester.end))
+    .get();
+
+  let deleted=0;
+  const docs=snap.docs;
+
+  for(let i=0;i<docs.length;i+=450){
+    const batch=db.batch();
+    docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));
+    await batch.commit();
+    deleted+=Math.min(450,docs.length-i);
+  }
+  return deleted;
+}
+
+
+async function updateAdminPassword(newPassword){
+  if(!init()) throw new Error('Firebase ei latautunut.');
+  const user=firebase.auth().currentUser;
+  if(!user) throw new Error('Admin-kirjautuminen vaaditaan.');
+
+  const adminDoc=await db.collection('admins').doc(user.uid).get();
+  if(!adminDoc.exists) throw new Error('Tällä käyttäjällä ei ole admin-oikeuksia.');
+
+  const password=String(newPassword||'');
+  if(password.length<6) throw new Error('Salasanassa pitää olla vähintään 6 merkkiä.');
+
+  await user.updatePassword(password);
+}
+
+window.SavelkojuScoreboard={init,saveScore,loadScores,cleanName,currentSemester,signInAdmin,signOutAdmin,getCurrentAdmin,deleteCurrentSemesterScores,updateAdminPassword};
 })();

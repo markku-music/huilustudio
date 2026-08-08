@@ -98,9 +98,48 @@
       <p id="scoreboardStatus" class="score-status" aria-live="polite"></p>
     </div>
   </div>
+  <button id="adminBtn" class="admin-gear" type="button" aria-label="Admin" title="Admin">⚙</button>
+
+  <div id="adminOverlay" class="overlay hidden">
+    <div class="admin-panel panel">
+      <button id="closeAdminBtn" class="board-close" type="button" aria-label="Sulje admin">✕</button>
+      <h1>Admin</h1>
+
+      <div id="adminLogin">
+        <input id="adminEmail" type="email" autocomplete="username" placeholder="Sähköposti" aria-label="Admin sähköposti">
+        <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Salasana" aria-label="Admin salasana">
+        <button id="adminLoginBtn" type="button">Kirjaudu</button>
+      </div>
+
+      <div id="adminControls" class="hidden">
+        <p id="adminIdentity" class="admin-identity"></p>
+        <p class="admin-note">Nollaa nykyisen lukukauden tulokset</p>
+
+        <div class="admin-reset-grid">
+          <button class="admin-reset-btn" data-reset-level="1" type="button">ENSISÄVELET</button>
+          <button class="admin-reset-btn" data-reset-level="2" type="button">TASAPAINOTEMPPU</button>
+          <button class="admin-reset-btn" data-reset-level="3" type="button">SORMISIRKUS</button>
+          <button id="resetAllScoresBtn" class="admin-reset-btn danger" type="button">KAIKKI 3 TASOA</button>
+        </div>
+
+        <div class="admin-password-box">
+          <p class="admin-note">Vaihda salasana</p>
+          <input id="adminNewPassword" type="password" autocomplete="new-password" placeholder="Uusi salasana" aria-label="Uusi salasana">
+          <input id="adminNewPassword2" type="password" autocomplete="new-password" placeholder="Uusi salasana uudelleen" aria-label="Uusi salasana uudelleen">
+          <button id="adminChangePasswordBtn" type="button">Vaihda salasana</button>
+        </div>
+
+        <button id="adminLogoutBtn" class="secondary" type="button">Kirjaudu ulos</button>
+      </div>
+
+      <p id="adminStatus" class="score-status" aria-live="polite"></p>
+    </div>
+  </div>
+
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="microphone-engine.js"></script>
 <script src="scoreboard.js"></script>
 <script src="audio-manager.js"></script>

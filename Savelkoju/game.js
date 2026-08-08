@@ -9,7 +9,7 @@ const LEVELS={
 const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:648},D:{cx:750,cy:365}};
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
+const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
 let engine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
 const gameAudio=new window.SavelkojuAudioManager({
   hit:'Lamppu.wav',
@@ -31,6 +31,16 @@ function playHitSound(){
 
 function playFinaleSound(){
   gameAudio.playFinale();
+}
+
+async function playFinaleSoundUntilEnd(){
+  try{
+    await gameAudio.playFinaleUntilEnd();
+  }catch(e){
+    console.warn('Finaalimusiikki:',e);
+  }finally{
+    finaleLightsRunning=false;
+  }
 }
 function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
 addEventListener('resize',fitStage);fitStage();
@@ -60,16 +70,14 @@ async function finaleLampShow(){
   const lamps=[...progressLamps.querySelectorAll('span')];
   accepting=false;
 
-  // Anna viimeisen normaalin lampun pop-animaation näkyä ensin.
+  // Viimeisen lampun oma pop näkyviin ensin.
   await new Promise(r=>setTimeout(r,320));
-
-  // Musiikki, valoshow ja loppulätkän feidaus käynnistyvät yhdessä.
-  playFinaleSound();
-  prepareFinishOverlay();
 
   finaleLightsRunning=true;
 
-  // Jatkuva rauhallinen satunnaisvilkutus.
+  // Käynnistä musiikki ja pidä random-valoshow päällä koko musiikin ajan.
+  const musicDone=playFinaleSoundUntilEnd();
+
   while(finaleLightsRunning){
     lamps.forEach(l=>{
       const on=Math.random()>.45;
@@ -80,9 +88,17 @@ async function finaleLampShow(){
     await new Promise(r=>setTimeout(r,120+Math.random()*90));
   }
 
-  // Kun pelaaja jatkaa, palauta lamput normaaliin pelitilaan.
+  // Kun musiikki on loppu, jätä kaikki lamput vielä hetkeksi päälle.
+  lamps.forEach(l=>{
+    l.classList.remove('finale-off');
+    l.classList.add('finale-on','finale-all');
+  });
+  await new Promise(r=>setTimeout(r,420));
+
   lamps.forEach(l=>l.classList.remove('finale-on','finale-off','finale-all'));
   updateProgressLamps();
+
+  await prepareFinishOverlay();
 }
 
 function stopFinaleLights(){
@@ -141,7 +157,7 @@ async function resumeMic(){
     if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
   }catch(err){console.warn(err);}
 }
-async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
+async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
 function updateSemesterLabels(){
   const s=window.SavelkojuScoreboard.currentSemester();
   if(finishSemester) finishSemester.textContent='· '+s.label;
@@ -231,9 +247,6 @@ async function prepareFinishOverlay(){
   }
 }
 
-async function finishGame(){
-  await prepareFinishOverlay();
-}
 async function openScoreboard(levelId=currentBoardLevel){
   updateSemesterLabels();
   await pauseMic();
@@ -243,7 +256,112 @@ async function openScoreboard(levelId=currentBoardLevel){
   await loadBoard(currentBoardLevel,scoreboardScores,scoreboardStatus);
 }
 function closeScoreboard(){scoreboardOverlay.classList.add('hidden');}
-async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
+
+async function refreshAdminUI(){
+  adminStatus.textContent='';
+  try{
+    const admin=await window.SavelkojuScoreboard.getCurrentAdmin();
+    adminLogin.classList.toggle('hidden',!!admin);
+    adminControls.classList.toggle('hidden',!admin);
+    adminIdentity.textContent=admin ? admin.email : '';
+  }catch(e){
+    console.warn(e);
+    adminLogin.classList.remove('hidden');
+    adminControls.classList.add('hidden');
+  }
+}
+
+async function openAdmin(){
+  await pauseMic();
+  closeScoreboard();
+  adminOverlay.classList.remove('hidden');
+  await refreshAdminUI();
+}
+
+function closeAdmin(){
+  adminOverlay.classList.add('hidden');
+  adminStatus.textContent='';
+}
+
+async function adminSignIn(){
+  adminStatus.textContent='Kirjaudutaan…';
+  try{
+    const admin=await window.SavelkojuScoreboard.signInAdmin(adminEmail.value,adminPassword.value);
+    adminPassword.value='';
+    adminStatus.textContent='';
+    adminLogin.classList.add('hidden');
+    adminControls.classList.remove('hidden');
+    adminIdentity.textContent=admin.email;
+  }catch(e){
+    console.error(e);
+    adminStatus.textContent=e.message||'Kirjautuminen epäonnistui.';
+  }
+}
+
+async function resetSemesterLevel(levelId){
+  const levelName=LEVELS[Number(levelId)]?.name||('Taso '+levelId);
+  const s=window.SavelkojuScoreboard.currentSemester();
+  if(!confirm(`Nollataanko ${levelName} – ${s.label}?`))return;
+
+  adminStatus.textContent='Poistetaan tuloksia…';
+  try{
+    const n=await window.SavelkojuScoreboard.deleteCurrentSemesterScores(levelId);
+    adminStatus.textContent=`Poistettu ${n} tulosta.`;
+  }catch(e){
+    console.error(e);
+    adminStatus.textContent=e.message||'Nollaus epäonnistui.';
+  }
+}
+
+async function changeAdminPassword(){
+  const p1=adminNewPassword.value;
+  const p2=adminNewPassword2.value;
+
+  if(!p1){
+    adminStatus.textContent='Kirjoita uusi salasana.';
+    adminNewPassword.focus();
+    return;
+  }
+  if(p1!==p2){
+    adminStatus.textContent='Salasanat eivät täsmää.';
+    adminNewPassword2.focus();
+    return;
+  }
+
+  adminStatus.textContent='Vaihdetaan salasanaa…';
+  try{
+    await window.SavelkojuScoreboard.updateAdminPassword(p1);
+    adminNewPassword.value='';
+    adminNewPassword2.value='';
+    adminStatus.textContent='Salasana vaihdettu.';
+  }catch(e){
+    console.error(e);
+    if(e?.code==='auth/requires-recent-login'){
+      adminStatus.textContent='Kirjaudu ulos ja takaisin sisään ennen salasanan vaihtoa.';
+    }else{
+      adminStatus.textContent=e.message||'Salasanan vaihto epäonnistui.';
+    }
+  }
+}
+
+async function resetAllSemesterScores(){
+  const s=window.SavelkojuScoreboard.currentSemester();
+  if(!confirm(`Nollataanko KAIKKIEN KOLMEN TASON tulokset – ${s.label}?`))return;
+
+  adminStatus.textContent='Poistetaan kaikkien tasojen tuloksia…';
+  try{
+    let total=0;
+    for(const id of [1,2,3]){
+      total+=await window.SavelkojuScoreboard.deleteCurrentSemesterScores(id);
+    }
+    adminStatus.textContent=`Poistettu yhteensä ${total} tulosta.`;
+  }catch(e){
+    console.error(e);
+    adminStatus.textContent=e.message||'Nollaus epäonnistui.';
+  }
+}
+
+async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
 async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
 document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -284,6 +402,23 @@ helpVideo.addEventListener('ended',()=>closeHelp());
 
 $('scoreboardBtn').addEventListener('click',()=>openScoreboard(1));
 $('closeScoreboardBtn').addEventListener('click',closeScoreboard);
+
+$('adminBtn').addEventListener('click',openAdmin);
+$('closeAdminBtn').addEventListener('click',closeAdmin);
+$('adminLoginBtn').addEventListener('click',adminSignIn);
+$('adminChangePasswordBtn').addEventListener('click',changeAdminPassword);
+adminPassword.addEventListener('keydown',e=>{if(e.key==='Enter')adminSignIn();});
+adminNewPassword2.addEventListener('keydown',e=>{if(e.key==='Enter')changeAdminPassword();});
+document.querySelectorAll('.admin-reset-btn[data-reset-level]').forEach(btn=>
+  btn.addEventListener('click',()=>resetSemesterLevel(Number(btn.dataset.resetLevel)))
+);
+$('resetAllScoresBtn').addEventListener('click',resetAllSemesterScores);
+$('adminLogoutBtn').addEventListener('click',async()=>{
+  await window.SavelkojuScoreboard.signOutAdmin();
+  await refreshAdminUI();
+  adminStatus.textContent='Kirjauduttu ulos.';
+});
+
 document.querySelectorAll('.score-tab').forEach(btn=>btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel))));
 window.SavelkojuScoreboard?.init();
 addEventListener('beforeunload',()=>engine?.stop());setLevel(1);

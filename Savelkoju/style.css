@@ -29,7 +29,7 @@ button{font:inherit}
 .level-card{width:min(620px,calc(100vw - 36px))}
 .card h1,.level-card h1{font-size:48px;margin:0 0 8px}
 .lead{font-size:20px;margin:0 0 18px;font-weight:800}
-.small{font-size:14px;opacity:.72;margin:15px 0 0}
+
 .levels{display:grid;gap:10px}
 .level-btn{margin:0;padding:14px 20px;border:4px solid var(--ink);border-radius:15px;background:#f2cf64;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:20px}
 .level-btn:nth-child(1){background:#8fc878}.level-btn:nth-child(2){background:#f0c95d}.level-btn:nth-child(3){background:#e88868}
@@ -49,10 +49,7 @@ button.secondary{background:#f4d78b}.time{display:block;font-size:38px;margin:12
 .scoreboard-btn{background:#f2cf64}
 .finish-card{max-height:calc(100vh - 28px);overflow:auto}
 .save-score{margin:16px 0 10px;padding-top:14px;border-top:2px solid rgba(36,35,31,.22)}
-.save-score label{display:block;font-size:15px;font-weight:900;margin-bottom:7px;text-align:left}
-.save-row{display:grid;grid-template-columns:1fr auto;gap:8px}
-.save-row input{min-width:0;width:100%;padding:12px 14px;border:3px solid var(--ink);border-radius:12px;background:#fffdf5;font:inherit;font-size:18px}
-.save-row button{margin:0;padding:10px 15px;font-size:17px}
+
 .score-status{min-height:20px;margin:7px 0 0;font-size:14px;font-weight:800}
 .finish-board{margin:10px 0 14px;text-align:left}
 .finish-board h2{font-size:18px;margin:0 0 7px;text-align:center}
@@ -71,7 +68,6 @@ button.secondary{background:#f4d78b}.time{display:block;font-size:38px;margin:12
 .score-list.big li{padding:10px 12px;font-size:18px}
 @media(max-width:700px){
   .menu-actions{grid-template-columns:1fr}
-  .save-row{grid-template-columns:1fr}
   .score-tabs{grid-template-columns:1fr}
   .scoreboard-panel{padding:22px 14px}
   .scoreboard-panel h1{font-size:34px}
@@ -147,10 +143,8 @@ button.secondary{background:#f4d78b}.time{display:block;font-size:38px;margin:12
 
 .session-name-box{display:grid;grid-template-columns:1fr auto;gap:9px;margin:8px 0 12px}
 .session-name-box input{min-width:0;padding:13px 15px;border:4px solid var(--ink);border-radius:15px;background:#fffdf5;font:inherit;font-size:19px;font-weight:800}
-.session-name-box button{margin:0;padding:11px 20px}
-.session-greeting{font-size:19px;font-weight:900;margin:8px 0 14px}
-.session-player{font-size:18px;font-weight:800;margin:0 0 10px}
-@media(max-width:700px){.session-name-box{grid-template-columns:1fr}.session-name-box button{width:100%}}
+
+@media(max-width:700px){.session-name-box{grid-template-columns:1fr}}
 
 /* Juuri pelattu tulos loppulätkän listassa */
 .score-list li.current-score{
@@ -296,4 +290,159 @@ button strong{
     min-width:96px;
     padding:0 16px;
   }
+}
+
+/* 3.5.3: ohjevideo aina viewportin sisään */
+.video-overlay{
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw !important;
+  height:100dvh !important;
+  min-height:100vh;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box;
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left)) !important;
+  overflow:hidden !important;
+}
+
+.video-overlay.hidden{
+  display:none !important;
+}
+
+.video-wrap{
+  position:relative;
+  width:100% !important;
+  height:100% !important;
+  max-width:calc(100vw - 24px) !important;
+  max-height:calc(100dvh - 24px) !important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#helpVideo,
+.video-wrap video{
+  display:block;
+  width:auto !important;
+  height:auto !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
+}
+
+.video-close{
+  position:absolute !important;
+  top:8px !important;
+  right:8px !important;
+  z-index:10;
+}
+
+@supports not (height:100dvh){
+  .video-overlay{height:100vh !important}
+  .video-wrap{max-height:calc(100vh - 24px) !important}
+}
+
+/* 3.5.4 Admin */
+.admin-btn{
+  background:#e8dbc2;
+}
+.admin-panel{
+  position:relative;
+  width:min(520px,calc(100vw - 30px));
+  max-height:calc(100dvh - 30px);
+  overflow:auto;
+  padding:28px;
+}
+.admin-panel h1{
+  margin:0 0 18px;
+  text-align:center;
+}
+#adminLogin{
+  display:grid;
+  gap:10px;
+}
+#adminLogin input{
+  width:100%;
+  box-sizing:border-box;
+  padding:12px 14px;
+  border:3px solid var(--ink);
+  border-radius:12px;
+  background:#fffdf5;
+  color:var(--ink);
+  font:inherit;
+  font-size:17px;
+}
+.admin-identity{
+  text-align:center;
+  font-weight:900;
+  margin:0 0 8px;
+}
+.admin-note{
+  text-align:center;
+  margin:0 0 12px;
+  font-weight:800;
+}
+.admin-reset-grid{
+  display:grid;
+  gap:9px;
+  margin:12px 0 16px;
+}
+.admin-reset-btn{
+  margin:0;
+}
+.admin-reset-btn.danger{
+  background:#efb0a2;
+}
+
+/* 3.5.5: huomaamaton admin-ratas oikeassa alakulmassa */
+.admin-gear{
+  position:fixed;
+  right:max(10px, env(safe-area-inset-right));
+  bottom:max(10px, env(safe-area-inset-bottom));
+  z-index:40;
+  width:38px;
+  height:38px;
+  min-width:38px;
+  padding:0;
+  margin:0;
+  border:2px solid rgba(36,35,31,.45);
+  border-radius:50%;
+  background:rgba(255,253,245,.78);
+  color:#24231f !important;
+  -webkit-text-fill-color:#24231f !important;
+  font-size:20px;
+  line-height:34px;
+  text-align:center;
+  opacity:.68;
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+.admin-gear:hover,
+.admin-gear:focus{
+  opacity:1;
+}
+
+.admin-password-box{
+  margin:18px 0 14px;
+  padding-top:16px;
+  border-top:2px solid rgba(36,35,31,.18);
+  display:grid;
+  gap:9px;
+}
+.admin-password-box input{
+  width:100%;
+  box-sizing:border-box;
+  padding:12px 14px;
+  border:3px solid var(--ink);
+  border-radius:12px;
+  background:#fffdf5;
+  color:var(--ink);
+  font:inherit;
+  font-size:17px;
 }

@@ -1,35 +1,13 @@
-Lisää tämä lohko nykyisen firestore.rules-tiedoston
-match /databases/{database}/documents { ... } -lohkon SISÄLLE:
+ADMIN-NOLLAUKSEN FIRESTORE-SÄÄNNÖT
 
-    match /scoreboards/{levelId}/scores/{scoreId} {
-      allow read: if true;
+Kopioi tiedoston firestore.rules sisältö Firebase Consolen Firestore Rules -kohtaan
+ja paina Publish.
 
-      allow create: if
-        levelId in ['1', '2', '3'] &&
-        request.resource.data.keys().hasOnly([
-          'playerName',
-          'levelName',
-          'timeMs',
-          'createdAt'
-        ]) &&
-        request.resource.data.playerName is string &&
-        request.resource.data.playerName.size() >= 1 &&
-        request.resource.data.playerName.size() <= 20 &&
-        request.resource.data.levelName is string &&
-        request.resource.data.levelName.size() >= 1 &&
-        request.resource.data.levelName.size() <= 30 &&
-        request.resource.data.timeMs is int &&
-        request.resource.data.timeMs >= 1000 &&
-        request.resource.data.timeMs <= 600000 &&
-        request.resource.data.createdAt == request.time;
+Admin-käyttäjä:
+1. Firebase Authentication > Users: luo sähköposti/salasana-käyttäjä (tai käytä nykyistä).
+2. Kopioi käyttäjän UID.
+3. Firestoreen luo kokoelma `admins` ja dokumentti, jonka dokumentti-ID on tuo UID.
+   Dokumentin sisällöllä ei ole väliä, esim. kenttä: admin = true.
 
-      allow update, delete: if false;
-    }
-
-Tämän jälkeen julkaise Firestore-säännöt Firebase Consolessa.
-
-HUOM:
-- Pelaajan ei tarvitse kirjautua.
-- Tuloksia voi lukea kuka tahansa.
-- Pelistä voi vain LISÄTÄ uuden tuloksen.
-- Peli ei voi muuttaa tai poistaa vanhoja tuloksia.
+Tämän jälkeen ADMIN-nappi voi kirjautua sisään ja poistaa nykyisen lukukauden
+tuloksia yhdeltä tasolta tai kaikilta kolmelta.
