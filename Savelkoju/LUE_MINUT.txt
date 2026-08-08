@@ -132,3 +132,11 @@ VERSIO 3.3 – WEB AUDIO + IOS NAPIT
 - Finaalimusiikki pysäytetään, kun pelaaja jatkaa tai vaihtaa tasoa/pelaajaa.
 - iOS Safarin nappitekstin sininen järjestelmäväri estetään myös napin sisäisiltä
   span/b/strong-elementeiltä !important-säännöillä.
+
+
+VERSIO 3.4 – HYBRIDI AUDIO
+- Web Audio säilyy ensisijaisena iOS/iPadOS Safarissa ja web-palvelimella.
+- Jos peli avataan Macilla paikallisena file://-tiedostona, käytetään automaattisesti
+  HTMLAudio-fallbackia, koska Chrome/Safari voivat estää fetch()-latauksen file://-osoitteesta.
+- Jos Web Audio -WAV-lataus epäonnistuu muusta syystä, fallback kytkeytyy myös automaattisesti.
+- Sama versio toimii siis sekä GitHub Pagesissa että paikallisesti avattuna.

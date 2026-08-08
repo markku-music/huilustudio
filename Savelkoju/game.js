@@ -16,10 +16,6 @@ const gameAudio=new window.SavelkojuAudioManager({
   finale:'Sirkusmusa.wav'
 });
 
-// Aloita tiedostojen lataus heti. Varsinainen AudioContext avataan
-// käyttäjän ensimmäisestä kosketuksesta/klikkauksesta.
-gameAudio.preload().catch(()=>{});
-
 async function unlockGameAudio(){
   try{
     await gameAudio.unlock();
