@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>H–A–G-korttipeli 2.4.1</title>
+<title>H–A–G-korttipeli 2.4.2</title>
 <style>
 :root{
   font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, sans-serif;
@@ -143,6 +143,7 @@ h1{font-size:clamp(23px,4vw,34px);line-height:1;margin:0}.subtitle{margin:5px 0 
           <input id="adminPassword" class="admin-input" type="password" autocomplete="current-password">
         </label>
       </div>
+      <div id="adminLoginStatus" class="admin-status" aria-live="polite"></div>
       <div class="admin-actions">
         <button id="adminCloseLogin" class="btn secondary" type="button">Sulje</button>
         <button id="adminLogin" class="btn primary" type="button">Kirjaudu</button>
@@ -565,7 +566,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAmXrMwipSsFgsZRhzWh0JVmaHD33mabkw",
+  apiKey: "AIzaSyAmXrMwiPsSfGsZRhzhW0JVmaHD33mabkw",
   authDomain: "pelitulokset.firebaseapp.com",
   projectId: "pelitulokset",
   storageBucket: "pelitulokset.firebasestorage.app",
@@ -723,8 +724,8 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
   };
   const M = window.NuottikompassiMicrophoneEngine;
   const $ = id => document.getElementById(id);
-  const NOTES = ['H','A','G'];
-  const PITCH_CLASS = {11:'H', 9:'A', 7:'G'};
+  const NOTES = ["G","A","H","C","D"];
+  const PITCH_CLASS = {7:"G", 9:"A", 11:"H", 0:"C", 2:"D"};
   const HOLD_MS = 230;
   const RELEASE_MS = 150;
   const HISTORY_KEY = 'hag-korttipeli-edellinen-kierros';
@@ -1089,25 +1090,32 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
   const $ = id => document.getElementById(id);
   let currentPlayers = [];
 
-  function setStatus(message,type=''){
-    const node=$('adminStatus');
+  function setStatus(message,type='',target='tools'){
+    const node=$(target==='login'?'adminLoginStatus':'adminStatus');
+    if(!node) return;
     node.textContent=message||'';
     node.className='admin-status'+(type?' '+type:'');
+  }
+  function clearStatuses(){
+    setStatus('','','login');
+    setStatus('','','tools');
   }
   function openAdmin(){
     $('adminModal').classList.add('show');
   }
   function closeAdmin(){
     $('adminModal').classList.remove('show');
-    setStatus('');
+    clearStatuses();
   }
   function showLogin(){
     $('adminLoginView').classList.remove('admin-hidden');
     $('adminToolsView').classList.add('admin-hidden');
+    setStatus('','','tools');
   }
   function showTools(user){
     $('adminLoginView').classList.add('admin-hidden');
     $('adminToolsView').classList.remove('admin-hidden');
+    setStatus('','','login');
     $('adminSignedInEmail').textContent=user?.email||'ylläpitäjä';
     const year=window.HAGAdmin?.currentSchoolYear?.()||'';
     $('adminCurrentYear').textContent=year;
@@ -1163,23 +1171,42 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
     info.textContent=`Tuloksia ${player.count} • paras aika ${formatAdminTime(player.best)}`;
     box.append(strong,info);
   }
+  function loginErrorMessage(error){
+    const code=String(error?.code||'');
+    if(code==='auth/invalid-credential'||code==='auth/wrong-password'||code==='auth/user-not-found'){
+      return 'Sähköposti tai salasana on väärin.';
+    }
+    if(code==='auth/invalid-email') return 'Sähköpostiosoite ei ole kelvollinen.';
+    if(code==='auth/too-many-requests') return 'Liian monta yritystä. Odota hetki ja kokeile uudelleen.';
+    if(code==='auth/network-request-failed') return 'Verkkoyhteys Firebaseen epäonnistui.';
+    if(code==='auth/unauthorized-domain') return 'Tätä verkkotunnusta ei ole sallittu Firebase Authenticationissa.';
+    if(code==='auth/operation-not-allowed') return 'Email/Password-kirjautuminen ei ole käytössä.';
+    if(error?.message==='LOGIN_TIMEOUT') return 'Kirjautuminen kesti liian kauan. Päivitä sivu ja kokeile uudelleen.';
+    return code ? `Kirjautuminen epäonnistui (${code}).` : 'Kirjautuminen epäonnistui.';
+  }
   async function login(){
     const email=$('adminEmail').value.trim();
     const password=$('adminPassword').value;
     if(!email||!password){
-      setStatus('Kirjoita sähköposti ja salasana.','error');
+      setStatus('Kirjoita sähköposti ja salasana.','error','login');
       return;
     }
     $('adminLogin').disabled=true;
-    setStatus('Kirjaudutaan…');
+    $('adminLogin').textContent='Kirjaudutaan…';
+    setStatus('Yhdistetään Firebaseen…','','login');
     try{
-      await window.HAGAdmin.login(email,password);
+      await Promise.race([
+        window.HAGAdmin.login(email,password),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('LOGIN_TIMEOUT')),12000))
+      ]);
       $('adminPassword').value='';
-      setStatus('');
+      setStatus('Kirjautuminen onnistui.','ok','login');
     }catch(error){
-      setStatus('Kirjautuminen epäonnistui. Tarkista tunnukset.','error');
+      console.error('Firebase admin login failed:',error);
+      setStatus(loginErrorMessage(error),'error','login');
     }finally{
       $('adminLogin').disabled=false;
+      $('adminLogin').textContent='Kirjaudu';
     }
   }
   async function removePlayer(allYears){
@@ -1219,7 +1246,14 @@ window.dispatchEvent(new Event('hag-firebase-ready'));
       });
     };
     if(window.HAGAdmin) connect();
-    else window.addEventListener('hag-firebase-ready',connect,{once:true});
+    else{
+      window.addEventListener('hag-firebase-ready',connect,{once:true});
+      setTimeout(()=>{
+        if(!window.HAGAdmin){
+          setStatus('Firebase-moduuli ei käynnistynyt. Päivitä sivu tai tarkista verkkoyhteys.','error','login');
+        }
+      },8000);
+    }
   }
 
   $('adminEntry').addEventListener('click',openAdmin);
