@@ -110,3 +110,15 @@ VERSIO 3.0 – VAIHDA PELAAJAA
 - Session pelaajan nimi tyhjennetään.
 - Palataan alkuruutuun ja Nimi-kenttä aktivoituu uudelle pelaajalle.
 - “Valitse toinen peli” säilyttää edelleen saman pelaajan nimen.
+
+
+VERSIO 3.2 – LUKUKAUSI + IPAD SAFARI
+- Tulostaulu vaihtuu automaattisesti lukukausittain:
+  Kevät = 1.1.–31.7.
+  Syksy = 1.8.–31.12.
+- Vanhoja Firebase-tuloksia EI poisteta. Peli näyttää vain nykyisen lukukauden tulokset.
+- Nykyinen lukukausi näkyy tulostaulussa ja loppulätkän Top 10:n yhteydessä.
+- Firestore-sääntöihin ei tarvita muutosta, koska nykyistä createdAt-kenttää käytetään rajaukseen.
+- iPad/Safarin nappien tekstiväri pakotetaan pelin omaksi väriksi.
+- Lamppu.wav ja Sirkusmusa.wav avataan ensimmäisen käyttäjän napinpainalluksen yhteydessä,
+  jotta iOS/iPadOS Safari sallii myöhemmän äänentoiston.

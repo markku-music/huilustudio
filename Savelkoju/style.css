@@ -200,3 +200,33 @@ button.secondary{background:#f4d78b}.time{display:block;font-size:38px;margin:12
 .change-player{
   background:#ead7b0;
 }
+
+/* iPad/Safari: pidä pelin nappien tekstit pelin omassa värissä */
+button,
+button:link,
+button:visited,
+button:hover,
+button:active,
+.level-btn,
+.score-tab,
+.help-btn,
+.secondary,
+.board-close,
+.change-player{
+  color:var(--ink);
+  -webkit-text-fill-color:var(--ink);
+  -webkit-appearance:none;
+  appearance:none;
+}
+.semester-heading{
+  margin:-8px 0 14px;
+  text-align:center;
+  font-size:15px;
+  font-weight:850;
+  opacity:.68;
+}
+.semester-label{
+  font-size:13px;
+  font-weight:800;
+  opacity:.62;
+}

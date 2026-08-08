@@ -9,7 +9,7 @@ const LEVELS={
 const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:648},D:{cx:750,cy:365}};
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),progressLamps=$('progressLamps');
+const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
 let engine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
 const hitSound=new Audio('Lamppu.wav');
 hitSound.preload='auto';
@@ -30,6 +30,42 @@ function playHitSound(){
     const p=hitSound.play();
     if(p&&typeof p.catch==='function')p.catch(()=>{});
   }catch(e){console.warn('Osumaääni:',e);}
+}
+let gameAudioUnlocked=false;
+function unlockGameAudio(){
+  if(gameAudioUnlocked)return;
+  gameAudioUnlocked=true;
+
+  // iOS/iPadOS Safari sallii myöhemmän toiston varmimmin, kun
+  // kumpaakin Audio-elementtiä käytetään kerran suoraan käyttäjän eleestä.
+  [hitSound,finaleSound].forEach(audio=>{
+    try{
+      audio.preload='auto';
+      audio.playsInline=true;
+      audio.load();
+      const oldVolume=audio.volume;
+      audio.volume=0;
+      audio.currentTime=0;
+      const p=audio.play();
+      if(p&&typeof p.then==='function'){
+        p.then(()=>{
+          audio.pause();
+          audio.currentTime=0;
+          audio.volume=oldVolume;
+        }).catch(()=>{
+          audio.volume=oldVolume;
+          gameAudioUnlocked=false;
+        });
+      }else{
+        audio.pause();
+        audio.currentTime=0;
+        audio.volume=oldVolume;
+      }
+    }catch(e){
+      console.warn('Äänen avaus:',e);
+      gameAudioUnlocked=false;
+    }
+  });
 }
 function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
 addEventListener('resize',fitStage);fitStage();
@@ -140,6 +176,11 @@ async function resumeMic(){
   }catch(err){console.warn(err);}
 }
 async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
+function updateSemesterLabels(){
+  const s=window.SavelkojuScoreboard.currentSemester();
+  if(finishSemester) finishSemester.textContent='· '+s.label;
+  if(scoreboardSemester) scoreboardSemester.textContent=s.label;
+}
 function formatTime(ms){return (ms/1000).toFixed(1).replace('.',',')+' s';}
 function renderScores(list,el,highlightId='',highlightRow=null){
   el.innerHTML='';
@@ -187,6 +228,7 @@ async function loadBoard(levelId,el,statusEl,highlightId='',highlightRow=null){
   }
 }
 async function prepareFinishOverlay(){
+  updateSemesterLabels();
   running=false;
   accepting=false;
   reticle.style.opacity='0';
@@ -227,6 +269,7 @@ async function finishGame(){
   await prepareFinishOverlay();
 }
 async function openScoreboard(levelId=currentBoardLevel){
+  updateSemesterLabels();
   await pauseMic();
   currentBoardLevel=Number(levelId);
   document.querySelectorAll('.score-tab').forEach(b=>b.classList.toggle('active',Number(b.dataset.scoreLevel)===currentBoardLevel));
@@ -237,15 +280,15 @@ function closeScoreboard(){scoreboardOverlay.classList.add('hidden');}
 async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
 async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
-document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',()=>{if(captureSessionName())startGame(Number(btn.dataset.level));}));
-$('againBtn').addEventListener('click',()=>startGame());
+document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',()=>{unlockGameAudio();if(captureSessionName())startGame(Number(btn.dataset.level));}));
+$('againBtn').addEventListener('click',()=>{unlockGameAudio();startGame();});
 $('levelsBtn').addEventListener('click',chooseLevels);
 $('changePlayerBtn').addEventListener('click',changePlayer);
-$('helpBtn').addEventListener('click',openHelp);
+$('helpBtn').addEventListener('click',()=>{unlockGameAudio();openHelp();});
 $('closeVideoBtn').addEventListener('click',()=>closeHelp());
 helpVideo.addEventListener('ended',()=>closeHelp());
 
-$('scoreboardBtn').addEventListener('click',()=>openScoreboard(1));
+$('scoreboardBtn').addEventListener('click',()=>{unlockGameAudio();openScoreboard(1);});
 $('closeScoreboardBtn').addEventListener('click',closeScoreboard);
 document.querySelectorAll('.score-tab').forEach(btn=>btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel))));
 window.SavelkojuScoreboard?.init();
