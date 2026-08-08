@@ -122,3 +122,13 @@ VERSIO 3.2 – LUKUKAUSI + IPAD SAFARI
 - iPad/Safarin nappien tekstiväri pakotetaan pelin omaksi väriksi.
 - Lamppu.wav ja Sirkusmusa.wav avataan ensimmäisen käyttäjän napinpainalluksen yhteydessä,
   jotta iOS/iPadOS Safari sallii myöhemmän äänentoiston.
+
+
+VERSIO 3.3 – WEB AUDIO + IOS NAPIT
+- Lamppu.wav ja Sirkusmusa.wav eivät enää käytä new Audio() -elementtejä.
+- Lisätty audio-manager.js, joka lataa WAVit AudioBuffereiksi ja soittaa ne Web Audio API:lla.
+- AudioContext avataan suoraan tason valinnan käyttäjäeleessä ennen pelin alkua.
+- Ratkaisu toimii iOS/iPadOS Safarissa, Android Chromessa ja desktop-selaimissa.
+- Finaalimusiikki pysäytetään, kun pelaaja jatkaa tai vaihtaa tasoa/pelaajaa.
+- iOS Safarin nappitekstin sininen järjestelmäväri estetään myös napin sisäisiltä
+  span/b/strong-elementeiltä !important-säännöillä.

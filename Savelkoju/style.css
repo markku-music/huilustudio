@@ -230,3 +230,36 @@ button:active,
   font-weight:800;
   opacity:.62;
 }
+
+/* iOS/iPadOS Safari: estä järjestelmän sininen control-tintti myös napin sisällössä */
+button,
+button *,
+.level-btn,
+.level-btn *,
+.score-tab,
+.score-tab *,
+.help-btn,
+.help-btn *,
+.secondary,
+.secondary *,
+.board-close,
+.board-close *,
+.change-player,
+.change-player *{
+  color:#24231f !important;
+  -webkit-text-fill-color:#24231f !important;
+}
+
+button{
+  -webkit-appearance:none !important;
+  appearance:none !important;
+  -webkit-tap-highlight-color:transparent;
+  text-decoration:none !important;
+}
+
+button b,
+button span,
+button strong{
+  color:#24231f !important;
+  -webkit-text-fill-color:#24231f !important;
+}

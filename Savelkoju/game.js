@@ -11,61 +11,30 @@ const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
 const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
 let engine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
-const hitSound=new Audio('Lamppu.wav');
-hitSound.preload='auto';
-hitSound.volume=1;
-const finaleSound=new Audio('Sirkusmusa.wav');
-finaleSound.preload='auto';
-finaleSound.volume=1;
-function playFinaleSound(){
-  try{
-    finaleSound.currentTime=0;
-    const p=finaleSound.play();
-    if(p&&typeof p.catch==='function')p.catch(()=>{});
-  }catch(e){console.warn('Finaaliääni:',e);}
-}
-function playHitSound(){
-  try{
-    hitSound.currentTime=0;
-    const p=hitSound.play();
-    if(p&&typeof p.catch==='function')p.catch(()=>{});
-  }catch(e){console.warn('Osumaääni:',e);}
-}
-let gameAudioUnlocked=false;
-function unlockGameAudio(){
-  if(gameAudioUnlocked)return;
-  gameAudioUnlocked=true;
+const gameAudio=new window.SavelkojuAudioManager({
+  hit:'Lamppu.wav',
+  finale:'Sirkusmusa.wav'
+});
 
-  // iOS/iPadOS Safari sallii myöhemmän toiston varmimmin, kun
-  // kumpaakin Audio-elementtiä käytetään kerran suoraan käyttäjän eleestä.
-  [hitSound,finaleSound].forEach(audio=>{
-    try{
-      audio.preload='auto';
-      audio.playsInline=true;
-      audio.load();
-      const oldVolume=audio.volume;
-      audio.volume=0;
-      audio.currentTime=0;
-      const p=audio.play();
-      if(p&&typeof p.then==='function'){
-        p.then(()=>{
-          audio.pause();
-          audio.currentTime=0;
-          audio.volume=oldVolume;
-        }).catch(()=>{
-          audio.volume=oldVolume;
-          gameAudioUnlocked=false;
-        });
-      }else{
-        audio.pause();
-        audio.currentTime=0;
-        audio.volume=oldVolume;
-      }
-    }catch(e){
-      console.warn('Äänen avaus:',e);
-      gameAudioUnlocked=false;
-    }
-  });
+// Aloita tiedostojen lataus heti. Varsinainen AudioContext avataan
+// käyttäjän ensimmäisestä kosketuksesta/klikkauksesta.
+gameAudio.preload().catch(()=>{});
+
+async function unlockGameAudio(){
+  try{
+    await gameAudio.unlock();
+    await gameAudio.ready();
+  }catch(e){
+    console.warn('Peliäänien avaus epäonnistui:',e);
+  }
+}
+
+function playHitSound(){
+  gameAudio.playHit();
+}
+
+function playFinaleSound(){
+  gameAudio.playFinale();
 }
 function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
 addEventListener('resize',fitStage);fitStage();
@@ -122,6 +91,7 @@ async function finaleLampShow(){
 
 function stopFinaleLights(){
   finaleLightsRunning=false;
+  gameAudio.stopFinale();
 }
 
 async function changePlayer(){
@@ -280,15 +250,19 @@ function closeScoreboard(){scoreboardOverlay.classList.add('hidden');}
 async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
 async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
-document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',()=>{unlockGameAudio();if(captureSessionName())startGame(Number(btn.dataset.level));}));
-$('againBtn').addEventListener('click',()=>{unlockGameAudio();startGame();});
+document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{
+  if(!captureSessionName())return;
+  await unlockGameAudio();
+  await startGame(Number(btn.dataset.level));
+}));
+$('againBtn').addEventListener('click',async()=>{await unlockGameAudio();await startGame();});
 $('levelsBtn').addEventListener('click',chooseLevels);
 $('changePlayerBtn').addEventListener('click',changePlayer);
-$('helpBtn').addEventListener('click',()=>{unlockGameAudio();openHelp();});
+$('helpBtn').addEventListener('click',openHelp);
 $('closeVideoBtn').addEventListener('click',()=>closeHelp());
 helpVideo.addEventListener('ended',()=>closeHelp());
 
-$('scoreboardBtn').addEventListener('click',()=>{unlockGameAudio();openScoreboard(1);});
+$('scoreboardBtn').addEventListener('click',()=>openScoreboard(1));
 $('closeScoreboardBtn').addEventListener('click',closeScoreboard);
 document.querySelectorAll('.score-tab').forEach(btn=>btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel))));
 window.SavelkojuScoreboard?.init();
