@@ -2,14 +2,14 @@
 'use strict';
 const TOTAL=10;
 const LEVELS={
-  1:{name:'ENSISÄVELET',notes:['G','A','H'],image:'taso_1_ensissavelet.png'},
-  2:{name:'TASAPAINOTEMPPU',notes:['C','H','A','G'],image:'taso_2_tasapainotemppu.png'},
-  3:{name:'SORMISIRKUS',notes:['D','C','H','A','G'],image:'taso_3_sormisirkus.png'}
+  1:{name:'ENSISÄVELET',notes:['G','A','H'],image:'taso_1_ensissavelet.jpg'},
+  2:{name:'TASAPAINOTEMPPU',notes:['C','H','A','G'],image:'taso_2_tasapainotemppu.jpg'},
+  3:{name:'SORMISIRKUS',notes:['D','C','H','A','G'],image:'taso_3_sormisirkus.jpg'}
 };
 const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:648},D:{cx:750,cy:365}};
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
+const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
 let engine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
 const gameAudio=new window.SavelkojuAudioManager({
   hit:'Lamppu.wav',
@@ -254,6 +254,30 @@ document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click
 $('againBtn').addEventListener('click',async()=>{await unlockGameAudio();await startGame();});
 $('levelsBtn').addEventListener('click',chooseLevels);
 $('changePlayerBtn').addEventListener('click',changePlayer);
+
+function beginNameEntry(){
+  levelChooser.classList.add('name-entry-hidden');
+}
+function finishNameEntry(){
+  const name=sessionName.value.trim();
+  if(!name){
+    sessionName.classList.add('name-needed');
+    sessionName.focus();
+    return;
+  }
+  sessionName.classList.remove('name-needed');
+  sessionName.blur();
+  levelChooser.classList.remove('name-entry-hidden');
+}
+sessionName.addEventListener('focus',beginNameEntry);
+sessionName.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    finishNameEntry();
+  }
+});
+nameDoneBtn.addEventListener('click',finishNameEntry);
+
 $('helpBtn').addEventListener('click',openHelp);
 $('closeVideoBtn').addEventListener('click',()=>closeHelp());
 helpVideo.addEventListener('ended',()=>closeHelp());

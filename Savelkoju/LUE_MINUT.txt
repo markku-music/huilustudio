@@ -140,3 +140,13 @@ VERSIO 3.4 – HYBRIDI AUDIO
   HTMLAudio-fallbackia, koska Chrome/Safari voivat estää fetch()-latauksen file://-osoitteesta.
 - Jos Web Audio -WAV-lataus epäonnistuu muusta syystä, fallback kytkeytyy myös automaattisesti.
 - Sama versio toimii siis sekä GitHub Pagesissa että paikallisesti avattuna.
+
+
+VERSIO 3.5 – NIMEN VALMIS + JPG-TAUSTAT
+- Nimikentän oikealla puolella on Valmis-nappi.
+- iPadissa nimikentän fokus piilottaa tasovalinnat näppäimistön ajaksi.
+- Valmis tai näppäimistön Enter/Done sulkee näppäimistön ja näyttää tasot.
+- Pelitasojen taustakuvat vaihdettu käyttäjän uusiin JPG-versioihin:
+  taso 1 = D ja C huputettu
+  taso 2 = D huputettu
+  taso 3 = kaikki taulut näkyvissä
