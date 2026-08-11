@@ -200,9 +200,6 @@ function startFlickGesture(ev) {
   ensureAudio();
   keyboardSurface.setPointerCapture?.(ev.pointerId);
 
-  // Turvakerros: uusi ele saa aina aloittaa puhtaalta pöydältä.
-  if (state.gesture) finishFlickGesture();
-
   state.gesture = {
     pointerId: ev.pointerId,
     keyEl,
@@ -210,7 +207,6 @@ function startFlickGesture(ev) {
     startY: ev.clientY,
     durationName: 'quarter',
     dottedByRightSweep: false,
-    axisLock: null,
     longPressLocked: false,
     longPressTimer: null,
   };
@@ -233,12 +229,6 @@ function startFlickGesture(ev) {
 
 function moveFlickGesture(ev) {
   if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
-  // Hiirellä pointerup voi joskus karata elementin/pointer capturen ulkopuolelle.
-  // Jos nappi ei enää ole pohjassa, päätetään mahdollinen jäänyt ele heti.
-  if (ev.pointerType === 'mouse' && ev.buttons === 0) {
-    finishFlickGesture();
-    return;
-  }
   ev.preventDefault();
   const gesture = state.gesture;
   const deltaX = ev.clientX - gesture.startX;
@@ -251,46 +241,11 @@ function moveFlickGesture(ev) {
 
   if (gesture.longPressLocked) return;
 
-  // Axis Lock: ele on ensin vapaa. Kun liike ylittää kynnyksen,
-  // lukitaan joko pystyakseliin tai vaaka-akseliin koko eleen loppuun.
-  const axisLockThreshold = 7;
-  if (!gesture.axisLock) {
-    const ax = Math.abs(deltaX);
-    const ay = Math.abs(deltaY);
-
-    if (ax >= axisLockThreshold || ay >= axisLockThreshold) {
-      // Vaakasuunnalle annetaan hieman enemmän toleranssia:
-      // oikealle aikova ele saa lukittua vaakaan, vaikka mukana olisi
-      // jonkin verran pystypoikkeamaa. Pystyyn lukitaan vasta, kun
-      // pystysuunta on selvästi hallitseva.
-      const wantsRight = deltaX > 0;
-      const horizontalIntent = wantsRight && ax >= ay * 0.70;
-      const verticalIntent = ay > ax * 1.35;
-
-      if (horizontalIntent) {
-        gesture.axisLock = 'horizontal';
-      } else if (verticalIntent) {
-        gesture.axisLock = 'vertical';
-      } else {
-        // Epäselvässä kulmassa odotetaan vielä seuraavaa move-tapahtumaa.
-      }
-    }
-  }
-
-  let next = 'quarter';
-  gesture.dottedByRightSweep = false;
-
-  if (gesture.axisLock === 'vertical') {
-    // Alkuperäinen ylös/alas-logiikka sellaisenaan.
-    next = durationFromFlickDelta(deltaY);
-  } else if (gesture.axisLock === 'horizontal') {
-    // Vaakasuunnassa vain oikealle-sweep tekee pisteellisen 1/4:n.
-    next = 'quarter';
-    gesture.dottedByRightSweep = deltaX >= 26;
-  } else {
-    // Ennen lukitusta tavallinen kosketus pysyy 1/4:na.
-    next = 'quarter';
-  }
+  const next = durationFromFlickDelta(deltaY);
+  gesture.dottedByRightSweep =
+    next === 'quarter' &&
+    deltaX >= 48 &&
+    Math.abs(deltaY) <= 14;
 
   if (next !== gesture.durationName) {
     gesture.durationName = next;
@@ -306,37 +261,11 @@ function endFlickGesture(ev) {
   if (!gesture.longPressLocked) {
     const deltaX = ev.clientX - gesture.startX;
     const deltaY = gesture.startY - ev.clientY;
-
-    // Jos ele ehti päättyä juuri ennen move-tapahtumaa, lukitaan akseli vielä tässä.
-    if (!gesture.axisLock) {
-      const ax = Math.abs(deltaX);
-      const ay = Math.abs(deltaY);
-      if (ax >= 7 || ay >= 7) {
-        const wantsRight = deltaX > 0;
-        const horizontalIntent = wantsRight && ax >= ay * 0.70;
-        const verticalIntent = ay > ax * 1.35;
-
-        if (horizontalIntent) {
-          gesture.axisLock = 'horizontal';
-        } else if (verticalIntent) {
-          gesture.axisLock = 'vertical';
-        } else {
-          // Jos ele päättyy vielä epäselvässä kulmassa, valitaan hallitseva akseli.
-          gesture.axisLock = ax > ay ? 'horizontal' : 'vertical';
-        }
-      }
-    }
-
-    if (gesture.axisLock === 'vertical') {
-      gesture.durationName = durationFromFlickDelta(deltaY);
-      gesture.dottedByRightSweep = false;
-    } else if (gesture.axisLock === 'horizontal') {
-      gesture.durationName = 'quarter';
-      gesture.dottedByRightSweep = deltaX >= 26;
-    } else {
-      gesture.durationName = 'quarter';
-      gesture.dottedByRightSweep = false;
-    }
+    gesture.durationName = durationFromFlickDelta(deltaY);
+    gesture.dottedByRightSweep =
+      gesture.durationName === 'quarter' &&
+      deltaX >= 48 &&
+      Math.abs(deltaY) <= 14;
   }
   commitFlickGesture(gesture);
   finishFlickGesture();
@@ -936,29 +865,3 @@ initKeyboard();
 applyLayoutState({ save: false });
 updateToggleButtons();
 renderScore();
-
-keyboardSurface.addEventListener('lostpointercapture', (ev) => {
-  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
-  finishFlickGesture();
-});
-
-
-// Gesture Safety / Pointer Reset
-window.addEventListener('blur', () => {
-  if (state.gesture) finishFlickGesture();
-});
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && state.gesture) finishFlickGesture();
-});
-
-// Varmistus myös silloin, jos pointerup tapahtuu koskettimiston ulkopuolella.
-window.addEventListener('pointerup', (ev) => {
-  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
-  endFlickGesture(ev);
-}, true);
-
-window.addEventListener('pointercancel', (ev) => {
-  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
-  finishFlickGesture();
-}, true);
