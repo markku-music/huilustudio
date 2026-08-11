@@ -200,6 +200,9 @@ function startFlickGesture(ev) {
   ensureAudio();
   keyboardSurface.setPointerCapture?.(ev.pointerId);
 
+  // Turvakerros: uusi ele saa aina aloittaa puhtaalta pöydältä.
+  if (state.gesture) finishFlickGesture();
+
   state.gesture = {
     pointerId: ev.pointerId,
     keyEl,
@@ -229,6 +232,12 @@ function startFlickGesture(ev) {
 
 function moveFlickGesture(ev) {
   if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  // Hiirellä pointerup voi joskus karata elementin/pointer capturen ulkopuolelle.
+  // Jos nappi ei enää ole pohjassa, päätetään mahdollinen jäänyt ele heti.
+  if (ev.pointerType === 'mouse' && ev.buttons === 0) {
+    finishFlickGesture();
+    return;
+  }
   ev.preventDefault();
   const gesture = state.gesture;
   const deltaX = ev.clientX - gesture.startX;
@@ -865,3 +874,29 @@ initKeyboard();
 applyLayoutState({ save: false });
 updateToggleButtons();
 renderScore();
+
+keyboardSurface.addEventListener('lostpointercapture', (ev) => {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  finishFlickGesture();
+});
+
+
+// Gesture Safety / Pointer Reset
+window.addEventListener('blur', () => {
+  if (state.gesture) finishFlickGesture();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.gesture) finishFlickGesture();
+});
+
+// Varmistus myös silloin, jos pointerup tapahtuu koskettimiston ulkopuolella.
+window.addEventListener('pointerup', (ev) => {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  endFlickGesture(ev);
+}, true);
+
+window.addEventListener('pointercancel', (ev) => {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  finishFlickGesture();
+}, true);
