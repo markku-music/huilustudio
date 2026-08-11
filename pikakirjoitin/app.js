@@ -15,7 +15,6 @@ const flickHud = document.getElementById('flickHud');
 const flickCursorShorter = document.getElementById('flickCursorShorter');
 const flickCursorCurrent = document.getElementById('flickCursorCurrent');
 const flickCursorLonger = document.getElementById('flickCursorLonger');
-const flickCursorRight = document.getElementById('flickCursorRight');
 const rightHandBtn = document.getElementById('rightHandBtn');
 const leftHandBtn = document.getElementById('leftHandBtn');
 
@@ -207,7 +206,6 @@ function startFlickGesture(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     durationName: 'quarter',
-    dottedByRightSweep: false,
     longPressLocked: false,
     longPressTimer: null,
   };
@@ -242,17 +240,11 @@ function moveFlickGesture(ev) {
 
   if (gesture.longPressLocked) return;
 
-  // Ylös/alas-logiikka pidetään täysin ennallaan.
-  // Oikealle-ele toimii vain kapeassa vaakasuorassa käytävässä:
-  // tarpeeksi oikealle, mutta vain hyvin pienellä pystypoikkeamalla.
-  const verticalDuration = durationFromFlickDelta(deltaY);
-  const rightSweep = deltaX >= 48 && Math.abs(deltaY) <= 12;
-
-  gesture.dottedByRightSweep = rightSweep;
-  const next = rightSweep ? 'quarter' : verticalDuration;
-
-  gesture.durationName = next;
-  updateFlickHud(next, rightSweep);
+  const next = durationFromFlickDelta(deltaY);
+  if (next !== gesture.durationName) {
+    gesture.durationName = next;
+    updateFlickHud(next);
+  }
 }
 
 function endFlickGesture(ev) {
@@ -261,11 +253,8 @@ function endFlickGesture(ev) {
   const gesture = state.gesture;
   clearLongPressTimer(gesture);
   if (!gesture.longPressLocked) {
-    const deltaX = ev.clientX - gesture.startX;
     const deltaY = gesture.startY - ev.clientY;
-    const verticalDuration = durationFromFlickDelta(deltaY);
-    gesture.dottedByRightSweep = deltaX >= 48 && Math.abs(deltaY) <= 12;
-    gesture.durationName = gesture.dottedByRightSweep ? 'quarter' : verticalDuration;
+    gesture.durationName = durationFromFlickDelta(deltaY);
   }
   commitFlickGesture(gesture);
   finishFlickGesture();
@@ -311,8 +300,8 @@ function durationFromFlickDelta(deltaY) {
 }
 
 function showFlickHud(x, y, durationName) {
-  const hudW = 188;
-  const hudH = 188;
+  const hudW = 82;
+  const hudH = 154;
   const gap = 28;
 
   // Oikealla kädellä HUD vasemmalle, vasemmalla kädellä HUD oikealle.
@@ -338,41 +327,20 @@ function showFlickHud(x, y, durationName) {
   updateFlickHud(durationName);
 }
 
-function updateFlickHud(durationName, dottedByRightSweep = false) {
-  const options = [flickCursorShorter, flickCursorCurrent, flickCursorLonger, flickCursorRight];
-  options.forEach(el => el && el.classList.remove('active-direction'));
-
+function updateFlickHud(durationName) {
   if (durationName === 'whole') {
     setFlickDurationOption(flickCursorShorter, null);
     setFlickDurationOption(flickCursorCurrent, 'whole');
     setFlickDurationOption(flickCursorLonger, null);
-    if (flickCursorRight) flickCursorRight.classList.add('unavailable');
-    flickCursorCurrent.classList.add('active-direction');
     return;
   }
 
-  // Kompassi näyttää aina eleiden suunnat.
   setFlickDurationOption(flickCursorShorter, 'half');
-  setFlickDurationOption(flickCursorCurrent, 'quarter');
+  setFlickDurationOption(flickCursorCurrent, durationName);
   setFlickDurationOption(flickCursorLonger, 'eighth');
-  if (flickCursorRight) {
-    flickCursorRight.classList.remove('unavailable');
-    const label = flickCursorRight.querySelector('.flick-duration-label');
-    if (label) label.textContent = '1/4.';
-  }
-
-  if (dottedByRightSweep) {
-    flickCursorRight && flickCursorRight.classList.add('active-direction');
-  } else if (durationName === 'half') {
-    flickCursorShorter.classList.add('active-direction');
-  } else if (durationName === 'eighth') {
-    flickCursorLonger.classList.add('active-direction');
-  } else {
-    flickCursorCurrent.classList.add('active-direction');
-  }
 }
 
-function setFlickDurationOption(element, durationName, dotted = false) {
+function setFlickDurationOption(element, durationName) {
   const symbols = {
     '16th': ['𝅘𝅥𝅯', '1/16'],
     eighth: ['♪', '1/8'],
@@ -386,16 +354,15 @@ function setFlickDurationOption(element, durationName, dotted = false) {
   element.classList.toggle('unavailable', !available);
   if (!available) return;
   const [symbol, label] = symbols[durationName];
-  symbolEl.textContent = dotted ? `${symbol} ·` : symbol;
-  labelEl.textContent = dotted ? `${label}.` : label;
+  symbolEl.textContent = symbol;
+  labelEl.textContent = label;
 }
 
 function commitFlickGesture(gesture) {
   const base = durationByName[gesture.durationName];
   if (!base) return;
 
-  const useDot = state.dot || gesture.dottedByRightSweep;
-  const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
+  const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
 
   if (state.restMode) {
     addRest(durationUnits);
@@ -870,7 +837,6 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Musta korkeus: ${layoutState.blackHeight}%`,
     `Sweep alas → 1/8: ${layoutState.flick.eighth}px`,
     `Sweep ylös → 1/2: ${layoutState.flick.half}px`,
-    `Sweep oikealle → pisteellinen 1/4: 42px`,
     `Pitkä painallus → koko: ${layoutState.flick.longPressMs}ms`
   ].join('\n');
   try {
