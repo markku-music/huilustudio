@@ -12,6 +12,8 @@ const layoutClose = document.getElementById('layoutClose');
 const zoneKeyboard = document.getElementById('zoneKeyboard');
 const zonePanel = document.querySelector('.zone-panel');
 const flickHud = document.getElementById('flickHud');
+const rightHandBtn = document.getElementById('rightHandBtn');
+const leftHandBtn = document.getElementById('leftHandBtn');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -37,6 +39,7 @@ const layoutOutputs = {
 
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const defaultLayout = {
+  handedness: 'right',
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 66,
@@ -258,11 +261,25 @@ function durationFromFlickDelta(deltaY) {
 function showFlickHud(x, y, durationName) {
   const hudW = 112;
   const hudH = 204;
-  const placeRight = x < window.innerWidth * 0.72;
-  const left = placeRight ? x + 34 : x - hudW - 34;
+  const gap = 34;
+
+  // Oikealla kädellä HUD vasemmalle, vasemmalla kädellä HUD oikealle.
+  // Jos halutulla puolella ei ole riittävästi tilaa, vaihdetaan vain tarvittaessa toiselle puolelle.
+  const preferredSide = layoutState.handedness === 'left' ? 'right' : 'left';
+  const leftCandidate = x - hudW - gap;
+  const rightCandidate = x + gap;
+  const canFitLeft = leftCandidate >= 10;
+  const canFitRight = rightCandidate + hudW <= window.innerWidth - 10;
+
+  let side = preferredSide;
+  if (side === 'left' && !canFitLeft && canFitRight) side = 'right';
+  if (side === 'right' && !canFitRight && canFitLeft) side = 'left';
+
+  const left = side === 'right' ? rightCandidate : leftCandidate;
   const top = y - hudH / 2;
   flickHud.style.left = `${clamp(left, 10, window.innerWidth - hudW - 10)}px`;
   flickHud.style.top = `${clamp(top, 10, window.innerHeight - hudH - 10)}px`;
+  flickHud.dataset.side = side;
   flickHud.classList.toggle('rest', state.restMode);
   flickHud.classList.add('visible');
   flickHud.setAttribute('aria-hidden', 'false');
@@ -301,6 +318,7 @@ function loadLayoutState() {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || 'null');
     if (!saved) return structuredClone(defaultLayout);
     return {
+      handedness: saved.handedness === 'left' ? 'left' : 'right',
       whiteWidth: Number(saved.whiteWidth) || defaultLayout.whiteWidth,
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
@@ -348,6 +366,11 @@ function applyLayoutState({ save = true } = {}) {
 }
 
 function syncLayoutControls() {
+  rightHandBtn.classList.toggle('active', layoutState.handedness === 'right');
+  leftHandBtn.classList.toggle('active', layoutState.handedness === 'left');
+  rightHandBtn.setAttribute('aria-pressed', String(layoutState.handedness === 'right'));
+  leftHandBtn.setAttribute('aria-pressed', String(layoutState.handedness === 'left'));
+
   layoutControls.whiteWidth.value = String(layoutState.whiteWidth);
   layoutControls.keyboardHeight.value = String(layoutState.keyboardHeight);
   layoutControls.blackWidth.value = String(layoutState.blackWidth);
@@ -368,6 +391,9 @@ function syncLayoutControls() {
 }
 
 function bindLayoutControls() {
+  rightHandBtn.addEventListener('click', () => { layoutState.handedness = 'right'; applyLayoutState(); });
+  leftHandBtn.addEventListener('click', () => { layoutState.handedness = 'left'; applyLayoutState(); });
+
   layoutControls.whiteWidth.addEventListener('input', e => { layoutState.whiteWidth = Number(e.target.value); applyLayoutState(); });
   layoutControls.keyboardHeight.addEventListener('input', e => { layoutState.keyboardHeight = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackWidth.addEventListener('input', e => { layoutState.blackWidth = Number(e.target.value); applyLayoutState(); });
@@ -703,6 +729,7 @@ document.getElementById('layoutReset').addEventListener('click', () => {
 
 document.getElementById('layoutCopy').addEventListener('click', async () => {
   const payload = [
+    `Kätisyys: ${layoutState.handedness === 'right' ? 'Oikea käsi' : 'Vasen käsi'}`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
