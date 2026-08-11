@@ -257,8 +257,23 @@ function moveFlickGesture(ev) {
   if (!gesture.axisLock) {
     const ax = Math.abs(deltaX);
     const ay = Math.abs(deltaY);
+
     if (ax >= axisLockThreshold || ay >= axisLockThreshold) {
-      gesture.axisLock = ax > ay ? 'horizontal' : 'vertical';
+      // Vaakasuunnalle annetaan hieman enemmän toleranssia:
+      // oikealle aikova ele saa lukittua vaakaan, vaikka mukana olisi
+      // jonkin verran pystypoikkeamaa. Pystyyn lukitaan vasta, kun
+      // pystysuunta on selvästi hallitseva.
+      const wantsRight = deltaX > 0;
+      const horizontalIntent = wantsRight && ax >= ay * 0.70;
+      const verticalIntent = ay > ax * 1.35;
+
+      if (horizontalIntent) {
+        gesture.axisLock = 'horizontal';
+      } else if (verticalIntent) {
+        gesture.axisLock = 'vertical';
+      } else {
+        // Epäselvässä kulmassa odotetaan vielä seuraavaa move-tapahtumaa.
+      }
     }
   }
 
@@ -297,7 +312,18 @@ function endFlickGesture(ev) {
       const ax = Math.abs(deltaX);
       const ay = Math.abs(deltaY);
       if (ax >= 7 || ay >= 7) {
-        gesture.axisLock = ax > ay ? 'horizontal' : 'vertical';
+        const wantsRight = deltaX > 0;
+        const horizontalIntent = wantsRight && ax >= ay * 0.70;
+        const verticalIntent = ay > ax * 1.35;
+
+        if (horizontalIntent) {
+          gesture.axisLock = 'horizontal';
+        } else if (verticalIntent) {
+          gesture.axisLock = 'vertical';
+        } else {
+          // Jos ele päättyy vielä epäselvässä kulmassa, valitaan hallitseva akseli.
+          gesture.axisLock = ax > ay ? 'horizontal' : 'vertical';
+        }
       }
     }
 
