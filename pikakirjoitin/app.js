@@ -10,19 +10,18 @@ const layoutToggle = document.getElementById('layoutToggle');
 const layoutPanel = document.getElementById('layoutPanel');
 const layoutClose = document.getElementById('layoutClose');
 const zoneKeyboard = document.getElementById('zoneKeyboard');
-const zoneBands = document.querySelector('.zone-bands');
 const zonePanel = document.querySelector('.zone-panel');
+const flickHud = document.getElementById('flickHud');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
   keyboardHeight: document.getElementById('keyboardHeightSlider'),
   blackWidth: document.getElementById('blackWidthSlider'),
   blackHeight: document.getElementById('blackHeightSlider'),
-  zoneWhole: document.getElementById('zoneWholeSlider'),
-  zoneHalf: document.getElementById('zoneHalfSlider'),
-  zoneQuarter: document.getElementById('zoneQuarterSlider'),
-  zoneEighth: document.getElementById('zoneEighthSlider'),
-  zoneSixteenth: document.getElementById('zoneSixteenthSlider'),
+  flickEighth: document.getElementById('flickEighthSlider'),
+  flickSixteenth: document.getElementById('flickSixteenthSlider'),
+  flickHalf: document.getElementById('flickHalfSlider'),
+  flickWhole: document.getElementById('flickWholeSlider'),
 };
 
 const layoutOutputs = {
@@ -30,20 +29,24 @@ const layoutOutputs = {
   keyboardHeight: document.getElementById('keyboardHeightOut'),
   blackWidth: document.getElementById('blackWidthOut'),
   blackHeight: document.getElementById('blackHeightOut'),
-  zoneWhole: document.getElementById('zoneWholeOut'),
-  zoneHalf: document.getElementById('zoneHalfOut'),
-  zoneQuarter: document.getElementById('zoneQuarterOut'),
-  zoneEighth: document.getElementById('zoneEighthOut'),
-  zoneSixteenth: document.getElementById('zoneSixteenthOut'),
+  flickEighth: document.getElementById('flickEighthOut'),
+  flickSixteenth: document.getElementById('flickSixteenthOut'),
+  flickHalf: document.getElementById('flickHalfOut'),
+  flickWhole: document.getElementById('flickWholeOut'),
 };
 
-const LAYOUT_STORAGE_KEY = 'melody-writer-zone-layout-v1';
+const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const defaultLayout = {
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 66,
   blackHeight: 56,
-  zones: [20, 20, 20, 20, 20],
+  flick: {
+    eighth: 26,
+    sixteenth: 72,
+    half: 26,
+    whole: 72,
+  },
 };
 
 let layoutState = loadLayoutState();
@@ -80,6 +83,7 @@ const durationMapByUnits = new Map([
   [2, { type: '16th', dots: 0 }],
 ]);
 const allowedPieces = [...durationMapByUnits.keys()].sort((a,b) => b-a);
+const durationByName = Object.fromEntries(durationDefs.map(d => [d.name, d]));
 
 const keyDefs = [
   { tonic: 'C', fifths: 0 },
@@ -142,6 +146,7 @@ const state = {
   restMode: false,
   audioContext: null,
   osmd: null,
+  gesture: null,
 };
 
 function initKeyboard() {
@@ -174,25 +179,121 @@ function initKeyboard() {
     keyboardSurface.appendChild(el);
   });
 
-  const downHandler = (ev) => {
-    ev.preventDefault();
-    ensureAudio();
-    const target = document.elementFromPoint(ev.clientX, ev.clientY);
-    const keyEl = target && target.closest('.key');
-    if (!keyEl || !keyboardSurface.contains(keyEl)) return;
-    const rect = keyboardSurface.getBoundingClientRect();
-    const y = ev.clientY - rect.top;
-    const zoneHeight = rect.height * (layoutState.blackHeight / 100);
+  keyboardSurface.addEventListener('pointerdown', startFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('pointermove', moveFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('pointerup', endFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('pointercancel', cancelFlickGesture, { passive: false });
+}
 
-    // Zone-alue on täsmälleen yhtä korkea kuin mustat koskettimet.
-    // Valkoisten koskettimien alaosa on vain kosketin-/nimialuetta, ei rytmizonea.
-    if (y < 0 || y > zoneHeight) return;
+function startFlickGesture(ev) {
+  ev.preventDefault();
+  if (state.gesture) return;
 
-    const zoneIndex = getZoneIndexFromY(y, zoneHeight);
-    handleZoneKeyPress(keyEl, zoneIndex);
+  const target = document.elementFromPoint(ev.clientX, ev.clientY);
+  const keyEl = target && target.closest('.key');
+  if (!keyEl || !keyboardSurface.contains(keyEl)) return;
+
+  ensureAudio();
+  keyboardSurface.setPointerCapture?.(ev.pointerId);
+
+  state.gesture = {
+    pointerId: ev.pointerId,
+    keyEl,
+    startX: ev.clientX,
+    startY: ev.clientY,
+    durationName: 'quarter',
   };
 
-  keyboardSurface.addEventListener('pointerdown', downHandler, { passive: false });
+  keyEl.classList.add('active');
+  showFlickHud(ev.clientX, ev.clientY, 'quarter');
+
+  // Soittotuntuma tulee heti painalluksesta. Nuotti kirjoitetaan vasta irrotettaessa.
+  if (!state.restMode) playMidi(Number(keyEl.dataset.midi), 0.24);
+}
+
+function moveFlickGesture(ev) {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  ev.preventDefault();
+  const deltaY = state.gesture.startY - ev.clientY; // plus = ylöspäin
+  const next = durationFromFlickDelta(deltaY);
+  if (next !== state.gesture.durationName) {
+    state.gesture.durationName = next;
+    updateFlickHud(next);
+  }
+}
+
+function endFlickGesture(ev) {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  ev.preventDefault();
+  const gesture = state.gesture;
+  const deltaY = gesture.startY - ev.clientY;
+  gesture.durationName = durationFromFlickDelta(deltaY);
+  commitFlickGesture(gesture);
+  finishFlickGesture();
+}
+
+function cancelFlickGesture(ev) {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  finishFlickGesture();
+}
+
+function finishFlickGesture() {
+  if (!state.gesture) return;
+  state.gesture.keyEl.classList.remove('active');
+  try { keyboardSurface.releasePointerCapture?.(state.gesture.pointerId); } catch {}
+  state.gesture = null;
+  flickHud.classList.remove('visible', 'rest');
+  flickHud.setAttribute('aria-hidden', 'true');
+}
+
+function durationFromFlickDelta(deltaY) {
+  const f = layoutState.flick;
+  if (deltaY >= f.sixteenth) return '16th';
+  if (deltaY >= f.eighth) return 'eighth';
+  if (deltaY <= -f.whole) return 'whole';
+  if (deltaY <= -f.half) return 'half';
+  return 'quarter';
+}
+
+function showFlickHud(x, y, durationName) {
+  const hudW = 112;
+  const hudH = 204;
+  const placeRight = x < window.innerWidth * 0.72;
+  const left = placeRight ? x + 34 : x - hudW - 34;
+  const top = y - hudH / 2;
+  flickHud.style.left = `${clamp(left, 10, window.innerWidth - hudW - 10)}px`;
+  flickHud.style.top = `${clamp(top, 10, window.innerHeight - hudH - 10)}px`;
+  flickHud.classList.toggle('rest', state.restMode);
+  flickHud.classList.add('visible');
+  flickHud.setAttribute('aria-hidden', 'false');
+  updateFlickHud(durationName);
+}
+
+function updateFlickHud(durationName) {
+  flickHud.querySelectorAll('.flick-hud-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.duration === durationName);
+  });
+}
+
+function commitFlickGesture(gesture) {
+  const base = durationByName[gesture.durationName];
+  if (!base) return;
+  const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
+
+  if (state.restMode) {
+    addRest(durationUnits);
+    return;
+  }
+
+  const keyEl = gesture.keyEl;
+  state.notes.push({
+    kind: 'note',
+    step: keyEl.dataset.step,
+    alter: Number(keyEl.dataset.alter || 0),
+    octave: Number(keyEl.dataset.octave),
+    units: durationUnits,
+  });
+  renderScore();
 }
 
 function loadLayoutState() {
@@ -204,7 +305,12 @@ function loadLayoutState() {
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
       blackHeight: Number(saved.blackHeight) || defaultLayout.blackHeight,
-      zones: Array.isArray(saved.zones) && saved.zones.length === 5 ? saved.zones.map(Number) : [...defaultLayout.zones],
+      flick: {
+        eighth: Number(saved.flick?.eighth) || defaultLayout.flick.eighth,
+        sixteenth: Number(saved.flick?.sixteenth) || defaultLayout.flick.sixteenth,
+        half: Number(saved.flick?.half) || defaultLayout.flick.half,
+        whole: Number(saved.flick?.whole) || defaultLayout.flick.whole,
+      },
     };
   } catch {
     return structuredClone(defaultLayout);
@@ -215,39 +321,18 @@ function saveLayoutState() {
   localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layoutState));
 }
 
-function zonePercentagesByDuration() {
-  // Tallennusjärjestys pysyy yhteensopivuuden vuoksi:
-  // [koko, 1/2, 1/4, 1/8, 1/16]
-  const total = layoutState.zones.reduce((sum, value) => sum + value, 0) || 100;
-  return layoutState.zones.map(value => (value / total) * 100);
-}
-
-function zonePercentagesTopDown() {
-  // Koskettimistossa aika-arvot ovat nyt päinvastoin:
-  // ylhäältä alas 1/16, 1/8, 1/4, 1/2, koko.
-  const p = zonePercentagesByDuration();
-  return [p[4], p[3], p[2], p[1], p[0]];
-}
-
-function getZoneIndexFromY(y, totalHeight) {
-  const pct = (y / totalHeight) * 100;
-  const parts = zonePercentagesTopDown();
-  let cursor = 0;
-  for (let i = 0; i < parts.length; i++) {
-    cursor += parts[i];
-    if (pct <= cursor || i === parts.length - 1) return i;
-  }
-  return 4;
+function normalizeFlickThresholds() {
+  // Ulomman rajan täytyy aina olla sisempää suurempi.
+  layoutState.flick.sixteenth = Math.max(layoutState.flick.sixteenth, layoutState.flick.eighth + 8);
+  layoutState.flick.whole = Math.max(layoutState.flick.whole, layoutState.flick.half + 8);
 }
 
 function applyLayoutState({ save = true } = {}) {
+  normalizeFlickThresholds();
   zonePanel.style.setProperty('--white-width-scale', String(layoutState.whiteWidth / 100));
   zonePanel.style.setProperty('--keyboard-height-scale', String(layoutState.keyboardHeight / 100));
   zonePanel.style.setProperty('--black-width-ratio', String(layoutState.blackWidth / 100));
   zonePanel.style.setProperty('--black-height-ratio', `${layoutState.blackHeight}%`);
-
-  const parts = zonePercentagesTopDown();
-  zoneBands.style.gridTemplateRows = parts.map(v => `${v}%`).join(' ');
 
   const totalWhite = whiteKeys.length;
   const whiteWidth = 100 / totalWhite;
@@ -267,22 +352,19 @@ function syncLayoutControls() {
   layoutControls.keyboardHeight.value = String(layoutState.keyboardHeight);
   layoutControls.blackWidth.value = String(layoutState.blackWidth);
   layoutControls.blackHeight.value = String(layoutState.blackHeight);
-  layoutControls.zoneWhole.value = String(layoutState.zones[0]);
-  layoutControls.zoneHalf.value = String(layoutState.zones[1]);
-  layoutControls.zoneQuarter.value = String(layoutState.zones[2]);
-  layoutControls.zoneEighth.value = String(layoutState.zones[3]);
-  layoutControls.zoneSixteenth.value = String(layoutState.zones[4]);
+  layoutControls.flickEighth.value = String(layoutState.flick.eighth);
+  layoutControls.flickSixteenth.value = String(layoutState.flick.sixteenth);
+  layoutControls.flickHalf.value = String(layoutState.flick.half);
+  layoutControls.flickWhole.value = String(layoutState.flick.whole);
 
   layoutOutputs.whiteWidth.textContent = `${layoutState.whiteWidth} %`;
   layoutOutputs.keyboardHeight.textContent = `${layoutState.keyboardHeight} %`;
   layoutOutputs.blackWidth.textContent = `${layoutState.blackWidth} %`;
   layoutOutputs.blackHeight.textContent = `${layoutState.blackHeight} %`;
-  const p = zonePercentagesByDuration();
-  layoutOutputs.zoneWhole.textContent = `${p[0].toFixed(1)} %`;
-  layoutOutputs.zoneHalf.textContent = `${p[1].toFixed(1)} %`;
-  layoutOutputs.zoneQuarter.textContent = `${p[2].toFixed(1)} %`;
-  layoutOutputs.zoneEighth.textContent = `${p[3].toFixed(1)} %`;
-  layoutOutputs.zoneSixteenth.textContent = `${p[4].toFixed(1)} %`;
+  layoutOutputs.flickEighth.textContent = `${layoutState.flick.eighth} px`;
+  layoutOutputs.flickSixteenth.textContent = `${layoutState.flick.sixteenth} px`;
+  layoutOutputs.flickHalf.textContent = `${layoutState.flick.half} px`;
+  layoutOutputs.flickWhole.textContent = `${layoutState.flick.whole} px`;
 }
 
 function bindLayoutControls() {
@@ -290,39 +372,15 @@ function bindLayoutControls() {
   layoutControls.keyboardHeight.addEventListener('input', e => { layoutState.keyboardHeight = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackWidth.addEventListener('input', e => { layoutState.blackWidth = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackHeight.addEventListener('input', e => { layoutState.blackHeight = Number(e.target.value); applyLayoutState(); });
-
-  [layoutControls.zoneWhole, layoutControls.zoneHalf, layoutControls.zoneQuarter, layoutControls.zoneEighth, layoutControls.zoneSixteenth]
-    .forEach((control, index) => control.addEventListener('input', e => {
-      layoutState.zones[index] = Number(e.target.value);
-      applyLayoutState();
-    }));
+  layoutControls.flickEighth.addEventListener('input', e => { layoutState.flick.eighth = Number(e.target.value); applyLayoutState(); });
+  layoutControls.flickSixteenth.addEventListener('input', e => { layoutState.flick.sixteenth = Number(e.target.value); applyLayoutState(); });
+  layoutControls.flickHalf.addEventListener('input', e => { layoutState.flick.half = Number(e.target.value); applyLayoutState(); });
+  layoutControls.flickWhole.addEventListener('input', e => { layoutState.flick.whole = Number(e.target.value); applyLayoutState(); });
 }
 
 function setLayoutPanelOpen(open) {
   layoutPanel.classList.toggle('open', open);
   layoutPanel.setAttribute('aria-hidden', String(!open));
-}
-
-function handleZoneKeyPress(keyEl, zoneIndex) {
-  const base = durationDefs.find(d => d.zone === zoneIndex);
-  const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
-
-  flashKey(keyEl);
-  if (state.restMode) {
-    addRest(durationUnits);
-    return;
-  }
-
-  const note = {
-    kind: 'note',
-    step: keyEl.dataset.step,
-    alter: Number(keyEl.dataset.alter || 0),
-    octave: Number(keyEl.dataset.octave),
-    units: durationUnits,
-  };
-  state.notes.push(note);
-  playMidi(Number(keyEl.dataset.midi), durationUnitsToSeconds(durationUnits));
-  renderScore();
 }
 
 function addRest(units) {
@@ -644,14 +702,15 @@ document.getElementById('layoutReset').addEventListener('click', () => {
 });
 
 document.getElementById('layoutCopy').addEventListener('click', async () => {
-  const parts = zonePercentagesByDuration();
   const payload = [
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
     `Musta korkeus: ${layoutState.blackHeight}%`,
-    `Zonet: koko ${parts[0].toFixed(1)}%, 1/2 ${parts[1].toFixed(1)}%, 1/4 ${parts[2].toFixed(1)}%, 1/8 ${parts[3].toFixed(1)}%, 1/16 ${parts[4].toFixed(1)}%`,
-    `Zone-painot: ${layoutState.zones.join(', ')}`
+    `Flick 1/8: +${layoutState.flick.eighth}px`,
+    `Flick 1/16: +${layoutState.flick.sixteenth}px`,
+    `Flick 1/2: -${layoutState.flick.half}px`,
+    `Flick koko: -${layoutState.flick.whole}px`
   ].join('\n');
   try {
     await navigator.clipboard.writeText(payload);
