@@ -553,6 +553,45 @@ function escapeXml(text) {
     .replace(/'/g, '&apos;');
 }
 
+
+function annotateDefaultBeams(measure) {
+  // Oletuspalkitus: peräkkäiset 1/8-nuotit pareittain ja 1/16-nuotit neljän ryhmiin.
+  // Tauko, eri aika-arvo tai tahdin raja katkaisee ryhmän.
+  const annotateRuns = (units, groupSize, beamLevels) => {
+    let run = [];
+
+    const flush = () => {
+      for (let start = 0; start + groupSize <= run.length; start += groupSize) {
+        const group = run.slice(start, start + groupSize);
+        group.forEach((seg, index) => {
+          const value = index === 0 ? 'begin' : index === group.length - 1 ? 'end' : 'continue';
+          seg.beams = beamLevels.map(number => ({ number, value }));
+        });
+      }
+      run = [];
+    };
+
+    measure.forEach(seg => {
+      if (seg.kind === 'note' && seg.units === units) {
+        run.push(seg);
+      } else {
+        flush();
+      }
+    });
+    flush();
+  };
+
+  measure.forEach(seg => { delete seg.beams; });
+  annotateRuns(4, 2, [1]);       // 1/8: kaksi nuottia samaan palkkiin
+  annotateRuns(2, 4, [1, 2]);    // 1/16: neljä nuottia, kaksi palkkitasoa
+  return measure;
+}
+
+function beamXml(seg) {
+  if (!seg.beams?.length) return '';
+  return seg.beams.map(beam => `<beam number="${beam.number}">${beam.value}</beam>`).join('');
+}
+
 function noteToXml(seg) {
   const dur = durationMapByUnits.get(seg.units);
   if (!dur) throw new Error(`Tuntematon kesto: ${seg.units}`);
@@ -575,13 +614,13 @@ function noteToXml(seg) {
       <voice>1</voice>
       <type>${dur.type}</type>
       ${dur.dots ? '<dot/>' : ''}
-      <stem>up</stem>
+      ${!isRest ? beamXml(seg) : ''}
       ${(!isRest && (seg.tieStart || seg.tieStop)) ? `<notations>${seg.tieStop ? '<tied type="stop"/>' : ''}${seg.tieStart ? '<tied type="start"/>' : ''}</notations>` : ''}
     </note>`;
 }
 
 function buildMusicXml() {
-  const measures = createEventsForScore();
+  const measures = createEventsForScore().map(annotateDefaultBeams);
   const beats = Number(beatsSelect.value);
   const beatType = Number(beatTypeSelect.value);
   const fifths = Number(keySelect.value);
