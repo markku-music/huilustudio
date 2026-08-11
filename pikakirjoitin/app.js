@@ -619,8 +619,61 @@ function noteToXml(seg) {
     </note>`;
 }
 
+
+function measureLayoutCost(measure) {
+  // Kevyt arvio tahdin vaakasuuntaisesta tilantarpeesta.
+  // Piilotettu täytetauko ei vaikuta kustannukseen, joten keskeneräinen tahti
+  // kasvaa vain sitä mukaa kuin käyttäjä oikeasti kirjoittaa siihen sisältöä.
+  const visible = measure.filter(seg => seg.kind !== 'restHidden');
+  let cost = 2.0; // tahdin perusleveys: tahtiviivat + hengitystila
+
+  visible.forEach(seg => {
+    cost += 0.22; // yksi näkyvä nuotti/tauko
+    if (seg.alter) cost += 0.18; // etumerkki tarvitsee hieman lisätilaa
+    if ([3, 6, 12, 24].includes(seg.units)) cost += 0.10; // pisteellinen arvo
+    if (seg.tieStart || seg.tieStop) cost += 0.06;
+  });
+
+  return cost;
+}
+
+function getAutomaticSystemBreaks(measures) {
+  // AUTO-rivinvaihto: ei koskaan kesken tahdin.
+  // iPad 12,9" vaakasuunnassa tavoitteena on yleensä 4 tahtia/rivi.
+  // Tiheä materiaali kasvattaa tahdin kustannusta ja voi siirtää seuraavan
+  // tahdin uudelle riville jo 2–3 tahdin jälkeen.
+  const width = Math.max(520, osmdContainer.clientWidth || 1000);
+  const maxMeasuresPerSystem = width >= 900 ? 4 : width >= 700 ? 3 : 2;
+  const baseBudget = Math.max(10, (width - 60) / 50);
+
+  const breaks = new Set();
+  let used = 0;
+  let count = 0;
+  let systemIndex = 0;
+
+  measures.forEach((measure, i) => {
+    const cost = measureLayoutCost(measure);
+    // Ensimmäisellä rivillä otsikko/tempo sekä avain, sävellaji ja tahtilaji
+    // vievät hieman enemmän tilaa. Uusilla riveillä avain vie myös oman osansa.
+    const budget = baseBudget - (systemIndex === 0 ? 1.1 : 0.6);
+
+    if (i > 0 && count > 0 && (count >= maxMeasuresPerSystem || used + cost > budget)) {
+      breaks.add(i);
+      used = 0;
+      count = 0;
+      systemIndex += 1;
+    }
+
+    used += cost;
+    count += 1;
+  });
+
+  return breaks;
+}
+
 function buildMusicXml() {
   const measures = createEventsForScore().map(annotateDefaultBeams);
+  const systemBreaks = getAutomaticSystemBreaks(measures);
   const beats = Number(beatsSelect.value);
   const beatType = Number(beatTypeSelect.value);
   const fifths = Number(keySelect.value);
@@ -632,6 +685,7 @@ function buildMusicXml() {
 
   const measureXml = measures.map((measure, i) => {
     const number = i + 1;
+    const systemBreak = systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
     const attrs = i === 0 ? `
       <attributes>
         <divisions>${divisions}</divisions>
@@ -646,7 +700,7 @@ function buildMusicXml() {
         <sound tempo="${bpm}"/>
       </direction>` : '';
     const notesXml = measure.map(noteToXml).join('');
-    return `<measure number="${number}">${attrs}${notesXml}</measure>`;
+    return `<measure number="${number}">${systemBreak}${attrs}${notesXml}</measure>`;
   }).join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -734,13 +788,14 @@ function scheduleOsmdResizeRender() {
   clearTimeout(window.__osmdResizeTimer);
   window.__osmdResizeTimer = setTimeout(async () => {
     try {
-      // OSMD laskee järjestelmäleveyden containerin nykyisestä leveydestä renderöinnissä.
-      // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
-      await state.osmd.render();
+      // AUTO-rivinvaihto riippuu nuotti-ikkunan leveydestä, joten pelkkä
+      // osmd.render() ei riitä. MusicXML rakennetaan uudelleen uusilla
+      // <print new-system="yes"/> -kohdilla ja ladataan OSMD:lle uudestaan.
+      await renderScore();
     } catch (err) {
       console.warn('OSMD resize render failed', err);
     }
-  }, 90);
+  }, 120);
 }
 
 window.addEventListener('resize', scheduleOsmdResizeRender);
