@@ -12,6 +12,9 @@ const layoutClose = document.getElementById('layoutClose');
 const zoneKeyboard = document.getElementById('zoneKeyboard');
 const zonePanel = document.querySelector('.zone-panel');
 const flickHud = document.getElementById('flickHud');
+const flickCursorShorter = document.getElementById('flickCursorShorter');
+const flickCursorCurrent = document.getElementById('flickCursorCurrent');
+const flickCursorLonger = document.getElementById('flickCursorLonger');
 const rightHandBtn = document.getElementById('rightHandBtn');
 const leftHandBtn = document.getElementById('leftHandBtn');
 
@@ -21,9 +24,8 @@ const layoutControls = {
   blackWidth: document.getElementById('blackWidthSlider'),
   blackHeight: document.getElementById('blackHeightSlider'),
   flickEighth: document.getElementById('flickEighthSlider'),
-  flickSixteenth: document.getElementById('flickSixteenthSlider'),
   flickHalf: document.getElementById('flickHalfSlider'),
-  flickWhole: document.getElementById('flickWholeSlider'),
+  longPress: document.getElementById('longPressSlider'),
 };
 
 const layoutOutputs = {
@@ -32,9 +34,8 @@ const layoutOutputs = {
   blackWidth: document.getElementById('blackWidthOut'),
   blackHeight: document.getElementById('blackHeightOut'),
   flickEighth: document.getElementById('flickEighthOut'),
-  flickSixteenth: document.getElementById('flickSixteenthOut'),
   flickHalf: document.getElementById('flickHalfOut'),
-  flickWhole: document.getElementById('flickWholeOut'),
+  longPress: document.getElementById('longPressOut'),
 };
 
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
@@ -46,9 +47,8 @@ const defaultLayout = {
   blackHeight: 56,
   flick: {
     eighth: 26,
-    sixteenth: 72,
     half: 26,
-    whole: 72,
+    longPressMs: 550,
   },
 };
 
@@ -205,11 +205,22 @@ function startFlickGesture(ev) {
     keyEl,
     startX: ev.clientX,
     startY: ev.clientY,
-    durationName: state.currentDurationName,
+    durationName: 'quarter',
+    longPressLocked: false,
+    longPressTimer: null,
   };
 
   keyEl.classList.add('active');
-  showFlickHud(ev.clientX, ev.clientY, state.currentDurationName);
+  showFlickHud(ev.clientX, ev.clientY, 'quarter');
+
+  // Pitkä paikallaan pysyvä painallus lukitsee kokonuotin.
+  state.gesture.longPressTimer = window.setTimeout(() => {
+    const g = state.gesture;
+    if (!g || g.pointerId !== ev.pointerId) return;
+    g.longPressLocked = true;
+    g.durationName = 'whole';
+    updateFlickHud('whole');
+  }, layoutState.flick.longPressMs);
 
   // Soittotuntuma tulee heti painalluksesta. Nuotti kirjoitetaan vasta irrotettaessa.
   if (!state.restMode) playMidi(Number(keyEl.dataset.midi), 0.24);
@@ -218,10 +229,20 @@ function startFlickGesture(ev) {
 function moveFlickGesture(ev) {
   if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
   ev.preventDefault();
-  const deltaY = state.gesture.startY - ev.clientY; // plus = ylöspäin
+  const gesture = state.gesture;
+  const deltaX = ev.clientX - gesture.startX;
+  const deltaY = gesture.startY - ev.clientY; // plus = ylöspäin
+
+  // Luonnollinen pieni sormivapina sallitaan. Selvä liike peruu pitkän painalluksen.
+  if (!gesture.longPressLocked && (Math.abs(deltaY) > 12 || Math.abs(deltaX) > 18)) {
+    clearLongPressTimer(gesture);
+  }
+
+  if (gesture.longPressLocked) return;
+
   const next = durationFromFlickDelta(deltaY);
-  if (next !== state.gesture.durationName) {
-    state.gesture.durationName = next;
+  if (next !== gesture.durationName) {
+    gesture.durationName = next;
     updateFlickHud(next);
   }
 }
@@ -230,8 +251,11 @@ function endFlickGesture(ev) {
   if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
   ev.preventDefault();
   const gesture = state.gesture;
-  const deltaY = gesture.startY - ev.clientY;
-  gesture.durationName = durationFromFlickDelta(deltaY);
+  clearLongPressTimer(gesture);
+  if (!gesture.longPressLocked) {
+    const deltaY = gesture.startY - ev.clientY;
+    gesture.durationName = durationFromFlickDelta(deltaY);
+  }
   commitFlickGesture(gesture);
   finishFlickGesture();
 }
@@ -241,8 +265,15 @@ function cancelFlickGesture(ev) {
   finishFlickGesture();
 }
 
+function clearLongPressTimer(gesture) {
+  if (!gesture?.longPressTimer) return;
+  clearTimeout(gesture.longPressTimer);
+  gesture.longPressTimer = null;
+}
+
 function finishFlickGesture() {
   if (!state.gesture) return;
+  clearLongPressTimer(state.gesture);
   state.gesture.keyEl.classList.remove('active');
   try { keyboardSurface.releasePointerCapture?.(state.gesture.pointerId); } catch {}
   state.gesture = null;
@@ -260,21 +291,18 @@ function shiftDuration(baseName, steps) {
 
 function durationFromFlickDelta(deltaY) {
   const f = layoutState.flick;
-  const base = state.currentDurationName;
 
-  // Tap = sama aika-arvo kuin viimeksi.
-  // Ylös = lyhyemmäksi, alas = pidemmäksi.
-  if (deltaY >= f.sixteenth) return shiftDuration(base, 2);
-  if (deltaY >= f.eighth) return shiftDuration(base, 1);
-  if (deltaY <= -f.whole) return shiftDuration(base, -2);
-  if (deltaY <= -f.half) return shiftDuration(base, -1);
-  return base;
+  // Ylös = 1/2, tap = 1/4, alas = 1/8.
+  // Kokonuotti syntyy vain pitkällä paikallaan pidetyllä painalluksella.
+  if (deltaY >= f.half) return 'half';
+  if (deltaY <= -f.eighth) return 'eighth';
+  return 'quarter';
 }
 
 function showFlickHud(x, y, durationName) {
-  const hudW = 112;
-  const hudH = 204;
-  const gap = 34;
+  const hudW = 82;
+  const hudH = 154;
+  const gap = 28;
 
   // Oikealla kädellä HUD vasemmalle, vasemmalla kädellä HUD oikealle.
   // Jos halutulla puolella ei ole riittävästi tilaa, vaihdetaan vain tarvittaessa toiselle puolelle.
@@ -300,17 +328,39 @@ function showFlickHud(x, y, durationName) {
 }
 
 function updateFlickHud(durationName) {
-  flickHud.querySelectorAll('.flick-hud-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.duration === durationName);
-  });
+  if (durationName === 'whole') {
+    setFlickDurationOption(flickCursorShorter, null);
+    setFlickDurationOption(flickCursorCurrent, 'whole');
+    setFlickDurationOption(flickCursorLonger, null);
+    return;
+  }
+
+  setFlickDurationOption(flickCursorShorter, 'half');
+  setFlickDurationOption(flickCursorCurrent, durationName);
+  setFlickDurationOption(flickCursorLonger, 'eighth');
+}
+
+function setFlickDurationOption(element, durationName) {
+  const symbols = {
+    '16th': ['𝅘𝅥𝅯', '1/16'],
+    eighth: ['♪', '1/8'],
+    quarter: ['♩', '1/4'],
+    half: ['𝅗𝅥', '1/2'],
+    whole: ['𝅝', 'koko'],
+  };
+  const symbolEl = element.querySelector('.flick-duration-symbol');
+  const labelEl = element.querySelector('.flick-duration-label');
+  const available = Boolean(durationName && symbols[durationName]);
+  element.classList.toggle('unavailable', !available);
+  if (!available) return;
+  const [symbol, label] = symbols[durationName];
+  symbolEl.textContent = symbol;
+  labelEl.textContent = label;
 }
 
 function commitFlickGesture(gesture) {
   const base = durationByName[gesture.durationName];
   if (!base) return;
-
-  // Muistetaan onnistuneesti valittu aika-arvo seuraavaa kosketusta varten.
-  state.currentDurationName = gesture.durationName;
 
   const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
 
@@ -342,9 +392,8 @@ function loadLayoutState() {
       blackHeight: Number(saved.blackHeight) || defaultLayout.blackHeight,
       flick: {
         eighth: Number(saved.flick?.eighth) || defaultLayout.flick.eighth,
-        sixteenth: Number(saved.flick?.sixteenth) || defaultLayout.flick.sixteenth,
         half: Number(saved.flick?.half) || defaultLayout.flick.half,
-        whole: Number(saved.flick?.whole) || defaultLayout.flick.whole,
+        longPressMs: Number(saved.flick?.longPressMs) || defaultLayout.flick.longPressMs,
       },
     };
   } catch {
@@ -358,8 +407,7 @@ function saveLayoutState() {
 
 function normalizeFlickThresholds() {
   // Ulomman rajan täytyy aina olla sisempää suurempi.
-  layoutState.flick.sixteenth = Math.max(layoutState.flick.sixteenth, layoutState.flick.eighth + 8);
-  layoutState.flick.whole = Math.max(layoutState.flick.whole, layoutState.flick.half + 8);
+  layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
 }
 
 function applyLayoutState({ save = true } = {}) {
@@ -393,18 +441,16 @@ function syncLayoutControls() {
   layoutControls.blackWidth.value = String(layoutState.blackWidth);
   layoutControls.blackHeight.value = String(layoutState.blackHeight);
   layoutControls.flickEighth.value = String(layoutState.flick.eighth);
-  layoutControls.flickSixteenth.value = String(layoutState.flick.sixteenth);
   layoutControls.flickHalf.value = String(layoutState.flick.half);
-  layoutControls.flickWhole.value = String(layoutState.flick.whole);
+  layoutControls.longPress.value = String(layoutState.flick.longPressMs);
 
   layoutOutputs.whiteWidth.textContent = `${layoutState.whiteWidth} %`;
   layoutOutputs.keyboardHeight.textContent = `${layoutState.keyboardHeight} %`;
   layoutOutputs.blackWidth.textContent = `${layoutState.blackWidth} %`;
   layoutOutputs.blackHeight.textContent = `${layoutState.blackHeight} %`;
   layoutOutputs.flickEighth.textContent = `${layoutState.flick.eighth} px`;
-  layoutOutputs.flickSixteenth.textContent = `${layoutState.flick.sixteenth} px`;
   layoutOutputs.flickHalf.textContent = `${layoutState.flick.half} px`;
-  layoutOutputs.flickWhole.textContent = `${layoutState.flick.whole} px`;
+  layoutOutputs.longPress.textContent = `${layoutState.flick.longPressMs} ms`;
 }
 
 function bindLayoutControls() {
@@ -416,9 +462,8 @@ function bindLayoutControls() {
   layoutControls.blackWidth.addEventListener('input', e => { layoutState.blackWidth = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackHeight.addEventListener('input', e => { layoutState.blackHeight = Number(e.target.value); applyLayoutState(); });
   layoutControls.flickEighth.addEventListener('input', e => { layoutState.flick.eighth = Number(e.target.value); applyLayoutState(); });
-  layoutControls.flickSixteenth.addEventListener('input', e => { layoutState.flick.sixteenth = Number(e.target.value); applyLayoutState(); });
   layoutControls.flickHalf.addEventListener('input', e => { layoutState.flick.half = Number(e.target.value); applyLayoutState(); });
-  layoutControls.flickWhole.addEventListener('input', e => { layoutState.flick.whole = Number(e.target.value); applyLayoutState(); });
+  layoutControls.longPress.addEventListener('input', e => { layoutState.flick.longPressMs = Number(e.target.value); applyLayoutState(); });
 }
 
 function setLayoutPanelOpen(open) {
@@ -790,10 +835,9 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
     `Musta korkeus: ${layoutState.blackHeight}%`,
-    `Flick 1 askel lyhyemmäksi: +${layoutState.flick.eighth}px`,
-    `Flick 2 askelta lyhyemmäksi: +${layoutState.flick.sixteenth}px`,
-    `Flick 1 askel pidemmäksi: -${layoutState.flick.half}px`,
-    `Flick 2 askelta pidemmäksi: -${layoutState.flick.whole}px`
+    `Sweep alas → 1/8: ${layoutState.flick.eighth}px`,
+    `Sweep ylös → 1/2: ${layoutState.flick.half}px`,
+    `Pitkä painallus → koko: ${layoutState.flick.longPressMs}ms`
   ].join('\n');
   try {
     await navigator.clipboard.writeText(payload);

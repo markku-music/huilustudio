@@ -96,11 +96,18 @@
   </div>
 
   <div id="flickHud" class="flick-hud" aria-hidden="true">
-    <div class="flick-hud-item" data-duration="16th"><span class="symbol">𝅘𝅥𝅯</span><span>1/16</span></div>
-    <div class="flick-hud-item" data-duration="eighth"><span class="symbol">♪</span><span>1/8</span></div>
-    <div class="flick-hud-item" data-duration="quarter"><span class="symbol">♩</span><span>1/4</span></div>
-    <div class="flick-hud-item" data-duration="half"><span class="symbol">𝅗𝅥</span><span>1/2</span></div>
-    <div class="flick-hud-item" data-duration="whole"><span class="symbol">𝅝</span><span>koko</span></div>
+    <div id="flickCursorShorter" class="flick-duration-option flick-duration-neighbor" aria-hidden="true">
+      <span class="flick-duration-symbol">𝅗𝅥</span>
+      <span class="flick-duration-label">1/2</span>
+    </div>
+    <div id="flickCursorCurrent" class="flick-duration-option flick-duration-current">
+      <span class="flick-duration-symbol">♩</span>
+      <span class="flick-duration-label">1/4</span>
+    </div>
+    <div id="flickCursorLonger" class="flick-duration-option flick-duration-neighbor" aria-hidden="true">
+      <span class="flick-duration-symbol">♪</span>
+      <span class="flick-duration-label">1/8</span>
+    </div>
   </div>
 
   <aside id="layoutPanel" class="layout-panel" aria-hidden="true">
@@ -146,23 +153,19 @@
     </div>
 
     <div class="layout-section">
-      <h3>Flick-eleen rajat</h3>
-      <p class="layout-hint">Napautus käyttää muistissa olevaa aika-arvoa. Liike ylöspäin lyhentää ja alaspäin pidentää sitä.</p>
+      <h3>Eleasetukset</h3>
+      <p class="layout-hint">Tap = 1/4, ylös = 1/2, alas = 1/8. Pitkä paikallaan painaminen = koko.</p>
       <label class="slider-row">
-        <span>1 askel lyhyemmäksi <output id="flickEighthOut">26 px</output></span>
-        <input id="flickEighthSlider" type="range" min="10" max="70" step="1" value="26">
-      </label>
-      <label class="slider-row">
-        <span>2 askelta lyhyemmäksi <output id="flickSixteenthOut">72 px</output></span>
-        <input id="flickSixteenthSlider" type="range" min="35" max="150" step="1" value="72">
-      </label>
-      <label class="slider-row">
-        <span>1 askel pidemmäksi <output id="flickHalfOut">26 px</output></span>
+        <span>Ylös → 1/2 <output id="flickHalfOut">26 px</output></span>
         <input id="flickHalfSlider" type="range" min="10" max="70" step="1" value="26">
       </label>
       <label class="slider-row">
-        <span>2 askelta pidemmäksi <output id="flickWholeOut">72 px</output></span>
-        <input id="flickWholeSlider" type="range" min="35" max="150" step="1" value="72">
+        <span>Alas → 1/8 <output id="flickEighthOut">26 px</output></span>
+        <input id="flickEighthSlider" type="range" min="10" max="70" step="1" value="26">
+      </label>
+      <label class="slider-row">
+        <span>Pitkä painallus → koko <output id="longPressOut">550 ms</output></span>
+        <input id="longPressSlider" type="range" min="300" max="1200" step="25" value="550">
       </label>
     </div>
 
