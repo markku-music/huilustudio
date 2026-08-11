@@ -1,0 +1,192 @@
+SÄVELKOJU 3 TASOA 1.1 – OHJEVIDEO
+
+Uutta tässä versiossa:
+- Tasonvalinnassa oma “KATSO OHJE” -painike.
+- Infovideo avautuu koko pelin päälle.
+- Videon voi sulkea X-painikkeesta.
+- Videon loputtua palataan automaattisesti tasonvalintaan.
+- Mikrofonimoottori pysäytetään ohjevideon ajaksi.
+- Alkuperäinen MOV on muunnettu H.264/AAC MP4:ksi selainyhteensopivuuden parantamiseksi.
+
+Tasot:
+1. ENSISÄVELET – G A H
+2. TASAPAINOTEMPPU – C H A G
+3. SORMISIRKUS – D C H A G
+
+
+VERSIO 1.2
+- Mikrofonilupa pyydetään vain ensimmäisen pelikerran yhteydessä.
+- Tasonvaihdossa mikrofonistreamia ei suljeta, vaan se keskeytetään.
+- Ohjevideon aikana mikrofoni on mykistetty ja analyysi keskeytetty.
+- Uusi taso jatkaa samalla mikrofonistreamilla ilman uutta lupapyyntöä.
+
+
+VERSIO 1.3 – FIREBASE-TULOSTAULU
+- Tasonvalintaan lisätty TULOSTAULU.
+- Jokaisella kolmella pelillä on oma Top 10 -lista.
+- Pelin lopussa pelaaja voi kirjoittaa nimensä ja tallentaa ajan.
+- Nimi muistetaan samalla laitteella seuraavaa pelikertaa varten.
+- Firebase-projekti: nykyinen Savelkoju-projekti.
+- Pelaajatiliä tai kirjautumista ei tarvita.
+- Firestoreen tallennetaan vain nimi, taso, aika ja palvelimen aikaleima.
+- Mukana FIRESTORE_TULOSTAULU_SAANTO.txt, jonka sääntölohko pitää lisätä
+  nykyisiin Firestore-sääntöihin ennen kuin tallennus toimii.
+
+
+VERSIO 1.4
+- Pelaajan nimeä ei enää tallenneta selaimen localStorageen.
+- Tämä poistaa Storage quota -virheen.
+- Firebase-tulostaulu toimii kuten ennenkin.
+
+
+VERSIO 1.5 – OSUMAÄÄNI
+- Mukana käyttäjän Hit.wav.
+- Ääni käynnistyy täsmälleen hyväksytyn osuman hetkellä yhdessä osuma-animaation kanssa.
+- Ääni esiladataan, jotta osumaan ei tule tarkoituksellista viivettä.
+
+
+VERSIO 1.6 – EDISTYMISLAMPUT
+- Pelikuvaan lisätty 10 tivolilamppua.
+- Jokainen hyväksytty osuma sytyttää yhden lampun.
+- Juuri syttynyt lamppu tekee pienen pop-animaation.
+- Loppuvilkutusta ei ole vielä lisätty.
+
+
+VERSIO 1.7 – VIIMEINEN LAMPPU
+- 10. osuman jälkeen loppulätkä odottaa 0,9 s normaalia pidempään.
+- Viimeinen lamppu ehtii tehdä pop-animaation ja näkyä syttyneenä ennen tulosruutua.
+
+
+VERSIO 1.8 – RANDOM LAMPPUFINAALI
+- 10. osuman jälkeen lamput vilkkuvat satunnaisesti noin 1,5 sekuntia.
+- Vilkutus on tarkoituksella rauhallinen, ei strobomainen.
+- Lopuksi kaikki 10 lamppua syttyvät yhtä aikaa noin 0,65 sekunniksi.
+- Tulosruutu tulee vasta animaation jälkeen.
+
+
+VERSIO 1.9 – LAMPPU-OSUMAÄÄNI
+- Osumaääni vaihdettu käyttäjän Lamppu.wav-tiedostoon.
+- Muu 1.8-version toiminta ja random-lamppufinaali säilyvät ennallaan.
+
+
+VERSIO 2.0 – SIRKUSMUSA LAMPPUFINAALIIN
+- Käyttäjän Sirkusmusa.wav soi 10. osuman random-lamppuanimaation aikana.
+- 10. osuman normaali Lamppu.wav soi ensin.
+- Sirkusmusiikki käynnistyy, kun satunnainen tivolivilkutus alkaa.
+
+
+VERSIO 2.5 – AUTOMAATTINEN TULOSTALLENNUS
+- Tulos tallentuu Firebaseen automaattisesti kierroksen päätyttyä.
+- Tallenna tulos -nappi poistettu.
+- Loppulätkä näyttää tason Top 10 -listan.
+- Juuri pelattu tulos korostetaan listassa, jos se mahtuu Top 10:een.
+- Tasonvalinnan Top 3 päivittyy automaattisesti.
+
+
+VERSIO 2.7 – EI TULOKSIA ALKURUUDUSSA
+- Alkunäkymässä ei näytetä tuloksia.
+- Alussa näkyvät vain Nimi, kolme tasoa, Katso ohje ja Tulostaulu.
+- Loppulätkä näyttää juuri pelatun tason Top 10:n.
+- Juuri pelattu tulos korostetaan listassa.
+- Valitse toinen peli palauttaa samaan tasonvalintaan ja session nimi säilyy.
+
+
+VERSIO 2.8 – LOPPULÄTKÄ FINAALIN AIKANA
+- Korostetun oman tuloksen tähti poistettu.
+- 10. osuman jälkeen sirkusmusiikki, random-valoshow ja loppulätkän feidaus alkavat samaan aikaan.
+- Tulostaulu latautuu ja tulos tallentuu samalla kun finaalishow jatkuu taustalla.
+
+
+VERSIO 2.9 – JATKUVA FINAALIVILKUTUS
+- Random-lamput eivät enää lopeta vilkkumista 1,5 sekunnin jälkeen.
+- Vilkutus jatkuu loppulätkän taustalla niin kauan, kunnes pelaaja painaa
+  Pelaa uudestaan tai Valitse toinen peli.
+- Napin painaminen pysäyttää finaalivilkutuksen ja palauttaa lamput normaalitilaan.
+
+
+VERSIO 3.0 – VAIHDA PELAAJAA
+- Loppulätkään lisätty “Vaihda pelaajaa”.
+- Nappi pysäyttää finaalivilkutuksen.
+- Session pelaajan nimi tyhjennetään.
+- Palataan alkuruutuun ja Nimi-kenttä aktivoituu uudelle pelaajalle.
+- “Valitse toinen peli” säilyttää edelleen saman pelaajan nimen.
+
+
+VERSIO 3.2 – LUKUKAUSI + IPAD SAFARI
+- Tulostaulu vaihtuu automaattisesti lukukausittain:
+  Kevät = 1.1.–31.7.
+  Syksy = 1.8.–31.12.
+- Vanhoja Firebase-tuloksia EI poisteta. Peli näyttää vain nykyisen lukukauden tulokset.
+- Nykyinen lukukausi näkyy tulostaulussa ja loppulätkän Top 10:n yhteydessä.
+- Firestore-sääntöihin ei tarvita muutosta, koska nykyistä createdAt-kenttää käytetään rajaukseen.
+- iPad/Safarin nappien tekstiväri pakotetaan pelin omaksi väriksi.
+- Lamppu.wav ja Sirkusmusa.wav avataan ensimmäisen käyttäjän napinpainalluksen yhteydessä,
+  jotta iOS/iPadOS Safari sallii myöhemmän äänentoiston.
+
+
+VERSIO 3.3 – WEB AUDIO + IOS NAPIT
+- Lamppu.wav ja Sirkusmusa.wav eivät enää käytä new Audio() -elementtejä.
+- Lisätty audio-manager.js, joka lataa WAVit AudioBuffereiksi ja soittaa ne Web Audio API:lla.
+- AudioContext avataan suoraan tason valinnan käyttäjäeleessä ennen pelin alkua.
+- Ratkaisu toimii iOS/iPadOS Safarissa, Android Chromessa ja desktop-selaimissa.
+- Finaalimusiikki pysäytetään, kun pelaaja jatkaa tai vaihtaa tasoa/pelaajaa.
+- iOS Safarin nappitekstin sininen järjestelmäväri estetään myös napin sisäisiltä
+  span/b/strong-elementeiltä !important-säännöillä.
+
+
+VERSIO 3.4 – HYBRIDI AUDIO
+- Web Audio säilyy ensisijaisena iOS/iPadOS Safarissa ja web-palvelimella.
+- Jos peli avataan Macilla paikallisena file://-tiedostona, käytetään automaattisesti
+  HTMLAudio-fallbackia, koska Chrome/Safari voivat estää fetch()-latauksen file://-osoitteesta.
+- Jos Web Audio -WAV-lataus epäonnistuu muusta syystä, fallback kytkeytyy myös automaattisesti.
+- Sama versio toimii siis sekä GitHub Pagesissa että paikallisesti avattuna.
+
+
+VERSIO 3.5 – NIMEN VALMIS + JPG-TAUSTAT
+- Nimikentän oikealla puolella on Valmis-nappi.
+- iPadissa nimikentän fokus piilottaa tasovalinnat näppäimistön ajaksi.
+- Valmis tai näppäimistön Enter/Done sulkee näppäimistön ja näyttää tasot.
+- Pelitasojen taustakuvat vaihdettu käyttäjän uusiin JPG-versioihin:
+  taso 1 = D ja C huputettu
+  taso 2 = D huputettu
+  taso 3 = kaikki taulut näkyvissä
+
+
+VERSIO 3.5.2 – LOPPULÄTKÄ POIS TASONVAIHDOSSA
+- “Valitse toinen peli” poistaa nyt myös finale-fade-luokan.
+- Loppulätkä häviää varmasti ennen tasonvalintanäkymää.
+
+
+VERSIO 3.5.3 – VIDEO RESPONSIVE + FINAALI LOPPUUN
+- Ohjevideo skaalautuu aina selainikkunaan kuvasuhteensa säilyttäen.
+- iPad/iPhone safe area huomioidaan.
+- Finaalimusiikki soi kokonaan loppuun ennen tulosruutua.
+- Random-valoshow jatkuu koko finaalimusiikin ajan.
+- Musiikin loputtua kaikki lamput jäävät vielä noin 0,42 s päälle.
+- Vasta tämän jälkeen tulokset näytetään.
+
+
+VERSIO 3.5.4 – ADMIN-TULOSTEN NOLLAUS
+- Alkunäkymään lisätty ADMIN.
+- Admin kirjautuu Firebase Authenticationin sähköposti/salasana-tunnuksella.
+- Oikeus tarkistetaan Firestoren admins/{uid}-dokumentista.
+- Nykyisen lukukauden tulokset voi nollata taso kerrallaan tai kaikilta kolmelta.
+- Vanhojen lukukausien arkistoa ei poisteta.
+- Mukana valmis firestore.rules ja ohje admin-käyttäjän määrittämiseen.
+
+
+VERSIO 3.5.5 – ADMIN-RATAS + SALASANAN VAIHTO
+- ADMIN-tekstinappi poistettu tasonvalinnasta.
+- Admin avataan pienestä rataskuvakkeesta oikeassa alakulmassa.
+- Kirjautunut admin voi vaihtaa oman Firebase Auth -salasanansa admin-näkymässä.
+- Uusi salasana kysytään kahteen kertaan.
+- Firebase vaatii salasanalle vähintään 6 merkkiä.
+- Jos kirjautuminen on liian vanha, peli pyytää kirjautumaan ulos ja takaisin sisään ennen vaihtoa.
+
+
+VERSIO 3.5.6 – IPAD NÄPPÄIMISTÖN VIEWPORT-KORJAUS
+- Valmis-nappi sulkee nimikentän näppäimistön kuten ennen.
+- Näppäimistön sulkeuduttua scroll palautetaan ylös (0,0).
+- fitStage() ajetaan uudelleen heti ja vielä 220 ms kuluttua.
+- visualViewport.resize toimii varmistuksena iPad Safarissa:
+  kun näppäimistö sulkeutuu ja viewport kasvaa, näkymä palautetaan ja skaalataan uudelleen.

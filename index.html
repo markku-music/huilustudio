@@ -1,202 +1,50 @@
 <!DOCTYPE html>
 <html lang="fi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Melody Writer Zone</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Huilupelit</title>
+<style>
+:root{--ink:#26364a;--shadow:0 16px 35px rgba(57,66,88,.16)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:ui-rounded,"SF Pro Rounded","Trebuchet MS",system-ui,sans-serif;color:var(--ink);background:linear-gradient(145deg,#fff5cb,#f6d894 48%,#f0bd79)}
+body{min-height:100vh;padding:28px 22px}
+.page{width:min(1220px,100%);margin:auto}
+header{text-align:center;margin:4px 0 26px}
+h1{margin:0;font-size:clamp(42px,7vw,78px);line-height:.95;color:#203a63;text-shadow:0 4px 0 #fff}
+.lead{margin:13px 0 0;font-size:clamp(18px,2.3vw,28px);font-weight:800;color:#53647b}
+.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.game-card{position:relative;overflow:hidden;border-radius:28px;background:rgba(255,253,247,.96);box-shadow:var(--shadow);border:4px solid rgba(255,255,255,.9)}
+.game-card.active{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);min-height:390px;text-decoration:none;color:inherit;transition:.18s}
+.game-card.active:hover{transform:translateY(-4px);box-shadow:0 22px 42px rgba(57,66,88,.22)}
+.thumb img{width:100%;height:100%;min-height:390px;object-fit:cover;display:block}
+.game-info{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:34px 30px;background:linear-gradient(160deg,#fffdf6,#fff1c5)}
+.game-info h2{margin:0;font-size:clamp(30px,4vw,52px);line-height:1;color:#1d5594}
+.game-info p{margin:14px 0 22px;font-size:clamp(18px,2vw,24px);font-weight:800;color:#55677c}
+.play{display:inline-flex;align-items:center;justify-content:center;min-width:150px;min-height:58px;padding:14px 24px;border-radius:999px;background:#31a85b;color:#fff;font-size:22px;font-weight:950;box-shadow:0 8px 0 #217a40}
+.placeholder{min-height:235px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.placeholder:nth-child(2){background:#bde8fa}.placeholder:nth-child(3){background:#ffd0df}.placeholder:nth-child(4){background:#d8efb8}.placeholder:nth-child(5){background:#e6d4ff}
+.icon{font-size:58px;line-height:1}.placeholder h3{margin:14px 0 8px;font-size:27px}
+.soon{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.78);font-size:15px;font-weight:950;color:#6a7180}
+footer{text-align:center;margin-top:24px;font-size:14px;font-weight:800;color:rgba(38,54,74,.62)}
+@media(max-width:900px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}.game-card.active{grid-column:1/-1;grid-template-columns:1fr}.thumb img{min-height:300px}.game-info{align-items:center;text-align:center;padding:26px}}
+@media(max-width:560px){body{padding:18px 14px}.games{grid-template-columns:1fr;gap:16px}.game-card.active{grid-column:auto}.placeholder{min-height:190px}.thumb img{min-height:245px}.game-info{padding:22px}}
+</style>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="panel left-panel">
-      <div class="app-badge">🎼 Nuotti</div>
-      <h2>Kappaleen tiedot</h2>
-
-      <label>
-        <span>Nimi</span>
-        <input id="titleInput" type="text" value="Uusi kappale" />
-      </label>
-
-      <label>
-        <span>Säveltäjä</span>
-        <input id="composerInput" type="text" value="Markku" />
-      </label>
-
-      <label>
-        <span>Tempo-merkintä</span>
-        <input id="tempoTextInput" type="text" value="Andante" />
-      </label>
-
-      <label>
-        <span>Tempo (♩ =)</span>
-        <div class="stepper-row">
-          <button id="tempoDown" class="stepper-btn" type="button">−</button>
-          <input id="bpmInput" class="centered" type="number" min="30" max="240" value="100" />
-          <button id="tempoUp" class="stepper-btn" type="button">+</button>
-        </div>
-      </label>
-
-      <label>
-        <span>Tahtilaji</span>
-        <div class="inline-selects">
-          <select id="beatsSelect">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4" selected>4</option>
-            <option value="6">6</option>
-          </select>
-          <span class="slash">/</span>
-          <select id="beatTypeSelect">
-            <option value="4" selected>4</option>
-            <option value="8">8</option>
-          </select>
-        </div>
-      </label>
-
-      <label>
-        <span>Sävellaji</span>
-        <div class="inline-selects">
-          <select id="keySelect"></select>
-          <select id="modeSelect">
-            <option value="major" selected>duuri</option>
-            <option value="minor">molli</option>
-          </select>
-        </div>
-      </label>
-
-      <div class="left-actions">
-        <button id="undoBtn" type="button">Kumoa</button>
-        <button id="clearBtn" type="button">Tyhjennä</button>
-      </div>
-
-      <div class="small-note">
-        <strong>Zone-tila:</strong><br>
-        X = sävelkorkeus<br>
-        Y = aika-arvo<br>
-        Piste ja tauko toimivat erikseen.
-      </div>
-    </aside>
-
-    <main class="main-column">
-      <section class="panel paper-panel">
-        <div class="paper-toolbar">
-          <div class="toolbar-chip status-chip"><span id="statusText">Valmis</span></div>
-          <div class="toolbar-chip note-chip">Syöttö: <strong>Zone-koskettimisto</strong></div>
-          <button id="layoutToggle" class="toolbar-button" type="button">⚙ ASETTELU</button>
-        </div>
-        <div id="osmdContainer"></div>
-      </section>
-
-      <section class="panel controls-panel">
-        <button id="dotToggle" class="mode-btn" type="button">• piste: pois</button>
-        <button id="restToggle" class="mode-btn" type="button">𝄽 tauko: pois</button>
-        <button id="playScaleBtn" class="mode-btn secondary" type="button">Testiääni</button>
-      </section>
-
-      <section class="panel zone-panel">
-        <div class="zone-legend">
-          <h3>ZONE-KOSKETTIMISTO</h3>
-          <div class="legend-row"><span class="swatch whole"></span><span>koko</span></div>
-          <div class="legend-row"><span class="swatch half"></span><span>1/2</span></div>
-          <div class="legend-row"><span class="swatch quarter"></span><span>1/4</span></div>
-          <div class="legend-row"><span class="swatch eighth"></span><span>1/8</span></div>
-          <div class="legend-row"><span class="swatch sixteenth"></span><span>1/16</span></div>
-          <div class="zone-help">
-            Napauta kosketinta halutulta zonelta.<br>
-            Zone-alue päättyy mustien koskettimien alareunaan.<br>
-            Nuotti lisätään heti.<br><br>
-            <strong>Piste</strong> tekee pisteellisen nuotin tai tauon.<br>
-            <strong>Tauko</strong> lisää valitun aika-arvon tauon.
-          </div>
-        </div>
-
-        <div id="zoneKeyboard" class="zone-keyboard" aria-label="Zone-koskettimisto">
-          <div class="zone-bands">
-            <div class="band band-whole">koko</div>
-            <div class="band band-half">1/2</div>
-            <div class="band band-quarter">1/4</div>
-            <div class="band band-eighth">1/8</div>
-            <div class="band band-sixteenth">1/16</div>
-          </div>
-          <div id="keyboardSurface" class="keyboard-surface"></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-
-  <aside id="layoutPanel" class="layout-panel" aria-hidden="true">
-    <div class="layout-panel-head">
-      <div>
-        <div class="layout-kicker">KEHITTÄJÄTYÖKALUT</div>
-        <h2>Koskettimisto & zonet</h2>
-      </div>
-      <button id="layoutClose" class="icon-button" type="button" aria-label="Sulje">×</button>
-    </div>
-
-    <div class="layout-section">
-      <h3>Valkoiset koskettimet</h3>
-      <label class="slider-row">
-        <span>Leveys <output id="whiteWidthOut">100 %</output></span>
-        <input id="whiteWidthSlider" type="range" min="75" max="135" step="1" value="100">
-      </label>
-      <label class="slider-row">
-        <span>Koskettimiston korkeus <output id="keyboardHeightOut">100 %</output></span>
-        <input id="keyboardHeightSlider" type="range" min="70" max="125" step="1" value="100">
-      </label>
-    </div>
-
-    <div class="layout-section">
-      <h3>Mustat koskettimet</h3>
-      <label class="slider-row">
-        <span>Leveys <output id="blackWidthOut">66 %</output></span>
-        <input id="blackWidthSlider" type="range" min="35" max="95" step="1" value="66">
-      </label>
-      <label class="slider-row">
-        <span>Korkeus <output id="blackHeightOut">56 %</output></span>
-        <input id="blackHeightSlider" type="range" min="30" max="85" step="1" value="56">
-      </label>
-    </div>
-
-    <div class="layout-section">
-      <h3>Zonejen korkeudet</h3>
-      <p class="layout-hint">Arvot ovat suhteellisia. Prosenttiosuus lasketaan automaattisesti.</p>
-      <label class="slider-row zone-slider-row">
-        <span>Koko <output id="zoneWholeOut">20 %</output></span>
-        <input id="zoneWholeSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/2 <output id="zoneHalfOut">20 %</output></span>
-        <input id="zoneHalfSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/4 <output id="zoneQuarterOut">20 %</output></span>
-        <input id="zoneQuarterSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/8 <output id="zoneEighthOut">20 %</output></span>
-        <input id="zoneEighthSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/16 <output id="zoneSixteenthOut">20 %</output></span>
-        <input id="zoneSixteenthSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-    </div>
-
-    <div class="layout-actions">
-      <button id="layoutReset" type="button">Palauta oletukset</button>
-      <button id="layoutCopy" type="button">Kopioi arvot</button>
-    </div>
-  </aside>
-
-  <template id="whiteKeyTemplate">
-    <div class="white-key key"><span class="key-label"></span></div>
-  </template>
-  <template id="blackKeyTemplate">
-    <div class="black-key key"></div>
-  </template>
-
-  <script src="app.js"></script>
+<main class="page">
+<header><h1>Huilupelit</h1><p class="lead">Valitse peli ja aloita!</p></header>
+<section class="games" aria-label="Pelit">
+<a class="game-card active" href="./HAG/" aria-label="Avaa HAG-korttipeli">
+<div class="thumb"><img src="./assets/hag-thumbnail.png" alt="HAG-korttipeli"></div>
+<div class="game-info"><h2>HAG-korttipeli</h2><p>Soita H, A tai G</p><span class="play">Pelaa</span></div>
+</a>
+<article class="game-card placeholder"><div class="icon">🥁</div><h3>Rytmipeli</h3><span class="soon">Tulossa pian</span></article>
+<article class="game-card placeholder"><div class="icon">🖐️</div><h3>Sormituspeli</h3><span class="soon">Tulossa pian</span></article>
+<article class="game-card placeholder"><div class="icon">👂</div><h3>Kuuntelupeli</h3><span class="soon">Tulossa pian</span></article>
+<article class="game-card placeholder"><div class="icon">🎵</div><h3>Säveljahti</h3><span class="soon">Tulossa pian</span></article>
+</section>
+<footer>Uusia pelejä lisätään myöhemmin.</footer>
+</main>
 </body>
 </html>

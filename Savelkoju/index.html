@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#82c8e8">
+<title>Sävelkoju</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game">
+  <div id="stage">
+    <div id="progressLamps" class="progress-lamps" aria-label="Edistyminen">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div id="reticle"><i></i></div>
+    <div id="flash"></div>
+    <div id="hitText">PLING!</div>
+  </div>
+
+  <div id="hud" class="panel hidden">
+    <div><small>OSUMAT</small><strong><span id="score">0</span>/10</strong></div>
+    <div>
+      <small id="levelNameHud">ENSISÄVELET</small>
+      <span id="heard">MIKROFONI EI OLE PÄÄLLÄ</span>
+    </div>
+    <div><small>SOITA</small><strong id="targetNote">A</strong></div>
+  </div>
+
+  <div id="message" class="panel"></div>
+
+  <div id="levelOverlay" class="overlay">
+    <div class="level-card panel">
+      <h1>Sävelkoju</h1>
+      <div class="session-name-box direct-name">
+        <input id="sessionName" maxlength="20" autocomplete="off" enterkeyhint="done" placeholder="Nimi" aria-label="Nimi">
+        <button id="nameDoneBtn" class="name-done-btn" type="button">Valmis</button>
+      </div>
+      <div id="levelChooser">
+        <p class="lead">Valitse peli</p>
+      <div class="levels">
+        <button class="level-btn" data-level="1"><b>ENSISÄVELET</b><span>G · A · H</span></button>
+        <button class="level-btn" data-level="2"><b>TASAPAINOTEMPPU</b><span>C · H · A · G</span></button>
+        <button class="level-btn" data-level="3"><b>SORMISIRKUS</b><span>D · C · H · A · G</span></button>
+      </div>
+      <div class="menu-actions">
+  <button id="helpBtn" class="help-btn" type="button">▶ KATSO OHJE</button>
+  <button id="scoreboardBtn" class="help-btn scoreboard-btn" type="button">🏆 TULOSTAULU</button>
+</div>
+    
+      </div>
+</div>
+  </div>
+
+  <div id="videoOverlay" class="video-overlay hidden" aria-hidden="true">
+    <div class="video-wrap">
+      <video id="helpVideo" playsinline preload="metadata">
+        <source src="Infovideo.mp4" type="video/mp4">
+      </video>
+      <button id="closeVideoBtn" class="video-close" type="button" aria-label="Sulje ohje">✕</button>
+    </div>
+  </div>
+
+  <div id="finishOverlay" class="overlay hidden">
+    <div class="card panel finish-card">
+      <h1>Hienoa!</h1>
+      <p id="finishLevel"></p>
+      <strong id="timeResult" class="time"></strong>
+
+      <div class="save-score">
+        <p id="saveStatus" class="score-status" aria-live="polite"></p>
+      </div>
+
+      <div class="finish-board">
+        <h2>Parhaat ajat <span id="finishSemester" class="semester-label"></span></h2>
+        <ol id="finishScores" class="score-list"></ol>
+      </div>
+
+      <button id="againBtn">Pelaa uudestaan</button>
+      <button id="levelsBtn" class="secondary">Valitse toinen peli</button>
+      <button id="changePlayerBtn" class="secondary change-player">Vaihda pelaajaa</button>
+    </div>
+  </div>
+
+  <div id="scoreboardOverlay" class="overlay hidden">
+    <div class="scoreboard-panel panel">
+      <button id="closeScoreboardBtn" class="board-close" type="button" aria-label="Sulje tulostaulu">✕</button>
+      <h1>Tulostaulu</h1>
+      <p id="scoreboardSemester" class="semester-heading"></p>
+      <div class="score-tabs" role="tablist" aria-label="Pelitaso">
+        <button class="score-tab active" data-score-level="1" type="button">ENSISÄVELET</button>
+        <button class="score-tab" data-score-level="2" type="button">TASAPAINOTEMPPU</button>
+        <button class="score-tab" data-score-level="3" type="button">SORMISIRKUS</button>
+      </div>
+      <ol id="scoreboardScores" class="score-list big"></ol>
+      <p id="scoreboardStatus" class="score-status" aria-live="polite"></p>
+    </div>
+  </div>
+  <button id="adminBtn" class="admin-gear" type="button" aria-label="Admin" title="Admin">⚙</button>
+
+  <div id="adminOverlay" class="overlay hidden">
+    <div class="admin-panel panel">
+      <button id="closeAdminBtn" class="board-close" type="button" aria-label="Sulje admin">✕</button>
+      <h1>Admin</h1>
+
+      <div id="adminLogin">
+        <input id="adminEmail" type="email" autocomplete="username" placeholder="Sähköposti" aria-label="Admin sähköposti">
+        <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Salasana" aria-label="Admin salasana">
+        <button id="adminLoginBtn" type="button">Kirjaudu</button>
+      </div>
+
+      <div id="adminControls" class="hidden">
+        <p id="adminIdentity" class="admin-identity"></p>
+        <p class="admin-note">Nollaa nykyisen lukukauden tulokset</p>
+
+        <div class="admin-reset-grid">
+          <button class="admin-reset-btn" data-reset-level="1" type="button">ENSISÄVELET</button>
+          <button class="admin-reset-btn" data-reset-level="2" type="button">TASAPAINOTEMPPU</button>
+          <button class="admin-reset-btn" data-reset-level="3" type="button">SORMISIRKUS</button>
+          <button id="resetAllScoresBtn" class="admin-reset-btn danger" type="button">KAIKKI 3 TASOA</button>
+        </div>
+
+        <div class="admin-password-box">
+          <p class="admin-note">Vaihda salasana</p>
+          <input id="adminNewPassword" type="password" autocomplete="new-password" placeholder="Uusi salasana" aria-label="Uusi salasana">
+          <input id="adminNewPassword2" type="password" autocomplete="new-password" placeholder="Uusi salasana uudelleen" aria-label="Uusi salasana uudelleen">
+          <button id="adminChangePasswordBtn" type="button">Vaihda salasana</button>
+        </div>
+
+        <button id="adminLogoutBtn" class="secondary" type="button">Kirjaudu ulos</button>
+      </div>
+
+      <p id="adminStatus" class="score-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="microphone-engine.js"></script>
+<script src="scoreboard.js"></script>
+<script src="audio-manager.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
