@@ -213,50 +213,9 @@ input, select {
 }
 
 .zone-panel {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 16px;
+  display: block;
   padding: 16px;
   min-height: 0;
-}
-
-.zone-legend {
-  border-radius: 20px;
-  border: 1px solid #e1e8f2;
-  background: #fbfdff;
-  padding: 18px;
-}
-
-.zone-legend h3 {
-  margin: 0 0 14px;
-  font-size: 19px;
-}
-
-.legend-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(0,0,0,0.08);
-}
-.swatch.whole { background: rgba(167, 114, 255, 0.5); }
-.swatch.half { background: rgba(83, 142, 255, 0.45); }
-.swatch.quarter { background: rgba(67, 198, 137, 0.42); }
-.swatch.eighth { background: rgba(255, 192, 87, 0.46); }
-.swatch.sixteenth { background: rgba(255, 122, 133, 0.46); }
-
-.zone-help {
-  margin-top: 18px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--muted);
 }
 
 .zone-keyboard {

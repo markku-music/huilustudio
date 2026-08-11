@@ -62,11 +62,11 @@ document.getElementById('tempoUp').addEventListener('click', () => adjustTempo(1
 
 const divisions = 8;
 const durationDefs = [
-  { zone: 0, name: 'whole', label: 'koko', units: 32, type: 'whole', dots: 0 },
-  { zone: 1, name: 'half', label: '1/2', units: 16, type: 'half', dots: 0 },
+  { zone: 0, name: '16th', label: '1/16', units: 2, type: '16th', dots: 0 },
+  { zone: 1, name: 'eighth', label: '1/8', units: 4, type: 'eighth', dots: 0 },
   { zone: 2, name: 'quarter', label: '1/4', units: 8, type: 'quarter', dots: 0 },
-  { zone: 3, name: 'eighth', label: '1/8', units: 4, type: 'eighth', dots: 0 },
-  { zone: 4, name: '16th', label: '1/16', units: 2, type: '16th', dots: 0 },
+  { zone: 3, name: 'half', label: '1/2', units: 16, type: 'half', dots: 0 },
+  { zone: 4, name: 'whole', label: 'koko', units: 32, type: 'whole', dots: 0 },
 ];
 const durationMapByUnits = new Map([
   [32, { type: 'whole', dots: 0 }],
@@ -215,14 +215,23 @@ function saveLayoutState() {
   localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layoutState));
 }
 
-function zonePercentages() {
+function zonePercentagesByDuration() {
+  // Tallennusjärjestys pysyy yhteensopivuuden vuoksi:
+  // [koko, 1/2, 1/4, 1/8, 1/16]
   const total = layoutState.zones.reduce((sum, value) => sum + value, 0) || 100;
   return layoutState.zones.map(value => (value / total) * 100);
 }
 
+function zonePercentagesTopDown() {
+  // Koskettimistossa aika-arvot ovat nyt päinvastoin:
+  // ylhäältä alas 1/16, 1/8, 1/4, 1/2, koko.
+  const p = zonePercentagesByDuration();
+  return [p[4], p[3], p[2], p[1], p[0]];
+}
+
 function getZoneIndexFromY(y, totalHeight) {
   const pct = (y / totalHeight) * 100;
-  const parts = zonePercentages();
+  const parts = zonePercentagesTopDown();
   let cursor = 0;
   for (let i = 0; i < parts.length; i++) {
     cursor += parts[i];
@@ -237,7 +246,7 @@ function applyLayoutState({ save = true } = {}) {
   zonePanel.style.setProperty('--black-width-ratio', String(layoutState.blackWidth / 100));
   zonePanel.style.setProperty('--black-height-ratio', `${layoutState.blackHeight}%`);
 
-  const parts = zonePercentages();
+  const parts = zonePercentagesTopDown();
   zoneBands.style.gridTemplateRows = parts.map(v => `${v}%`).join(' ');
 
   const totalWhite = whiteKeys.length;
@@ -268,7 +277,7 @@ function syncLayoutControls() {
   layoutOutputs.keyboardHeight.textContent = `${layoutState.keyboardHeight} %`;
   layoutOutputs.blackWidth.textContent = `${layoutState.blackWidth} %`;
   layoutOutputs.blackHeight.textContent = `${layoutState.blackHeight} %`;
-  const p = zonePercentages();
+  const p = zonePercentagesByDuration();
   layoutOutputs.zoneWhole.textContent = `${p[0].toFixed(1)} %`;
   layoutOutputs.zoneHalf.textContent = `${p[1].toFixed(1)} %`;
   layoutOutputs.zoneQuarter.textContent = `${p[2].toFixed(1)} %`;
@@ -635,7 +644,7 @@ document.getElementById('layoutReset').addEventListener('click', () => {
 });
 
 document.getElementById('layoutCopy').addEventListener('click', async () => {
-  const parts = zonePercentages();
+  const parts = zonePercentagesByDuration();
   const payload = [
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
