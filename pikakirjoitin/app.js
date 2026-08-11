@@ -210,6 +210,7 @@ function startFlickGesture(ev) {
     startY: ev.clientY,
     durationName: 'quarter',
     dottedByRightSweep: false,
+    axisLock: null,
     longPressLocked: false,
     longPressTimer: null,
   };
@@ -250,11 +251,31 @@ function moveFlickGesture(ev) {
 
   if (gesture.longPressLocked) return;
 
-  const next = durationFromFlickDelta(deltaY);
-  gesture.dottedByRightSweep =
-    next === 'quarter' &&
-    deltaX >= 48 &&
-    Math.abs(deltaY) <= 14;
+  // Axis Lock: ele on ensin vapaa. Kun liike ylittää kynnyksen,
+  // lukitaan joko pystyakseliin tai vaaka-akseliin koko eleen loppuun.
+  const axisLockThreshold = 7;
+  if (!gesture.axisLock) {
+    const ax = Math.abs(deltaX);
+    const ay = Math.abs(deltaY);
+    if (ax >= axisLockThreshold || ay >= axisLockThreshold) {
+      gesture.axisLock = ax > ay ? 'horizontal' : 'vertical';
+    }
+  }
+
+  let next = 'quarter';
+  gesture.dottedByRightSweep = false;
+
+  if (gesture.axisLock === 'vertical') {
+    // Alkuperäinen ylös/alas-logiikka sellaisenaan.
+    next = durationFromFlickDelta(deltaY);
+  } else if (gesture.axisLock === 'horizontal') {
+    // Vaakasuunnassa vain oikealle-sweep tekee pisteellisen 1/4:n.
+    next = 'quarter';
+    gesture.dottedByRightSweep = deltaX >= 26;
+  } else {
+    // Ennen lukitusta tavallinen kosketus pysyy 1/4:na.
+    next = 'quarter';
+  }
 
   if (next !== gesture.durationName) {
     gesture.durationName = next;
@@ -270,11 +291,26 @@ function endFlickGesture(ev) {
   if (!gesture.longPressLocked) {
     const deltaX = ev.clientX - gesture.startX;
     const deltaY = gesture.startY - ev.clientY;
-    gesture.durationName = durationFromFlickDelta(deltaY);
-    gesture.dottedByRightSweep =
-      gesture.durationName === 'quarter' &&
-      deltaX >= 48 &&
-      Math.abs(deltaY) <= 14;
+
+    // Jos ele ehti päättyä juuri ennen move-tapahtumaa, lukitaan akseli vielä tässä.
+    if (!gesture.axisLock) {
+      const ax = Math.abs(deltaX);
+      const ay = Math.abs(deltaY);
+      if (ax >= 7 || ay >= 7) {
+        gesture.axisLock = ax > ay ? 'horizontal' : 'vertical';
+      }
+    }
+
+    if (gesture.axisLock === 'vertical') {
+      gesture.durationName = durationFromFlickDelta(deltaY);
+      gesture.dottedByRightSweep = false;
+    } else if (gesture.axisLock === 'horizontal') {
+      gesture.durationName = 'quarter';
+      gesture.dottedByRightSweep = deltaX >= 26;
+    } else {
+      gesture.durationName = 'quarter';
+      gesture.dottedByRightSweep = false;
+    }
   }
   commitFlickGesture(gesture);
   finishFlickGesture();
