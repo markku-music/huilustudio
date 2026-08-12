@@ -1,4 +1,5 @@
 const osmdContainer = document.getElementById('osmdContainer');
+const appShell = document.getElementById('appShell');
 const keyboardSurface = document.getElementById('keyboardSurface');
 const dotToggle = document.getElementById('dotToggle');
 const restToggle = document.getElementById('restToggle');
@@ -191,21 +192,43 @@ function initKeyboard() {
 
 function startFlickGesture(ev) {
   ev.preventDefault();
-  if (state.gesture) return;
 
   const target = document.elementFromPoint(ev.clientX, ev.clientY);
   const keyEl = target && target.closest('.key');
   if (!keyEl || !keyboardSurface.contains(keyEl)) return;
+
+  // Toinen sormi muuttaa keskeneräisen yhden sormen eleen Undo-eleeksi.
+  // Sormien ei tarvitse osua samalle koskettimelle.
+  if (state.gesture) {
+    const gesture = state.gesture;
+    if (ev.pointerType === 'touch' && gesture.pointerType === 'touch' && !gesture.twoFingerUndo) {
+      keyboardSurface.setPointerCapture?.(ev.pointerId);
+      clearLongPressTimer(gesture);
+      gesture.keyEl.classList.remove('active');
+      gesture.twoFingerUndo = {
+        pointerIds: new Set([gesture.pointerId, ev.pointerId]),
+        starts: new Map([
+          [gesture.pointerId, { x: gesture.startX, y: gesture.startY }],
+          [ev.pointerId, { x: ev.clientX, y: ev.clientY }],
+        ]),
+        moved: false,
+      };
+      hideFlickHud();
+    }
+    return;
+  }
 
   ensureAudio();
   keyboardSurface.setPointerCapture?.(ev.pointerId);
 
   state.gesture = {
     pointerId: ev.pointerId,
+    pointerType: ev.pointerType,
     keyEl,
     startX: ev.clientX,
     startY: ev.clientY,
     durationName: 'quarter',
+    dottedByRightSweep: false,
     longPressLocked: false,
     longPressTimer: null,
   };
@@ -227,7 +250,17 @@ function startFlickGesture(ev) {
 }
 
 function moveFlickGesture(ev) {
-  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  if (!state.gesture) return;
+  const undoGesture = state.gesture.twoFingerUndo;
+  if (undoGesture?.pointerIds.has(ev.pointerId)) {
+    ev.preventDefault();
+    const start = undoGesture.starts.get(ev.pointerId);
+    if (start && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 24) {
+      undoGesture.moved = true;
+    }
+    return;
+  }
+  if (ev.pointerId !== state.gesture.pointerId) return;
   ev.preventDefault();
   const gesture = state.gesture;
   const deltaX = ev.clientX - gesture.startX;
@@ -241,27 +274,57 @@ function moveFlickGesture(ev) {
   if (gesture.longPressLocked) return;
 
   const next = durationFromFlickDelta(deltaY);
+  gesture.dottedByRightSweep =
+    next === 'quarter' &&
+    deltaX >= 48 &&
+    Math.abs(deltaY) <= 14;
+
   if (next !== gesture.durationName) {
     gesture.durationName = next;
-    updateFlickHud(next);
   }
+  updateFlickHud(next);
 }
 
 function endFlickGesture(ev) {
-  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  if (!state.gesture) return;
+  const undoGesture = state.gesture.twoFingerUndo;
+  if (undoGesture?.pointerIds.has(ev.pointerId)) {
+    ev.preventDefault();
+    undoGesture.pointerIds.delete(ev.pointerId);
+    try { keyboardSurface.releasePointerCapture?.(ev.pointerId); } catch {}
+    if (undoGesture.pointerIds.size === 0) {
+      if (!undoGesture.moved) undoLastNoteWithFeedback();
+      finishFlickGesture();
+    }
+    return;
+  }
+  if (ev.pointerId !== state.gesture.pointerId) return;
   ev.preventDefault();
   const gesture = state.gesture;
   clearLongPressTimer(gesture);
   if (!gesture.longPressLocked) {
+    const deltaX = ev.clientX - gesture.startX;
     const deltaY = gesture.startY - ev.clientY;
     gesture.durationName = durationFromFlickDelta(deltaY);
+    gesture.dottedByRightSweep =
+      gesture.durationName === 'quarter' &&
+      deltaX >= 48 &&
+      Math.abs(deltaY) <= 14;
   }
   commitFlickGesture(gesture);
   finishFlickGesture();
 }
 
 function cancelFlickGesture(ev) {
-  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  if (!state.gesture) return;
+  const undoGesture = state.gesture.twoFingerUndo;
+  if (undoGesture?.pointerIds.has(ev.pointerId)) {
+    undoGesture.moved = true;
+    undoGesture.pointerIds.delete(ev.pointerId);
+    if (undoGesture.pointerIds.size === 0) finishFlickGesture();
+    return;
+  }
+  if (ev.pointerId !== state.gesture.pointerId) return;
   finishFlickGesture();
 }
 
@@ -277,8 +340,26 @@ function finishFlickGesture() {
   state.gesture.keyEl.classList.remove('active');
   try { keyboardSurface.releasePointerCapture?.(state.gesture.pointerId); } catch {}
   state.gesture = null;
+  hideFlickHud();
+}
+
+function hideFlickHud() {
   flickHud.classList.remove('visible', 'rest');
   flickHud.setAttribute('aria-hidden', 'true');
+}
+
+function undoLastNoteWithFeedback() {
+  if (state.notes.length > 0) {
+    state.notes.pop();
+    renderScore();
+    statusText.textContent = 'Kumottu';
+  } else {
+    statusText.textContent = 'Ei kumottavaa';
+  }
+  clearTimeout(window.__undoFeedbackTimer);
+  window.__undoFeedbackTimer = setTimeout(() => {
+    statusText.textContent = 'Valmis';
+  }, 900);
 }
 
 const durationOrder = ['whole', 'half', 'quarter', 'eighth', '16th'];
@@ -304,23 +385,13 @@ function showFlickHud(x, y, durationName) {
   const hudH = 154;
   const gap = 28;
 
-  // Oikealla kädellä HUD vasemmalle, vasemmalla kädellä HUD oikealle.
-  // Jos halutulla puolella ei ole riittävästi tilaa, vaihdetaan vain tarvittaessa toiselle puolelle.
-  const preferredSide = layoutState.handedness === 'left' ? 'right' : 'left';
-  const leftCandidate = x - hudW - gap;
-  const rightCandidate = x + gap;
-  const canFitLeft = leftCandidate >= 10;
-  const canFitRight = rightCandidate + hudW <= window.innerWidth - 10;
-
-  let side = preferredSide;
-  if (side === 'left' && !canFitLeft && canFitRight) side = 'right';
-  if (side === 'right' && !canFitRight && canFitLeft) side = 'left';
-
-  const left = side === 'right' ? rightCandidate : leftCandidate;
-  const top = y - hudH / 2;
+  // Palaute keskitetään sormen yläpuolelle. Näin se näkyy samalla tavalla
+  // kummallakin kädellä eikä sormi peitä valittua aika-arvoa.
+  const left = x - hudW / 2;
+  const top = y - hudH - gap;
   flickHud.style.left = `${clamp(left, 10, window.innerWidth - hudW - 10)}px`;
   flickHud.style.top = `${clamp(top, 10, window.innerHeight - hudH - 10)}px`;
-  flickHud.dataset.side = side;
+  flickHud.dataset.side = 'above';
   flickHud.classList.toggle('rest', state.restMode);
   flickHud.classList.add('visible');
   flickHud.setAttribute('aria-hidden', 'false');
@@ -362,7 +433,8 @@ function commitFlickGesture(gesture) {
   const base = durationByName[gesture.durationName];
   if (!base) return;
 
-  const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
+  const useDot = state.dot || gesture.dottedByRightSweep;
+  const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
   if (state.restMode) {
     addRest(durationUnits);
@@ -412,6 +484,7 @@ function normalizeFlickThresholds() {
 
 function applyLayoutState({ save = true } = {}) {
   normalizeFlickThresholds();
+  appShell.classList.toggle('left-handed', layoutState.handedness === 'left');
   zonePanel.style.setProperty('--white-width-scale', String(layoutState.whiteWidth / 100));
   zonePanel.style.setProperty('--keyboard-height-scale', String(layoutState.keyboardHeight / 100));
   zonePanel.style.setProperty('--black-width-ratio', String(layoutState.blackWidth / 100));
@@ -768,8 +841,7 @@ restToggle.addEventListener('click', () => {
 });
 
 undoBtn.addEventListener('click', () => {
-  state.notes.pop();
-  renderScore();
+  undoLastNoteWithFeedback();
 });
 
 clearBtn.addEventListener('click', () => {

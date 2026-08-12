@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
-  <div class="app-shell">
+  <div id="appShell" class="app-shell">
     <aside class="panel left-panel">
       <div class="app-badge">🎼 Pikakirjoitin</div>
       <h2>Kappaleen tiedot</h2>
@@ -121,7 +121,7 @@
 
     <div class="layout-section">
       <h3>Kätisyys</h3>
-      <p class="layout-hint">Oikea käsi on oletus. Rytmi-HUD näytetään soittavan käden vastakkaisella puolella, jotta sormi ei peitä sitä.</p>
+      <p class="layout-hint">Oikea käsi on oletus. Vasen käsi siirtää Kappaleen tiedot -ikkunan oikealle puolelle. Rytmipalaute näytetään aina sormen yläpuolella.</p>
       <div class="handedness-toggle" role="group" aria-label="Kätisyys">
         <button id="rightHandBtn" class="hand-button" type="button" data-hand="right">Oikea käsi</button>
         <button id="leftHandBtn" class="hand-button" type="button" data-hand="left">Vasen käsi</button>
@@ -154,7 +154,7 @@
 
     <div class="layout-section">
       <h3>Eleasetukset</h3>
-      <p class="layout-hint">Tap = 1/4, ylös = 1/2, alas = 1/8. Pitkä paikallaan painaminen = koko.</p>
+      <p class="layout-hint">Tap = 1/4, ylös = 1/2, alas = 1/8. Pitkä paikallaan painaminen = koko. Kahden sormen napautus = Kumoa.</p>
       <label class="slider-row">
         <span>Ylös → 1/2 <output id="flickHalfOut">26 px</output></span>
         <input id="flickHalfSlider" type="range" min="10" max="70" step="1" value="26">
