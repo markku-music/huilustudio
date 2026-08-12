@@ -20,6 +20,11 @@ const leftHandBtn = document.getElementById('leftHandBtn');
 const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
+const songPanel = document.getElementById('songPanel');
+const songPanelToggle = document.getElementById('songPanelToggle');
+const songPanelClose = document.getElementById('songPanelClose');
+const songPanelDone = document.getElementById('songPanelDone');
+const songPanelBackdrop = document.getElementById('songPanelBackdrop');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -565,6 +570,14 @@ function setLayoutPanelOpen(open) {
   layoutPanel.setAttribute('aria-hidden', String(!open));
 }
 
+function setSongPanelOpen(open) {
+  songPanel.classList.toggle('open', open);
+  songPanelBackdrop.classList.toggle('open', open);
+  songPanel.setAttribute('aria-hidden', String(!open));
+  songPanelBackdrop.setAttribute('aria-hidden', String(!open));
+  songPanelToggle.setAttribute('aria-expanded', String(open));
+}
+
 function addRest(units) {
   state.notes.push({ kind: 'rest', units });
   renderScore();
@@ -1006,6 +1019,16 @@ if ('ResizeObserver' in window) {
 
 layoutToggle.addEventListener('click', () => setLayoutPanelOpen(!layoutPanel.classList.contains('open')));
 layoutClose.addEventListener('click', () => setLayoutPanelOpen(false));
+songPanelToggle.addEventListener('click', () => setSongPanelOpen(!songPanel.classList.contains('open')));
+songPanelClose.addEventListener('click', () => setSongPanelOpen(false));
+songPanelDone.addEventListener('click', () => setSongPanelOpen(false));
+songPanelBackdrop.addEventListener('click', () => setSongPanelOpen(false));
+
+window.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && songPanel.classList.contains('open')) {
+    setSongPanelOpen(false);
+  }
+});
 
 document.getElementById('layoutReset').addEventListener('click', () => {
   layoutState = structuredClone(defaultLayout);

@@ -30,7 +30,7 @@ button { -webkit-tap-highlight-color: transparent; }
   width: 100vw;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 94px minmax(0, 1fr);
   gap: 18px;
   padding: 16px;
 }
@@ -38,7 +38,7 @@ button { -webkit-tap-highlight-color: transparent; }
 /* Vasenkätisessä asettelussa koskettimisto jää vasemman käden puolelle
    ja sivuikkunat siirtyvät oikeaan reunaan. */
 .app-shell.left-handed {
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 94px;
 }
 
 .app-shell.left-handed .side-column {
@@ -67,11 +67,80 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .left-panel {
-  min-width: 0;
+  position: fixed;
+  z-index: 2600;
+  top: 16px;
+  bottom: 16px;
+  left: 112px;
+  width: min(370px, calc(100vw - 128px));
+  overflow-y: auto;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-22px);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms;
+}
+
+.app-shell.left-handed .left-panel {
+  right: 112px;
+  left: auto;
+  transform: translateX(22px);
+}
+
+.left-panel.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.song-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(16, 32, 63, .18);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 160ms;
+}
+
+.song-panel-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.song-panel-toggle {
+  min-height: 78px;
+  padding: 8px 5px;
+  border: 1px solid var(--line);
+  color: #3265bf;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.song-panel-icon { font-size: 25px; line-height: 1; }
+
+.song-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.song-panel-done {
+  min-height: 48px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--blue);
+  color: white;
+  font-weight: 800;
 }
 
 .app-badge {
@@ -95,26 +164,26 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .modifier-panel {
-  padding: 14px;
+  padding: 8px;
 }
 
 .modifier-title {
   margin: 0 0 10px;
   color: #6d7f9f;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: .09em;
 }
 
 .modifier-buttons {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 .modifier-button {
-  min-height: 76px;
-  padding: 8px 6px;
+  min-height: 74px;
+  padding: 7px 3px;
   border: 1px solid #cfd9e7;
   border-radius: 16px;
   background: #fff;
@@ -122,7 +191,7 @@ button { -webkit-tap-highlight-color: transparent; }
   display: grid;
   place-items: center;
   gap: 2px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.1;
   touch-action: none;
@@ -146,7 +215,7 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .modifier-shortcut {
   color: #6d7f9f;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 750;
   white-space: nowrap;
 }
@@ -557,13 +626,16 @@ input, select {
   font-weight: 700;
 }
 
-@media (max-width: 1100px) {
-  .app-shell { grid-template-columns: 1fr; }
-  .app-shell.left-handed { grid-template-columns: 1fr; }
-  .app-shell.left-handed .side-column,
-  .app-shell.left-handed .main-column {
-    grid-column: 1;
-    grid-row: auto;
+@media (max-width: 700px) {
+  .app-shell,
+  .app-shell.left-handed { grid-template-columns: 78px minmax(0, 1fr); }
+  .app-shell.left-handed .side-column { grid-column: 1; grid-row: 1; }
+  .app-shell.left-handed .main-column { grid-column: 2; grid-row: 1; }
+  .left-panel,
+  .app-shell.left-handed .left-panel {
+    left: 10px;
+    right: 10px;
+    width: auto;
   }
   .main-column { grid-template-rows: minmax(280px, auto) auto minmax(280px, 42vh); }
 }
