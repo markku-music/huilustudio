@@ -131,7 +131,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.8.1';
+const PROJECT_APP_VERSION = '0.3.8.2';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -248,13 +248,13 @@ const whiteKeys = [
   { midi: 67, step: 'G', alter: 0, octave: 4, label: 'G' },
   { midi: 69, step: 'A', alter: 0, octave: 4, label: 'A' },
   { midi: 71, step: 'B', alter: 0, octave: 4, label: 'H' },
-  { midi: 72, step: 'C', alter: 0, octave: 5, label: 'c' },
-  { midi: 74, step: 'D', alter: 0, octave: 5, label: 'd' },
-  { midi: 76, step: 'E', alter: 0, octave: 5, label: 'e' },
-  { midi: 77, step: 'F', alter: 0, octave: 5, label: 'f' },
-  { midi: 79, step: 'G', alter: 0, octave: 5, label: 'g' },
-  { midi: 81, step: 'A', alter: 0, octave: 5, label: 'a' },
-  { midi: 83, step: 'B', alter: 0, octave: 5, label: 'h' },
+  { midi: 72, step: 'C', alter: 0, octave: 5, label: 'C' },
+  { midi: 74, step: 'D', alter: 0, octave: 5, label: 'D' },
+  { midi: 76, step: 'E', alter: 0, octave: 5, label: 'E' },
+  { midi: 77, step: 'F', alter: 0, octave: 5, label: 'F' },
+  { midi: 79, step: 'G', alter: 0, octave: 5, label: 'G' },
+  { midi: 81, step: 'A', alter: 0, octave: 5, label: 'A' },
+  { midi: 83, step: 'B', alter: 0, octave: 5, label: 'H' },
 ];
 
 const blackKeys = [
@@ -3296,7 +3296,7 @@ function buildPitchNameInfo() {
             ? 'natural'
             : '';
       const finnishStep = entry.step === 'B' && entry.alter >= 0 ? 'H' : entry.step;
-      const letter = entry.octave >= 5 ? finnishStep.toLowerCase() : finnishStep;
+      const letter = finnishStep;
       result.set(entryIndex, {
         letter,
         accidental,
