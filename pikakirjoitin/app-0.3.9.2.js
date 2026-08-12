@@ -137,7 +137,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.9.1';
+const PROJECT_APP_VERSION = '0.3.9.2';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -310,6 +310,10 @@ const state = {
     restKeyboard: false,
   },
   audioContext: null,
+  audioReadyPromise: null,
+  audioPreviewRequest: null,
+  nextAudioPreviewId: 1,
+  activePreviewVoice: null,
   osmd: null,
   appliedScoreLayoutSignature: null,
   gesture: null,
@@ -473,8 +477,14 @@ function startFlickGesture(ev) {
 
   if (state.gesture) return;
 
-  ensureAudio();
   keyboardSurface.setPointerCapture?.(ev.pointerId);
+
+  let audioPreviewId = null;
+  if (isRestShiftActive()) {
+    cancelActiveMidiPreview();
+  } else {
+    audioPreviewId = playMidi(Number(keyEl.dataset.midi));
+  }
 
   state.gesture = {
     pointerId: ev.pointerId,
@@ -487,6 +497,7 @@ function startFlickGesture(ev) {
     longPressLocked: false,
     committed: false,
     longPressTimer: null,
+    audioPreviewId,
   };
 
   keyEl.classList.add('active');
@@ -503,9 +514,8 @@ function startFlickGesture(ev) {
     g.committed = true;
   }, layoutState.flick.longPressMs);
 
-  // Soittotuntuma tulee heti painalluksesta. Tavallinen nuotti kirjoitetaan
-  // irrotettaessa, mutta kokonuotti heti pitkän painalluksen täyttyessä.
-  if (!isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
+  // Ääni alkaa heti painalluksesta. Sen lopullinen pituus lukitaan vasta,
+  // kun sormieleen aika-arvo on varmistunut.
 }
 
 function moveFlickGesture(ev) {
@@ -557,6 +567,7 @@ function endFlickGesture(ev) {
 function cancelFlickGesture(ev) {
   if (!state.gesture) return;
   if (ev.pointerId !== state.gesture.pointerId) return;
+  if (!state.gesture.committed) cancelMidiPreview(state.gesture.audioPreviewId);
   finishFlickGesture();
 }
 
@@ -1596,11 +1607,13 @@ function commitFlickGesture(gesture) {
   const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
   if (isRestShiftActive()) {
+    cancelMidiPreview(gesture.audioPreviewId);
     addRest(durationUnits);
     return;
   }
 
   const keyEl = gesture.keyEl;
+  finishMidiPreview(gesture.audioPreviewId, durationUnits);
   clearNoteSelection();
   const entry = {
     id: createScoreEntryId(),
@@ -3151,27 +3164,166 @@ function flashKey(keyEl) {
   setTimeout(() => keyEl.classList.remove('active'), 130);
 }
 
+const PREVIEW_GAIN = 0.12;
+const PREVIEW_ATTACK_SECONDS = 0.012;
+const PREVIEW_RELEASE_SECONDS = 0.009;
+
 function ensureAudio() {
-  if (!state.audioContext) {
-    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (state.audioContext?.state === 'closed') {
+    state.audioContext = null;
+    state.audioReadyPromise = null;
   }
-  if (state.audioContext.state === 'suspended') state.audioContext.resume();
+
+  if (!state.audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return Promise.reject(new Error('Web Audio ei ole käytettävissä.'));
+    try {
+      state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+    } catch {
+      state.audioContext = new AudioContextClass();
+    }
+  }
+
+  const ctx = state.audioContext;
+  if (ctx.state === 'running') return Promise.resolve(ctx);
+  if (!state.audioReadyPromise) {
+    state.audioReadyPromise = Promise.resolve(ctx.resume())
+      .then(() => ctx)
+      .finally(() => {
+        state.audioReadyPromise = null;
+      });
+  }
+  return state.audioReadyPromise;
 }
 
-function playMidi(midi, seconds = 0.45) {
-  ensureAudio();
-  const ctx = state.audioContext;
+function holdAudioParamAtTime(param, time, fallbackValue = PREVIEW_GAIN) {
+  if (typeof param.cancelAndHoldAtTime === 'function') {
+    param.cancelAndHoldAtTime(time);
+    return;
+  }
+  param.cancelScheduledValues(time);
+  param.setValueAtTime(Math.max(0.0001, Number(param.value) || fallbackValue), time);
+}
+
+function disconnectPreviewVoice(voice) {
+  try { voice.osc.disconnect(); } catch {}
+  try { voice.gain.disconnect(); } catch {}
+}
+
+function cutPreviewVoice(voice, releaseSeconds = PREVIEW_RELEASE_SECONDS) {
+  if (!voice || voice.ended) return;
+  const now = voice.ctx.currentTime;
+  const stopAt = now + Math.max(0.005, releaseSeconds);
+  clearTimeout(voice.safetyTimer);
+  try {
+    holdAudioParamAtTime(voice.gain.gain, now);
+    voice.gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    voice.osc.stop(stopAt + 0.003);
+  } catch {}
+}
+
+function schedulePreviewVoiceDuration(voice, durationSeconds) {
+  if (!voice || voice.ended) return;
+  const now = voice.ctx.currentTime;
+  const naturalEnd = voice.startedAt + Math.max(0.04, Number(durationSeconds) || 0.04);
+  const stopAt = Math.max(now + PREVIEW_RELEASE_SECONDS, naturalEnd);
+  const releaseAt = Math.max(now, stopAt - PREVIEW_RELEASE_SECONDS);
+  clearTimeout(voice.safetyTimer);
+  try {
+    holdAudioParamAtTime(voice.gain.gain, releaseAt);
+    voice.gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    voice.osc.stop(stopAt + 0.003);
+  } catch {}
+}
+
+function createPreviewVoice(ctx, request) {
+  if (state.activePreviewVoice) cutPreviewVoice(state.activePreviewVoice);
+
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  const startedAt = ctx.currentTime;
+  const freq = 440 * Math.pow(2, (request.midi - 69) / 12);
+  const voice = {
+    ctx,
+    osc,
+    gain,
+    requestId: request.id,
+    startedAt,
+    ended: false,
+    safetyTimer: 0,
+  };
+
   osc.type = 'triangle';
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + Math.max(0.18, Math.min(seconds, 1.2)));
+  osc.frequency.setValueAtTime(freq, startedAt);
+  gain.gain.setValueAtTime(0.0001, startedAt);
+  gain.gain.linearRampToValueAtTime(PREVIEW_GAIN, startedAt + PREVIEW_ATTACK_SECONDS);
   osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + Math.max(0.22, Math.min(seconds + 0.08, 1.4)));
+  osc.onended = () => {
+    voice.ended = true;
+    clearTimeout(voice.safetyTimer);
+    disconnectPreviewVoice(voice);
+    if (state.activePreviewVoice === voice) state.activePreviewVoice = null;
+    if (state.audioPreviewRequest === request) state.audioPreviewRequest = null;
+  };
+  osc.start(startedAt);
+
+  request.voice = voice;
+  state.activePreviewVoice = voice;
+  voice.safetyTimer = window.setTimeout(() => cutPreviewVoice(voice), 15000);
+  if (request.durationSeconds !== null) {
+    schedulePreviewVoiceDuration(voice, request.durationSeconds);
+  }
+}
+
+function playMidi(midi) {
+  const previousRequest = state.audioPreviewRequest;
+  if (previousRequest) previousRequest.cancelled = true;
+  if (state.activePreviewVoice) cutPreviewVoice(state.activePreviewVoice);
+
+  const request = {
+    id: state.nextAudioPreviewId++,
+    midi: Number(midi),
+    durationSeconds: null,
+    cancelled: false,
+    voice: null,
+  };
+  state.audioPreviewRequest = request;
+
+  void ensureAudio()
+    .then(ctx => {
+      // Heräämisen aikana tulleista painalluksista soitetaan vain viimeisin.
+      // Näin vanhat äänet eivät purkaudu myöhemmin yhtenä ryppäänä.
+      if (ctx.state !== 'running' || request.cancelled || state.audioPreviewRequest !== request) return;
+      createPreviewVoice(ctx, request);
+    })
+    .catch(error => {
+      if (state.audioPreviewRequest === request) state.audioPreviewRequest = null;
+      console.warn('Koeääntä ei voitu käynnistää', error);
+    });
+
+  return request.id;
+}
+
+function finishMidiPreview(requestId, durationUnits) {
+  const request = state.audioPreviewRequest;
+  if (!request || request.id !== requestId || request.cancelled) return;
+  request.durationSeconds = durationUnitsToSeconds(durationUnits);
+  if (request.voice) schedulePreviewVoiceDuration(request.voice, request.durationSeconds);
+}
+
+function cancelMidiPreview(requestId) {
+  const request = state.audioPreviewRequest;
+  if (!request || request.id !== requestId) return;
+  request.cancelled = true;
+  if (request.voice) cutPreviewVoice(request.voice);
+  state.audioPreviewRequest = null;
+}
+
+function cancelActiveMidiPreview() {
+  const request = state.audioPreviewRequest;
+  if (request) request.cancelled = true;
+  if (state.activePreviewVoice) cutPreviewVoice(state.activePreviewVoice);
+  state.audioPreviewRequest = null;
 }
 
 function adjustTempo(delta) {
