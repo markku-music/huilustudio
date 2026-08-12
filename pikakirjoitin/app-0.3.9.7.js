@@ -137,7 +137,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.9.1';
+const PROJECT_APP_VERSION = '0.3.9.7';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -309,7 +309,6 @@ const state = {
     sixteenthKeyboard: false,
     restKeyboard: false,
   },
-  audioContext: null,
   osmd: null,
   appliedScoreLayoutSignature: null,
   gesture: null,
@@ -473,7 +472,14 @@ function startFlickGesture(ev) {
 
   if (state.gesture) return;
 
-  ensureAudio();
+  // Äänipyyntö luodaan painalluksessa ennen osoittimen kaappaamista. Jos
+  // moottori ei ole vielä auki, varsinainen avaus tehdään vapautuksessa.
+  let audioPreviewId = null;
+  if (isRestShiftActive()) {
+    cancelActiveMidiPreview();
+  } else {
+    audioPreviewId = playMidi(Number(keyEl.dataset.midi));
+  }
   keyboardSurface.setPointerCapture?.(ev.pointerId);
 
   state.gesture = {
@@ -487,6 +493,7 @@ function startFlickGesture(ev) {
     longPressLocked: false,
     committed: false,
     longPressTimer: null,
+    audioPreviewId,
   };
 
   keyEl.classList.add('active');
@@ -503,9 +510,8 @@ function startFlickGesture(ev) {
     g.committed = true;
   }, layoutState.flick.longPressMs);
 
-  // Soittotuntuma tulee heti painalluksesta. Tavallinen nuotti kirjoitetaan
-  // irrotettaessa, mutta kokonuotti heti pitkän painalluksen täyttyessä.
-  if (!isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
+  // Ääni alkaa painalluksesta. Lopullinen pituus lukitaan, kun eleestä saatu
+  // aika-arvo varmistuu.
 }
 
 function moveFlickGesture(ev) {
@@ -550,13 +556,20 @@ function endFlickGesture(ev) {
       deltaX >= 48 &&
       Math.abs(deltaY) <= 14;
   }
-  if (!gesture.committed) commitFlickGesture(gesture);
+  // Ensimmäisellä käyttökerralla iPadin ääni avataan nimenomaan vapautuksen
+  // käyttäjäeleessä. Valmiiksi avattu moottori soi seuraavilla kerroilla heti.
+  activateMidiPreview(gesture.audioPreviewId);
+  if (!gesture.committed) {
+    commitFlickGesture(gesture);
+    gesture.committed = true;
+  }
   finishFlickGesture();
 }
 
 function cancelFlickGesture(ev) {
   if (!state.gesture) return;
   if (ev.pointerId !== state.gesture.pointerId) return;
+  cancelMidiPreview(state.gesture.audioPreviewId);
   finishFlickGesture();
 }
 
@@ -568,10 +581,11 @@ function clearLongPressTimer(gesture) {
 
 function finishFlickGesture() {
   if (!state.gesture) return;
-  clearLongPressTimer(state.gesture);
-  state.gesture.keyEl.classList.remove('active');
-  try { keyboardSurface.releasePointerCapture?.(state.gesture.pointerId); } catch {}
+  const gesture = state.gesture;
+  clearLongPressTimer(gesture);
+  gesture.keyEl.classList.remove('active');
   state.gesture = null;
+  try { keyboardSurface.releasePointerCapture?.(gesture.pointerId); } catch {}
   hideFlickHud();
 }
 
@@ -1596,11 +1610,13 @@ function commitFlickGesture(gesture) {
   const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
   if (isRestShiftActive()) {
+    cancelMidiPreview(gesture.audioPreviewId);
     addRest(durationUnits);
     return;
   }
 
   const keyEl = gesture.keyEl;
+  finishMidiPreview(gesture.audioPreviewId, durationUnits);
   clearNoteSelection();
   const entry = {
     id: createScoreEntryId(),
@@ -3151,27 +3167,273 @@ function flashKey(keyEl) {
   setTimeout(() => keyEl.classList.remove('active'), 130);
 }
 
-function ensureAudio() {
-  if (!state.audioContext) {
-    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const AUDIO_ATTACK_SECONDS = 0.025;
+const AUDIO_RELEASE_SECONDS = 0.045;
+const AUDIO_MASTER_GAIN = 0.105;
+const AUDIO_SAFETY_SECONDS = 15;
+const AUDIO_STOP_GUARD_MS = 120;
+
+class OscillatorAudioManager {
+  constructor() {
+    this.ctx = null;
+    this.unlocked = false;
+    this.unlockPromise = null;
+    this.requests = new Map();
+    this.nextRequestId = 1;
   }
-  if (state.audioContext.state === 'suspended') state.audioContext.resume();
+
+  ensureContext() {
+    if (this.ctx?.state === 'closed') {
+      this.ctx = null;
+      this.unlocked = false;
+    }
+    if (!this.ctx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+      this.ctx = new AudioContextClass();
+    }
+    return this.ctx;
+  }
+
+  unlock() {
+    const ctx = this.ensureContext();
+    if (!ctx) return Promise.resolve(null);
+    if (ctx.state === 'running' && this.unlocked) return Promise.resolve(ctx);
+    if (this.unlockPromise) return this.unlockPromise;
+
+    const unlockTask = (async () => {
+      try {
+        if (ctx.state !== 'running') await ctx.resume();
+        if (ctx.state !== 'running') throw new Error(`AudioContext jäi tilaan ${ctx.state}`);
+
+        // Sama iPad-avain kuin Sävelkojussa: yksi täysin äänetön näyte
+        // käynnistetään käyttäjän eleestä ennen varsinaista koeääntä.
+        const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+        const source = ctx.createBufferSource();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        source.buffer = buffer;
+        source.connect(gain).connect(ctx.destination);
+        source.start(0);
+        source.onended = () => {
+          try { source.disconnect(); } catch {}
+          try { gain.disconnect(); } catch {}
+        };
+
+        this.unlocked = true;
+        return ctx;
+      } catch (error) {
+        this.unlocked = false;
+        console.warn('Äänimoottoria ei voitu avata', error);
+        return null;
+      }
+    })();
+    this.unlockPromise = unlockTask;
+    void unlockTask.then(() => {
+      if (this.unlockPromise === unlockTask) this.unlockPromise = null;
+    });
+    return unlockTask;
+  }
+
+  begin(midi) {
+    // Pikakirjoittimen koeääni on monofoninen: uusi kosketus vaimentaa vanhan,
+    // joten lukituksen aikana odottaneet äänet eivät voi purkautua yhtä aikaa.
+    this.stopAll(AUDIO_RELEASE_SECONDS);
+    const request = {
+      id: this.nextRequestId++,
+      midi: Number(midi),
+      durationSeconds: null,
+      cancelled: false,
+      activating: false,
+      voice: null,
+    };
+    this.requests.set(request.id, request);
+
+    // Ensimmäisellä kerralla pyyntö jää odottamaan pointerup-vapautusta.
+    // Kun moottori on jo avattu, seuraavat äänet alkavat heti painalluksesta.
+    if (this.unlocked && this.ctx?.state === 'running') {
+      this.startVoice(this.ctx, request);
+    }
+    return request.id;
+  }
+
+  activate(requestId) {
+    const request = this.requests.get(requestId);
+    if (!request || request.cancelled || request.voice || request.activating) return;
+    request.activating = true;
+
+    // Tätä kutsutaan suoraan koskettimen pointerup-käsittelijästä. AudioContext
+    // luodaan, resume odotetaan ja äänetön avausnäyte soitetaan vasta nyt.
+    void this.unlock().then(ctx => {
+      request.activating = false;
+      if (!ctx || request.cancelled || request.voice || this.requests.get(request.id) !== request) return;
+      this.startVoice(ctx, request);
+    });
+  }
+
+  startVoice(ctx, request) {
+    if (!request || request.cancelled || request.voice) return;
+    const startedAt = ctx.currentTime;
+    const frequency = 440 * Math.pow(2, (request.midi - 69) / 12);
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, startedAt);
+    master.gain.linearRampToValueAtTime(AUDIO_MASTER_GAIN, startedAt + AUDIO_ATTACK_SECONDS);
+    master.connect(ctx.destination);
+
+    // Perusääni ja kaksi hiljaista yläsäveltä tekevät siniaallosta
+    // pehmeämmän mutta elävämmän ilman ulkoisia äänitiedostoja.
+    const items = [
+      { multiple: 1, level: 1 },
+      { multiple: 2, level: 0.14 },
+      { multiple: 3, level: 0.04 },
+    ].map(({ multiple, level }) => {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency * multiple, startedAt);
+      gain.gain.setValueAtTime(level, startedAt);
+      oscillator.connect(gain).connect(master);
+      oscillator.start(startedAt);
+      return { oscillator, gain };
+    });
+
+    const voice = {
+      ctx,
+      request,
+      startedAt,
+      master,
+      items,
+      ended: false,
+      stopGuardTimer: 0,
+    };
+    request.voice = voice;
+    items[0].oscillator.onended = () => this.cleanupVoice(voice);
+
+    // Turvaraja on pidempi kuin hitain pisteellinen kokonuotti (12 s).
+    // Kun ele valmistuu, lopetusaika vaihdetaan oikeaksi aika-arvoksi.
+    this.scheduleVoiceStop(voice, startedAt + AUDIO_SAFETY_SECONDS);
+    if (request.durationSeconds !== null) {
+      this.scheduleVoiceDuration(voice, request.durationSeconds);
+    }
+  }
+
+  scheduleVoiceDuration(voice, seconds) {
+    const duration = clamp(Number(seconds) || 0.08, 0.08, 12);
+    this.scheduleVoiceStop(voice, voice.startedAt + duration);
+  }
+
+  scheduleVoiceStop(voice, requestedStopAt) {
+    if (!voice || voice.ended) return;
+    const now = voice.ctx.currentTime;
+    const stopAt = Math.max(now + AUDIO_RELEASE_SECONDS, Number(requestedStopAt) || now);
+    const releaseAt = Math.max(now, stopAt - AUDIO_RELEASE_SECONDS);
+    const attackEnd = voice.startedAt + AUDIO_ATTACK_SECONDS;
+    const attackProgress = clamp((now - voice.startedAt) / AUDIO_ATTACK_SECONDS, 0, 1);
+    const currentGain = 0.0001 + (AUDIO_MASTER_GAIN - 0.0001) * attackProgress;
+
+    clearTimeout(voice.stopGuardTimer);
+    try {
+      const param = voice.master.gain;
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(currentGain, now);
+      if (now < attackEnd && attackEnd < releaseAt) {
+        param.linearRampToValueAtTime(AUDIO_MASTER_GAIN, attackEnd);
+      }
+      if (releaseAt > Math.max(now, attackEnd)) {
+        param.setValueAtTime(AUDIO_MASTER_GAIN, releaseAt);
+      }
+      param.exponentialRampToValueAtTime(0.0001, stopAt);
+    } catch {}
+
+    // OscillatorNode sallii lopetusajan korvaamisen ennen äänen päättymistä.
+    // Jokainen kolmesta oskillaattorista saa aina ehdottoman stop()-ajan.
+    for (const item of voice.items) {
+      try { item.oscillator.stop(stopAt + 0.01); } catch {}
+    }
+
+    const guardDelay = Math.max(0, (stopAt - now) * 1000) + AUDIO_STOP_GUARD_MS;
+    voice.stopGuardTimer = window.setTimeout(() => this.forceStopVoice(voice), guardDelay);
+  }
+
+  finish(requestId, seconds) {
+    const request = this.requests.get(requestId);
+    if (!request || request.cancelled) return;
+    request.durationSeconds = Number(seconds);
+    if (request.voice) this.scheduleVoiceDuration(request.voice, request.durationSeconds);
+  }
+
+  cancel(requestId, releaseSeconds = AUDIO_RELEASE_SECONDS) {
+    if (requestId === null || requestId === undefined) return;
+    const request = this.requests.get(requestId);
+    if (!request) return;
+    request.cancelled = true;
+    if (request.voice) {
+      this.scheduleVoiceStop(request.voice, request.voice.ctx.currentTime + Math.max(0.01, releaseSeconds));
+    } else {
+      this.requests.delete(requestId);
+    }
+  }
+
+  stopAll(releaseSeconds = AUDIO_RELEASE_SECONDS) {
+    for (const requestId of Array.from(this.requests.keys())) {
+      this.cancel(requestId, releaseSeconds);
+    }
+  }
+
+  forceStopVoice(voice) {
+    if (!voice || voice.ended) return;
+    const now = voice.ctx.currentTime;
+    clearTimeout(voice.stopGuardTimer);
+    try {
+      voice.master.gain.cancelScheduledValues(now);
+      voice.master.gain.setValueAtTime(0.0001, now);
+    } catch {}
+    for (const item of voice.items) {
+      try { item.oscillator.stop(now); } catch {}
+    }
+    this.cleanupVoice(voice);
+  }
+
+  cleanupVoice(voice) {
+    if (!voice || voice.ended) return;
+    voice.ended = true;
+    clearTimeout(voice.stopGuardTimer);
+    for (const item of voice.items) {
+      try { item.oscillator.disconnect(); } catch {}
+      try { item.gain.disconnect(); } catch {}
+    }
+    try { voice.master.disconnect(); } catch {}
+    if (voice.request.voice === voice) voice.request.voice = null;
+    if (this.requests.get(voice.request.id) === voice.request) {
+      this.requests.delete(voice.request.id);
+    }
+  }
 }
 
-function playMidi(midi, seconds = 0.45) {
-  ensureAudio();
-  const ctx = state.audioContext;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const freq = 440 * Math.pow(2, (midi - 69) / 12);
-  osc.type = 'triangle';
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + Math.max(0.18, Math.min(seconds, 1.2)));
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + Math.max(0.22, Math.min(seconds + 0.08, 1.4)));
+const keyboardAudio = new OscillatorAudioManager();
+
+function playMidi(midi) {
+  return keyboardAudio.begin(midi);
+}
+
+function finishMidiPreview(requestId, durationUnits) {
+  keyboardAudio.finish(requestId, durationUnitsToSeconds(durationUnits));
+}
+
+function activateMidiPreview(requestId) {
+  keyboardAudio.activate(requestId);
+}
+
+function cancelMidiPreview(requestId) {
+  keyboardAudio.cancel(requestId);
+}
+
+function cancelActiveMidiPreview() {
+  keyboardAudio.stopAll();
+}
+
+function silenceAudioForAppLifecycle() {
+  keyboardAudio.stopAll(0.01);
 }
 
 function adjustTempo(delta) {
@@ -3858,6 +4120,10 @@ function scheduleOsmdResizeRender() {
 }
 
 window.addEventListener('resize', scheduleOsmdResizeRender);
+window.addEventListener('pagehide', silenceAudioForAppLifecycle);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) silenceAudioForAppLifecycle();
+});
 
 // ResizeObserver huomaa myös sellaiset layout-muutokset, jotka eivät laukaise window.resize-tapahtumaa.
 if ('ResizeObserver' in window) {
