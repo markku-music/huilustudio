@@ -558,6 +558,8 @@ input, select {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: #e7ecf3;
   border-radius: 18px;
   border: 1px solid #e4ebf5;

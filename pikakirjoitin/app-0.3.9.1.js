@@ -137,7 +137,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.9.0';
+const PROJECT_APP_VERSION = '0.3.9.1';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -317,6 +317,7 @@ const state = {
   keyboardOctaveWindow: 0,
   keyboardOctavePosition: 0,
   octaveDrag: null,
+  scoreEntryToFollowId: null,
   systemBreaks: new Set(),
   pendingSystemBreakIndex: null,
 };
@@ -1003,6 +1004,101 @@ function getElementClientRectangle(element) {
   }
 }
 
+let scoreFollowAnimationFrame = 0;
+
+function requestScoreEntryFollow(entry) {
+  state.scoreEntryToFollowId = entry?.id || null;
+}
+
+function getRenderedScoreEntryClientRectangle(entryIndex) {
+  if (!Number.isInteger(entryIndex) || !state.osmd) return null;
+
+  const measureList = state.osmd.GraphicSheet?.MeasureList || [];
+  const visitedGroups = new Set();
+  let latestRect = null;
+
+  measureList.forEach(measureGroup => {
+    (measureGroup || []).forEach(measure => {
+      (measure?.staffEntries || []).forEach(staffEntry => {
+        (staffEntry?.graphicalVoiceEntries || []).forEach(voiceEntry => {
+          (voiceEntry?.notes || []).forEach(graphicalNote => {
+            const objectId = graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;
+            if (state.renderedNoteObjectMap.get(objectId) !== entryIndex) return;
+
+            const vexRef = graphicalNote.vfnote;
+            const vexNote = Array.isArray(vexRef) ? vexRef[0] : vexRef;
+            const group = vexNote?.attrs?.el || voiceEntry?.mVexFlowStaveNote?.attrs?.el;
+            if (!group || visitedGroups.has(group)) return;
+            visitedGroups.add(group);
+
+            const rect = getElementClientRectangle(group);
+            if (!rect) return;
+            if (
+              !latestRect
+              || rect.bottom > latestRect.bottom + 1
+              || (Math.abs(rect.bottom - latestRect.bottom) <= 1 && rect.right > latestRect.right)
+            ) {
+              latestRect = rect;
+            }
+          });
+        });
+      });
+    });
+  });
+
+  return latestRect;
+}
+
+function followLatestScoreEntryAfterRender() {
+  const targetId = state.scoreEntryToFollowId;
+  if (!targetId || !state.osmd) return;
+
+  cancelAnimationFrame(scoreFollowAnimationFrame);
+  scoreFollowAnimationFrame = requestAnimationFrame(() => {
+    scoreFollowAnimationFrame = 0;
+    if (state.scoreEntryToFollowId !== targetId) return;
+
+    const entryIndex = state.notes.findIndex(entry => entry.id === targetId);
+    if (entryIndex < 0) {
+      state.scoreEntryToFollowId = null;
+      return;
+    }
+
+    // Jos renderöintijonossa on vielä kierros kesken, kohde ei välttämättä ole
+    // tässä GraphicSheetissä. Tällöin pyyntö jätetään seuraavalle kierrokselle.
+    const entryRect = getRenderedScoreEntryClientRectangle(entryIndex);
+    if (!entryRect) return;
+    state.scoreEntryToFollowId = null;
+
+    const containerRect = osmdContainer.getBoundingClientRect();
+    const lowerSafetyMargin = clamp(osmdContainer.clientHeight * 0.16, 48, 84);
+    const visibleTop = containerRect.top + 24;
+    const visibleBottom = containerRect.bottom - lowerSafetyMargin;
+    let scrollDelta = 0;
+
+    if (entryRect.bottom > visibleBottom) {
+      scrollDelta = entryRect.bottom - visibleBottom;
+    } else if (entryRect.top < visibleTop) {
+      scrollDelta = entryRect.top - visibleTop;
+    }
+
+    if (Math.abs(scrollDelta) < 1) return;
+    const maxScrollTop = Math.max(0, osmdContainer.scrollHeight - osmdContainer.clientHeight);
+    const nextScrollTop = clamp(osmdContainer.scrollTop + scrollDelta, 0, maxScrollTop);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    try {
+      osmdContainer.scrollTo({
+        top: nextScrollTop,
+        left: osmdContainer.scrollLeft,
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+    } catch {
+      osmdContainer.scrollTop = nextScrollTop;
+    }
+  });
+}
+
 function buildNoteSelectionHitboxes() {
   state.noteSelectionHitboxes = [];
   if (!state.selectionMode || !state.osmd) return;
@@ -1506,14 +1602,16 @@ function commitFlickGesture(gesture) {
 
   const keyEl = gesture.keyEl;
   clearNoteSelection();
-  state.notes.push({
+  const entry = {
     id: createScoreEntryId(),
     kind: 'note',
     step: keyEl.dataset.step,
     alter: Number(keyEl.dataset.alter || 0),
     octave: Number(keyEl.dataset.octave),
     units: durationUnits,
-  });
+  };
+  state.notes.push(entry);
+  requestScoreEntryFollow(entry);
   settlePendingSystemBreak();
   renderScore();
 }
@@ -1955,6 +2053,7 @@ function syncPdfActionButton() {
 
 function noteScoreRenderCompleted() {
   renderMarginGuides();
+  followLatestScoreEntryAfterRender();
   scoreRenderRevision += 1;
   syncPdfActionButton();
 }
@@ -3034,7 +3133,9 @@ function restoreAutosavedProjectOnStartup() {
 
 function addRest(units) {
   clearNoteSelection();
-  state.notes.push({ id: createScoreEntryId(), kind: 'rest', units });
+  const entry = { id: createScoreEntryId(), kind: 'rest', units };
+  state.notes.push(entry);
+  requestScoreEntryFollow(entry);
   settlePendingSystemBreak();
   renderScore();
 }
