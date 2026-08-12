@@ -235,6 +235,16 @@ button { -webkit-tap-highlight-color: transparent; }
   height: 42px;
 }
 
+.modifier-icon-system-break {
+  width: 42px;
+  height: 42px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 label { display: flex; flex-direction: column; gap: 8px; }
 label > span {
   font-size: 16px;

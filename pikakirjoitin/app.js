@@ -20,6 +20,7 @@ const leftHandBtn = document.getElementById('leftHandBtn');
 const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
+const systemBreakBtn = document.getElementById('systemBreakBtn');
 const songPanel = document.getElementById('songPanel');
 const songPanelToggle = document.getElementById('songPanelToggle');
 const songPanelClose = document.getElementById('songPanelClose');
@@ -176,6 +177,8 @@ const state = {
   osmd: null,
   gesture: null,
   currentDurationName: 'quarter',
+  systemBreaks: new Set(),
+  pendingSystemBreakIndex: null,
 };
 
 const scoreTouchGesture = {
@@ -349,6 +352,7 @@ function hideFlickHud() {
 function undoLastNoteWithFeedback() {
   if (state.notes.length > 0) {
     state.notes.pop();
+    restorePendingSystemBreakAfterUndo();
     renderScore();
     statusText.textContent = 'Kumottu';
   } else {
@@ -360,8 +364,56 @@ function undoLastNoteWithFeedback() {
   }, 900);
 }
 
+function getWrittenUnits() {
+  return state.notes.reduce((total, entry) => total + Number(entry.units || 0), 0);
+}
+
+function getNextMeasureIndex() {
+  return Math.max(1, Math.ceil(getWrittenUnits() / getMeasureUnits()));
+}
+
+function togglePendingSystemBreak() {
+  if (state.pendingSystemBreakIndex !== null) {
+    state.systemBreaks.delete(state.pendingSystemBreakIndex);
+    state.pendingSystemBreakIndex = null;
+  } else {
+    const measureIndex = getNextMeasureIndex();
+    state.systemBreaks.add(measureIndex);
+    state.pendingSystemBreakIndex = measureIndex;
+  }
+  syncSystemBreakButton();
+  renderScore();
+}
+
+function settlePendingSystemBreak() {
+  if (state.pendingSystemBreakIndex === null) return;
+  const breakStartsAtUnits = state.pendingSystemBreakIndex * getMeasureUnits();
+  if (getWrittenUnits() > breakStartsAtUnits) {
+    state.pendingSystemBreakIndex = null;
+    syncSystemBreakButton();
+  }
+}
+
+function syncSystemBreakButton() {
+  const active = state.pendingSystemBreakIndex !== null;
+  systemBreakBtn.classList.toggle('active', active);
+  systemBreakBtn.setAttribute('aria-pressed', String(active));
+}
+
+function restorePendingSystemBreakAfterUndo() {
+  const writtenUnits = getWrittenUnits();
+  const futureBreaks = [...state.systemBreaks]
+    .filter(index => writtenUnits <= index * getMeasureUnits())
+    .sort((a, b) => a - b);
+  state.pendingSystemBreakIndex = futureBreaks[0] ?? null;
+  syncSystemBreakButton();
+}
+
 function clearScoreWithFeedback() {
   state.notes = [];
+  state.systemBreaks.clear();
+  state.pendingSystemBreakIndex = null;
+  syncSystemBreakButton();
   renderScore();
   statusText.textContent = 'Nuotit tyhjennetty';
   clearTimeout(window.__clearScoreFeedbackTimer);
@@ -511,6 +563,7 @@ function commitFlickGesture(gesture) {
     octave: Number(keyEl.dataset.octave),
     units: durationUnits,
   });
+  settlePendingSystemBreak();
   renderScore();
 }
 
@@ -757,6 +810,7 @@ function importLayoutJson(file) {
 
 function addRest(units) {
   state.notes.push({ kind: 'rest', units });
+  settlePendingSystemBreak();
   renderScore();
 }
 
@@ -992,7 +1046,8 @@ function buildMusicXml() {
         <sound tempo="${bpm}"/>
       </direction>` : '';
     const notesXml = measure.map(noteToXml).join('');
-    return `<measure number="${number}">${attrs}${notesXml}</measure>`;
+    const systemBreak = i > 0 && state.systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
+    return `<measure number="${number}">${systemBreak}${attrs}${notesXml}</measure>`;
   }).join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1145,12 +1200,17 @@ restToggle.addEventListener('click', () => {
   updateToggleButtons();
 });
 
+systemBreakBtn.addEventListener('click', togglePendingSystemBreak);
+
 undoBtn.addEventListener('click', () => {
   undoLastNoteWithFeedback();
 });
 
 clearBtn.addEventListener('click', () => {
   state.notes = [];
+  state.systemBreaks.clear();
+  state.pendingSystemBreakIndex = null;
+  syncSystemBreakButton();
   renderScore();
 });
 
