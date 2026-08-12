@@ -277,7 +277,7 @@ input, select {
 }
 
 .left-actions button,
-.controls-panel button {
+.song-utility-actions button {
   height: 58px;
   border-radius: 16px;
   border: 1px solid #cfd9e7;
@@ -289,9 +289,11 @@ input, select {
 .main-column {
   width: 100%;
   min-width: 0;
-  display: grid;
-  grid-template-rows: minmax(300px, 1fr) auto minmax(300px, 42vh);
-  gap: 18px;
+  height: calc(100vh - 32px);
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .paper-panel {
@@ -300,6 +302,7 @@ input, select {
   padding: 14px 14px 18px;
   display: flex;
   flex-direction: column;
+  flex: 0 0 var(--score-share, 54%);
 }
 
 .paper-toolbar {
@@ -350,11 +353,35 @@ input, select {
 #osmdContainer > div,
 #osmdContainer svg { max-width: 100%; }
 
-.controls-panel {
-  padding: 12px;
+.song-utility-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+}
+
+.score-keyboard-divider {
+  flex: 0 0 18px;
+  position: relative;
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+  display: grid;
+  place-items: center;
+}
+
+.divider-grip {
+  width: 82px;
+  height: 6px;
+  border-radius: 999px;
+  background: #aab8ce;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8);
+  transition: width 100ms ease, background 100ms ease;
+}
+
+.score-keyboard-divider:hover .divider-grip,
+.score-keyboard-divider.dragging .divider-grip {
+  width: 112px;
+  background: var(--blue);
 }
 
 .mode-btn.active {
@@ -378,6 +405,7 @@ input, select {
   padding: 16px;
   min-height: 0;
   overflow: visible;
+  flex: 1 1 0;
 }
 
 .zone-keyboard {
@@ -626,6 +654,21 @@ input, select {
   font-weight: 700;
 }
 
+.json-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.json-actions button {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid #cfd9e7;
+  background: white;
+  color: var(--ink);
+  font-weight: 700;
+}
+
 @media (max-width: 700px) {
   .app-shell,
   .app-shell.left-handed { grid-template-columns: 78px minmax(0, 1fr); }
@@ -637,5 +680,5 @@ input, select {
     right: 10px;
     width: auto;
   }
-  .main-column { grid-template-rows: minmax(280px, auto) auto minmax(280px, 42vh); }
+  .main-column { min-height: 600px; }
 }

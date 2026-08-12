@@ -25,6 +25,11 @@ const songPanelToggle = document.getElementById('songPanelToggle');
 const songPanelClose = document.getElementById('songPanelClose');
 const songPanelDone = document.getElementById('songPanelDone');
 const songPanelBackdrop = document.getElementById('songPanelBackdrop');
+const mainColumn = document.querySelector('.main-column');
+const scoreKeyboardDivider = document.getElementById('scoreKeyboardDivider');
+const layoutJsonExport = document.getElementById('layoutJsonExport');
+const layoutJsonImport = document.getElementById('layoutJsonImport');
+const layoutJsonFile = document.getElementById('layoutJsonFile');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -49,6 +54,7 @@ const layoutOutputs = {
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const defaultLayout = {
   handedness: 'right',
+  scoreShare: 54,
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 66,
@@ -484,6 +490,7 @@ function loadLayoutState() {
     if (!saved) return structuredClone(defaultLayout);
     return {
       handedness: saved.handedness === 'left' ? 'left' : 'right',
+      scoreShare: Number(saved.scoreShare) || defaultLayout.scoreShare,
       whiteWidth: Number(saved.whiteWidth) || defaultLayout.whiteWidth,
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
@@ -506,11 +513,16 @@ function saveLayoutState() {
 function normalizeFlickThresholds() {
   // Ulomman rajan täytyy aina olla sisempää suurempi.
   layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
+  layoutState.scoreShare = clamp(Number(layoutState.scoreShare) || defaultLayout.scoreShare, 30, 70);
 }
 
 function applyLayoutState({ save = true } = {}) {
   normalizeFlickThresholds();
   appShell.classList.toggle('left-handed', layoutState.handedness === 'left');
+  mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
+  scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
+  scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
+  scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
   zonePanel.style.setProperty('--white-width-scale', String(layoutState.whiteWidth / 100));
   zonePanel.style.setProperty('--keyboard-height-scale', String(layoutState.keyboardHeight / 100));
   zonePanel.style.setProperty('--black-width-ratio', String(layoutState.blackWidth / 100));
@@ -576,6 +588,96 @@ function setSongPanelOpen(open) {
   songPanel.setAttribute('aria-hidden', String(!open));
   songPanelBackdrop.setAttribute('aria-hidden', String(!open));
   songPanelToggle.setAttribute('aria-expanded', String(open));
+}
+
+function setScoreShare(value, { save = false } = {}) {
+  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 30, 70);
+  mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
+  scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
+  scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
+  scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
+  if (save) saveLayoutState();
+}
+
+function bindScoreKeyboardDivider() {
+  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    scoreKeyboardDivider.classList.add('dragging');
+    scoreKeyboardDivider.setPointerCapture?.(ev.pointerId);
+  }, { passive: false });
+
+  scoreKeyboardDivider.addEventListener('pointermove', (ev) => {
+    if (!scoreKeyboardDivider.hasPointerCapture?.(ev.pointerId)) return;
+    ev.preventDefault();
+    const rect = mainColumn.getBoundingClientRect();
+    setScoreShare(((ev.clientY - rect.top) / rect.height) * 100);
+  }, { passive: false });
+
+  const finishDrag = (ev) => {
+    if (scoreKeyboardDivider.hasPointerCapture?.(ev.pointerId)) {
+      try { scoreKeyboardDivider.releasePointerCapture(ev.pointerId); } catch {}
+    }
+    scoreKeyboardDivider.classList.remove('dragging');
+    saveLayoutState();
+  };
+  scoreKeyboardDivider.addEventListener('pointerup', finishDrag);
+  scoreKeyboardDivider.addEventListener('pointercancel', finishDrag);
+
+  scoreKeyboardDivider.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
+    ev.preventDefault();
+    setScoreShare(layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1), { save: true });
+  });
+}
+
+function exportLayoutJson() {
+  const payload = {
+    format: 'Pikakirjoitin layout',
+    version: 1,
+    layout: structuredClone(layoutState),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'Pikakirjoitin_asettelu.json';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  statusText.textContent = 'Asettelu-JSON tallennettu';
+  setTimeout(() => statusText.textContent = 'Valmis', 1200);
+}
+
+function importLayoutJson(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || ''));
+      const imported = parsed.layout || parsed;
+      layoutState = {
+        handedness: imported.handedness === 'left' ? 'left' : 'right',
+        scoreShare: Number(imported.scoreShare) || defaultLayout.scoreShare,
+        whiteWidth: Number(imported.whiteWidth) || defaultLayout.whiteWidth,
+        keyboardHeight: Number(imported.keyboardHeight) || defaultLayout.keyboardHeight,
+        blackWidth: Number(imported.blackWidth) || defaultLayout.blackWidth,
+        blackHeight: Number(imported.blackHeight) || defaultLayout.blackHeight,
+        flick: {
+          eighth: Number(imported.flick?.eighth) || defaultLayout.flick.eighth,
+          half: Number(imported.flick?.half) || defaultLayout.flick.half,
+          longPressMs: Number(imported.flick?.longPressMs) || defaultLayout.flick.longPressMs,
+        },
+      };
+      applyLayoutState();
+      statusText.textContent = 'Asettelu-JSON ladattu';
+      setTimeout(() => statusText.textContent = 'Valmis', 1200);
+    } catch {
+      statusText.textContent = 'JSON-tiedostoa ei voitu lukea';
+    } finally {
+      layoutJsonFile.value = '';
+    }
+  };
+  reader.readAsText(file);
 }
 
 function addRest(units) {
@@ -1023,6 +1125,12 @@ songPanelToggle.addEventListener('click', () => setSongPanelOpen(!songPanel.clas
 songPanelClose.addEventListener('click', () => setSongPanelOpen(false));
 songPanelDone.addEventListener('click', () => setSongPanelOpen(false));
 songPanelBackdrop.addEventListener('click', () => setSongPanelOpen(false));
+layoutJsonExport.addEventListener('click', exportLayoutJson);
+layoutJsonImport.addEventListener('click', () => layoutJsonFile.click());
+layoutJsonFile.addEventListener('change', () => {
+  const [file] = layoutJsonFile.files || [];
+  if (file) importLayoutJson(file);
+});
 
 window.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && songPanel.classList.contains('open')) {
@@ -1056,7 +1164,9 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
 });
 
 bindLayoutControls();
+bindScoreKeyboardDivider();
 initKeyboard();
 applyLayoutState({ save: false });
+setScoreShare(layoutState.scoreShare);
 updateToggleButtons();
 renderScore();
