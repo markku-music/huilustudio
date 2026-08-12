@@ -27,6 +27,8 @@ const selectionToolbar = document.getElementById('selectionToolbar');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
+const selectionCrescendoBtn = document.getElementById('selectionCrescendoBtn');
+const selectionDiminuendoBtn = document.getElementById('selectionDiminuendoBtn');
 const selectionClearBtn = document.getElementById('selectionClearBtn');
 const songPanel = document.getElementById('songPanel');
 const songPanelToggle = document.getElementById('songPanelToggle');
@@ -252,7 +254,9 @@ const state = {
   notes: [],
   nextEntryId: 1,
   nextSlurId: 1,
+  nextHairpinId: 1,
   slurs: [],
+  hairpins: [],
   selectionMode: false,
   selectedNoteIndices: new Set(),
   noteSelectionHitboxes: [],
@@ -448,6 +452,7 @@ function undoLastNoteWithFeedback() {
   if (state.notes.length > 0) {
     state.notes.pop();
     pruneSlurs();
+    pruneHairpins();
     clearNoteSelection();
     restorePendingSystemBreakAfterUndo();
     renderScore();
@@ -674,6 +679,7 @@ function restorePendingSystemBreakAfterUndo() {
 function clearScoreWithFeedback() {
   state.notes = [];
   state.slurs = [];
+  state.hairpins = [];
   clearNoteSelection();
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
@@ -760,6 +766,14 @@ function pruneSlurs() {
   ));
 }
 
+function pruneHairpins() {
+  ensureScoreEntryIds();
+  const entryIds = new Set(state.notes.map(entry => entry.id));
+  state.hairpins = state.hairpins.filter(hairpin => (
+    entryIds.has(hairpin.startId) && entryIds.has(hairpin.endId)
+  ));
+}
+
 function getSelectedNoteIndices() {
   return [...state.selectedNoteIndices]
     .filter(index => state.notes[index]?.kind === 'note')
@@ -786,6 +800,15 @@ function findExactSelectionSlur(range = getLegatoSelectionRange()) {
   if (!range) return null;
   return state.slurs.find(slur => (
     slur.startId === range.startId && slur.endId === range.endId
+  )) || null;
+}
+
+function findExactSelectionHairpin(type, range = getLegatoSelectionRange()) {
+  if (!range) return null;
+  return state.hairpins.find(hairpin => (
+    hairpin.type === type
+    && hairpin.startId === range.startId
+    && hairpin.endId === range.endId
   )) || null;
 }
 
@@ -900,6 +923,8 @@ function syncNoteSelectionToolbar() {
   const indices = getSelectedNoteIndices();
   const legatoRange = getLegatoSelectionRange();
   const exactSlur = findExactSelectionSlur(legatoRange);
+  const exactCrescendo = findExactSelectionHairpin('crescendo', legatoRange);
+  const exactDiminuendo = findExactSelectionHairpin('diminuendo', legatoRange);
   const allStaccato = indices.length > 0 && indices.every(index => Boolean(state.notes[index].staccato));
 
   selectNotesBtn.classList.toggle('active', state.selectionMode);
@@ -917,6 +942,12 @@ function syncNoteSelectionToolbar() {
   selectionSlurBtn.disabled = !legatoRange;
   selectionSlurBtn.classList.toggle('active', Boolean(exactSlur));
   selectionSlurBtn.setAttribute('aria-pressed', String(Boolean(exactSlur)));
+  selectionCrescendoBtn.disabled = !legatoRange;
+  selectionCrescendoBtn.classList.toggle('active', Boolean(exactCrescendo));
+  selectionCrescendoBtn.setAttribute('aria-pressed', String(Boolean(exactCrescendo)));
+  selectionDiminuendoBtn.disabled = !legatoRange;
+  selectionDiminuendoBtn.classList.toggle('active', Boolean(exactDiminuendo));
+  selectionDiminuendoBtn.setAttribute('aria-pressed', String(Boolean(exactDiminuendo)));
 }
 
 function renderNoteSelectionOverlay() {
@@ -957,6 +988,57 @@ function renderNoteSelectionOverlay() {
 function refreshNoteSelectionGeometry() {
   buildNoteSelectionHitboxes();
   renderNoteSelectionOverlay();
+}
+
+function alignHairpinsByStaffLine() {
+  const measureList = state.osmd?.GraphicSheet?.MeasureList || [];
+  const staffLines = new Set();
+  measureList.forEach(measureGroup => {
+    (measureGroup || []).forEach(measure => {
+      const staffLine = measure?.ParentStaffLine;
+      if (staffLine) staffLines.add(staffLine);
+    });
+  });
+
+  staffLines.forEach(staffLine => {
+    const hairpins = (staffLine.AbstractExpressions || []).filter(expression => (
+      expression?.ContinuousDynamic
+      && Array.isArray(expression.Lines)
+      && expression.Lines.length === 2
+      && expression.Lines.every(line => line?.SVGElement)
+    ));
+    if (hairpins.length < 2) return;
+
+    // Hairpinit tehdään aina nuottiviivaston alapuolelle. Siksi rivin alin
+    // OSMD:n valitsema keskitaso on turvallinen yhteinen taso: yksikään
+    // merkki ei nouse takaisin nuottien tai varsien päälle.
+    const targetY = Math.max(...hairpins.map(expression => (
+      expression.Lines.reduce((total, line) => total + Number(line.Start?.y || 0), 0)
+        / expression.Lines.length
+    )));
+
+    hairpins.forEach(expression => {
+      const currentY = expression.Lines.reduce(
+        (total, line) => total + Number(line.Start?.y || 0),
+        0,
+      ) / expression.Lines.length;
+      const shiftSvgUnits = (targetY - currentY) * 10;
+      expression.Lines.forEach(line => {
+        const element = line.SVGElement;
+        if (!element.hasAttribute('data-hairpin-base-transform')) {
+          element.setAttribute('data-hairpin-base-transform', element.getAttribute('transform') || '');
+        }
+        const baseTransform = element.getAttribute('data-hairpin-base-transform') || '';
+        const alignmentTransform = Math.abs(shiftSvgUnits) > 0.001
+          ? `translate(0 ${shiftSvgUnits})`
+          : '';
+        const transform = `${baseTransform} ${alignmentTransform}`.trim();
+        if (transform) element.setAttribute('transform', transform);
+        else element.removeAttribute('transform');
+        element.setAttribute('data-hairpin-row-aligned', 'true');
+      });
+    });
+  });
 }
 
 function clearNoteSelection() {
@@ -1026,6 +1108,33 @@ function toggleLegatoForSelection() {
   renderScore();
 }
 
+function toggleHairpinForSelection(type) {
+  ensureScoreEntryIds();
+  const range = getLegatoSelectionRange();
+  if (!range) {
+    statusText.textContent = 'Valitse vähintään kaksi peräkkäistä nuottia';
+    return;
+  }
+
+  const existing = findExactSelectionHairpin(type, range);
+  state.hairpins = state.hairpins.filter(hairpin => !(
+    hairpin.startId === range.startId && hairpin.endId === range.endId
+  ));
+  if (existing) {
+    statusText.textContent = type === 'crescendo' ? 'Crescendo poistettu' : 'Diminuendo poistettu';
+  } else {
+    state.hairpins.push({
+      id: `hairpin-${state.nextHairpinId}`,
+      type,
+      startId: range.startId,
+      endId: range.endId,
+    });
+    state.nextHairpinId += 1;
+    statusText.textContent = type === 'crescendo' ? 'Crescendo lisätty' : 'Diminuendo lisätty';
+  }
+  renderScore();
+}
+
 function initNoteSelection() {
   selectNotesBtn.addEventListener('click', () => {
     setNoteSelectionMode(!state.selectionMode);
@@ -1033,6 +1142,8 @@ function initNoteSelection() {
   selectionClearBtn.addEventListener('click', clearNoteSelection);
   selectionStaccatoBtn.addEventListener('click', toggleStaccatoForSelection);
   selectionSlurBtn.addEventListener('click', toggleLegatoForSelection);
+  selectionCrescendoBtn.addEventListener('click', () => toggleHairpinForSelection('crescendo'));
+  selectionDiminuendoBtn.addEventListener('click', () => toggleHairpinForSelection('diminuendo'));
 
   osmdContainer.addEventListener('pointerdown', ev => {
     if (!state.selectionMode || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
@@ -1873,6 +1984,7 @@ function applyNoteSpacing({ save = false } = {}) {
         setOsmdNoteSpacingRules(state.osmd, spacing);
         await state.osmd.render();
         applyScoreTextLayout();
+        alignHairpinsByStaffLine();
         state.appliedNoteSpacing = spacing;
         renderSystemBreakMarkers();
         refreshNoteSelectionGeometry();
@@ -2129,6 +2241,7 @@ function splitUnitsGreedy(total) {
 function createEventsForScore() {
   ensureScoreEntryIds();
   pruneSlurs();
+  pruneHairpins();
   const measureUnits = getMeasureUnits();
   const measures = [];
   const segmentsByEntryId = new Map();
@@ -2198,6 +2311,22 @@ function createEventsForScore() {
     startSegments[0].slurStarts = [...(startSegments[0].slurStarts || []), number];
     const lastStopSegment = stopSegments[stopSegments.length - 1];
     lastStopSegment.slurStops = [...(lastStopSegment.slurStops || []), number];
+  });
+
+  state.hairpins.forEach((hairpin, hairpinIndex) => {
+    const startSegments = segmentsByEntryId.get(hairpin.startId);
+    const stopSegments = segmentsByEntryId.get(hairpin.endId);
+    if (!startSegments?.length || !stopSegments?.length) return;
+    const number = (hairpinIndex % 6) + 1;
+    startSegments[0].hairpinStarts = [
+      ...(startSegments[0].hairpinStarts || []),
+      { number, type: hairpin.type },
+    ];
+    const lastStopSegment = stopSegments[stopSegments.length - 1];
+    lastStopSegment.hairpinStops = [
+      ...(lastStopSegment.hairpinStops || []),
+      { number },
+    ];
   });
 
   if (currentMeasure.length > 0 || measures.length === 0) {
@@ -2275,6 +2404,15 @@ function noteNotationsXml(seg, isRest) {
   return contents ? `<notations>${contents}</notations>` : '';
 }
 
+function hairpinDirectionsXml(hairpins, stop = false) {
+  return (hairpins || []).map(hairpin => `
+    <direction placement="below">
+      <direction-type>
+        <wedge type="${stop ? 'stop' : hairpin.type}" number="${hairpin.number}"/>
+      </direction-type>
+    </direction>`).join('');
+}
+
 function noteToXml(seg) {
   const dur = durationMapByUnits.get(seg.units);
   if (!dur) throw new Error(`Tuntematon kesto: ${seg.units}`);
@@ -2335,7 +2473,10 @@ function buildMusicXml() {
         state.renderedNoteObjectMap.set(renderedNoteObjectId, seg.sourceEntryIndex);
       }
       renderedNoteObjectId += 1;
-      return noteToXml(seg);
+      const hairpinStart = hairpinDirectionsXml(seg.hairpinStarts);
+      const noteXml = noteToXml(seg);
+      const hairpinStop = hairpinDirectionsXml(seg.hairpinStops, true);
+      return `${hairpinStart}${noteXml}${hairpinStop}`;
     }).join('');
     const systemBreak = i > 0 && state.systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
     const finalBarline = state.notes.length > 0 && i === measures.length - 1
@@ -2416,6 +2557,7 @@ async function renderScoreNow() {
     osmd.zoom = layoutState.scoreZoom / 100;
     await osmd.render();
     applyScoreTextLayout();
+    alignHairpinsByStaffLine();
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
@@ -2546,6 +2688,7 @@ undoBtn.addEventListener('click', () => {
 clearBtn.addEventListener('click', () => {
   state.notes = [];
   state.slurs = [];
+  state.hairpins = [];
   clearNoteSelection();
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
@@ -2577,6 +2720,7 @@ function scheduleOsmdResizeRender() {
       // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
       await state.osmd.render();
       applyScoreTextLayout();
+      alignHairpinsByStaffLine();
       renderSystemBreakMarkers();
       refreshNoteSelectionGeometry();
       noteScoreRenderCompleted();
