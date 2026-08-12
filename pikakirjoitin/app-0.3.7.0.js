@@ -75,16 +75,59 @@ const layoutOutputs = {
   longPress: document.getElementById('longPressOut'),
 };
 
+const scoreTextControls = {
+  title: {
+    size: document.getElementById('titleSizeSlider'),
+    x: document.getElementById('titleXSlider'),
+    y: document.getElementById('titleYSlider'),
+  },
+  composer: {
+    size: document.getElementById('composerSizeSlider'),
+    x: document.getElementById('composerXSlider'),
+    y: document.getElementById('composerYSlider'),
+  },
+  tempo: {
+    size: document.getElementById('tempoSizeSlider'),
+    x: document.getElementById('tempoXSlider'),
+    y: document.getElementById('tempoYSlider'),
+  },
+};
+
+const scoreTextOutputs = {
+  title: {
+    size: document.getElementById('titleSizeOut'),
+    x: document.getElementById('titleXOut'),
+    y: document.getElementById('titleYOut'),
+  },
+  composer: {
+    size: document.getElementById('composerSizeOut'),
+    x: document.getElementById('composerXOut'),
+    y: document.getElementById('composerYOut'),
+  },
+  tempo: {
+    size: document.getElementById('tempoSizeOut'),
+    x: document.getElementById('tempoXOut'),
+    y: document.getElementById('tempoYOut'),
+  },
+};
+
+const SCORE_TEXT_ROLES = ['title', 'composer', 'tempo'];
+
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
-const LAYOUT_DEFAULTS_VERSION = 2;
+const LAYOUT_DEFAULTS_VERSION = 3;
 const defaultLayout = {
   defaultsVersion: LAYOUT_DEFAULTS_VERSION,
   handedness: 'right',
   scoreShare: 70,
   noteSpacing: 100,
-  scoreZoom: 150,
+  scoreZoom: 100,
   systemSpacing: 500,
   printWatermark: true,
+  scoreText: {
+    title: { size: 90, x: 0, y: -30 },
+    composer: { size: 100, x: 0, y: 15 },
+    tempo: { size: 100, x: 55, y: 0 },
+  },
   margins: {
     left: 2,
     right: 2,
@@ -775,6 +818,11 @@ function finiteLayoutNumber(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function migrateEarlierDefault(value, previousDefault, nextDefault, usesEarlierDefaults) {
+  const parsed = finiteLayoutNumber(value, nextDefault);
+  return usesEarlierDefaults && parsed === previousDefault ? nextDefault : parsed;
+}
+
 function loadLayoutState() {
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || 'null');
@@ -788,11 +836,30 @@ function loadLayoutState() {
       handedness: saved.handedness === 'left' ? 'left' : 'right',
       scoreShare: usesEarlierDefaults && savedScoreShare === 54 ? defaultLayout.scoreShare : savedScoreShare,
       noteSpacing: normalizeNoteSpacing(saved.noteSpacing),
-      scoreZoom: usesEarlierDefaults && savedScoreZoom === 108 ? defaultLayout.scoreZoom : savedScoreZoom,
+      scoreZoom: usesEarlierDefaults && (savedScoreZoom === 108 || savedScoreZoom === 150)
+        ? defaultLayout.scoreZoom
+        : savedScoreZoom,
       systemSpacing: usesEarlierDefaults && (savedSystemSpacing === 100 || savedSystemSpacing === 300)
         ? defaultLayout.systemSpacing
         : savedSystemSpacing,
       printWatermark: saved.printWatermark !== false,
+      scoreText: {
+        title: {
+          size: migrateEarlierDefault(saved.scoreText?.title?.size, 100, defaultLayout.scoreText.title.size, usesEarlierDefaults),
+          x: finiteLayoutNumber(saved.scoreText?.title?.x, defaultLayout.scoreText.title.x),
+          y: migrateEarlierDefault(saved.scoreText?.title?.y, 0, defaultLayout.scoreText.title.y, usesEarlierDefaults),
+        },
+        composer: {
+          size: finiteLayoutNumber(saved.scoreText?.composer?.size, defaultLayout.scoreText.composer.size),
+          x: finiteLayoutNumber(saved.scoreText?.composer?.x, defaultLayout.scoreText.composer.x),
+          y: migrateEarlierDefault(saved.scoreText?.composer?.y, 0, defaultLayout.scoreText.composer.y, usesEarlierDefaults),
+        },
+        tempo: {
+          size: finiteLayoutNumber(saved.scoreText?.tempo?.size, defaultLayout.scoreText.tempo.size),
+          x: migrateEarlierDefault(saved.scoreText?.tempo?.x, 0, defaultLayout.scoreText.tempo.x, usesEarlierDefaults),
+          y: finiteLayoutNumber(saved.scoreText?.tempo?.y, defaultLayout.scoreText.tempo.y),
+        },
+      },
       margins: {
         left: finiteLayoutNumber(saved.margins?.left, defaultLayout.margins.left),
         right: finiteLayoutNumber(saved.margins?.right, defaultLayout.margins.right),
@@ -827,6 +894,25 @@ function normalizeFlickThresholds() {
   layoutState.scoreZoom = clamp(finiteLayoutNumber(layoutState.scoreZoom, defaultLayout.scoreZoom), 70, 160);
   layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 500, 1000);
   layoutState.printWatermark = layoutState.printWatermark !== false;
+  layoutState.scoreText ||= structuredClone(defaultLayout.scoreText);
+  SCORE_TEXT_ROLES.forEach(role => {
+    layoutState.scoreText[role] ||= structuredClone(defaultLayout.scoreText[role]);
+    layoutState.scoreText[role].size = clamp(
+      finiteLayoutNumber(layoutState.scoreText[role].size, defaultLayout.scoreText[role].size),
+      50,
+      250,
+    );
+    layoutState.scoreText[role].x = clamp(
+      finiteLayoutNumber(layoutState.scoreText[role].x, defaultLayout.scoreText[role].x),
+      -300,
+      300,
+    );
+    layoutState.scoreText[role].y = clamp(
+      finiteLayoutNumber(layoutState.scoreText[role].y, defaultLayout.scoreText[role].y),
+      -200,
+      200,
+    );
+  });
   layoutState.margins.left = clamp(finiteLayoutNumber(layoutState.margins.left, defaultLayout.margins.left), 0, 12);
   layoutState.margins.right = clamp(finiteLayoutNumber(layoutState.margins.right, defaultLayout.margins.right), 0, 12);
   layoutState.margins.top = clamp(finiteLayoutNumber(layoutState.margins.top, defaultLayout.margins.top), 0, 15);
@@ -858,6 +944,7 @@ function applyLayoutState({ save = true } = {}) {
   syncStretchLastLineButton();
   applyNoteSpacing();
   applyScoreLayout();
+  applyScoreTextLayout();
   if (save) saveLayoutState();
 }
 
@@ -900,6 +987,14 @@ function syncLayoutControls() {
   printWatermarkToggle.classList.toggle('active', layoutState.printWatermark);
   printWatermarkToggle.setAttribute('aria-pressed', String(layoutState.printWatermark));
   printWatermarkState.textContent = layoutState.printWatermark ? 'Päällä' : 'Pois';
+  SCORE_TEXT_ROLES.forEach(role => {
+    scoreTextControls[role].size.value = String(layoutState.scoreText[role].size);
+    scoreTextControls[role].x.value = String(layoutState.scoreText[role].x);
+    scoreTextControls[role].y.value = String(layoutState.scoreText[role].y);
+    scoreTextOutputs[role].size.textContent = `${layoutState.scoreText[role].size} %`;
+    scoreTextOutputs[role].x.textContent = `${layoutState.scoreText[role].x} u`;
+    scoreTextOutputs[role].y.textContent = `${layoutState.scoreText[role].y} u`;
+  });
 }
 
 function syncStretchLastLineButton() {
@@ -954,6 +1049,18 @@ function bindLayoutControls() {
     syncLayoutControls();
     saveLayoutState();
   });
+  SCORE_TEXT_ROLES.forEach(role => {
+    ['size', 'x', 'y'].forEach(property => {
+      scoreTextControls[role][property].addEventListener('input', event => {
+        layoutState.scoreText[role][property] = Number(event.target.value);
+        normalizeFlickThresholds();
+        syncLayoutControls();
+        applyScoreTextLayout();
+        invalidateCachedPdf();
+        saveLayoutState();
+      });
+    });
+  });
 }
 
 function setLayoutPanelOpen(open) {
@@ -983,6 +1090,113 @@ function getScorePageSvgs() {
     .map(page => page.querySelector('svg'))
     .filter(Boolean);
   return pageSvgs.length ? pageSvgs : [...osmdContainer.querySelectorAll('svg')];
+}
+
+function normalizeRenderedText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function getSvgTextFontSize(element) {
+  return finiteLayoutNumber(String(element.getAttribute('font-size') || '').replace('px', ''), 20);
+}
+
+function getSvgTextBox(element) {
+  try {
+    const box = element.getBBox();
+    if ([box.x, box.y, box.width, box.height].every(Number.isFinite) && box.width >= 0 && box.height > 0) {
+      return { x: box.x, y: box.y, width: box.width, height: box.height };
+    }
+  } catch {}
+
+  const x = finiteLayoutNumber(element.getAttribute('x'), 0);
+  const y = finiteLayoutNumber(element.getAttribute('y'), 0);
+  const fontSize = getSvgTextFontSize(element);
+  let width = normalizeRenderedText(element.textContent).length * fontSize * 0.55;
+  try {
+    const measuredWidth = element.getComputedTextLength();
+    if (Number.isFinite(measuredWidth) && measuredWidth > 0) width = measuredWidth;
+  } catch {}
+  return { x, y: y - fontSize * 0.8, width, height: fontSize };
+}
+
+function findScoreTextElement(svg, role, value, claimedElements) {
+  const existing = svg.querySelector(`text[data-score-text-role="${role}"]`);
+  if (existing && !claimedElements.has(existing)) return existing;
+
+  const wanted = normalizeRenderedText(value);
+  if (!wanted) return null;
+  const candidates = [...svg.querySelectorAll('text')].filter(element => (
+    !claimedElements.has(element)
+    && !element.hasAttribute('data-score-text-role')
+    && normalizeRenderedText(element.textContent) === wanted
+  ));
+  if (!candidates.length) return null;
+
+  if (role === 'title') {
+    candidates.sort((a, b) => getSvgTextFontSize(b) - getSvgTextFontSize(a));
+  } else if (role === 'composer') {
+    candidates.sort((a, b) => getSvgTextBox(a).y - getSvgTextBox(b).y);
+  } else {
+    candidates.sort((a, b) => getSvgTextBox(b).y - getSvgTextBox(a).y);
+  }
+  return candidates[0];
+}
+
+function rememberScoreTextBase(element, role) {
+  if (!element.hasAttribute('data-score-text-base-box')) {
+    const box = getSvgTextBox(element);
+    element.setAttribute('data-score-text-base-x', String(finiteLayoutNumber(element.getAttribute('x'), 0)));
+    element.setAttribute('data-score-text-base-y', String(finiteLayoutNumber(element.getAttribute('y'), 0)));
+    element.setAttribute('data-score-text-base-font-size', String(getSvgTextFontSize(element)));
+    element.setAttribute('data-score-text-base-box', [box.x, box.y, box.width, box.height].join(','));
+  }
+  element.setAttribute('data-score-text-role', role);
+}
+
+function applyScoreTextElement(element, role, settings) {
+  rememberScoreTextBase(element, role);
+  const baseX = finiteLayoutNumber(element.getAttribute('data-score-text-base-x'), 0);
+  const baseY = finiteLayoutNumber(element.getAttribute('data-score-text-base-y'), 0);
+  const baseFontSize = finiteLayoutNumber(element.getAttribute('data-score-text-base-font-size'), 20);
+  const baseBoxValues = String(element.getAttribute('data-score-text-base-box') || '')
+    .split(',')
+    .map(Number);
+  const baseBox = baseBoxValues.length === 4 && baseBoxValues.every(Number.isFinite)
+    ? { x: baseBoxValues[0], y: baseBoxValues[1], width: baseBoxValues[2], height: baseBoxValues[3] }
+    : getSvgTextBox(element);
+
+  element.setAttribute('x', String(baseX));
+  element.setAttribute('y', String(baseY));
+  element.setAttribute('font-size', `${baseFontSize * settings.size / 100}px`);
+  const scaledBox = getSvgTextBox(element);
+
+  let horizontalCorrection = baseBox.x - scaledBox.x;
+  if (role === 'title') {
+    horizontalCorrection = (baseBox.x + baseBox.width / 2) - (scaledBox.x + scaledBox.width / 2);
+  } else if (role === 'composer') {
+    horizontalCorrection = (baseBox.x + baseBox.width) - (scaledBox.x + scaledBox.width);
+  }
+  const verticalCorrection = (baseBox.y + baseBox.height / 2) - (scaledBox.y + scaledBox.height / 2);
+  element.setAttribute('x', String(baseX + horizontalCorrection + settings.x));
+  element.setAttribute('y', String(baseY + verticalCorrection + settings.y));
+}
+
+function applyScoreTextLayout() {
+  if (!layoutState?.scoreText) return;
+  const values = {
+    title: titleInput.value || 'Uusi kappale',
+    composer: composerInput.value || '',
+    tempo: tempoTextInput.value || '',
+  };
+  getScorePageSvgs().forEach(svg => {
+    const claimedElements = new Set();
+    SCORE_TEXT_ROLES.forEach(role => {
+      const element = findScoreTextElement(svg, role, values[role], claimedElements);
+      if (!element) return;
+      claimedElements.add(element);
+      applyScoreTextElement(element, role, layoutState.scoreText[role]);
+    });
+  });
 }
 
 function getCurrentPdfSignature() {
@@ -1066,24 +1280,30 @@ function appendPdfWatermark(svg) {
   if (!layoutState.printWatermark) return;
   const box = parseSvgViewBox(svg);
   const centerX = box.x + box.width / 2;
-  const centerY = box.y + box.height / 2;
-  const fontSize = box.width * 0.055;
-  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  text.classList.add('pdf-watermark-overlay');
-  text.setAttribute('x', String(centerX));
-  text.setAttribute('y', String(centerY));
-  text.setAttribute('dy', String(fontSize * 0.34));
-  text.setAttribute('text-anchor', 'middle');
-  text.setAttribute('transform', `rotate(-28 ${centerX} ${centerY})`);
-  text.setAttribute('fill', '#6f7785');
-  text.setAttribute('fill-opacity', '0.12');
-  text.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
-  text.setAttribute('font-size', String(fontSize));
-  text.setAttribute('font-weight', '800');
-  text.setAttribute('letter-spacing', String(box.width * 0.002));
-  text.setAttribute('pointer-events', 'none');
-  text.textContent = PRINT_WATERMARK_TEXT;
-  svg.appendChild(text);
+  const fontSize = box.width * 0.05;
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.classList.add('pdf-watermark-overlay');
+  group.setAttribute('pointer-events', 'none');
+
+  [0.22, 0.5, 0.78].forEach(verticalPosition => {
+    const centerY = box.y + box.height * verticalPosition;
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', String(centerX));
+    text.setAttribute('y', String(centerY));
+    text.setAttribute('dy', String(fontSize * 0.34));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('transform', `rotate(-28 ${centerX} ${centerY})`);
+    text.setAttribute('fill', '#6f7785');
+    text.setAttribute('fill-opacity', '0.12');
+    text.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
+    text.setAttribute('font-size', String(fontSize));
+    text.setAttribute('font-weight', '800');
+    text.setAttribute('letter-spacing', String(box.width * 0.002));
+    text.textContent = PRINT_WATERMARK_TEXT;
+    group.appendChild(text);
+  });
+
+  svg.appendChild(group);
 }
 
 async function createScorePdfFile() {
@@ -1231,11 +1451,13 @@ function preparePrintWatermarks() {
   if (!layoutState.printWatermark) return;
   osmdContainer.querySelectorAll('div[id^="osmdCanvasPage"]').forEach(page => {
     const overlay = document.createElement('div');
-    const label = document.createElement('span');
     overlay.className = 'print-watermark-overlay';
     overlay.setAttribute('aria-hidden', 'true');
-    label.textContent = PRINT_WATERMARK_TEXT;
-    overlay.appendChild(label);
+    for (let index = 0; index < 3; index += 1) {
+      const label = document.createElement('span');
+      label.textContent = PRINT_WATERMARK_TEXT;
+      overlay.appendChild(label);
+    }
     page.appendChild(overlay);
   });
 }
@@ -1420,6 +1642,23 @@ function importLayoutJson(file) {
         scoreZoom: finiteLayoutNumber(imported.scoreZoom, defaultLayout.scoreZoom),
         systemSpacing: finiteLayoutNumber(imported.systemSpacing, defaultLayout.systemSpacing),
         printWatermark: imported.printWatermark !== false,
+        scoreText: {
+          title: {
+            size: finiteLayoutNumber(imported.scoreText?.title?.size, defaultLayout.scoreText.title.size),
+            x: finiteLayoutNumber(imported.scoreText?.title?.x, defaultLayout.scoreText.title.x),
+            y: finiteLayoutNumber(imported.scoreText?.title?.y, defaultLayout.scoreText.title.y),
+          },
+          composer: {
+            size: finiteLayoutNumber(imported.scoreText?.composer?.size, defaultLayout.scoreText.composer.size),
+            x: finiteLayoutNumber(imported.scoreText?.composer?.x, defaultLayout.scoreText.composer.x),
+            y: finiteLayoutNumber(imported.scoreText?.composer?.y, defaultLayout.scoreText.composer.y),
+          },
+          tempo: {
+            size: finiteLayoutNumber(imported.scoreText?.tempo?.size, defaultLayout.scoreText.tempo.size),
+            x: finiteLayoutNumber(imported.scoreText?.tempo?.x, defaultLayout.scoreText.tempo.x),
+            y: finiteLayoutNumber(imported.scoreText?.tempo?.y, defaultLayout.scoreText.tempo.y),
+          },
+        },
         margins: {
           left: finiteLayoutNumber(imported.margins?.left, defaultLayout.margins.left),
           right: finiteLayoutNumber(imported.margins?.right, defaultLayout.margins.right),
@@ -1764,6 +2003,7 @@ async function renderScoreNow() {
     }
     osmd.zoom = layoutState.scoreZoom / 100;
     await osmd.render();
+    applyScoreTextLayout();
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
@@ -1982,6 +2222,9 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Nuottikuvan zoom: ${layoutState.scoreZoom}%`,
     `Riviväli: ${layoutState.systemSpacing}%`,
     `Kokeiluvesileima: ${layoutState.printWatermark ? 'Päällä' : 'Pois'}`,
+    `Otsikko (koko/X/Y): ${layoutState.scoreText.title.size}% / ${layoutState.scoreText.title.x} / ${layoutState.scoreText.title.y} u`,
+    `Säveltäjä (koko/X/Y): ${layoutState.scoreText.composer.size}% / ${layoutState.scoreText.composer.x} / ${layoutState.scoreText.composer.y} u`,
+    `Tempoteksti (koko/X/Y): ${layoutState.scoreText.tempo.size}% / ${layoutState.scoreText.tempo.x} / ${layoutState.scoreText.tempo.y} u`,
     `Marginaalit (vasen/oikea/ylä/ala): ${layoutState.margins.left}/${layoutState.margins.right}/${layoutState.margins.top}/${layoutState.margins.bottom} u`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,

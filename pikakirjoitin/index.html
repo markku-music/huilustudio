@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.6.7" />
+  <link rel="stylesheet" href="style.css?v=0.3.7.0" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -201,8 +201,8 @@
     <div class="layout-section">
       <h3>Nuottikuva</h3>
       <label class="slider-row">
-        <span>Zoom <output id="scoreZoomOut">150 %</output></span>
-        <input id="scoreZoomSlider" type="range" min="70" max="160" step="1" value="150">
+        <span>Zoom <output id="scoreZoomOut">100 %</output></span>
+        <input id="scoreZoomSlider" type="range" min="70" max="160" step="1" value="100">
       </label>
       <label class="slider-row">
         <span>Riviväli <output id="systemSpacingOut">500 %</output></span>
@@ -224,6 +224,59 @@
         <span>Alamarginaali <output id="marginBottomOut">0 u</output></span>
         <input id="marginBottomSlider" type="range" min="0" max="15" step="0.5" value="0">
       </label>
+    </div>
+
+    <div class="layout-section">
+      <h3>Tekstien asettelu</h3>
+      <p class="layout-hint">Koko annetaan prosentteina. Positiivinen X siirtää oikealle ja positiivinen Y alaspäin.</p>
+
+      <div class="text-layout-block">
+        <h4>Otsikko</h4>
+        <label class="slider-row">
+          <span>Koko <output id="titleSizeOut">90 %</output></span>
+          <input id="titleSizeSlider" type="range" min="50" max="250" step="5" value="90">
+        </label>
+        <label class="slider-row">
+          <span>X <output id="titleXOut">0 u</output></span>
+          <input id="titleXSlider" type="range" min="-300" max="300" step="5" value="0">
+        </label>
+        <label class="slider-row">
+          <span>Y <output id="titleYOut">-30 u</output></span>
+          <input id="titleYSlider" type="range" min="-200" max="200" step="5" value="-30">
+        </label>
+      </div>
+
+      <div class="text-layout-block">
+        <h4>Säveltäjä</h4>
+        <label class="slider-row">
+          <span>Koko <output id="composerSizeOut">100 %</output></span>
+          <input id="composerSizeSlider" type="range" min="50" max="250" step="5" value="100">
+        </label>
+        <label class="slider-row">
+          <span>X <output id="composerXOut">0 u</output></span>
+          <input id="composerXSlider" type="range" min="-300" max="300" step="5" value="0">
+        </label>
+        <label class="slider-row">
+          <span>Y <output id="composerYOut">15 u</output></span>
+          <input id="composerYSlider" type="range" min="-200" max="200" step="5" value="15">
+        </label>
+      </div>
+
+      <div class="text-layout-block">
+        <h4>Tempoteksti</h4>
+        <label class="slider-row">
+          <span>Koko <output id="tempoSizeOut">100 %</output></span>
+          <input id="tempoSizeSlider" type="range" min="50" max="250" step="5" value="100">
+        </label>
+        <label class="slider-row">
+          <span>X <output id="tempoXOut">55 u</output></span>
+          <input id="tempoXSlider" type="range" min="-300" max="300" step="5" value="55">
+        </label>
+        <label class="slider-row">
+          <span>Y <output id="tempoYOut">0 u</output></span>
+          <input id="tempoYSlider" type="range" min="-200" max="200" step="5" value="0">
+        </label>
+      </div>
     </div>
 
     <div class="layout-section">
@@ -269,7 +322,7 @@
 
     <div class="layout-section">
       <h3>Tulostus ja PDF</h3>
-      <p class="layout-hint">Kokeiluvesileima lisätään jokaisen A4-sivun nuottien päälle. Se ei näy nuottia kirjoitettaessa.</p>
+      <p class="layout-hint">Kolme kokeiluvesileimaa lisätään jokaisen A4-sivun nuottien päälle. Ne eivät näy nuottia kirjoitettaessa.</p>
       <button id="printWatermarkToggle" class="setting-toggle-button active" type="button" aria-pressed="true">
         <span class="setting-toggle-copy">
           <strong>HUILUSTUDIO · KOKEILUVERSIO</strong>
@@ -303,6 +356,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.6.7.js"></script>
+  <script src="app-0.3.7.0.js"></script>
 </body>
 </html>
