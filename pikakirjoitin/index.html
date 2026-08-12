@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.7.7" />
+  <link rel="stylesheet" href="style.css?v=0.3.7.8" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -86,6 +86,22 @@
           <button id="restToggle" class="mode-btn" type="button">𝄽 tauko: pois</button>
           <button id="playScaleBtn" class="mode-btn secondary" type="button">Testiääni</button>
         </div>
+        <div class="project-actions" aria-label="Kappaleprojektin tallennus ja avaaminen">
+          <button id="projectSaveBtn" class="project-action-button project-action-primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 3h11l3 3v15H5zM8 3v6h8V3M8 16h8"/>
+            </svg>
+            <span>Tallenna projekti</span>
+          </button>
+          <button id="projectLoadBtn" class="project-action-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 7h7l2 2h9l-2 11H5zM3 7V4h7l2 2h7v3"/>
+            </svg>
+            <span>Avaa projekti</span>
+          </button>
+          <input id="projectFileInput" type="file" accept=".pikakirjoitin.json,.json,application/json" hidden>
+        </div>
+        <p id="projectActionStatus" class="project-action-status" role="status" aria-live="polite">Kappale tallennetaan automaattisesti tälle laitteelle.</p>
         <div class="document-actions" aria-label="Tulostus ja PDF">
           <button id="printScoreBtn" class="document-action-button" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -410,6 +426,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.7.7.js"></script>
+  <script src="app-0.3.7.8.js"></script>
 </body>
 </html>

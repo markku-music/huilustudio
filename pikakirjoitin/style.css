@@ -823,6 +823,54 @@ input, select {
   gap: 10px;
 }
 
+.project-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.project-action-button {
+  min-height: 58px;
+  padding: 8px 9px;
+  border: 1px solid #cfd9e7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.project-action-button svg {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.project-action-button.project-action-primary {
+  border-color: #b8a1f3;
+  background: #f0eaff;
+  color: #5633ad;
+}
+
+.project-action-status {
+  min-height: 17px;
+  margin: -2px 0 0;
+  color: #6a50a8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .document-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

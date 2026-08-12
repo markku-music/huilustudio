@@ -50,6 +50,10 @@ const printScoreBtn = document.getElementById('printScoreBtn');
 const pdfShareBtn = document.getElementById('pdfShareBtn');
 const pdfShareBtnLabel = document.getElementById('pdfShareBtnLabel');
 const documentActionStatus = document.getElementById('documentActionStatus');
+const projectSaveBtn = document.getElementById('projectSaveBtn');
+const projectLoadBtn = document.getElementById('projectLoadBtn');
+const projectFileInput = document.getElementById('projectFileInput');
+const projectActionStatus = document.getElementById('projectActionStatus');
 const printWatermarkToggle = document.getElementById('printWatermarkToggle');
 const printWatermarkState = document.getElementById('printWatermarkState');
 const PRINT_WATERMARK_TEXT = 'HUILUSTUDIO · KOKEILUVERSIO';
@@ -126,6 +130,10 @@ const SCORE_TEXT_ROLES = ['title', 'composer', 'tempo'];
 
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
+const PROJECT_FORMAT = 'Pikakirjoitin project';
+const PROJECT_FORMAT_VERSION = 1;
+const PROJECT_APP_VERSION = '0.3.7.8';
+const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const defaultLayout = {
   defaultsVersion: LAYOUT_DEFAULTS_VERSION,
   handedness: 'right',
@@ -163,6 +171,8 @@ let scoreRenderRevision = 0;
 let pdfActionRunning = false;
 let cachedPdfFile = null;
 let cachedPdfSignature = '';
+let projectAutosaveEnabled = false;
+let projectAutosaveTimer = null;
 
 const titleInput = document.getElementById('titleInput');
 const composerInput = document.getElementById('composerInput');
@@ -1460,6 +1470,7 @@ function loadLayoutState() {
 
 function saveLayoutState() {
   localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layoutState));
+  scheduleProjectAutosave();
 }
 
 function normalizeFlickThresholds() {
@@ -2318,6 +2329,373 @@ function importLayoutJson(file) {
   reader.readAsText(file);
 }
 
+function projectText(value, fallback = '', maxLength = 200) {
+  return String(value ?? fallback).slice(0, maxLength);
+}
+
+function getProjectLayoutData() {
+  return {
+    noteSpacing: layoutState.noteSpacing,
+    scoreZoom: layoutState.scoreZoom,
+    systemSpacing: layoutState.systemSpacing,
+    printWatermark: layoutState.printWatermark,
+    scoreText: structuredClone(layoutState.scoreText),
+    margins: structuredClone(layoutState.margins),
+  };
+}
+
+function createProjectPayload() {
+  ensureScoreEntryIds();
+  pruneSlurs();
+  pruneHairpins();
+  return {
+    format: PROJECT_FORMAT,
+    version: PROJECT_FORMAT_VERSION,
+    appVersion: PROJECT_APP_VERSION,
+    savedAt: new Date().toISOString(),
+    song: {
+      title: titleInput.value || 'Uusi kappale',
+      composer: composerInput.value || '',
+      tempoText: tempoTextInput.value || '',
+      bpm: clamp(Number(bpmInput.value) || 100, 30, 240),
+      time: {
+        beats: Number(beatsSelect.value) || 4,
+        beatType: Number(beatTypeSelect.value) || 4,
+      },
+      key: {
+        fifths: Number(keySelect.value) || 0,
+        mode: modeSelect.value === 'minor' ? 'minor' : 'major',
+      },
+    },
+    score: {
+      notes: structuredClone(state.notes),
+      slurs: structuredClone(state.slurs),
+      hairpins: structuredClone(state.hairpins),
+      systemBreaks: [...state.systemBreaks].sort((a, b) => a - b),
+      pendingSystemBreakIndex: state.pendingSystemBreakIndex,
+    },
+    layout: getProjectLayoutData(),
+  };
+}
+
+function normalizeProjectLayout(imported) {
+  imported ||= {};
+  const current = getProjectLayoutData();
+  const readScoreText = (role, property) => finiteLayoutNumber(
+    imported.scoreText?.[role]?.[property],
+    current.scoreText[role][property],
+  );
+  return {
+    noteSpacing: normalizeNoteSpacing(imported.noteSpacing ?? current.noteSpacing),
+    scoreZoom: clamp(finiteLayoutNumber(imported.scoreZoom, current.scoreZoom), 70, 160),
+    systemSpacing: clamp(finiteLayoutNumber(imported.systemSpacing, current.systemSpacing), 500, 1000),
+    printWatermark: Object.prototype.hasOwnProperty.call(imported, 'printWatermark')
+      ? imported.printWatermark !== false
+      : current.printWatermark,
+    scoreText: {
+      title: {
+        size: readScoreText('title', 'size'),
+        x: readScoreText('title', 'x'),
+        y: readScoreText('title', 'y'),
+      },
+      composer: {
+        size: readScoreText('composer', 'size'),
+        x: readScoreText('composer', 'x'),
+        y: readScoreText('composer', 'y'),
+      },
+      tempo: {
+        size: readScoreText('tempo', 'size'),
+        x: readScoreText('tempo', 'x'),
+        y: readScoreText('tempo', 'y'),
+      },
+    },
+    margins: {
+      left: finiteLayoutNumber(imported.margins?.left, current.margins.left),
+      right: finiteLayoutNumber(imported.margins?.right, current.margins.right),
+      top: finiteLayoutNumber(imported.margins?.top, current.margins.top),
+      bottom: finiteLayoutNumber(imported.margins?.bottom, current.margins.bottom),
+    },
+  };
+}
+
+function parseProjectPayload(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('Projektitiedoston rakenne puuttuu.');
+  if (raw.format !== PROJECT_FORMAT) throw new Error('Tiedosto ei ole Pikakirjoitin-projekti.');
+  const version = Number(raw.version);
+  if (!Number.isInteger(version) || version < 1 || version > PROJECT_FORMAT_VERSION) {
+    throw new Error('Projektitiedoston versiota ei tueta.');
+  }
+
+  const sourceNotes = raw.score?.notes;
+  if (!Array.isArray(sourceNotes)) throw new Error('Projektista puuttuvat nuotit.');
+  if (sourceNotes.length > 10000) throw new Error('Projektissa on liian monta nuottia.');
+
+  const oldToNewId = new Map();
+  const noteKindById = new Map();
+  const allowedDynamics = new Set(['ppp', 'pp', 'p', 'mp', 'mf', 'f', 'ff', 'fff']);
+  const notes = sourceNotes.map((source, index) => {
+    if (!source || (source.kind !== 'note' && source.kind !== 'rest')) {
+      throw new Error(`Virheellinen nuotti kohdassa ${index + 1}.`);
+    }
+    const units = Number(source.units);
+    if (!durationMapByUnits.has(units)) {
+      throw new Error(`Tuntematon aika-arvo kohdassa ${index + 1}.`);
+    }
+    const id = `entry-${index + 1}`;
+    const oldId = projectText(source.id, '', 100);
+    if (oldId && !oldToNewId.has(oldId)) oldToNewId.set(oldId, id);
+    noteKindById.set(id, source.kind);
+    if (source.kind === 'rest') return { id, kind: 'rest', units };
+
+    const step = projectText(source.step, '', 1).toUpperCase();
+    const octave = Number(source.octave);
+    const alter = Number(source.alter || 0);
+    if (!/^[A-G]$/.test(step) || !Number.isInteger(octave) || octave < 0 || octave > 9) {
+      throw new Error(`Virheellinen sävel kohdassa ${index + 1}.`);
+    }
+    if (!Number.isInteger(alter) || alter < -2 || alter > 2) {
+      throw new Error(`Virheellinen etumerkki kohdassa ${index + 1}.`);
+    }
+    const note = { id, kind: 'note', step, alter, octave, units };
+    if (source.staccato) note.staccato = true;
+    if (source.portato) note.portato = true;
+    if (source.accent) note.accent = true;
+    if (allowedDynamics.has(source.dynamic)) note.dynamic = source.dynamic;
+    return note;
+  });
+
+  const remapRange = (source, type, index) => {
+    const startId = oldToNewId.get(projectText(source?.startId, '', 100));
+    const endId = oldToNewId.get(projectText(source?.endId, '', 100));
+    if (!startId || !endId || startId === endId) return null;
+    if (noteKindById.get(startId) !== 'note' || noteKindById.get(endId) !== 'note') return null;
+    return { id: `${type}-${index + 1}`, startId, endId };
+  };
+  const slurs = (Array.isArray(raw.score?.slurs) ? raw.score.slurs : [])
+    .slice(0, 10000)
+    .map((source, index) => remapRange(source, 'slur', index))
+    .filter(Boolean)
+    .map((range, index) => ({ ...range, id: `slur-${index + 1}` }));
+  const hairpins = (Array.isArray(raw.score?.hairpins) ? raw.score.hairpins : [])
+    .slice(0, 10000)
+    .map((source, index) => {
+      const range = remapRange(source, 'hairpin', index);
+      if (!range || !['crescendo', 'diminuendo'].includes(source?.type)) return null;
+      return { ...range, type: source.type };
+    })
+    .filter(Boolean)
+    .map((hairpin, index) => ({ ...hairpin, id: `hairpin-${index + 1}` }));
+
+  const systemBreaks = [...new Set(
+    (Array.isArray(raw.score?.systemBreaks) ? raw.score.systemBreaks : [])
+      .map(Number)
+      .filter(value => Number.isInteger(value) && value > 0 && value <= 10000),
+  )].sort((a, b) => a - b);
+  const requestedPendingBreak = Number(raw.score?.pendingSystemBreakIndex);
+  const pendingSystemBreakIndex = Number.isInteger(requestedPendingBreak)
+    && systemBreaks.includes(requestedPendingBreak)
+    ? requestedPendingBreak
+    : null;
+
+  const beats = Number(raw.song?.time?.beats);
+  const beatType = Number(raw.song?.time?.beatType);
+  const fifths = Number(raw.song?.key?.fifths);
+  return {
+    format: PROJECT_FORMAT,
+    version,
+    savedAt: projectText(raw.savedAt, '', 60),
+    song: {
+      title: projectText(raw.song?.title, 'Uusi kappale', 200) || 'Uusi kappale',
+      composer: projectText(raw.song?.composer, '', 200),
+      tempoText: projectText(raw.song?.tempoText, '', 100),
+      bpm: clamp(finiteLayoutNumber(raw.song?.bpm, 100), 30, 240),
+      time: {
+        beats: [2, 3, 4, 6].includes(beats) ? beats : 4,
+        beatType: [4, 8].includes(beatType) ? beatType : 4,
+      },
+      key: {
+        fifths: Number.isInteger(fifths) && fifths >= -7 && fifths <= 7 ? fifths : 0,
+        mode: raw.song?.key?.mode === 'minor' ? 'minor' : 'major',
+      },
+    },
+    score: { notes, slurs, hairpins, systemBreaks, pendingSystemBreakIndex },
+    layout: normalizeProjectLayout(raw.layout),
+  };
+}
+
+function applyProjectPayload(project, { render = true, saveAutosave = true } = {}) {
+  const wasAutosaveEnabled = projectAutosaveEnabled;
+  projectAutosaveEnabled = false;
+  clearTimeout(projectAutosaveTimer);
+  try {
+    titleInput.value = project.song.title;
+    composerInput.value = project.song.composer;
+    tempoTextInput.value = project.song.tempoText;
+    bpmInput.value = String(project.song.bpm);
+    beatsSelect.value = String(project.song.time.beats);
+    beatTypeSelect.value = String(project.song.time.beatType);
+    keySelect.value = String(project.song.key.fifths);
+    modeSelect.value = project.song.key.mode;
+
+    state.notes = structuredClone(project.score.notes);
+    state.slurs = structuredClone(project.score.slurs);
+    state.hairpins = structuredClone(project.score.hairpins);
+    state.nextEntryId = state.notes.length + 1;
+    state.nextSlurId = state.slurs.length + 1;
+    state.nextHairpinId = state.hairpins.length + 1;
+    state.systemBreaks = new Set(project.score.systemBreaks);
+    state.pendingSystemBreakIndex = project.score.pendingSystemBreakIndex;
+    state.restMode = false;
+    setNoteSelectionMode(false);
+    syncSystemBreakButton();
+    updateToggleButtons();
+
+    layoutState.noteSpacing = project.layout.noteSpacing;
+    layoutState.scoreZoom = project.layout.scoreZoom;
+    layoutState.systemSpacing = project.layout.systemSpacing;
+    layoutState.printWatermark = project.layout.printWatermark;
+    layoutState.scoreText = structuredClone(project.layout.scoreText);
+    layoutState.margins = structuredClone(project.layout.margins);
+    applyLayoutState();
+  } finally {
+    projectAutosaveEnabled = wasAutosaveEnabled;
+  }
+  if (render) renderScore();
+  if (saveAutosave && projectAutosaveEnabled) saveAutosavedProjectNow({ announce: false });
+}
+
+function getProjectFilename() {
+  const base = String(titleInput.value || 'Uusi kappale')
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
+    .replace(/[. ]+$/g, '')
+    .trim()
+    .slice(0, 100) || 'Uusi kappale';
+  return `${base}.pikakirjoitin.json`;
+}
+
+function downloadProjectFile(file) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  projectActionStatus.textContent = 'Projektitiedosto tallennettu.';
+}
+
+function saveProjectToFile() {
+  const payload = createProjectPayload();
+  const json = JSON.stringify(payload, null, 2);
+  const file = new File([json], getProjectFilename(), { type: 'application/json' });
+  saveAutosavedProjectNow({ payload, announce: false });
+
+  let canShare = false;
+  try {
+    const isIPadOrIphone = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    canShare = Boolean(isIPadOrIphone && navigator.share && navigator.canShare?.({ files: [file] }));
+  } catch {}
+  if (!canShare) {
+    downloadProjectFile(file);
+    return;
+  }
+
+  projectActionStatus.textContent = 'Avataan tallennuspaikan valinta…';
+  navigator.share({
+    files: [file],
+    title: titleInput.value || 'Pikakirjoitin-projekti',
+  }).then(() => {
+    projectActionStatus.textContent = 'Projekti tallennettu tai jaettu.';
+  }).catch(error => {
+    if (error?.name === 'AbortError') projectActionStatus.textContent = 'Tallennus peruttiin.';
+    else {
+      console.warn('Project sharing failed', error);
+      downloadProjectFile(file);
+    }
+  });
+}
+
+async function loadProjectFile(file) {
+  try {
+    if (file.size > 5 * 1024 * 1024) throw new Error('Projektitiedosto on liian suuri.');
+    const raw = JSON.parse(await file.text());
+    const project = parseProjectPayload(raw);
+    applyProjectPayload(project);
+    projectActionStatus.textContent = `Avattu: ${file.name}`;
+    statusText.textContent = 'Projekti avattu';
+    setTimeout(() => statusText.textContent = 'Valmis', 1200);
+  } catch (error) {
+    console.warn('Project loading failed', error);
+    projectActionStatus.textContent = error?.message || 'Projektia ei voitu avata.';
+  } finally {
+    projectFileInput.value = '';
+  }
+}
+
+function saveAutosavedProjectNow({ payload = null, announce = true } = {}) {
+  if (!projectAutosaveEnabled && !payload) return;
+  try {
+    const project = payload || createProjectPayload();
+    localStorage.setItem(PROJECT_AUTOSAVE_KEY, JSON.stringify(project));
+    if (announce) {
+      const time = new Date().toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
+      projectActionStatus.textContent = `Automaattisesti tallennettu ${time}`;
+    }
+  } catch (error) {
+    console.warn('Project autosave failed', error);
+    if (announce) projectActionStatus.textContent = 'Automaattitallennus epäonnistui.';
+  }
+}
+
+function scheduleProjectAutosave() {
+  if (!projectAutosaveEnabled) return;
+  clearTimeout(projectAutosaveTimer);
+  projectAutosaveTimer = setTimeout(() => saveAutosavedProjectNow(), 450);
+}
+
+function projectHasMeaningfulContent(project) {
+  return project.score.notes.length > 0
+    || project.score.slurs.length > 0
+    || project.score.hairpins.length > 0
+    || project.score.systemBreaks.length > 0
+    || project.song.title !== 'Uusi kappale'
+    || project.song.composer !== 'Markku'
+    || project.song.tempoText !== 'Andante'
+    || project.song.bpm !== 100
+    || project.song.time.beats !== 4
+    || project.song.time.beatType !== 4
+    || project.song.key.fifths !== 0
+    || project.song.key.mode !== 'major';
+}
+
+function restoreAutosavedProjectOnStartup() {
+  const raw = localStorage.getItem(PROJECT_AUTOSAVE_KEY);
+  if (!raw) return false;
+  try {
+    const project = parseProjectPayload(JSON.parse(raw));
+    if (!projectHasMeaningfulContent(project)) return false;
+    const savedTime = Number.isNaN(Date.parse(project.savedAt))
+      ? ''
+      : `\nTallennettu ${new Date(project.savedAt).toLocaleString('fi-FI')}.`;
+    const restore = window.confirm(
+      `Edellinen keskeneräinen kappale “${project.song.title}” löytyi.${savedTime}\n\nPalautetaanko se?`,
+    );
+    if (!restore) {
+      localStorage.removeItem(PROJECT_AUTOSAVE_KEY);
+      return false;
+    }
+    applyProjectPayload(project, { render: false, saveAutosave: false });
+    projectActionStatus.textContent = 'Edellinen keskeneräinen kappale palautettiin.';
+    return true;
+  } catch (error) {
+    console.warn('Autosaved project could not be restored', error);
+    localStorage.removeItem(PROJECT_AUTOSAVE_KEY);
+    return false;
+  }
+}
+
 function addRest(units) {
   clearNoteSelection();
   state.notes.push({ id: createScoreEntryId(), kind: 'rest', units });
@@ -2669,6 +3047,7 @@ let scoreRenderLoopPromise = null;
 
 function renderScore() {
   invalidateCachedPdf();
+  scheduleProjectAutosave();
   scoreRenderRequested = true;
   if (!scoreRenderLoopPromise) {
     scoreRenderLoopPromise = (async () => {
@@ -2918,6 +3297,12 @@ songPanelDone.addEventListener('click', () => setSongPanelOpen(false));
 songPanelBackdrop.addEventListener('click', () => setSongPanelOpen(false));
 printScoreBtn.addEventListener('click', printScore);
 pdfShareBtn.addEventListener('click', handlePdfShare);
+projectSaveBtn.addEventListener('click', saveProjectToFile);
+projectLoadBtn.addEventListener('click', () => projectFileInput.click());
+projectFileInput.addEventListener('change', () => {
+  const [file] = projectFileInput.files || [];
+  if (file) loadProjectFile(file);
+});
 layoutJsonExport.addEventListener('click', exportLayoutJson);
 layoutJsonImport.addEventListener('click', () => layoutJsonFile.click());
 layoutJsonFile.addEventListener('change', () => {
@@ -2978,4 +3363,6 @@ applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
 updateToggleButtons();
 syncPdfActionButton();
+restoreAutosavedProjectOnStartup();
+projectAutosaveEnabled = true;
 renderScore();
