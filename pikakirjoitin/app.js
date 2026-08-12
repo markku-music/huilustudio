@@ -642,16 +642,28 @@ function applyNoteSpacing({ save = false } = {}) {
   noteSpacingOut.textContent = String(layoutState.noteSpacing);
 
   if (state.osmd && state.appliedNoteSpacing !== layoutState.noteSpacing) {
-    state.appliedNoteSpacing = layoutState.noteSpacing;
-    state.osmd.setOptions({ spacingFactorSoftmax: layoutState.noteSpacing });
+    const spacing = layoutState.noteSpacing;
+    const renderRevision = (state.spacingRenderRevision || 0) + 1;
+    state.spacingRenderRevision = renderRevision;
     clearTimeout(window.__noteSpacingRenderTimer);
     window.__noteSpacingRenderTimer = setTimeout(async () => {
       try {
+        // OSMD 2.1.2 ei aina laske VexFlow-välistystä uudelleen pelkällä
+        // setOptions() + render() -kutsulla. Päivitetään myös EngravingRules
+        // ja ladataan nykyinen MusicXML uudelleen ennen renderöintiä.
+        state.osmd.setOptions({ spacingFactorSoftmax: spacing });
+        if (state.osmd.EngravingRules) {
+          state.osmd.EngravingRules.SoftmaxFactorVexFlow = spacing;
+        }
+        await state.osmd.load(buildMusicXml());
+        if (renderRevision !== state.spacingRenderRevision) return;
+        state.osmd.zoom = 1.08;
         await state.osmd.render();
+        state.appliedNoteSpacing = spacing;
       } catch (err) {
         console.warn('OSMD spacing render failed', err);
       }
-    }, 80);
+    }, 120);
   }
   if (save) saveLayoutState();
 }
