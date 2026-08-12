@@ -206,7 +206,6 @@ function startFlickGesture(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     durationName: 'quarter',
-    dottedByRightSweep: false,
     longPressLocked: false,
     longPressTimer: null,
   };
@@ -242,15 +241,10 @@ function moveFlickGesture(ev) {
   if (gesture.longPressLocked) return;
 
   const next = durationFromFlickDelta(deltaY);
-  gesture.dottedByRightSweep =
-    next === 'quarter' &&
-    deltaX >= 48 &&
-    Math.abs(deltaY) <= 14;
-
   if (next !== gesture.durationName) {
     gesture.durationName = next;
+    updateFlickHud(next);
   }
-  updateFlickHud(next);
 }
 
 function endFlickGesture(ev) {
@@ -259,13 +253,8 @@ function endFlickGesture(ev) {
   const gesture = state.gesture;
   clearLongPressTimer(gesture);
   if (!gesture.longPressLocked) {
-    const deltaX = ev.clientX - gesture.startX;
     const deltaY = gesture.startY - ev.clientY;
     gesture.durationName = durationFromFlickDelta(deltaY);
-    gesture.dottedByRightSweep =
-      gesture.durationName === 'quarter' &&
-      deltaX >= 48 &&
-      Math.abs(deltaY) <= 14;
   }
   commitFlickGesture(gesture);
   finishFlickGesture();
@@ -373,8 +362,7 @@ function commitFlickGesture(gesture) {
   const base = durationByName[gesture.durationName];
   if (!base) return;
 
-  const useDot = state.dot || gesture.dottedByRightSweep;
-  const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
+  const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
 
   if (state.restMode) {
     addRest(durationUnits);
