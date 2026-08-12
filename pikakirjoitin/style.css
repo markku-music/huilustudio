@@ -59,6 +59,7 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .side-column {
+  position: relative;
   min-width: 0;
   height: calc(100vh - 32px);
   min-height: 620px;
@@ -175,15 +176,12 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .modifier-panel {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
   padding: 8px;
-}
-
-.modifier-title {
-  margin: 0 0 10px;
-  color: #6d7f9f;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .09em;
 }
 
 .modifier-buttons {
@@ -193,18 +191,14 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .modifier-button {
-  min-height: 74px;
-  padding: 7px 3px;
+  min-height: 82px;
+  padding: 8px;
   border: 1px solid #cfd9e7;
   border-radius: 16px;
   background: #fff;
   color: var(--ink);
   display: grid;
   place-items: center;
-  gap: 2px;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.1;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -218,21 +212,27 @@ button { -webkit-tap-highlight-color: transparent; }
   transform: translateY(1px);
 }
 
-.modifier-symbol {
-  font-family: "Times New Roman", serif;
-  font-size: 29px;
-  line-height: 1;
+.modifier-icon {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  pointer-events: none;
 }
 
-.modifier-shortcut {
-  color: #6d7f9f;
-  font-size: 8px;
-  font-weight: 750;
-  white-space: nowrap;
+.modifier-icon-dotted {
+  width: 35px;
+  height: 46px;
 }
 
-.modifier-button.active .modifier-shortcut {
-  color: #6948b2;
+.modifier-icon-sixteenth {
+  width: 32px;
+  height: 46px;
+}
+
+.modifier-icon-rest {
+  width: 31px;
+  height: 42px;
 }
 
 label { display: flex; flex-direction: column; gap: 8px; }

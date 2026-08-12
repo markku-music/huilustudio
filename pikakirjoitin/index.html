@@ -88,22 +88,15 @@
       </aside>
 
       <aside class="panel modifier-panel" aria-label="Nuotin muuntimet">
-        <div class="modifier-title">PIDÄ POHJASSA</div>
         <div class="modifier-buttons">
-          <button id="dotShiftBtn" class="modifier-button" type="button" aria-pressed="false">
-            <span class="modifier-symbol">♩·</span>
-            <span>Piste</span>
-            <span class="modifier-shortcut">Mac: ⇧ Shift</span>
+          <button id="dotShiftBtn" class="modifier-button" type="button" aria-label="Piste" aria-pressed="false">
+            <img class="modifier-icon modifier-icon-dotted" src="assets/Dotted_quarter_note.svg" alt="" aria-hidden="true">
           </button>
-          <button id="sixteenthShiftBtn" class="modifier-button" type="button" aria-pressed="false">
-            <span class="modifier-symbol">𝅘𝅥𝅯</span>
-            <span>Alas 1/16</span>
-            <span class="modifier-shortcut">Mac: ⌥ Option</span>
+          <button id="sixteenthShiftBtn" class="modifier-button" type="button" aria-label="Alas 1/16" aria-pressed="false">
+            <img class="modifier-icon modifier-icon-sixteenth" src="assets/Doublecrochet.svg" alt="" aria-hidden="true">
           </button>
-          <button id="restShiftBtn" class="modifier-button" type="button" aria-pressed="false">
-            <span class="modifier-symbol">𝄽</span>
-            <span>Tauko</span>
-            <span class="modifier-shortcut">Mac: Space</span>
+          <button id="restShiftBtn" class="modifier-button" type="button" aria-label="Tauko" aria-pressed="false">
+            <img class="modifier-icon modifier-icon-rest" src="assets/Rest.svg" alt="" aria-hidden="true">
           </button>
         </div>
       </aside>
@@ -113,10 +106,7 @@
 
     <main class="main-column">
       <section class="panel paper-panel">
-        <div class="paper-toolbar">
-          <div class="toolbar-chip status-chip"><span id="statusText">Valmis</span></div>
-          <div class="toolbar-chip note-chip">Syöttö: <strong>Flick-koskettimisto</strong> · nuotti-ikkuna: 2 sormea Kumoa, 3 sormea Tyhjennä</div>
-        </div>
+        <span id="statusText" hidden>Valmis</span>
         <div id="osmdContainer"></div>
       </section>
 
