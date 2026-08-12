@@ -58,8 +58,8 @@ const defaultLayout = {
   scoreShare: 54,
   whiteWidth: 100,
   keyboardHeight: 100,
-  blackWidth: 66,
-  blackHeight: 56,
+  blackWidth: 43,
+  blackHeight: 46,
   flick: {
     eighth: 26,
     half: 26,
@@ -260,6 +260,7 @@ function startFlickGesture(ev) {
     durationName: 'quarter',
     dottedByRightSweep: false,
     longPressLocked: false,
+    committed: false,
     longPressTimer: null,
   };
 
@@ -273,9 +274,12 @@ function startFlickGesture(ev) {
     g.longPressLocked = true;
     g.durationName = 'whole';
     updateFlickHud('whole');
+    commitFlickGesture(g);
+    g.committed = true;
   }, layoutState.flick.longPressMs);
 
-  // Soittotuntuma tulee heti painalluksesta. Nuotti kirjoitetaan vasta irrotettaessa.
+  // Soittotuntuma tulee heti painalluksesta. Tavallinen nuotti kirjoitetaan
+  // irrotettaessa, mutta kokonuotti heti pitkän painalluksen täyttyessä.
   if (!state.restMode && !isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
 }
 
@@ -341,7 +345,7 @@ function endFlickGesture(ev) {
       deltaX >= 48 &&
       Math.abs(deltaY) <= 14;
   }
-  commitFlickGesture(gesture);
+  if (!gesture.committed) commitFlickGesture(gesture);
   finishFlickGesture();
 }
 

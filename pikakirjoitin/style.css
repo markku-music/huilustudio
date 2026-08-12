@@ -430,8 +430,8 @@ input, select {
 .zone-panel {
   --keyboard-height-scale: 1;
   --white-width-scale: 1;
-  --black-width-ratio: .66;
-  --black-height-ratio: 56%;
+  --black-width-ratio: .43;
+  --black-height-ratio: 46%;
   display: block;
   padding: 16px;
   min-height: 0;
