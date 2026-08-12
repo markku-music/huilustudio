@@ -1,7 +1,6 @@
 const osmdContainer = document.getElementById('osmdContainer');
 const appShell = document.getElementById('appShell');
 const keyboardSurface = document.getElementById('keyboardSurface');
-const restToggle = document.getElementById('restToggle');
 const undoBtn = document.getElementById('undoBtn');
 const clearBtn = document.getElementById('clearBtn');
 const statusText = document.getElementById('statusText');
@@ -19,6 +18,7 @@ const rightHandBtn = document.getElementById('rightHandBtn');
 const leftHandBtn = document.getElementById('leftHandBtn');
 const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
+const restShiftBtn = document.getElementById('restShiftBtn');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -147,12 +147,13 @@ const blackKeys = [
 
 const state = {
   notes: [],
-  restMode: false,
   modifiers: {
     dotPointers: new Set(),
     sixteenthPointers: new Set(),
+    restPointers: new Set(),
     dotKeyboard: false,
     sixteenthKeyboard: false,
+    restKeyboard: false,
   },
   audioContext: null,
   osmd: null,
@@ -261,7 +262,7 @@ function startFlickGesture(ev) {
   }, layoutState.flick.longPressMs);
 
   // Soittotuntuma tulee heti painalluksesta. Nuotti kirjoitetaan vasta irrotettaessa.
-  if (!state.restMode) playMidi(Number(keyEl.dataset.midi), 0.24);
+  if (!isRestModifierActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
 }
 
 function moveFlickGesture(ev) {
@@ -410,7 +411,7 @@ function showFlickHud(x, y, durationName) {
   flickHud.style.left = `${clamp(left, 10, window.innerWidth - hudW - 10)}px`;
   flickHud.style.top = `${clamp(top, 10, window.innerHeight - hudH - 10)}px`;
   flickHud.dataset.side = 'above';
-  flickHud.classList.toggle('rest', state.restMode);
+  flickHud.classList.toggle('rest', isRestModifierActive());
   flickHud.classList.add('visible');
   flickHud.setAttribute('aria-hidden', 'false');
   updateFlickHud(durationName);
@@ -454,7 +455,7 @@ function commitFlickGesture(gesture) {
   const useDot = isDotModifierActive() || gesture.dottedByRightSweep;
   const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
-  if (state.restMode) {
+  if (isRestModifierActive()) {
     addRest(durationUnits);
     return;
   }
@@ -841,11 +842,6 @@ async function renderScore() {
   }
 }
 
-function updateToggleButtons() {
-  restToggle.classList.toggle('active', state.restMode);
-  restToggle.textContent = state.restMode ? '𝄽 tauko: päällä' : '𝄽 tauko: pois';
-}
-
 function isDotModifierActive() {
   return state.modifiers.dotPointers.size > 0 || state.modifiers.dotKeyboard;
 }
@@ -854,13 +850,21 @@ function isSixteenthModifierActive() {
   return state.modifiers.sixteenthPointers.size > 0 || state.modifiers.sixteenthKeyboard;
 }
 
+function isRestModifierActive() {
+  return state.modifiers.restPointers.size > 0 || state.modifiers.restKeyboard;
+}
+
 function syncModifierButtons() {
   const dotActive = isDotModifierActive();
   const sixteenthActive = isSixteenthModifierActive();
+  const restActive = isRestModifierActive();
   dotShiftBtn.classList.toggle('active', dotActive);
   dotShiftBtn.setAttribute('aria-pressed', String(dotActive));
   sixteenthShiftBtn.classList.toggle('active', sixteenthActive);
   sixteenthShiftBtn.setAttribute('aria-pressed', String(sixteenthActive));
+  restShiftBtn.classList.toggle('active', restActive);
+  restShiftBtn.setAttribute('aria-pressed', String(restActive));
+  flickHud.classList.toggle('rest', restActive && flickHud.classList.contains('visible'));
 }
 
 function bindHoldModifier(button, pointerSet) {
@@ -887,6 +891,7 @@ function bindHoldModifier(button, pointerSet) {
 
 bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
 bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
+bindHoldModifier(restShiftBtn, state.modifiers.restPointers);
 
 function isEditableTarget(target) {
   return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
@@ -895,6 +900,7 @@ function isEditableTarget(target) {
 function clearKeyboardModifiers() {
   state.modifiers.dotKeyboard = false;
   state.modifiers.sixteenthKeyboard = false;
+  state.modifiers.restKeyboard = false;
   syncModifierButtons();
 }
 
@@ -908,6 +914,10 @@ window.addEventListener('keydown', (ev) => {
     state.modifiers.sixteenthKeyboard = true;
     syncModifierButtons();
     ev.preventDefault();
+  } else if (ev.code === 'Space') {
+    state.modifiers.restKeyboard = true;
+    syncModifierButtons();
+    ev.preventDefault();
   }
 });
 
@@ -918,6 +928,10 @@ window.addEventListener('keyup', (ev) => {
   } else if (ev.key === 'Alt') {
     state.modifiers.sixteenthKeyboard = ev.altKey;
     syncModifierButtons();
+  } else if (ev.code === 'Space') {
+    state.modifiers.restKeyboard = false;
+    syncModifierButtons();
+    ev.preventDefault();
   }
 });
 
@@ -926,11 +940,6 @@ document.addEventListener('focusin', (ev) => {
 });
 
 window.addEventListener('blur', clearKeyboardModifiers);
-
-restToggle.addEventListener('click', () => {
-  state.restMode = !state.restMode;
-  updateToggleButtons();
-});
 
 undoBtn.addEventListener('click', () => {
   undoLastNoteWithFeedback();
@@ -1015,5 +1024,4 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
 bindLayoutControls();
 initKeyboard();
 applyLayoutState({ save: false });
-updateToggleButtons();
 renderScore();
