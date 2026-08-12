@@ -144,6 +144,17 @@ button { -webkit-tap-highlight-color: transparent; }
   line-height: 1;
 }
 
+.modifier-shortcut {
+  color: #6d7f9f;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.modifier-button.active .modifier-shortcut {
+  color: #6948b2;
+}
+
 label { display: flex; flex-direction: column; gap: 8px; }
 label > span {
   font-size: 16px;

@@ -151,6 +151,8 @@ const state = {
   modifiers: {
     dotPointers: new Set(),
     sixteenthPointers: new Set(),
+    dotKeyboard: false,
+    sixteenthKeyboard: false,
   },
   audioContext: null,
   osmd: null,
@@ -200,6 +202,15 @@ function startFlickGesture(ev) {
   const target = document.elementFromPoint(ev.clientX, ev.clientY);
   const keyEl = target && target.closest('.key');
   if (!keyEl || !keyboardSurface.contains(keyEl)) return;
+
+  // Hiiren PointerEvent kertoo myös jo pohjassa olevat Mac-modifioijat.
+  // Tämä toimii silloinkin, jos jokin kappaletietojen kenttä oli juuri aktiivisena.
+  if (ev.pointerType === 'mouse') {
+    if (ev.shiftKey) state.modifiers.dotKeyboard = true;
+    if (ev.altKey) state.modifiers.sixteenthKeyboard = true;
+    syncModifierButtons();
+  }
+  if (isEditableTarget(document.activeElement)) document.activeElement.blur();
 
   // Toinen sormi muuttaa keskeneräisen yhden sormen eleen Undo-eleeksi.
   // Sormien ei tarvitse osua samalle koskettimelle.
@@ -382,7 +393,7 @@ function durationFromFlickDelta(deltaY) {
   // Kokonuotti syntyy vain pitkällä paikallaan pidetyllä painalluksella.
   if (deltaY >= f.half) return 'half';
   if (deltaY <= -f.eighth) {
-    return state.modifiers.sixteenthPointers.size > 0 ? '16th' : 'eighth';
+    return isSixteenthModifierActive() ? '16th' : 'eighth';
   }
   return 'quarter';
 }
@@ -440,7 +451,7 @@ function commitFlickGesture(gesture) {
   const base = durationByName[gesture.durationName];
   if (!base) return;
 
-  const useDot = state.modifiers.dotPointers.size > 0 || gesture.dottedByRightSweep;
+  const useDot = isDotModifierActive() || gesture.dottedByRightSweep;
   const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
   if (state.restMode) {
@@ -835,25 +846,37 @@ function updateToggleButtons() {
   restToggle.textContent = state.restMode ? '𝄽 tauko: päällä' : '𝄽 tauko: pois';
 }
 
+function isDotModifierActive() {
+  return state.modifiers.dotPointers.size > 0 || state.modifiers.dotKeyboard;
+}
+
+function isSixteenthModifierActive() {
+  return state.modifiers.sixteenthPointers.size > 0 || state.modifiers.sixteenthKeyboard;
+}
+
+function syncModifierButtons() {
+  const dotActive = isDotModifierActive();
+  const sixteenthActive = isSixteenthModifierActive();
+  dotShiftBtn.classList.toggle('active', dotActive);
+  dotShiftBtn.setAttribute('aria-pressed', String(dotActive));
+  sixteenthShiftBtn.classList.toggle('active', sixteenthActive);
+  sixteenthShiftBtn.setAttribute('aria-pressed', String(sixteenthActive));
+}
+
 function bindHoldModifier(button, pointerSet) {
-  const sync = () => {
-    const active = pointerSet.size > 0;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-  };
 
   button.addEventListener('pointerdown', (ev) => {
     ev.preventDefault();
     pointerSet.add(ev.pointerId);
     button.setPointerCapture?.(ev.pointerId);
-    sync();
+    syncModifierButtons();
   }, { passive: false });
 
   const release = (ev) => {
     if (!pointerSet.has(ev.pointerId)) return;
     pointerSet.delete(ev.pointerId);
     try { button.releasePointerCapture?.(ev.pointerId); } catch {}
-    sync();
+    syncModifierButtons();
   };
 
   button.addEventListener('pointerup', release);
@@ -864,6 +887,45 @@ function bindHoldModifier(button, pointerSet) {
 
 bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
 bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
+
+function isEditableTarget(target) {
+  return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
+function clearKeyboardModifiers() {
+  state.modifiers.dotKeyboard = false;
+  state.modifiers.sixteenthKeyboard = false;
+  syncModifierButtons();
+}
+
+window.addEventListener('keydown', (ev) => {
+  if (isEditableTarget(ev.target) && !state.gesture) return;
+
+  if (ev.key === 'Shift') {
+    state.modifiers.dotKeyboard = true;
+    syncModifierButtons();
+  } else if (ev.key === 'Alt') {
+    state.modifiers.sixteenthKeyboard = true;
+    syncModifierButtons();
+    ev.preventDefault();
+  }
+});
+
+window.addEventListener('keyup', (ev) => {
+  if (ev.key === 'Shift') {
+    state.modifiers.dotKeyboard = ev.shiftKey;
+    syncModifierButtons();
+  } else if (ev.key === 'Alt') {
+    state.modifiers.sixteenthKeyboard = ev.altKey;
+    syncModifierButtons();
+  }
+});
+
+document.addEventListener('focusin', (ev) => {
+  if (isEditableTarget(ev.target)) clearKeyboardModifiers();
+});
+
+window.addEventListener('blur', clearKeyboardModifiers);
 
 restToggle.addEventListener('click', () => {
   state.restMode = !state.restMode;
