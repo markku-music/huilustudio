@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Melody Writer Zone</title>
+  <title>Pikakirjoitin Flick</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
-  <div class="app-shell">
+  <div id="appShell" class="app-shell">
     <aside class="panel left-panel">
-      <div class="app-badge">🎼 Nuotti</div>
+      <div class="app-badge">🎼 Pikakirjoitin</div>
       <h2>Kappaleen tiedot</h2>
 
       <label>
@@ -69,20 +69,13 @@
         <button id="undoBtn" type="button">Kumoa</button>
         <button id="clearBtn" type="button">Tyhjennä</button>
       </div>
-
-      <div class="small-note">
-        <strong>Zone-tila:</strong><br>
-        X = sävelkorkeus<br>
-        Y = aika-arvo<br>
-        Piste ja tauko toimivat erikseen.
-      </div>
     </aside>
 
     <main class="main-column">
       <section class="panel paper-panel">
         <div class="paper-toolbar">
           <div class="toolbar-chip status-chip"><span id="statusText">Valmis</span></div>
-          <div class="toolbar-chip note-chip">Syöttö: <strong>Zone-koskettimisto</strong></div>
+          <div class="toolbar-chip note-chip">Syöttö: <strong>Flick-koskettimisto</strong></div>
           <button id="layoutToggle" class="toolbar-button" type="button">⚙ ASETTELU</button>
         </div>
         <div id="osmdContainer"></div>
@@ -95,28 +88,44 @@
       </section>
 
       <section class="panel zone-panel">
-        <div id="zoneKeyboard" class="zone-keyboard" aria-label="Zone-koskettimisto">
-          <div class="zone-bands">
-            <div class="band band-sixteenth">1/16</div>
-            <div class="band band-eighth">1/8</div>
-            <div class="band band-quarter">1/4</div>
-            <div class="band band-half">1/2</div>
-            <div class="band band-whole">koko</div>
-          </div>
+        <div id="zoneKeyboard" class="zone-keyboard" aria-label="Flick-koskettimisto">
           <div id="keyboardSurface" class="keyboard-surface"></div>
         </div>
       </section>
     </main>
   </div>
 
+  <div id="flickHud" class="flick-hud" aria-hidden="true">
+    <div id="flickCursorShorter" class="flick-duration-option flick-duration-neighbor" aria-hidden="true">
+      <span class="flick-duration-symbol">𝅗𝅥</span>
+      <span class="flick-duration-label">1/2</span>
+    </div>
+    <div id="flickCursorCurrent" class="flick-duration-option flick-duration-current">
+      <span class="flick-duration-symbol">♩</span>
+      <span class="flick-duration-label">1/4</span>
+    </div>
+    <div id="flickCursorLonger" class="flick-duration-option flick-duration-neighbor" aria-hidden="true">
+      <span class="flick-duration-symbol">♪</span>
+      <span class="flick-duration-label">1/8</span>
+    </div>
+  </div>
 
   <aside id="layoutPanel" class="layout-panel" aria-hidden="true">
     <div class="layout-panel-head">
       <div>
         <div class="layout-kicker">KEHITTÄJÄTYÖKALUT</div>
-        <h2>Koskettimisto & zonet</h2>
+        <h2>Koskettimisto & Flick</h2>
       </div>
       <button id="layoutClose" class="icon-button" type="button" aria-label="Sulje">×</button>
+    </div>
+
+    <div class="layout-section">
+      <h3>Kätisyys</h3>
+      <p class="layout-hint">Oikea käsi on oletus. Vasen käsi siirtää Kappaleen tiedot -ikkunan oikealle puolelle. Rytmipalaute näytetään aina sormen yläpuolella.</p>
+      <div class="handedness-toggle" role="group" aria-label="Kätisyys">
+        <button id="rightHandBtn" class="hand-button" type="button" data-hand="right">Oikea käsi</button>
+        <button id="leftHandBtn" class="hand-button" type="button" data-hand="left">Vasen käsi</button>
+      </div>
     </div>
 
     <div class="layout-section">
@@ -144,27 +153,19 @@
     </div>
 
     <div class="layout-section">
-      <h3>Zonejen korkeudet</h3>
-      <p class="layout-hint">Arvot ovat suhteellisia. Prosenttiosuus lasketaan automaattisesti.</p>
-      <label class="slider-row zone-slider-row">
-        <span>Koko <output id="zoneWholeOut">20 %</output></span>
-        <input id="zoneWholeSlider" type="range" min="5" max="40" step="1" value="20">
+      <h3>Eleasetukset</h3>
+      <p class="layout-hint">Tap = 1/4, ylös = 1/2, alas = 1/8. Pitkä paikallaan painaminen = koko. Kahden sormen napautus = Kumoa.</p>
+      <label class="slider-row">
+        <span>Ylös → 1/2 <output id="flickHalfOut">26 px</output></span>
+        <input id="flickHalfSlider" type="range" min="10" max="70" step="1" value="26">
       </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/2 <output id="zoneHalfOut">20 %</output></span>
-        <input id="zoneHalfSlider" type="range" min="5" max="40" step="1" value="20">
+      <label class="slider-row">
+        <span>Alas → 1/8 <output id="flickEighthOut">26 px</output></span>
+        <input id="flickEighthSlider" type="range" min="10" max="70" step="1" value="26">
       </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/4 <output id="zoneQuarterOut">20 %</output></span>
-        <input id="zoneQuarterSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/8 <output id="zoneEighthOut">20 %</output></span>
-        <input id="zoneEighthSlider" type="range" min="5" max="40" step="1" value="20">
-      </label>
-      <label class="slider-row zone-slider-row">
-        <span>1/16 <output id="zoneSixteenthOut">20 %</output></span>
-        <input id="zoneSixteenthSlider" type="range" min="5" max="40" step="1" value="20">
+      <label class="slider-row">
+        <span>Pitkä painallus → koko <output id="longPressOut">550 ms</output></span>
+        <input id="longPressSlider" type="range" min="300" max="1200" step="25" value="550">
       </label>
     </div>
 

@@ -1,4 +1,5 @@
 const osmdContainer = document.getElementById('osmdContainer');
+const appShell = document.getElementById('appShell');
 const keyboardSurface = document.getElementById('keyboardSurface');
 const dotToggle = document.getElementById('dotToggle');
 const restToggle = document.getElementById('restToggle');
@@ -10,19 +11,22 @@ const layoutToggle = document.getElementById('layoutToggle');
 const layoutPanel = document.getElementById('layoutPanel');
 const layoutClose = document.getElementById('layoutClose');
 const zoneKeyboard = document.getElementById('zoneKeyboard');
-const zoneBands = document.querySelector('.zone-bands');
 const zonePanel = document.querySelector('.zone-panel');
+const flickHud = document.getElementById('flickHud');
+const flickCursorShorter = document.getElementById('flickCursorShorter');
+const flickCursorCurrent = document.getElementById('flickCursorCurrent');
+const flickCursorLonger = document.getElementById('flickCursorLonger');
+const rightHandBtn = document.getElementById('rightHandBtn');
+const leftHandBtn = document.getElementById('leftHandBtn');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
   keyboardHeight: document.getElementById('keyboardHeightSlider'),
   blackWidth: document.getElementById('blackWidthSlider'),
   blackHeight: document.getElementById('blackHeightSlider'),
-  zoneWhole: document.getElementById('zoneWholeSlider'),
-  zoneHalf: document.getElementById('zoneHalfSlider'),
-  zoneQuarter: document.getElementById('zoneQuarterSlider'),
-  zoneEighth: document.getElementById('zoneEighthSlider'),
-  zoneSixteenth: document.getElementById('zoneSixteenthSlider'),
+  flickEighth: document.getElementById('flickEighthSlider'),
+  flickHalf: document.getElementById('flickHalfSlider'),
+  longPress: document.getElementById('longPressSlider'),
 };
 
 const layoutOutputs = {
@@ -30,20 +34,23 @@ const layoutOutputs = {
   keyboardHeight: document.getElementById('keyboardHeightOut'),
   blackWidth: document.getElementById('blackWidthOut'),
   blackHeight: document.getElementById('blackHeightOut'),
-  zoneWhole: document.getElementById('zoneWholeOut'),
-  zoneHalf: document.getElementById('zoneHalfOut'),
-  zoneQuarter: document.getElementById('zoneQuarterOut'),
-  zoneEighth: document.getElementById('zoneEighthOut'),
-  zoneSixteenth: document.getElementById('zoneSixteenthOut'),
+  flickEighth: document.getElementById('flickEighthOut'),
+  flickHalf: document.getElementById('flickHalfOut'),
+  longPress: document.getElementById('longPressOut'),
 };
 
-const LAYOUT_STORAGE_KEY = 'melody-writer-zone-layout-v1';
+const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const defaultLayout = {
+  handedness: 'right',
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 66,
   blackHeight: 56,
-  zones: [20, 20, 20, 20, 20],
+  flick: {
+    eighth: 26,
+    half: 26,
+    longPressMs: 550,
+  },
 };
 
 let layoutState = loadLayoutState();
@@ -80,6 +87,7 @@ const durationMapByUnits = new Map([
   [2, { type: '16th', dots: 0 }],
 ]);
 const allowedPieces = [...durationMapByUnits.keys()].sort((a,b) => b-a);
+const durationByName = Object.fromEntries(durationDefs.map(d => [d.name, d]));
 
 const keyDefs = [
   { tonic: 'C', fifths: 0 },
@@ -142,6 +150,8 @@ const state = {
   restMode: false,
   audioContext: null,
   osmd: null,
+  gesture: null,
+  currentDurationName: 'quarter',
 };
 
 function initKeyboard() {
@@ -174,25 +184,272 @@ function initKeyboard() {
     keyboardSurface.appendChild(el);
   });
 
-  const downHandler = (ev) => {
-    ev.preventDefault();
-    ensureAudio();
-    const target = document.elementFromPoint(ev.clientX, ev.clientY);
-    const keyEl = target && target.closest('.key');
-    if (!keyEl || !keyboardSurface.contains(keyEl)) return;
-    const rect = keyboardSurface.getBoundingClientRect();
-    const y = ev.clientY - rect.top;
-    const zoneHeight = rect.height * (layoutState.blackHeight / 100);
+  keyboardSurface.addEventListener('pointerdown', startFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('pointermove', moveFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('pointerup', endFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('pointercancel', cancelFlickGesture, { passive: false });
+}
 
-    // Zone-alue on täsmälleen yhtä korkea kuin mustat koskettimet.
-    // Valkoisten koskettimien alaosa on vain kosketin-/nimialuetta, ei rytmizonea.
-    if (y < 0 || y > zoneHeight) return;
+function startFlickGesture(ev) {
+  ev.preventDefault();
 
-    const zoneIndex = getZoneIndexFromY(y, zoneHeight);
-    handleZoneKeyPress(keyEl, zoneIndex);
+  const target = document.elementFromPoint(ev.clientX, ev.clientY);
+  const keyEl = target && target.closest('.key');
+  if (!keyEl || !keyboardSurface.contains(keyEl)) return;
+
+  // Toinen sormi muuttaa keskeneräisen yhden sormen eleen Undo-eleeksi.
+  // Sormien ei tarvitse osua samalle koskettimelle.
+  if (state.gesture) {
+    const gesture = state.gesture;
+    if (ev.pointerType === 'touch' && gesture.pointerType === 'touch' && !gesture.twoFingerUndo) {
+      keyboardSurface.setPointerCapture?.(ev.pointerId);
+      clearLongPressTimer(gesture);
+      gesture.keyEl.classList.remove('active');
+      gesture.twoFingerUndo = {
+        pointerIds: new Set([gesture.pointerId, ev.pointerId]),
+        starts: new Map([
+          [gesture.pointerId, { x: gesture.startX, y: gesture.startY }],
+          [ev.pointerId, { x: ev.clientX, y: ev.clientY }],
+        ]),
+        moved: false,
+      };
+      hideFlickHud();
+    }
+    return;
+  }
+
+  ensureAudio();
+  keyboardSurface.setPointerCapture?.(ev.pointerId);
+
+  state.gesture = {
+    pointerId: ev.pointerId,
+    pointerType: ev.pointerType,
+    keyEl,
+    startX: ev.clientX,
+    startY: ev.clientY,
+    durationName: 'quarter',
+    dottedByRightSweep: false,
+    longPressLocked: false,
+    longPressTimer: null,
   };
 
-  keyboardSurface.addEventListener('pointerdown', downHandler, { passive: false });
+  keyEl.classList.add('active');
+  showFlickHud(ev.clientX, ev.clientY, 'quarter');
+
+  // Pitkä paikallaan pysyvä painallus lukitsee kokonuotin.
+  state.gesture.longPressTimer = window.setTimeout(() => {
+    const g = state.gesture;
+    if (!g || g.pointerId !== ev.pointerId) return;
+    g.longPressLocked = true;
+    g.durationName = 'whole';
+    updateFlickHud('whole');
+  }, layoutState.flick.longPressMs);
+
+  // Soittotuntuma tulee heti painalluksesta. Nuotti kirjoitetaan vasta irrotettaessa.
+  if (!state.restMode) playMidi(Number(keyEl.dataset.midi), 0.24);
+}
+
+function moveFlickGesture(ev) {
+  if (!state.gesture) return;
+  const undoGesture = state.gesture.twoFingerUndo;
+  if (undoGesture?.pointerIds.has(ev.pointerId)) {
+    ev.preventDefault();
+    const start = undoGesture.starts.get(ev.pointerId);
+    if (start && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 24) {
+      undoGesture.moved = true;
+    }
+    return;
+  }
+  if (ev.pointerId !== state.gesture.pointerId) return;
+  ev.preventDefault();
+  const gesture = state.gesture;
+  const deltaX = ev.clientX - gesture.startX;
+  const deltaY = gesture.startY - ev.clientY; // plus = ylöspäin
+
+  // Luonnollinen pieni sormivapina sallitaan. Selvä liike peruu pitkän painalluksen.
+  if (!gesture.longPressLocked && (Math.abs(deltaY) > 12 || Math.abs(deltaX) > 18)) {
+    clearLongPressTimer(gesture);
+  }
+
+  if (gesture.longPressLocked) return;
+
+  const next = durationFromFlickDelta(deltaY);
+  gesture.dottedByRightSweep =
+    next === 'quarter' &&
+    deltaX >= 48 &&
+    Math.abs(deltaY) <= 14;
+
+  if (next !== gesture.durationName) {
+    gesture.durationName = next;
+  }
+  updateFlickHud(next);
+}
+
+function endFlickGesture(ev) {
+  if (!state.gesture) return;
+  const undoGesture = state.gesture.twoFingerUndo;
+  if (undoGesture?.pointerIds.has(ev.pointerId)) {
+    ev.preventDefault();
+    undoGesture.pointerIds.delete(ev.pointerId);
+    try { keyboardSurface.releasePointerCapture?.(ev.pointerId); } catch {}
+    if (undoGesture.pointerIds.size === 0) {
+      if (!undoGesture.moved) undoLastNoteWithFeedback();
+      finishFlickGesture();
+    }
+    return;
+  }
+  if (ev.pointerId !== state.gesture.pointerId) return;
+  ev.preventDefault();
+  const gesture = state.gesture;
+  clearLongPressTimer(gesture);
+  if (!gesture.longPressLocked) {
+    const deltaX = ev.clientX - gesture.startX;
+    const deltaY = gesture.startY - ev.clientY;
+    gesture.durationName = durationFromFlickDelta(deltaY);
+    gesture.dottedByRightSweep =
+      gesture.durationName === 'quarter' &&
+      deltaX >= 48 &&
+      Math.abs(deltaY) <= 14;
+  }
+  commitFlickGesture(gesture);
+  finishFlickGesture();
+}
+
+function cancelFlickGesture(ev) {
+  if (!state.gesture) return;
+  const undoGesture = state.gesture.twoFingerUndo;
+  if (undoGesture?.pointerIds.has(ev.pointerId)) {
+    undoGesture.moved = true;
+    undoGesture.pointerIds.delete(ev.pointerId);
+    if (undoGesture.pointerIds.size === 0) finishFlickGesture();
+    return;
+  }
+  if (ev.pointerId !== state.gesture.pointerId) return;
+  finishFlickGesture();
+}
+
+function clearLongPressTimer(gesture) {
+  if (!gesture?.longPressTimer) return;
+  clearTimeout(gesture.longPressTimer);
+  gesture.longPressTimer = null;
+}
+
+function finishFlickGesture() {
+  if (!state.gesture) return;
+  clearLongPressTimer(state.gesture);
+  state.gesture.keyEl.classList.remove('active');
+  try { keyboardSurface.releasePointerCapture?.(state.gesture.pointerId); } catch {}
+  state.gesture = null;
+  hideFlickHud();
+}
+
+function hideFlickHud() {
+  flickHud.classList.remove('visible', 'rest');
+  flickHud.setAttribute('aria-hidden', 'true');
+}
+
+function undoLastNoteWithFeedback() {
+  if (state.notes.length > 0) {
+    state.notes.pop();
+    renderScore();
+    statusText.textContent = 'Kumottu';
+  } else {
+    statusText.textContent = 'Ei kumottavaa';
+  }
+  clearTimeout(window.__undoFeedbackTimer);
+  window.__undoFeedbackTimer = setTimeout(() => {
+    statusText.textContent = 'Valmis';
+  }, 900);
+}
+
+const durationOrder = ['whole', 'half', 'quarter', 'eighth', '16th'];
+
+function shiftDuration(baseName, steps) {
+  const index = durationOrder.indexOf(baseName);
+  const safeIndex = index >= 0 ? index : durationOrder.indexOf('quarter');
+  return durationOrder[clamp(safeIndex + steps, 0, durationOrder.length - 1)];
+}
+
+function durationFromFlickDelta(deltaY) {
+  const f = layoutState.flick;
+
+  // Ylös = 1/2, tap = 1/4, alas = 1/8.
+  // Kokonuotti syntyy vain pitkällä paikallaan pidetyllä painalluksella.
+  if (deltaY >= f.half) return 'half';
+  if (deltaY <= -f.eighth) return 'eighth';
+  return 'quarter';
+}
+
+function showFlickHud(x, y, durationName) {
+  const hudW = 82;
+  const hudH = 154;
+  const gap = 28;
+
+  // Palaute keskitetään sormen yläpuolelle. Näin se näkyy samalla tavalla
+  // kummallakin kädellä eikä sormi peitä valittua aika-arvoa.
+  const left = x - hudW / 2;
+  const top = y - hudH - gap;
+  flickHud.style.left = `${clamp(left, 10, window.innerWidth - hudW - 10)}px`;
+  flickHud.style.top = `${clamp(top, 10, window.innerHeight - hudH - 10)}px`;
+  flickHud.dataset.side = 'above';
+  flickHud.classList.toggle('rest', state.restMode);
+  flickHud.classList.add('visible');
+  flickHud.setAttribute('aria-hidden', 'false');
+  updateFlickHud(durationName);
+}
+
+function updateFlickHud(durationName) {
+  if (durationName === 'whole') {
+    setFlickDurationOption(flickCursorShorter, null);
+    setFlickDurationOption(flickCursorCurrent, 'whole');
+    setFlickDurationOption(flickCursorLonger, null);
+    return;
+  }
+
+  setFlickDurationOption(flickCursorShorter, 'half');
+  setFlickDurationOption(flickCursorCurrent, durationName);
+  setFlickDurationOption(flickCursorLonger, 'eighth');
+}
+
+function setFlickDurationOption(element, durationName) {
+  const symbols = {
+    '16th': ['𝅘𝅥𝅯', '1/16'],
+    eighth: ['♪', '1/8'],
+    quarter: ['♩', '1/4'],
+    half: ['𝅗𝅥', '1/2'],
+    whole: ['𝅝', 'koko'],
+  };
+  const symbolEl = element.querySelector('.flick-duration-symbol');
+  const labelEl = element.querySelector('.flick-duration-label');
+  const available = Boolean(durationName && symbols[durationName]);
+  element.classList.toggle('unavailable', !available);
+  if (!available) return;
+  const [symbol, label] = symbols[durationName];
+  symbolEl.textContent = symbol;
+  labelEl.textContent = label;
+}
+
+function commitFlickGesture(gesture) {
+  const base = durationByName[gesture.durationName];
+  if (!base) return;
+
+  const useDot = state.dot || gesture.dottedByRightSweep;
+  const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
+
+  if (state.restMode) {
+    addRest(durationUnits);
+    return;
+  }
+
+  const keyEl = gesture.keyEl;
+  state.notes.push({
+    kind: 'note',
+    step: keyEl.dataset.step,
+    alter: Number(keyEl.dataset.alter || 0),
+    octave: Number(keyEl.dataset.octave),
+    units: durationUnits,
+  });
+  renderScore();
 }
 
 function loadLayoutState() {
@@ -200,11 +457,16 @@ function loadLayoutState() {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || 'null');
     if (!saved) return structuredClone(defaultLayout);
     return {
+      handedness: saved.handedness === 'left' ? 'left' : 'right',
       whiteWidth: Number(saved.whiteWidth) || defaultLayout.whiteWidth,
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
       blackHeight: Number(saved.blackHeight) || defaultLayout.blackHeight,
-      zones: Array.isArray(saved.zones) && saved.zones.length === 5 ? saved.zones.map(Number) : [...defaultLayout.zones],
+      flick: {
+        eighth: Number(saved.flick?.eighth) || defaultLayout.flick.eighth,
+        half: Number(saved.flick?.half) || defaultLayout.flick.half,
+        longPressMs: Number(saved.flick?.longPressMs) || defaultLayout.flick.longPressMs,
+      },
     };
   } catch {
     return structuredClone(defaultLayout);
@@ -215,39 +477,18 @@ function saveLayoutState() {
   localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layoutState));
 }
 
-function zonePercentagesByDuration() {
-  // Tallennusjärjestys pysyy yhteensopivuuden vuoksi:
-  // [koko, 1/2, 1/4, 1/8, 1/16]
-  const total = layoutState.zones.reduce((sum, value) => sum + value, 0) || 100;
-  return layoutState.zones.map(value => (value / total) * 100);
-}
-
-function zonePercentagesTopDown() {
-  // Koskettimistossa aika-arvot ovat nyt päinvastoin:
-  // ylhäältä alas 1/16, 1/8, 1/4, 1/2, koko.
-  const p = zonePercentagesByDuration();
-  return [p[4], p[3], p[2], p[1], p[0]];
-}
-
-function getZoneIndexFromY(y, totalHeight) {
-  const pct = (y / totalHeight) * 100;
-  const parts = zonePercentagesTopDown();
-  let cursor = 0;
-  for (let i = 0; i < parts.length; i++) {
-    cursor += parts[i];
-    if (pct <= cursor || i === parts.length - 1) return i;
-  }
-  return 4;
+function normalizeFlickThresholds() {
+  // Ulomman rajan täytyy aina olla sisempää suurempi.
+  layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
 }
 
 function applyLayoutState({ save = true } = {}) {
+  normalizeFlickThresholds();
+  appShell.classList.toggle('left-handed', layoutState.handedness === 'left');
   zonePanel.style.setProperty('--white-width-scale', String(layoutState.whiteWidth / 100));
   zonePanel.style.setProperty('--keyboard-height-scale', String(layoutState.keyboardHeight / 100));
   zonePanel.style.setProperty('--black-width-ratio', String(layoutState.blackWidth / 100));
   zonePanel.style.setProperty('--black-height-ratio', `${layoutState.blackHeight}%`);
-
-  const parts = zonePercentagesTopDown();
-  zoneBands.style.gridTemplateRows = parts.map(v => `${v}%`).join(' ');
 
   const totalWhite = whiteKeys.length;
   const whiteWidth = 100 / totalWhite;
@@ -263,66 +504,44 @@ function applyLayoutState({ save = true } = {}) {
 }
 
 function syncLayoutControls() {
+  rightHandBtn.classList.toggle('active', layoutState.handedness === 'right');
+  leftHandBtn.classList.toggle('active', layoutState.handedness === 'left');
+  rightHandBtn.setAttribute('aria-pressed', String(layoutState.handedness === 'right'));
+  leftHandBtn.setAttribute('aria-pressed', String(layoutState.handedness === 'left'));
+
   layoutControls.whiteWidth.value = String(layoutState.whiteWidth);
   layoutControls.keyboardHeight.value = String(layoutState.keyboardHeight);
   layoutControls.blackWidth.value = String(layoutState.blackWidth);
   layoutControls.blackHeight.value = String(layoutState.blackHeight);
-  layoutControls.zoneWhole.value = String(layoutState.zones[0]);
-  layoutControls.zoneHalf.value = String(layoutState.zones[1]);
-  layoutControls.zoneQuarter.value = String(layoutState.zones[2]);
-  layoutControls.zoneEighth.value = String(layoutState.zones[3]);
-  layoutControls.zoneSixteenth.value = String(layoutState.zones[4]);
+  layoutControls.flickEighth.value = String(layoutState.flick.eighth);
+  layoutControls.flickHalf.value = String(layoutState.flick.half);
+  layoutControls.longPress.value = String(layoutState.flick.longPressMs);
 
   layoutOutputs.whiteWidth.textContent = `${layoutState.whiteWidth} %`;
   layoutOutputs.keyboardHeight.textContent = `${layoutState.keyboardHeight} %`;
   layoutOutputs.blackWidth.textContent = `${layoutState.blackWidth} %`;
   layoutOutputs.blackHeight.textContent = `${layoutState.blackHeight} %`;
-  const p = zonePercentagesByDuration();
-  layoutOutputs.zoneWhole.textContent = `${p[0].toFixed(1)} %`;
-  layoutOutputs.zoneHalf.textContent = `${p[1].toFixed(1)} %`;
-  layoutOutputs.zoneQuarter.textContent = `${p[2].toFixed(1)} %`;
-  layoutOutputs.zoneEighth.textContent = `${p[3].toFixed(1)} %`;
-  layoutOutputs.zoneSixteenth.textContent = `${p[4].toFixed(1)} %`;
+  layoutOutputs.flickEighth.textContent = `${layoutState.flick.eighth} px`;
+  layoutOutputs.flickHalf.textContent = `${layoutState.flick.half} px`;
+  layoutOutputs.longPress.textContent = `${layoutState.flick.longPressMs} ms`;
 }
 
 function bindLayoutControls() {
+  rightHandBtn.addEventListener('click', () => { layoutState.handedness = 'right'; applyLayoutState(); });
+  leftHandBtn.addEventListener('click', () => { layoutState.handedness = 'left'; applyLayoutState(); });
+
   layoutControls.whiteWidth.addEventListener('input', e => { layoutState.whiteWidth = Number(e.target.value); applyLayoutState(); });
   layoutControls.keyboardHeight.addEventListener('input', e => { layoutState.keyboardHeight = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackWidth.addEventListener('input', e => { layoutState.blackWidth = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackHeight.addEventListener('input', e => { layoutState.blackHeight = Number(e.target.value); applyLayoutState(); });
-
-  [layoutControls.zoneWhole, layoutControls.zoneHalf, layoutControls.zoneQuarter, layoutControls.zoneEighth, layoutControls.zoneSixteenth]
-    .forEach((control, index) => control.addEventListener('input', e => {
-      layoutState.zones[index] = Number(e.target.value);
-      applyLayoutState();
-    }));
+  layoutControls.flickEighth.addEventListener('input', e => { layoutState.flick.eighth = Number(e.target.value); applyLayoutState(); });
+  layoutControls.flickHalf.addEventListener('input', e => { layoutState.flick.half = Number(e.target.value); applyLayoutState(); });
+  layoutControls.longPress.addEventListener('input', e => { layoutState.flick.longPressMs = Number(e.target.value); applyLayoutState(); });
 }
 
 function setLayoutPanelOpen(open) {
   layoutPanel.classList.toggle('open', open);
   layoutPanel.setAttribute('aria-hidden', String(!open));
-}
-
-function handleZoneKeyPress(keyEl, zoneIndex) {
-  const base = durationDefs.find(d => d.zone === zoneIndex);
-  const durationUnits = state.dot ? Math.round(base.units * 1.5) : base.units;
-
-  flashKey(keyEl);
-  if (state.restMode) {
-    addRest(durationUnits);
-    return;
-  }
-
-  const note = {
-    kind: 'note',
-    step: keyEl.dataset.step,
-    alter: Number(keyEl.dataset.alter || 0),
-    octave: Number(keyEl.dataset.octave),
-    units: durationUnits,
-  };
-  state.notes.push(note);
-  playMidi(Number(keyEl.dataset.midi), durationUnitsToSeconds(durationUnits));
-  renderScore();
 }
 
 function addRest(units) {
@@ -469,6 +688,45 @@ function escapeXml(text) {
     .replace(/'/g, '&apos;');
 }
 
+
+function annotateDefaultBeams(measure) {
+  // Oletuspalkitus: peräkkäiset 1/8-nuotit pareittain ja 1/16-nuotit neljän ryhmiin.
+  // Tauko, eri aika-arvo tai tahdin raja katkaisee ryhmän.
+  const annotateRuns = (units, groupSize, beamLevels) => {
+    let run = [];
+
+    const flush = () => {
+      for (let start = 0; start + groupSize <= run.length; start += groupSize) {
+        const group = run.slice(start, start + groupSize);
+        group.forEach((seg, index) => {
+          const value = index === 0 ? 'begin' : index === group.length - 1 ? 'end' : 'continue';
+          seg.beams = beamLevels.map(number => ({ number, value }));
+        });
+      }
+      run = [];
+    };
+
+    measure.forEach(seg => {
+      if (seg.kind === 'note' && seg.units === units) {
+        run.push(seg);
+      } else {
+        flush();
+      }
+    });
+    flush();
+  };
+
+  measure.forEach(seg => { delete seg.beams; });
+  annotateRuns(4, 2, [1]);       // 1/8: kaksi nuottia samaan palkkiin
+  annotateRuns(2, 4, [1, 2]);    // 1/16: neljä nuottia, kaksi palkkitasoa
+  return measure;
+}
+
+function beamXml(seg) {
+  if (!seg.beams?.length) return '';
+  return seg.beams.map(beam => `<beam number="${beam.number}">${beam.value}</beam>`).join('');
+}
+
 function noteToXml(seg) {
   const dur = durationMapByUnits.get(seg.units);
   if (!dur) throw new Error(`Tuntematon kesto: ${seg.units}`);
@@ -491,13 +749,13 @@ function noteToXml(seg) {
       <voice>1</voice>
       <type>${dur.type}</type>
       ${dur.dots ? '<dot/>' : ''}
-      <stem>up</stem>
+      ${!isRest ? beamXml(seg) : ''}
       ${(!isRest && (seg.tieStart || seg.tieStop)) ? `<notations>${seg.tieStop ? '<tied type="stop"/>' : ''}${seg.tieStart ? '<tied type="start"/>' : ''}</notations>` : ''}
     </note>`;
 }
 
 function buildMusicXml() {
-  const measures = createEventsForScore();
+  const measures = createEventsForScore().map(annotateDefaultBeams);
   const beats = Number(beatsSelect.value);
   const beatType = Number(beatTypeSelect.value);
   const fifths = Number(keySelect.value);
@@ -583,8 +841,7 @@ restToggle.addEventListener('click', () => {
 });
 
 undoBtn.addEventListener('click', () => {
-  state.notes.pop();
-  renderScore();
+  undoLastNoteWithFeedback();
 });
 
 clearBtn.addEventListener('click', () => {
@@ -644,14 +901,15 @@ document.getElementById('layoutReset').addEventListener('click', () => {
 });
 
 document.getElementById('layoutCopy').addEventListener('click', async () => {
-  const parts = zonePercentagesByDuration();
   const payload = [
+    `Kätisyys: ${layoutState.handedness === 'right' ? 'Oikea käsi' : 'Vasen käsi'}`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
     `Musta korkeus: ${layoutState.blackHeight}%`,
-    `Zonet: koko ${parts[0].toFixed(1)}%, 1/2 ${parts[1].toFixed(1)}%, 1/4 ${parts[2].toFixed(1)}%, 1/8 ${parts[3].toFixed(1)}%, 1/16 ${parts[4].toFixed(1)}%`,
-    `Zone-painot: ${layoutState.zones.join(', ')}`
+    `Sweep alas → 1/8: ${layoutState.flick.eighth}px`,
+    `Sweep ylös → 1/2: ${layoutState.flick.half}px`,
+    `Pitkä painallus → koko: ${layoutState.flick.longPressMs}ms`
   ].join('\n');
   try {
     await navigator.clipboard.writeText(payload);
