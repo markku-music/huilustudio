@@ -30,6 +30,7 @@ const scoreKeyboardDivider = document.getElementById('scoreKeyboardDivider');
 const layoutJsonExport = document.getElementById('layoutJsonExport');
 const layoutJsonImport = document.getElementById('layoutJsonImport');
 const layoutJsonFile = document.getElementById('layoutJsonFile');
+const scoreShareOut = document.getElementById('scoreShareOut');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -562,6 +563,7 @@ function syncLayoutControls() {
   layoutOutputs.flickEighth.textContent = `${layoutState.flick.eighth} px`;
   layoutOutputs.flickHalf.textContent = `${layoutState.flick.half} px`;
   layoutOutputs.longPress.textContent = `${layoutState.flick.longPressMs} ms`;
+  scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
 }
 
 function bindLayoutControls() {
@@ -596,6 +598,7 @@ function setScoreShare(value, { save = false } = {}) {
   scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
   scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
   scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
+  scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
   if (save) saveLayoutState();
 }
 
@@ -1146,6 +1149,7 @@ document.getElementById('layoutReset').addEventListener('click', () => {
 document.getElementById('layoutCopy').addEventListener('click', async () => {
   const payload = [
     `Kätisyys: ${layoutState.handedness === 'right' ? 'Oikea käsi' : 'Vasen käsi'}`,
+    `Nuotti-ikkunan osuus: ${Math.round(layoutState.scoreShare)}%`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,

@@ -60,10 +60,21 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .side-column {
   min-width: 0;
-  display: grid;
-  grid-template-rows: auto auto;
-  align-content: start;
+  height: calc(100vh - 32px);
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
+}
+
+.layout-rail-button {
+  width: 100%;
+  min-height: 68px;
+  margin-top: auto;
+  border: 1px solid var(--line);
+  color: #50617f;
+  font-size: 30px;
+  line-height: 1;
 }
 
 .left-panel {
@@ -334,6 +345,26 @@ input, select {
   background: #fff;
   color: var(--ink);
   font-weight: 700;
+}
+
+.split-value-row {
+  min-height: 54px;
+  padding: 0 14px;
+  border: 1px solid #d6deec;
+  border-radius: 14px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.split-value-row output {
+  color: #4671bd;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
 }
 
 #osmdContainer {

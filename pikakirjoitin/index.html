@@ -107,6 +107,8 @@
           </button>
         </div>
       </aside>
+
+      <button id="layoutToggle" class="panel layout-rail-button" type="button" aria-label="Avaa asettelu">⚙</button>
     </div>
 
     <main class="main-column">
@@ -114,7 +116,6 @@
         <div class="paper-toolbar">
           <div class="toolbar-chip status-chip"><span id="statusText">Valmis</span></div>
           <div class="toolbar-chip note-chip">Syöttö: <strong>Flick-koskettimisto</strong></div>
-          <button id="layoutToggle" class="toolbar-button" type="button">⚙ ASETTELU</button>
         </div>
         <div id="osmdContainer"></div>
       </section>
@@ -163,6 +164,15 @@
       <div class="handedness-toggle" role="group" aria-label="Kätisyys">
         <button id="rightHandBtn" class="hand-button" type="button" data-hand="right">Oikea käsi</button>
         <button id="leftHandBtn" class="hand-button" type="button" data-hand="left">Vasen käsi</button>
+      </div>
+    </div>
+
+    <div class="layout-section">
+      <h3>Ikkunoiden jakosuhde</h3>
+      <p class="layout-hint">Muuta arvoa vetämällä nuotti-ikkunan ja koskettimiston välissä olevaa kahvaa.</p>
+      <div class="split-value-row">
+        <span>Nuotti-ikkuna</span>
+        <output id="scoreShareOut">54 %</output>
       </div>
     </div>
 
