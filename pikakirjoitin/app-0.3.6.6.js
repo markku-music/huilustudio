@@ -35,6 +35,10 @@ const layoutJsonFile = document.getElementById('layoutJsonFile');
 const scoreShareOut = document.getElementById('scoreShareOut');
 const noteSpacingSlider = document.getElementById('noteSpacingSlider');
 const noteSpacingOut = document.getElementById('noteSpacingOut');
+const printScoreBtn = document.getElementById('printScoreBtn');
+const pdfShareBtn = document.getElementById('pdfShareBtn');
+const pdfShareBtnLabel = document.getElementById('pdfShareBtnLabel');
+const documentActionStatus = document.getElementById('documentActionStatus');
 
 const layoutControls = {
   scoreZoom: document.getElementById('scoreZoomSlider'),
@@ -97,6 +101,10 @@ const defaultLayout = {
 let layoutState = loadLayoutState();
 let stretchLastLineOnceRequested = false;
 let stretchLastLineCommandRunning = false;
+let scoreRenderRevision = 0;
+let pdfActionRunning = false;
+let cachedPdfFile = null;
+let cachedPdfSignature = '';
 
 const titleInput = document.getElementById('titleInput');
 const composerInput = document.getElementById('composerInput');
@@ -946,6 +954,237 @@ function setSongPanelOpen(open) {
   songPanelToggle.setAttribute('aria-expanded', String(open));
 }
 
+function getPdfFilename() {
+  const base = String(titleInput.value || 'Uusi kappale')
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
+    .replace(/[. ]+$/g, '')
+    .trim()
+    .slice(0, 120) || 'Uusi kappale';
+  return `${base}.pdf`;
+}
+
+function getScorePageSvgs() {
+  const pageSvgs = [...osmdContainer.querySelectorAll('div[id^="osmdCanvasPage"]')]
+    .map(page => page.querySelector('svg'))
+    .filter(Boolean);
+  return pageSvgs.length ? pageSvgs : [...osmdContainer.querySelectorAll('svg')];
+}
+
+function getCurrentPdfSignature() {
+  return `${scoreRenderRevision}|${getPdfFilename()}`;
+}
+
+function invalidateCachedPdf() {
+  cachedPdfFile = null;
+  cachedPdfSignature = '';
+  syncPdfActionButton();
+}
+
+function syncPdfActionButton() {
+  const cacheIsCurrent = cachedPdfFile && cachedPdfSignature === getCurrentPdfSignature();
+  if (cachedPdfFile && !cacheIsCurrent) {
+    cachedPdfFile = null;
+    cachedPdfSignature = '';
+  }
+  pdfShareBtn.disabled = pdfActionRunning;
+  pdfShareBtn.setAttribute('aria-busy', String(pdfActionRunning));
+  pdfShareBtnLabel.textContent = pdfActionRunning
+    ? 'Luodaan PDF…'
+    : cacheIsCurrent
+      ? 'Jaa valmis PDF'
+      : 'PDF / Jaa';
+}
+
+function noteScoreRenderCompleted() {
+  scoreRenderRevision += 1;
+  syncPdfActionButton();
+}
+
+function setDocumentActionStatus(message) {
+  documentActionStatus.textContent = message;
+}
+
+function waitForAnimationFrame() {
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
+}
+
+async function waitForScoreReady() {
+  // Sliderien renderöinnit käynnistyvät 120 ms viiveellä. Lyhyt odotus ottaa
+  // mukaan myös juuri ennen PDF-nappia tehdyn zoomaus- tai välistysmuutoksen.
+  await new Promise(resolve => setTimeout(resolve, 160));
+  while (scoreRenderLoopPromise) await scoreRenderLoopPromise;
+  await waitForAnimationFrame();
+  if (!getScorePageSvgs().length) throw new Error('Nuottisivuja ei löytynyt.');
+}
+
+function cloneSvgForPdf(sourceSvg) {
+  const clone = sourceSvg.cloneNode(true);
+  clone.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
+  if (!clone.hasAttribute('viewBox')) {
+    const sourceWidth = Number.parseFloat(sourceSvg.getAttribute('width')) || 850;
+    const sourceHeight = Number.parseFloat(sourceSvg.getAttribute('height')) || sourceWidth * 297 / 210;
+    clone.setAttribute('viewBox', `0 0 ${sourceWidth} ${sourceHeight}`);
+  }
+  clone.removeAttribute('style');
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', '850');
+  clone.setAttribute('height', String(850 * 297 / 210));
+  clone.style.display = 'block';
+  clone.style.width = '850px';
+  clone.style.height = `${850 * 297 / 210}px`;
+  return clone;
+}
+
+async function createScorePdfFile() {
+  const JsPdf = window.jspdf?.jsPDF;
+  if (!JsPdf) throw new Error('PDF-kirjastoa ei voitu ladata.');
+
+  const sourceSvgs = getScorePageSvgs();
+  if (!sourceSvgs.length) throw new Error('Nuottisivuja ei löytynyt.');
+
+  const pdf = new JsPdf({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    compress: true,
+    putOnlyUsedFonts: true,
+  });
+  pdf.setProperties({
+    title: String(titleInput.value || 'Uusi kappale'),
+    author: String(composerInput.value || ''),
+    subject: 'Pikakirjoitin-nuotti',
+    creator: 'Pikakirjoitin',
+  });
+
+  const scratch = document.createElement('div');
+  scratch.className = 'pdf-svg-scratch';
+  document.body.appendChild(scratch);
+
+  try {
+    for (let index = 0; index < sourceSvgs.length; index += 1) {
+      if (index > 0) pdf.addPage('a4', 'portrait');
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, 210, 297, 'F');
+
+      const clone = cloneSvgForPdf(sourceSvgs[index]);
+      scratch.appendChild(clone);
+      await pdf.svg(clone, { x: 0, y: 0, width: 210, height: 297 });
+      clone.remove();
+    }
+  } finally {
+    scratch.remove();
+  }
+
+  const blob = pdf.output('blob');
+  return new File([blob], getPdfFilename(), { type: 'application/pdf' });
+}
+
+function browserCanSharePdf(file) {
+  if (typeof navigator.share !== 'function') return false;
+  if (typeof navigator.canShare !== 'function') return true;
+  try {
+    return navigator.canShare({ files: [file] });
+  } catch {
+    return false;
+  }
+}
+
+function downloadPdfFile(file) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  setDocumentActionStatus('PDF tallennettu tiedostoksi.');
+}
+
+function finishPdfAction() {
+  pdfActionRunning = false;
+  syncPdfActionButton();
+}
+
+function sharePreparedPdf(file, { generatedNow = false } = {}) {
+  if (!browserCanSharePdf(file)) {
+    downloadPdfFile(file);
+    finishPdfAction();
+    return;
+  }
+
+  // Kun valmis PDF jaetaan toisella painalluksella, navigator.share kutsutaan
+  // heti painalluksen sisällä. Tämä on tärkeä iPadOS Safarin käyttäjäele-ehto.
+  let sharePromise;
+  try {
+    sharePromise = navigator.share({
+      files: [file],
+      title: String(titleInput.value || 'Uusi kappale'),
+    });
+  } catch (error) {
+    sharePromise = Promise.reject(error);
+  }
+
+  Promise.resolve(sharePromise)
+    .then(() => setDocumentActionStatus('PDF jaettu.'))
+    .catch(error => {
+      if (error?.name === 'AbortError') {
+        setDocumentActionStatus('Jakaminen peruttiin. PDF on edelleen valmiina.');
+      } else if (generatedNow && error?.name === 'NotAllowedError') {
+        setDocumentActionStatus('PDF on valmis. Paina “Jaa valmis PDF”, niin iPadin jakovalikko avautuu.');
+      } else {
+        console.warn('PDF sharing failed', error);
+        downloadPdfFile(file);
+      }
+    })
+    .finally(finishPdfAction);
+}
+
+async function createAndSharePdf() {
+  pdfActionRunning = true;
+  syncPdfActionButton();
+  setDocumentActionStatus('Muodostetaan A4-PDF:ää…');
+
+  try {
+    await waitForScoreReady();
+    const signature = getCurrentPdfSignature();
+    const file = await createScorePdfFile();
+    cachedPdfFile = file;
+    cachedPdfSignature = signature;
+    sharePreparedPdf(file, { generatedNow: true });
+  } catch (error) {
+    console.error('PDF creation failed', error);
+    setDocumentActionStatus(`PDF:n luonti epäonnistui: ${error?.message || 'tuntematon virhe'}`);
+    finishPdfAction();
+  }
+}
+
+function handlePdfShare() {
+  if (pdfActionRunning) return;
+  const cacheIsCurrent = cachedPdfFile && cachedPdfSignature === getCurrentPdfSignature();
+  if (cacheIsCurrent) {
+    pdfActionRunning = true;
+    syncPdfActionButton();
+    sharePreparedPdf(cachedPdfFile);
+    return;
+  }
+  createAndSharePdf();
+}
+
+function printScore() {
+  const previousTitle = document.title;
+  document.title = String(titleInput.value || 'Uusi kappale');
+  setSongPanelOpen(false);
+
+  const restoreTitle = () => {
+    document.title = previousTitle;
+    window.removeEventListener('afterprint', restoreTitle);
+  };
+  window.addEventListener('afterprint', restoreTitle, { once: true });
+  window.print();
+  setTimeout(restoreTitle, 3000);
+}
+
 function setScoreShare(value, { save = false } = {}) {
   layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 30, 70);
   mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
@@ -962,6 +1201,7 @@ function applyNoteSpacing({ save = false } = {}) {
   noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
 
   if (state.osmd && state.appliedNoteSpacing !== layoutState.noteSpacing) {
+    invalidateCachedPdf();
     const spacing = layoutState.noteSpacing;
     clearTimeout(window.__noteSpacingRenderTimer);
     window.__noteSpacingRenderTimer = setTimeout(async () => {
@@ -970,6 +1210,7 @@ function applyNoteSpacing({ save = false } = {}) {
         await state.osmd.render();
         state.appliedNoteSpacing = spacing;
         renderSystemBreakMarkers();
+        noteScoreRenderCompleted();
       } catch (err) {
         console.warn('OSMD spacing render failed', err);
       }
@@ -991,6 +1232,7 @@ function getScoreLayoutSignature() {
 
 function applyScoreLayout() {
   if (!state.osmd || state.appliedScoreLayoutSignature === getScoreLayoutSignature()) return;
+  invalidateCachedPdf();
   clearTimeout(window.__noteSpacingRenderTimer);
   clearTimeout(window.__scoreLayoutRenderTimer);
   window.__scoreLayoutRenderTimer = setTimeout(() => renderScore(), 120);
@@ -1394,6 +1636,7 @@ let scoreRenderRequested = false;
 let scoreRenderLoopPromise = null;
 
 function renderScore() {
+  invalidateCachedPdf();
   scoreRenderRequested = true;
   if (!scoreRenderLoopPromise) {
     scoreRenderLoopPromise = (async () => {
@@ -1449,6 +1692,7 @@ async function renderScoreNow() {
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
+    noteScoreRenderCompleted();
     statusText.textContent = 'Valmis';
   } catch (err) {
     console.error(err);
@@ -1595,6 +1839,7 @@ playScaleBtn.addEventListener('click', async () => {
 
 function scheduleOsmdResizeRender() {
   if (!state.osmd) return;
+  invalidateCachedPdf();
   clearTimeout(window.__osmdResizeTimer);
   window.__osmdResizeTimer = setTimeout(async () => {
     try {
@@ -1602,6 +1847,7 @@ function scheduleOsmdResizeRender() {
       // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
       await state.osmd.render();
       renderSystemBreakMarkers();
+      noteScoreRenderCompleted();
     } catch (err) {
       console.warn('OSMD resize render failed', err);
     }
@@ -1629,6 +1875,8 @@ songPanelToggle.addEventListener('click', () => setSongPanelOpen(!songPanel.clas
 songPanelClose.addEventListener('click', () => setSongPanelOpen(false));
 songPanelDone.addEventListener('click', () => setSongPanelOpen(false));
 songPanelBackdrop.addEventListener('click', () => setSongPanelOpen(false));
+printScoreBtn.addEventListener('click', printScore);
+pdfShareBtn.addEventListener('click', handlePdfShare);
 layoutJsonExport.addEventListener('click', exportLayoutJson);
 layoutJsonImport.addEventListener('click', () => layoutJsonFile.click());
 layoutJsonFile.addEventListener('change', () => {
@@ -1683,4 +1931,5 @@ initScoreTouchGestures();
 applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
 updateToggleButtons();
+syncPdfActionButton();
 renderScore();

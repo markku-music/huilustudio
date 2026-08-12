@@ -524,18 +524,79 @@ input, select {
 @page { size: A4 portrait; margin: 0; }
 
 @media print {
-  .system-break-markers,
-  .system-break-candidate-svg { display: none !important; }
-  #osmdContainer > div[id^="osmdCanvasPage"] {
-    margin: 0;
-    border: 0;
-    box-shadow: none;
-    break-after: page;
+  html,
+  body {
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
   }
+
+  .app-shell,
+  .app-shell.left-handed {
+    display: block !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .side-column,
+  .score-keyboard-divider,
+  .zone-panel,
+  .note-spacing-strip,
+  .system-break-markers,
+  .system-break-candidate-svg,
+  .song-panel-backdrop,
+  .flick-hud,
+  .layout-panel,
+  #statusText { display: none !important; }
+
+  .main-column,
+  .paper-panel,
   #osmdContainer {
-    width: 100%;
-    max-width: none;
-    align-self: stretch;
+    display: block !important;
+    width: 210mm !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] + div[id^="osmdCanvasPage"] {
+    margin-top: 0 !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] > svg {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: none !important;
   }
 }
 
@@ -546,6 +607,67 @@ input, select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.document-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.document-action-button {
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid #cfd9e7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 750;
+}
+
+.document-action-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.document-action-button.document-action-primary {
+  border-color: #9bbcff;
+  background: var(--blue-soft);
+  color: #285eb6;
+}
+
+.document-action-button:disabled {
+  opacity: .62;
+  cursor: wait;
+}
+
+.document-action-status {
+  min-height: 34px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pdf-svg-scratch {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 850px;
+  height: auto;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .score-keyboard-divider {
