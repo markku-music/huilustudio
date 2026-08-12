@@ -1522,6 +1522,7 @@ function applyLayoutState({ save = true } = {}) {
   applyNoteSpacing();
   applyScoreLayout();
   applyScoreTextLayout();
+  renderMarginGuides();
   if (save) saveLayoutState();
 }
 
@@ -1643,6 +1644,8 @@ function bindLayoutControls() {
 function setLayoutPanelOpen(open) {
   layoutPanel.classList.toggle('open', open);
   layoutPanel.setAttribute('aria-hidden', String(!open));
+  osmdContainer.classList.toggle('show-margin-guides', open);
+  renderMarginGuides();
 }
 
 function setSongPanelOpen(open) {
@@ -1755,7 +1758,13 @@ function applyScoreTextElement(element, role, settings) {
   }
   const verticalCorrection = (baseBox.y + baseBox.height / 2) - (scaledBox.y + scaledBox.height / 2);
   element.setAttribute('x', String(baseX + horizontalCorrection + settings.x));
-  element.setAttribute('y', String(baseY + verticalCorrection + settings.y));
+  // compacttight siirtää säveltäjän, tempon ja nuottirivit PageTopMarginNarrow-
+  // arvolla, mutta jättää otsikon kiinteään kohtaan. Otsikolle lisätään sama
+  // OSMD-yksiköistä SVG-yksiköiksi muunnettu siirto erikseen.
+  const topMarginCorrection = role === 'title'
+    ? finiteLayoutNumber(layoutState.margins?.top, 0) * 10
+    : 0;
+  element.setAttribute('y', String(baseY + verticalCorrection + settings.y + topMarginCorrection));
 }
 
 function applyScoreTextLayout() {
@@ -1802,6 +1811,7 @@ function syncPdfActionButton() {
 }
 
 function noteScoreRenderCompleted() {
+  renderMarginGuides();
   scoreRenderRevision += 1;
   syncPdfActionButton();
 }
@@ -1826,6 +1836,7 @@ async function waitForScoreReady() {
 function cloneSvgForPdf(sourceSvg) {
   const clone = sourceSvg.cloneNode(true);
   clone.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
+  clone.querySelectorAll('.margin-guide-overlay').forEach(element => element.remove());
   if (!clone.hasAttribute('viewBox')) {
     const sourceWidth = Number.parseFloat(sourceSvg.getAttribute('width')) || 850;
     const sourceHeight = Number.parseFloat(sourceSvg.getAttribute('height')) || sourceWidth * 297 / 210;
@@ -1851,6 +1862,43 @@ function parseSvgViewBox(svg) {
     return { x: values[0], y: values[1], width: values[2], height: values[3] };
   }
   return { x: 0, y: 0, width: 850, height: 850 * 297 / 210 };
+}
+
+function createMarginGuideLine(side, x1, y1, x2, y2) {
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('data-margin-side', side);
+  line.setAttribute('x1', String(x1));
+  line.setAttribute('y1', String(y1));
+  line.setAttribute('x2', String(x2));
+  line.setAttribute('y2', String(y2));
+  return line;
+}
+
+function renderMarginGuides() {
+  getScorePageSvgs().forEach(svg => {
+    svg.querySelectorAll('.margin-guide-overlay').forEach(element => element.remove());
+    const box = parseSvgViewBox(svg);
+    const minX = box.x;
+    const minY = box.y;
+    const maxX = box.x + box.width;
+    const maxY = box.y + box.height;
+    const visibleInset = 1;
+    const unitScale = 10;
+    const left = clamp(minX + layoutState.margins.left * unitScale, minX + visibleInset, maxX - visibleInset);
+    const right = clamp(maxX - layoutState.margins.right * unitScale, minX + visibleInset, maxX - visibleInset);
+    const top = clamp(minY + layoutState.margins.top * unitScale, minY + visibleInset, maxY - visibleInset);
+    const bottom = clamp(maxY - layoutState.margins.bottom * unitScale, minY + visibleInset, maxY - visibleInset);
+
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.classList.add('margin-guide-overlay');
+    group.setAttribute('aria-hidden', 'true');
+    group.setAttribute('pointer-events', 'none');
+    group.appendChild(createMarginGuideLine('left', left, minY, left, maxY));
+    group.appendChild(createMarginGuideLine('right', right, minY, right, maxY));
+    group.appendChild(createMarginGuideLine('top', minX, top, maxX, top));
+    group.appendChild(createMarginGuideLine('bottom', minX, bottom, maxX, bottom));
+    svg.appendChild(group);
+  });
 }
 
 function appendPdfWatermark(svg) {
@@ -2140,6 +2188,9 @@ function setOsmdScoreLayoutRules(osmd) {
   rules.PageLeftMargin = layoutState.margins.left;
   rules.PageRightMargin = layoutState.margins.right;
   rules.PageTopMargin = layoutState.margins.top;
+  // compacttight käyttää ensimmäisellä ja seuraavilla sivuilla kapean
+  // yläreunan sääntöä tavallisen PageTopMargin-arvon sijasta.
+  rules.PageTopMarginNarrow = layoutState.margins.top;
   rules.PageBottomMargin = layoutState.margins.bottom;
 }
 
