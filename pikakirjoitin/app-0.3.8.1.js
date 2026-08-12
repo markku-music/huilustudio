@@ -131,7 +131,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.8.0';
+const PROJECT_APP_VERSION = '0.3.8.1';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -3343,6 +3343,33 @@ function appendVectorAccidental(parent, type, count, color) {
   }
 }
 
+function getNoteheadCenterInSvg(graphicalNote, svg, noteHeadIndex) {
+  let noteheads = [];
+  try {
+    noteheads = graphicalNote?.getNoteheadSVGs?.() || [];
+  } catch {}
+  const notehead = noteheads[noteHeadIndex] || noteheads[0];
+  if (!notehead?.getBBox || !svg?.createSVGPoint) return null;
+
+  try {
+    const box = notehead.getBBox();
+    const noteheadToScreen = notehead.getScreenCTM?.();
+    const svgToScreen = svg.getScreenCTM?.();
+    if (!noteheadToScreen || !svgToScreen) return null;
+
+    const center = svg.createSVGPoint();
+    center.x = box.x + box.width / 2;
+    center.y = box.y + box.height / 2;
+    const screenCenter = center.matrixTransform(noteheadToScreen);
+    const svgCenter = screenCenter.matrixTransform(svgToScreen.inverse());
+    return Number.isFinite(svgCenter.x) && Number.isFinite(svgCenter.y)
+      ? { x: svgCenter.x, y: svgCenter.y }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function renderPitchNameOverlays() {
   osmdContainer.querySelectorAll('.pitch-name-overlay').forEach(element => element.remove());
   if (!layoutState.pitchNames || !state.osmd) return;
@@ -3374,7 +3401,11 @@ function renderPitchNameOverlays() {
               ? (beginX + endX) / 2
               : fallbackX;
             const rawY = Number(ys?.[noteHeadIndex]);
-            if (!svg || !Number.isFinite(rawX) || !Number.isFinite(rawY)) return;
+            if (!svg) return;
+            const exactCenter = getNoteheadCenterInSvg(graphicalNote, svg, noteHeadIndex);
+            const centerX = exactCenter?.x ?? (Number.isFinite(rawX) ? rawX / zoom : Number.NaN);
+            const centerY = exactCenter?.y ?? (Number.isFinite(rawY) ? rawY / zoom : Number.NaN);
+            if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) return;
 
             const renderedUnits = state.renderedNoteUnitsMap.get(objectId);
             const color = Number(renderedUnits) >= 16 ? '#111111' : '#ffffff';
@@ -3383,7 +3414,7 @@ function renderPitchNameOverlays() {
             group.setAttribute('aria-hidden', 'true');
             group.setAttribute('pointer-events', 'none');
             group.setAttribute('data-entry-index', String(entryIndex));
-            group.setAttribute('transform', `translate(${rawX / zoom} ${rawY / zoom})`);
+            group.setAttribute('transform', `translate(${centerX} ${centerY})`);
 
             const text = document.createElementNS(svgNs, 'text');
             const hasAccidental = Boolean(info.accidental);
