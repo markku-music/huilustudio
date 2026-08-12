@@ -13,7 +13,12 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
 body {
   margin: 0;
   background: var(--bg);
@@ -28,11 +33,16 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .app-shell {
   width: 100vw;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: grid;
   grid-template-columns: 94px minmax(0, 1fr);
   gap: 18px;
-  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
 }
 
 /* Vasenkätisessä asettelussa koskettimisto jää vasemman käden puolelle
@@ -61,8 +71,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .side-column {
   position: relative;
   min-width: 0;
-  height: calc(100vh - 32px);
-  min-height: 620px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -319,8 +329,8 @@ input, select {
 .main-column {
   width: 100%;
   min-width: 0;
-  height: calc(100vh - 32px);
-  min-height: 620px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -329,6 +339,8 @@ input, select {
 .paper-panel {
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   padding: 14px 14px 18px;
   display: flex;
   flex-direction: column;
@@ -508,6 +520,7 @@ input, select {
 .score-keyboard-divider {
   flex: 0 0 18px;
   position: relative;
+  z-index: 10;
   cursor: row-resize;
   touch-action: none;
   user-select: none;
@@ -515,7 +528,21 @@ input, select {
   place-items: center;
 }
 
+.score-keyboard-divider::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
 .divider-grip {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
   width: 82px;
   height: 6px;
   border-radius: 999px;
@@ -559,7 +586,8 @@ input, select {
   align-self: end;
   height: calc(100% * var(--keyboard-height-scale));
   max-height: 100%;
-  min-height: 180px;
+  min-height: 120px;
+  min-height: clamp(120px, 18dvh, 180px);
   border-radius: 22px;
   overflow: hidden;
   border: 1px solid #d7dfea;
@@ -706,13 +734,16 @@ input, select {
 
 .layout-panel {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
   width: min(390px, calc(100vw - 36px));
-  max-height: calc(100vh - 36px);
-  overflow: auto;
+  max-height: none;
+  overflow: hidden;
   z-index: 3000;
   padding: 18px;
+  display: flex;
+  flex-direction: column;
   border-radius: 24px;
   border: 1px solid #cbd6e6;
   background: rgba(249, 251, 255, 0.97);
@@ -725,12 +756,23 @@ input, select {
 .layout-panel.open { transform: translateX(0); }
 
 .layout-panel-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid #dce5f0;
+}
+
+.layout-panel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
 }
 
 .layout-panel-head h2 { margin: 2px 0 0; font-size: 24px; }
@@ -786,6 +828,7 @@ input, select {
 .slider-row input[type="range"] { width: 100%; height: 28px; padding: 0; accent-color: var(--blue); }
 
 .layout-actions {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -826,5 +869,14 @@ input, select {
     right: 10px;
     width: auto;
   }
-  .main-column { min-height: 600px; }
+  .main-column { min-height: 0; }
+}
+
+@media (max-height: 720px) {
+  .side-column { gap: 10px; }
+  .song-panel-toggle { min-height: 64px; }
+  .layout-rail-button { min-height: 58px; }
+  .modifier-panel { padding: 6px; }
+  .modifier-buttons { gap: 6px; }
+  .modifier-button { min-height: 64px; }
 }

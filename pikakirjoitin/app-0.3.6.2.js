@@ -1000,28 +1000,43 @@ function setOsmdScoreLayoutRules(osmd) {
 }
 
 function bindScoreKeyboardDivider() {
-  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
-    ev.preventDefault();
-    scoreKeyboardDivider.classList.add('dragging');
-    scoreKeyboardDivider.setPointerCapture?.(ev.pointerId);
-  }, { passive: false });
+  let activePointerId = null;
 
-  scoreKeyboardDivider.addEventListener('pointermove', (ev) => {
-    if (!scoreKeyboardDivider.hasPointerCapture?.(ev.pointerId)) return;
+  const updateFromPointer = (ev) => {
+    if (activePointerId === null || ev.pointerId !== activePointerId) return;
     ev.preventDefault();
     const rect = mainColumn.getBoundingClientRect();
+    if (!rect.height) return;
     setScoreShare(((ev.clientY - rect.top) / rect.height) * 100);
-  }, { passive: false });
+  };
 
   const finishDrag = (ev) => {
-    if (scoreKeyboardDivider.hasPointerCapture?.(ev.pointerId)) {
-      try { scoreKeyboardDivider.releasePointerCapture(ev.pointerId); } catch {}
+    if (activePointerId === null) return;
+    if (ev?.pointerId !== undefined && ev.pointerId !== activePointerId) return;
+    const pointerId = activePointerId;
+    activePointerId = null;
+    if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
+      try { scoreKeyboardDivider.releasePointerCapture(pointerId); } catch {}
     }
     scoreKeyboardDivider.classList.remove('dragging');
     saveLayoutState();
   };
-  scoreKeyboardDivider.addEventListener('pointerup', finishDrag);
-  scoreKeyboardDivider.addEventListener('pointercancel', finishDrag);
+
+  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
+    if (activePointerId !== null) return;
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ev.preventDefault();
+    activePointerId = ev.pointerId;
+    scoreKeyboardDivider.classList.add('dragging');
+    try { scoreKeyboardDivider.setPointerCapture?.(ev.pointerId); } catch {}
+  }, { passive: false });
+
+  // iPadOS Safari ei aina pidä pointer capturea voimassa. Ikkunatason
+  // kuuntelu pitää vedon toiminnassa myös silloin, kun sormi poistuu kahvalta.
+  window.addEventListener('pointermove', updateFromPointer, { passive: false });
+  window.addEventListener('pointerup', finishDrag);
+  window.addEventListener('pointercancel', finishDrag);
+  window.addEventListener('blur', () => finishDrag());
 
   scoreKeyboardDivider.addEventListener('keydown', (ev) => {
     if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
