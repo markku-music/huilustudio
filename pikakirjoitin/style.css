@@ -436,11 +436,23 @@ input, select {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: linear-gradient(180deg, #fff 0%, #fefefe 100%);
+  background: #e7ecf3;
   border-radius: 18px;
   border: 1px solid #e4ebf5;
   padding: 18px 22px;
   touch-action: pan-y;
+}
+
+#osmdContainer > div[id^="osmdCanvasPage"] {
+  margin-right: auto;
+  margin-left: auto;
+  background: #fff;
+  border: 1px solid #d5dce7;
+  box-shadow: 0 5px 18px rgba(16, 32, 63, .12);
+}
+
+#osmdContainer > div[id^="osmdCanvasPage"] + div[id^="osmdCanvasPage"] {
+  margin-top: 18px;
 }
 
 .system-break-markers {
@@ -503,9 +515,17 @@ input, select {
   outline: none;
 }
 
+@page { size: A4 portrait; margin: 0; }
+
 @media print {
   .system-break-markers,
   .system-break-candidate-svg { display: none !important; }
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    break-after: page;
+  }
 }
 
 #osmdContainer > div,

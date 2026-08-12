@@ -450,19 +450,23 @@ function renderSystemBreakMarkers() {
   osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
   if (!state.osmd || (state.systemBreaks.size === 0 && state.pendingSystemBreakIndex === null)) return;
 
-  const svg = osmdContainer.querySelector('svg');
-  const measureList = state.osmd.GraphicSheet?.MeasureList;
-  if (!svg || !measureList) return;
+  const graphicSheet = state.osmd.GraphicSheet;
+  const measureList = graphicSheet?.MeasureList;
+  const musicPages = graphicSheet?.MusicPages || [];
+  const fallbackSvg = osmdContainer.querySelector('svg');
+  if (!fallbackSvg || !measureList) return;
 
-  const svgRect = svg.getBoundingClientRect();
+  // OSMD tekee A4-tilassa jokaiselle sivulle oman SVG:n. Sidotaan jokainen
+  // GraphicalMusicPage vastaavaan sivu-SVG:hen, jotta editorimerkit eivät
+  // kasaannu ensimmäiselle sivulle.
+  const svgByMusicPage = new Map();
+  musicPages.forEach((musicPage, pageIndex) => {
+    const pageElement = osmdContainer.querySelector(`#osmdCanvasPage${pageIndex + 1}`);
+    const pageSvg = pageElement?.querySelector('svg');
+    if (pageSvg) svgByMusicPage.set(musicPage, pageSvg);
+  });
+
   const containerRect = osmdContainer.getBoundingClientRect();
-  const viewBox = svg.viewBox?.baseVal;
-  const viewWidth = viewBox?.width || Number(svg.getAttribute('width')) || svgRect.width;
-  const viewHeight = viewBox?.height || Number(svg.getAttribute('height')) || svgRect.height;
-  if (!viewWidth || !viewHeight || !svgRect.width || !svgRect.height) return;
-
-  const scaleX = svgRect.width / viewWidth;
-  const scaleY = svgRect.height / viewHeight;
   const layer = document.createElement('div');
   layer.className = 'system-break-markers';
   layer.style.width = `${osmdContainer.scrollWidth}px`;
@@ -473,6 +477,10 @@ function renderSystemBreakMarkers() {
     const measure = measureList[measureIndex - 1]?.find(item => item && item.isVisible?.() !== false);
     if (!measure) return;
 
+    const musicPage = measure.ParentMusicSystem?.Parent
+      || measure.ParentStaffLine?.ParentMusicSystem?.Parent;
+    const svg = svgByMusicPage.get(musicPage) || fallbackSvg;
+
     const stave = measure.stave;
     let x;
     let y;
@@ -482,8 +490,9 @@ function renderSystemBreakMarkers() {
     } else {
       const box = measure.PositionAndShape;
       if (!box?.AbsolutePosition) return;
-      x = (box.AbsolutePosition.x + box.BorderRight) * 10 * state.osmd.zoom;
-      y = (box.AbsolutePosition.y + box.BorderTop) * 10 * state.osmd.zoom;
+      const pageOrigin = musicPage?.PositionAndShape?.AbsolutePosition || { x: 0, y: 0 };
+      x = (box.AbsolutePosition.x - pageOrigin.x + box.BorderRight) * 10 * state.osmd.zoom;
+      y = (box.AbsolutePosition.y - pageOrigin.y + box.BorderTop) * 10 * state.osmd.zoom;
     }
 
     if (candidate) {
@@ -540,6 +549,13 @@ function renderSystemBreakMarkers() {
     const actionLabel = `Poista rivinvaihto tahdin ${measureIndex} jälkeen`;
     marker.setAttribute('aria-label', actionLabel);
     marker.title = actionLabel;
+    const svgRect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox?.baseVal;
+    const viewWidth = viewBox?.width || Number(svg.getAttribute('width')) || svgRect.width;
+    const viewHeight = viewBox?.height || Number(svg.getAttribute('height')) || svgRect.height;
+    if (!viewWidth || !viewHeight || !svgRect.width || !svgRect.height) return;
+    const scaleX = svgRect.width / viewWidth;
+    const scaleY = svgRect.height / viewHeight;
     const barlineX = svgRect.left - containerRect.left + osmdContainer.scrollLeft
       + (x - (viewBox?.x || 0)) * scaleX;
     const staffTopY = svgRect.top - containerRect.top + osmdContainer.scrollTop
@@ -1410,7 +1426,8 @@ async function renderScoreNow() {
         drawPartNames: false,
         newSystemFromXML: true,
         stretchLastSystemLine: stretchLastLine,
-        pageFormat: 'Endless',
+        pageFormat: 'A4_P',
+        pageBackgroundColor: '#FFFFFF',
       });
     }
     const osmd = state.osmd;
