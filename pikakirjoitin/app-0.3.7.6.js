@@ -27,6 +27,7 @@ const selectionToolbar = document.getElementById('selectionToolbar');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
+const selectionPortatoBtn = document.getElementById('selectionPortatoBtn');
 const selectionAccentBtn = document.getElementById('selectionAccentBtn');
 const selectionDynamicSelect = document.getElementById('selectionDynamicSelect');
 const selectionCrescendoBtn = document.getElementById('selectionCrescendoBtn');
@@ -928,6 +929,7 @@ function syncNoteSelectionToolbar() {
   const exactCrescendo = findExactSelectionHairpin('crescendo', legatoRange);
   const exactDiminuendo = findExactSelectionHairpin('diminuendo', legatoRange);
   const allStaccato = indices.length > 0 && indices.every(index => Boolean(state.notes[index].staccato));
+  const allPortato = indices.length > 0 && indices.every(index => Boolean(state.notes[index].portato));
   const allAccented = indices.length > 0 && indices.every(index => Boolean(state.notes[index].accent));
   const firstDynamic = indices.length > 0 ? (state.notes[indices[0]].dynamic || '') : '';
 
@@ -943,6 +945,9 @@ function syncNoteSelectionToolbar() {
   selectionStaccatoBtn.disabled = indices.length === 0;
   selectionStaccatoBtn.classList.toggle('active', allStaccato);
   selectionStaccatoBtn.setAttribute('aria-pressed', String(allStaccato));
+  selectionPortatoBtn.disabled = indices.length === 0;
+  selectionPortatoBtn.classList.toggle('active', allPortato);
+  selectionPortatoBtn.setAttribute('aria-pressed', String(allPortato));
   selectionAccentBtn.disabled = indices.length === 0;
   selectionAccentBtn.classList.toggle('active', allAccented);
   selectionAccentBtn.setAttribute('aria-pressed', String(allAccented));
@@ -1143,6 +1148,15 @@ function toggleStaccatoForSelection() {
   renderScore();
 }
 
+function togglePortatoForSelection() {
+  const indices = getSelectedNoteIndices();
+  if (indices.length === 0) return;
+  const enable = !indices.every(index => Boolean(state.notes[index].portato));
+  indices.forEach(index => { state.notes[index].portato = enable; });
+  statusText.textContent = enable ? 'Portatoviiva lisätty' : 'Portatoviiva poistettu';
+  renderScore();
+}
+
 function toggleAccentForSelection() {
   const indices = getSelectedNoteIndices();
   if (indices.length === 0) return;
@@ -1222,6 +1236,7 @@ function initNoteSelection() {
   });
   selectionClearBtn.addEventListener('click', clearNoteSelection);
   selectionStaccatoBtn.addEventListener('click', toggleStaccatoForSelection);
+  selectionPortatoBtn.addEventListener('click', togglePortatoForSelection);
   selectionAccentBtn.addEventListener('click', toggleAccentForSelection);
   selectionDynamicSelect.addEventListener('change', ev => applyDynamicForSelection(ev.target.value));
   selectionSlurBtn.addEventListener('click', toggleLegatoForSelection);
@@ -2380,6 +2395,7 @@ function createEventsForScore() {
     }
     if (entry.kind === 'note' && sourceSegments.length > 0) {
       sourceSegments[0].staccato = Boolean(entry.staccato);
+      sourceSegments[0].portato = Boolean(entry.portato);
       sourceSegments[0].accent = Boolean(entry.accent);
       sourceSegments[0].dynamic = entry.dynamic || '';
       segmentsByEntryId.set(entry.id, sourceSegments);
@@ -2484,7 +2500,7 @@ function noteNotationsXml(seg, isRest) {
     ...(seg.slurStops || []).map(number => `<slur type="stop" number="${number}"/>`),
     ...(seg.slurStarts || []).map(number => `<slur type="start" number="${number}"/>`),
   ].join('');
-  const articulationItems = `${seg.staccato ? '<staccato/>' : ''}${seg.accent ? '<accent/>' : ''}`;
+  const articulationItems = `${seg.staccato ? '<staccato/>' : ''}${seg.portato ? '<tenuto/>' : ''}${seg.accent ? '<accent/>' : ''}`;
   const articulations = articulationItems ? `<articulations>${articulationItems}</articulations>` : '';
   const contents = `${tied}${slurs}${articulations}`;
   return contents ? `<notations>${contents}</notations>` : '';

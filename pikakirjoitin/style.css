@@ -437,14 +437,35 @@ input, select {
   opacity: .38;
 }
 
-.selection-dynamic-select {
-  width: 64px;
+.selection-dynamic-control {
   height: 38px;
-  flex: 0 0 64px;
-  padding: 0 24px 0 8px;
+  flex: 0 0 auto;
+  padding-left: 8px;
   border: 1px solid #d3c5f7;
   border-radius: 11px;
-  background-color: #fff;
+  background: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+}
+
+.selection-dynamic-label {
+  color: #6a50a8;
+  font: 750 12px/1 system-ui, sans-serif;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.selection-dynamic-select {
+  width: 58px;
+  height: 36px;
+  flex: 0 0 58px;
+  padding: 0 22px 0 5px;
+  border: 0;
+  border-left: 1px solid #e6ddfa;
+  border-radius: 0 10px 10px 0;
+  background-color: transparent;
   color: #5633ad;
   font: italic 800 17px/1 Georgia, "Times New Roman", serif;
   text-align: center;
