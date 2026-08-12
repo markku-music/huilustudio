@@ -999,7 +999,57 @@ function refreshNoteSelectionGeometry() {
   renderNoteSelectionOverlay();
 }
 
-function alignHairpinsByStaffLine() {
+function getDynamicExpressionSvgElements(expression) {
+  if (expression?.InstantaneousDynamic && expression.Label?.SVGNode) {
+    return [expression.Label.SVGNode];
+  }
+  if (
+    expression?.ContinuousDynamic
+    && Array.isArray(expression.Lines)
+    && expression.Lines.length === 2
+    && expression.Lines.every(line => line?.SVGElement)
+  ) {
+    return expression.Lines.map(line => line.SVGElement);
+  }
+  return [];
+}
+
+function getCombinedSvgBounds(elements) {
+  const bounds = elements.map(element => {
+    try {
+      const box = element.getBBox();
+      if (![box.x, box.y, box.width, box.height].every(Number.isFinite)) return null;
+      return {
+        left: box.x,
+        right: box.x + box.width,
+        top: box.y,
+        bottom: box.y + box.height,
+      };
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+  if (bounds.length !== elements.length || bounds.length === 0) return null;
+  const left = Math.min(...bounds.map(box => box.left));
+  const right = Math.max(...bounds.map(box => box.right));
+  const top = Math.min(...bounds.map(box => box.top));
+  const bottom = Math.max(...bounds.map(box => box.bottom));
+  return { left, right, top, bottom, centerY: (top + bottom) / 2 };
+}
+
+function getDynamicExpressionFallbackCenterY(expression) {
+  if (expression?.ContinuousDynamic && Array.isArray(expression.Lines)) {
+    return expression.Lines.reduce(
+      (total, line) => total + Number(line.Start?.y || 0),
+      0,
+    ) / Math.max(1, expression.Lines.length) * 10;
+  }
+  const centerY = Number(expression?.PositionAndShape?.Center?.y);
+  if (Number.isFinite(centerY)) return centerY * 10;
+  return Number(expression?.PositionAndShape?.RelativePosition?.y || 0) * 10;
+}
+
+function alignDynamicsByStaffLine() {
   const measureList = state.osmd?.GraphicSheet?.MeasureList || [];
   const staffLines = new Set();
   measureList.forEach(measureGroup => {
@@ -1010,41 +1060,40 @@ function alignHairpinsByStaffLine() {
   });
 
   staffLines.forEach(staffLine => {
-    const hairpins = (staffLine.AbstractExpressions || []).filter(expression => (
-      expression?.ContinuousDynamic
-      && Array.isArray(expression.Lines)
-      && expression.Lines.length === 2
-      && expression.Lines.every(line => line?.SVGElement)
-    ));
-    if (hairpins.length < 2) return;
+    const expressions = (staffLine.AbstractExpressions || []).map(expression => {
+      const elements = getDynamicExpressionSvgElements(expression);
+      if (elements.length === 0) return null;
+      const bounds = getCombinedSvgBounds(elements);
+      return {
+        expression,
+        elements,
+        centerY: bounds?.centerY ?? getDynamicExpressionFallbackCenterY(expression),
+      };
+    }).filter(Boolean);
+    if (expressions.length < 2) return;
 
-    // Hairpinit tehdään aina nuottiviivaston alapuolelle. Siksi rivin alin
-    // OSMD:n valitsema keskitaso on turvallinen yhteinen taso: yksikään
-    // merkki ei nouse takaisin nuottien tai varsien päälle.
-    const targetY = Math.max(...hairpins.map(expression => (
-      expression.Lines.reduce((total, line) => total + Number(line.Start?.y || 0), 0)
-        / expression.Lines.length
-    )));
+    // Koko nuottiriville valitaan alin OSMD:n tarvitsema dynamiikkataso.
+    // Näin ppp–fff-merkit ja hairpinit ovat suorassa linjassa, mutta mikään
+    // niistä ei nouse takaisin nuottien tai varsien päälle.
+    const targetY = Math.max(...expressions.map(item => item.centerY));
 
-    hairpins.forEach(expression => {
-      const currentY = expression.Lines.reduce(
-        (total, line) => total + Number(line.Start?.y || 0),
-        0,
-      ) / expression.Lines.length;
-      const shiftSvgUnits = (targetY - currentY) * 10;
-      expression.Lines.forEach(line => {
-        const element = line.SVGElement;
-        if (!element.hasAttribute('data-hairpin-base-transform')) {
-          element.setAttribute('data-hairpin-base-transform', element.getAttribute('transform') || '');
+    expressions.forEach(item => {
+      const shiftSvgUnits = targetY - item.centerY;
+      item.elements.forEach(element => {
+        if (!element.hasAttribute('data-dynamic-base-transform')) {
+          element.setAttribute('data-dynamic-base-transform', element.getAttribute('transform') || '');
         }
-        const baseTransform = element.getAttribute('data-hairpin-base-transform') || '';
+        const baseTransform = element.getAttribute('data-dynamic-base-transform') || '';
         const alignmentTransform = Math.abs(shiftSvgUnits) > 0.001
           ? `translate(0 ${shiftSvgUnits})`
           : '';
         const transform = `${baseTransform} ${alignmentTransform}`.trim();
         if (transform) element.setAttribute('transform', transform);
         else element.removeAttribute('transform');
-        element.setAttribute('data-hairpin-row-aligned', 'true');
+        element.setAttribute('data-dynamic-row-aligned', 'true');
+        if (item.expression.ContinuousDynamic) {
+          element.setAttribute('data-hairpin-row-aligned', 'true');
+        }
       });
     });
   });
@@ -2018,7 +2067,7 @@ function applyNoteSpacing({ save = false } = {}) {
         setOsmdNoteSpacingRules(state.osmd, spacing);
         await state.osmd.render();
         applyScoreTextLayout();
-        alignHairpinsByStaffLine();
+        alignDynamicsByStaffLine();
         state.appliedNoteSpacing = spacing;
         renderSystemBreakMarkers();
         refreshNoteSelectionGeometry();
@@ -2606,7 +2655,7 @@ async function renderScoreNow() {
     osmd.zoom = layoutState.scoreZoom / 100;
     await osmd.render();
     applyScoreTextLayout();
-    alignHairpinsByStaffLine();
+    alignDynamicsByStaffLine();
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
@@ -2769,7 +2818,7 @@ function scheduleOsmdResizeRender() {
       // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
       await state.osmd.render();
       applyScoreTextLayout();
-      alignHairpinsByStaffLine();
+      alignDynamicsByStaffLine();
       renderSystemBreakMarkers();
       refreshNoteSelectionGeometry();
       noteScoreRenderCompleted();
