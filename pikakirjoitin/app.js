@@ -1,7 +1,6 @@
 const osmdContainer = document.getElementById('osmdContainer');
 const appShell = document.getElementById('appShell');
 const keyboardSurface = document.getElementById('keyboardSurface');
-const dotToggle = document.getElementById('dotToggle');
 const restToggle = document.getElementById('restToggle');
 const undoBtn = document.getElementById('undoBtn');
 const clearBtn = document.getElementById('clearBtn');
@@ -18,6 +17,8 @@ const flickCursorCurrent = document.getElementById('flickCursorCurrent');
 const flickCursorLonger = document.getElementById('flickCursorLonger');
 const rightHandBtn = document.getElementById('rightHandBtn');
 const leftHandBtn = document.getElementById('leftHandBtn');
+const dotShiftBtn = document.getElementById('dotShiftBtn');
+const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -146,8 +147,11 @@ const blackKeys = [
 
 const state = {
   notes: [],
-  dot: false,
   restMode: false,
+  modifiers: {
+    dotPointers: new Set(),
+    sixteenthPointers: new Set(),
+  },
   audioContext: null,
   osmd: null,
   gesture: null,
@@ -374,9 +378,12 @@ function durationFromFlickDelta(deltaY) {
   const f = layoutState.flick;
 
   // Ylös = 1/2, tap = 1/4, alas = 1/8.
+  // Pohjassa pidettävä 1/16-Shift muuttaa vain alas-eleen.
   // Kokonuotti syntyy vain pitkällä paikallaan pidetyllä painalluksella.
   if (deltaY >= f.half) return 'half';
-  if (deltaY <= -f.eighth) return 'eighth';
+  if (deltaY <= -f.eighth) {
+    return state.modifiers.sixteenthPointers.size > 0 ? '16th' : 'eighth';
+  }
   return 'quarter';
 }
 
@@ -433,7 +440,7 @@ function commitFlickGesture(gesture) {
   const base = durationByName[gesture.durationName];
   if (!base) return;
 
-  const useDot = state.dot || gesture.dottedByRightSweep;
+  const useDot = state.modifiers.dotPointers.size > 0 || gesture.dottedByRightSweep;
   const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
   if (state.restMode) {
@@ -824,16 +831,39 @@ async function renderScore() {
 }
 
 function updateToggleButtons() {
-  dotToggle.classList.toggle('active', state.dot);
-  dotToggle.textContent = state.dot ? '• piste: päällä' : '• piste: pois';
   restToggle.classList.toggle('active', state.restMode);
   restToggle.textContent = state.restMode ? '𝄽 tauko: päällä' : '𝄽 tauko: pois';
 }
 
-dotToggle.addEventListener('click', () => {
-  state.dot = !state.dot;
-  updateToggleButtons();
-});
+function bindHoldModifier(button, pointerSet) {
+  const sync = () => {
+    const active = pointerSet.size > 0;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  };
+
+  button.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    pointerSet.add(ev.pointerId);
+    button.setPointerCapture?.(ev.pointerId);
+    sync();
+  }, { passive: false });
+
+  const release = (ev) => {
+    if (!pointerSet.has(ev.pointerId)) return;
+    pointerSet.delete(ev.pointerId);
+    try { button.releasePointerCapture?.(ev.pointerId); } catch {}
+    sync();
+  };
+
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+  button.addEventListener('contextmenu', ev => ev.preventDefault());
+}
+
+bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
+bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
 
 restToggle.addEventListener('click', () => {
   state.restMode = !state.restMode;
