@@ -1083,13 +1083,130 @@ input, select {
   -webkit-user-select: none;
 }
 
+.octave-navigator {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px 5px;
+  border-bottom: 1px solid #d7e0ed;
+  background: linear-gradient(180deg, #f7faff 0%, #eef4fc 100%);
+  touch-action: none;
+}
+
+.octave-nav-button {
+  width: 38px;
+  height: 36px;
+  padding: 0 0 3px;
+  border: 1px solid #bdcce0;
+  border-radius: 12px;
+  background: #fff;
+  color: #315f9f;
+  box-shadow: 0 1px 3px rgba(41, 75, 125, .10);
+  font: 700 27px/1 system-ui, sans-serif;
+  touch-action: manipulation;
+}
+
+.octave-nav-button:disabled {
+  opacity: .32;
+  box-shadow: none;
+}
+
+.octave-rail {
+  min-width: 0;
+  height: 38px;
+  display: grid;
+  grid-template-rows: 18px 17px;
+  align-content: center;
+  gap: 1px;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+
+.octave-rail.dragging { cursor: grabbing; }
+
+.octave-rail:focus-visible {
+  border-radius: 9px;
+  box-shadow: 0 0 0 3px rgba(63, 128, 255, .22);
+}
+
+.octave-range-label {
+  align-self: center;
+  text-align: center;
+  color: #315f9f;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: .08em;
+  pointer-events: none;
+}
+
+.octave-map {
+  position: relative;
+  height: 17px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1px solid #b9c9df;
+  border-radius: 999px;
+  background: #fff;
+  color: #5d6c84;
+  font: 800 10px/15px system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.octave-map > span:not(.octave-window-marker) {
+  position: relative;
+  z-index: 2;
+  border-right: 1px solid rgba(139, 158, 187, .28);
+}
+
+.octave-map > span:last-child { border-right: 0; }
+
+.octave-window-marker {
+  position: absolute;
+  z-index: 1;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  width: 66.6667%;
+  border-radius: 999px;
+  background: #dbe8ff;
+  box-shadow: inset 0 0 0 1px rgba(63, 128, 255, .20);
+  transform: translateX(0);
+  transition: transform 180ms ease;
+}
+
+.zone-keyboard.octave-dragging .octave-window-marker,
+.zone-keyboard.octave-dragging .keyboard-surface {
+  transition: none;
+}
+
+.keyboard-viewport {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
 .keyboard-surface {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: calc(100% * var(--white-width-scale));
-  left: 50%;
-  transform: translateX(-50%);
+  width: calc(150% * var(--white-width-scale));
+  left: 0;
+  transform: translateX(0);
+  transition: transform 180ms ease;
   overflow: visible;
   touch-action: none;
 }
@@ -1117,6 +1234,23 @@ input, select {
   font-size: 18px;
   font-weight: 500;
   color: rgba(16,32,63,0.95);
+  pointer-events: none;
+}
+
+.key-octave-badge {
+  position: absolute;
+  bottom: 37px;
+  left: 50%;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 5px;
+  transform: translateX(-50%);
+  border: 1px solid #bfd0e7;
+  border-radius: 999px;
+  background: #edf4ff;
+  color: #315f9f;
+  font: 800 11px/19px system-ui, sans-serif;
+  text-align: center;
   pointer-events: none;
 }
 

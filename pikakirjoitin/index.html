@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.8.2" />
+  <link rel="stylesheet" href="style.css?v=0.3.9.0" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -217,7 +217,20 @@
 
       <section class="panel zone-panel">
         <div id="zoneKeyboard" class="zone-keyboard" aria-label="Flick-koskettimisto">
-          <div id="keyboardSurface" class="keyboard-surface"></div>
+          <div class="octave-navigator" aria-label="Koskettimiston oktaavialue">
+            <button id="octavePrevBtn" class="octave-nav-button" type="button" aria-label="Näytä ensimmäinen ja toinen oktaavi">‹</button>
+            <div id="octaveRail" class="octave-rail" role="slider" tabindex="0" aria-label="Näkyvät oktaavit" aria-valuemin="1" aria-valuemax="2" aria-valuenow="1" aria-valuetext="Oktaavit 1–2">
+              <strong id="octaveRangeLabel" class="octave-range-label">OKTAAVIT 1–2</strong>
+              <div class="octave-map" aria-hidden="true">
+                <span id="octaveWindowMarker" class="octave-window-marker"></span>
+                <span>1</span><span>2</span><span>3</span>
+              </div>
+            </div>
+            <button id="octaveNextBtn" class="octave-nav-button" type="button" aria-label="Näytä toinen ja kolmas oktaavi">›</button>
+          </div>
+          <div id="keyboardViewport" class="keyboard-viewport">
+            <div id="keyboardSurface" class="keyboard-surface"></div>
+          </div>
         </div>
       </section>
     </main>
@@ -434,6 +447,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.8.2.js"></script>
+  <script src="app-0.3.9.0.js"></script>
 </body>
 </html>

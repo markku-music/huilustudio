@@ -1,6 +1,12 @@
 const osmdContainer = document.getElementById('osmdContainer');
 const appShell = document.getElementById('appShell');
 const keyboardSurface = document.getElementById('keyboardSurface');
+const keyboardViewport = document.getElementById('keyboardViewport');
+const octavePrevBtn = document.getElementById('octavePrevBtn');
+const octaveNextBtn = document.getElementById('octaveNextBtn');
+const octaveRail = document.getElementById('octaveRail');
+const octaveRangeLabel = document.getElementById('octaveRangeLabel');
+const octaveWindowMarker = document.getElementById('octaveWindowMarker');
 const statusText = document.getElementById('statusText');
 const layoutToggle = document.getElementById('layoutToggle');
 const layoutPanel = document.getElementById('layoutPanel');
@@ -131,7 +137,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.8.2';
+const PROJECT_APP_VERSION = '0.3.9.0';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -255,6 +261,13 @@ const whiteKeys = [
   { midi: 79, step: 'G', alter: 0, octave: 5, label: 'G' },
   { midi: 81, step: 'A', alter: 0, octave: 5, label: 'A' },
   { midi: 83, step: 'B', alter: 0, octave: 5, label: 'H' },
+  { midi: 84, step: 'C', alter: 0, octave: 6, label: 'C' },
+  { midi: 86, step: 'D', alter: 0, octave: 6, label: 'D' },
+  { midi: 88, step: 'E', alter: 0, octave: 6, label: 'E' },
+  { midi: 89, step: 'F', alter: 0, octave: 6, label: 'F' },
+  { midi: 91, step: 'G', alter: 0, octave: 6, label: 'G' },
+  { midi: 93, step: 'A', alter: 0, octave: 6, label: 'A' },
+  { midi: 95, step: 'B', alter: 0, octave: 6, label: 'H' },
 ];
 
 const blackKeys = [
@@ -268,6 +281,11 @@ const blackKeys = [
   { midi: 78, step: 'F', alter: 1, octave: 5, afterWhiteIndex: 10 },
   { midi: 80, step: 'G', alter: 1, octave: 5, afterWhiteIndex: 11 },
   { midi: 82, step: 'A', alter: 1, octave: 5, afterWhiteIndex: 12 },
+  { midi: 85, step: 'C', alter: 1, octave: 6, afterWhiteIndex: 14 },
+  { midi: 87, step: 'D', alter: 1, octave: 6, afterWhiteIndex: 15 },
+  { midi: 90, step: 'F', alter: 1, octave: 6, afterWhiteIndex: 17 },
+  { midi: 92, step: 'G', alter: 1, octave: 6, afterWhiteIndex: 18 },
+  { midi: 94, step: 'A', alter: 1, octave: 6, afterWhiteIndex: 19 },
 ];
 
 const state = {
@@ -296,6 +314,9 @@ const state = {
   appliedScoreLayoutSignature: null,
   gesture: null,
   currentDurationName: 'quarter',
+  keyboardOctaveWindow: 0,
+  keyboardOctavePosition: 0,
+  octaveDrag: null,
   systemBreaks: new Set(),
   pendingSystemBreakIndex: null,
 };
@@ -306,6 +327,88 @@ const scoreTouchGesture = {
   moved: false,
   cancelled: false,
 };
+
+function updateKeyboardOctavePosition(position = state.keyboardOctavePosition) {
+  const nextPosition = clamp(Number(position) || 0, 0, 1);
+  state.keyboardOctavePosition = nextPosition;
+
+  const viewportWidth = keyboardViewport.clientWidth || zoneKeyboard.clientWidth || 0;
+  const pairWidth = viewportWidth * (layoutState.whiteWidth / 100);
+  const centeredPairOffset = (viewportWidth - pairWidth) / 2;
+  const keyboardOffset = centeredPairOffset - nextPosition * pairWidth / 2;
+  keyboardSurface.style.transform = `translateX(${keyboardOffset}px)`;
+  octaveWindowMarker.style.transform = `translateX(${nextPosition * 50}%)`;
+
+  const windowIndex = nextPosition >= 0.5 ? 1 : 0;
+  const rangeText = windowIndex === 0 ? 'OKTAAVIT 1–2' : 'OKTAAVIT 2–3';
+  const spokenRange = windowIndex === 0 ? 'Oktaavit 1–2' : 'Oktaavit 2–3';
+  octaveRangeLabel.textContent = rangeText;
+  octaveRail.setAttribute('aria-valuenow', String(windowIndex + 1));
+  octaveRail.setAttribute('aria-valuetext', spokenRange);
+  octavePrevBtn.disabled = nextPosition <= 0.001;
+  octaveNextBtn.disabled = nextPosition >= 0.999;
+}
+
+function setKeyboardOctaveWindow(windowIndex) {
+  const nextWindow = clamp(Math.round(Number(windowIndex) || 0), 0, 1);
+  state.keyboardOctaveWindow = nextWindow;
+  updateKeyboardOctavePosition(nextWindow);
+}
+
+function finishOctaveRailDrag(ev, cancelled = false) {
+  const drag = state.octaveDrag;
+  if (!drag || (ev?.pointerId !== undefined && ev.pointerId !== drag.pointerId)) return;
+  const deltaX = Number(ev?.clientX) - drag.startX;
+  const target = cancelled
+    ? drag.startWindow
+    : Math.abs(deltaX) >= 18
+      ? (deltaX < 0 ? 1 : 0)
+      : Math.round(state.keyboardOctavePosition);
+  state.octaveDrag = null;
+  octaveRail.classList.remove('dragging');
+  zoneKeyboard.classList.remove('octave-dragging');
+  try { octaveRail.releasePointerCapture?.(drag.pointerId); } catch {}
+  setKeyboardOctaveWindow(target);
+}
+
+function bindOctaveNavigator() {
+  octavePrevBtn.addEventListener('click', () => setKeyboardOctaveWindow(0));
+  octaveNextBtn.addEventListener('click', () => setKeyboardOctaveWindow(1));
+
+  octaveRail.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ev.preventDefault();
+    state.octaveDrag = {
+      pointerId: ev.pointerId,
+      startX: ev.clientX,
+      startPosition: state.keyboardOctavePosition,
+      startWindow: state.keyboardOctaveWindow,
+    };
+    octaveRail.classList.add('dragging');
+    zoneKeyboard.classList.add('octave-dragging');
+    try { octaveRail.setPointerCapture?.(ev.pointerId); } catch {}
+  }, { passive: false });
+
+  octaveRail.addEventListener('pointermove', ev => {
+    const drag = state.octaveDrag;
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    ev.preventDefault();
+    const oneOctaveWidth = Math.max(1, octaveRail.clientWidth / 3);
+    const nextPosition = drag.startPosition - (ev.clientX - drag.startX) / oneOctaveWidth;
+    updateKeyboardOctavePosition(nextPosition);
+  }, { passive: false });
+
+  octaveRail.addEventListener('pointerup', ev => finishOctaveRailDrag(ev));
+  octaveRail.addEventListener('pointercancel', ev => finishOctaveRailDrag(ev, true));
+  octaveRail.addEventListener('lostpointercapture', ev => finishOctaveRailDrag(ev));
+  octaveRail.addEventListener('keydown', ev => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    ev.preventDefault();
+    setKeyboardOctaveWindow(ev.key === 'ArrowRight' ? 1 : 0);
+  });
+
+  setKeyboardOctaveWindow(0);
+}
 
 function initKeyboard() {
   const whiteTemplate = document.getElementById('whiteKeyTemplate');
@@ -322,6 +425,13 @@ function initKeyboard() {
     el.style.left = `${idx * whiteWidth}%`;
     el.style.width = `${whiteWidth}%`;
     el.querySelector('.key-label').textContent = key.label;
+    if (key.step === 'C') {
+      const badge = document.createElement('span');
+      badge.className = 'key-octave-badge';
+      badge.textContent = String(Math.floor(idx / 7) + 1);
+      badge.setAttribute('aria-hidden', 'true');
+      el.appendChild(badge);
+    }
     keyboardSurface.appendChild(el);
   });
 
@@ -341,6 +451,7 @@ function initKeyboard() {
   keyboardSurface.addEventListener('pointermove', moveFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointerup', endFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointercancel', cancelFlickGesture, { passive: false });
+  bindOctaveNavigator();
 }
 
 function startFlickGesture(ev) {
@@ -1536,6 +1647,7 @@ function applyLayoutState({ save = true } = {}) {
     el.style.left = `${left}%`;
     el.style.width = `${whiteWidth * (layoutState.blackWidth / 100)}%`;
   });
+  updateKeyboardOctavePosition();
 
   syncLayoutControls();
   syncStretchLastLineButton();
@@ -3623,6 +3735,7 @@ stretchLastLineBtn.addEventListener('click', stretchLastLineOnce);
 });
 
 function scheduleOsmdResizeRender() {
+  updateKeyboardOctavePosition();
   if (!state.osmd) return;
   invalidateCachedPdf();
   clearTimeout(window.__osmdResizeTimer);
