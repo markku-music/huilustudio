@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.5.9" />
+  <link rel="stylesheet" href="style.css?v=0.3.6.1" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
@@ -106,9 +106,6 @@
             </svg>
           </button>
           <button id="stretchLastLineBtn" class="modifier-button modifier-button-text" type="button" aria-label="Venytä nykyinen viimeinen rivi kerran koko leveyteen">↔</button>
-          <button id="finalBarlineBtn" class="modifier-button" type="button" aria-label="Lisää tai poista lopputahtiviiva" aria-pressed="false">
-            <img class="modifier-icon modifier-icon-end" src="assets/End.svg" alt="" aria-hidden="true">
-          </button>
         </div>
       </aside>
 
@@ -159,7 +156,7 @@
     <div class="layout-panel-head">
       <div>
         <div class="layout-kicker">KEHITTÄJÄTYÖKALUT</div>
-        <h2>Koskettimisto & Flick</h2>
+        <h2>Koskettimisto & nuottikuva</h2>
       </div>
       <button id="layoutClose" class="icon-button" type="button" aria-label="Sulje">×</button>
     </div>
@@ -180,6 +177,34 @@
         <span>Nuotti-ikkuna</span>
         <output id="scoreShareOut">54 %</output>
       </div>
+    </div>
+
+    <div class="layout-section">
+      <h3>Nuottikuva</h3>
+      <label class="slider-row">
+        <span>Zoom <output id="scoreZoomOut">108 %</output></span>
+        <input id="scoreZoomSlider" type="range" min="70" max="160" step="1" value="108">
+      </label>
+      <label class="slider-row">
+        <span>Riviväli <output id="systemSpacingOut">300 %</output></span>
+        <input id="systemSpacingSlider" type="range" min="50" max="400" step="5" value="300">
+      </label>
+      <label class="slider-row">
+        <span>Vasen marginaali <output id="marginLeftOut">2 u</output></span>
+        <input id="marginLeftSlider" type="range" min="0" max="12" step="0.5" value="2">
+      </label>
+      <label class="slider-row">
+        <span>Oikea marginaali <output id="marginRightOut">2 u</output></span>
+        <input id="marginRightSlider" type="range" min="0" max="12" step="0.5" value="2">
+      </label>
+      <label class="slider-row">
+        <span>Ylämarginaali <output id="marginTopOut">5 u</output></span>
+        <input id="marginTopSlider" type="range" min="0" max="15" step="0.5" value="5">
+      </label>
+      <label class="slider-row">
+        <span>Alamarginaali <output id="marginBottomOut">0 u</output></span>
+        <input id="marginBottomSlider" type="range" min="0" max="15" step="0.5" value="0">
+      </label>
     </div>
 
     <div class="layout-section">
@@ -246,6 +271,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.5.9.js"></script>
+  <script src="app-0.3.6.1.js"></script>
 </body>
 </html>

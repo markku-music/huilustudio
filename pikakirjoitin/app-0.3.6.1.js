@@ -22,7 +22,6 @@ const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
-const finalBarlineBtn = document.getElementById('finalBarlineBtn');
 const songPanel = document.getElementById('songPanel');
 const songPanelToggle = document.getElementById('songPanelToggle');
 const songPanelClose = document.getElementById('songPanelClose');
@@ -38,6 +37,12 @@ const noteSpacingSlider = document.getElementById('noteSpacingSlider');
 const noteSpacingOut = document.getElementById('noteSpacingOut');
 
 const layoutControls = {
+  scoreZoom: document.getElementById('scoreZoomSlider'),
+  systemSpacing: document.getElementById('systemSpacingSlider'),
+  marginLeft: document.getElementById('marginLeftSlider'),
+  marginRight: document.getElementById('marginRightSlider'),
+  marginTop: document.getElementById('marginTopSlider'),
+  marginBottom: document.getElementById('marginBottomSlider'),
   whiteWidth: document.getElementById('whiteWidthSlider'),
   keyboardHeight: document.getElementById('keyboardHeightSlider'),
   blackWidth: document.getElementById('blackWidthSlider'),
@@ -48,6 +53,12 @@ const layoutControls = {
 };
 
 const layoutOutputs = {
+  scoreZoom: document.getElementById('scoreZoomOut'),
+  systemSpacing: document.getElementById('systemSpacingOut'),
+  marginLeft: document.getElementById('marginLeftOut'),
+  marginRight: document.getElementById('marginRightOut'),
+  marginTop: document.getElementById('marginTopOut'),
+  marginBottom: document.getElementById('marginBottomOut'),
   whiteWidth: document.getElementById('whiteWidthOut'),
   keyboardHeight: document.getElementById('keyboardHeightOut'),
   blackWidth: document.getElementById('blackWidthOut'),
@@ -62,6 +73,14 @@ const defaultLayout = {
   handedness: 'right',
   scoreShare: 54,
   noteSpacing: 100,
+  scoreZoom: 108,
+  systemSpacing: 300,
+  margins: {
+    left: 2,
+    right: 2,
+    top: 5,
+    bottom: 0,
+  },
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 43,
@@ -179,11 +198,11 @@ const state = {
   },
   audioContext: null,
   osmd: null,
+  appliedScoreLayoutSignature: null,
   gesture: null,
   currentDurationName: 'quarter',
   systemBreaks: new Set(),
   pendingSystemBreakIndex: null,
-  finalBarline: false,
 };
 
 const scoreTouchGesture = {
@@ -405,17 +424,6 @@ function syncSystemBreakButton() {
   systemBreakBtn.setAttribute('aria-pressed', String(active));
 }
 
-function syncFinalBarlineButton() {
-  finalBarlineBtn.classList.toggle('active', state.finalBarline);
-  finalBarlineBtn.setAttribute('aria-pressed', String(state.finalBarline));
-}
-
-function toggleFinalBarline() {
-  state.finalBarline = !state.finalBarline;
-  syncFinalBarlineButton();
-  renderScore();
-}
-
 function removeSystemBreak(measureIndex) {
   state.systemBreaks.delete(measureIndex);
   if (state.pendingSystemBreakIndex === measureIndex) {
@@ -578,9 +586,7 @@ function clearScoreWithFeedback() {
   state.notes = [];
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
-  state.finalBarline = false;
   syncSystemBreakButton();
-  syncFinalBarlineButton();
   renderScore();
   statusText.textContent = 'Nuotit tyhjennetty';
   clearTimeout(window.__clearScoreFeedbackTimer);
@@ -734,6 +740,11 @@ function commitFlickGesture(gesture) {
   renderScore();
 }
 
+function finiteLayoutNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function loadLayoutState() {
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || 'null');
@@ -742,6 +753,14 @@ function loadLayoutState() {
       handedness: saved.handedness === 'left' ? 'left' : 'right',
       scoreShare: Number(saved.scoreShare) || defaultLayout.scoreShare,
       noteSpacing: normalizeNoteSpacing(saved.noteSpacing),
+      scoreZoom: finiteLayoutNumber(saved.scoreZoom, defaultLayout.scoreZoom),
+      systemSpacing: finiteLayoutNumber(saved.systemSpacing, defaultLayout.systemSpacing),
+      margins: {
+        left: finiteLayoutNumber(saved.margins?.left, defaultLayout.margins.left),
+        right: finiteLayoutNumber(saved.margins?.right, defaultLayout.margins.right),
+        top: finiteLayoutNumber(saved.margins?.top, defaultLayout.margins.top),
+        bottom: finiteLayoutNumber(saved.margins?.bottom, defaultLayout.margins.bottom),
+      },
       whiteWidth: Number(saved.whiteWidth) || defaultLayout.whiteWidth,
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
@@ -766,6 +785,12 @@ function normalizeFlickThresholds() {
   layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
   layoutState.scoreShare = clamp(Number(layoutState.scoreShare) || defaultLayout.scoreShare, 30, 70);
   layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
+  layoutState.scoreZoom = clamp(finiteLayoutNumber(layoutState.scoreZoom, defaultLayout.scoreZoom), 70, 160);
+  layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 50, 400);
+  layoutState.margins.left = clamp(finiteLayoutNumber(layoutState.margins.left, defaultLayout.margins.left), 0, 12);
+  layoutState.margins.right = clamp(finiteLayoutNumber(layoutState.margins.right, defaultLayout.margins.right), 0, 12);
+  layoutState.margins.top = clamp(finiteLayoutNumber(layoutState.margins.top, defaultLayout.margins.top), 0, 15);
+  layoutState.margins.bottom = clamp(finiteLayoutNumber(layoutState.margins.bottom, defaultLayout.margins.bottom), 0, 15);
 }
 
 function applyLayoutState({ save = true } = {}) {
@@ -792,6 +817,7 @@ function applyLayoutState({ save = true } = {}) {
   syncLayoutControls();
   syncStretchLastLineButton();
   applyNoteSpacing();
+  applyScoreLayout();
   if (save) saveLayoutState();
 }
 
@@ -801,6 +827,12 @@ function syncLayoutControls() {
   rightHandBtn.setAttribute('aria-pressed', String(layoutState.handedness === 'right'));
   leftHandBtn.setAttribute('aria-pressed', String(layoutState.handedness === 'left'));
 
+  layoutControls.scoreZoom.value = String(layoutState.scoreZoom);
+  layoutControls.systemSpacing.value = String(layoutState.systemSpacing);
+  layoutControls.marginLeft.value = String(layoutState.margins.left);
+  layoutControls.marginRight.value = String(layoutState.margins.right);
+  layoutControls.marginTop.value = String(layoutState.margins.top);
+  layoutControls.marginBottom.value = String(layoutState.margins.bottom);
   layoutControls.whiteWidth.value = String(layoutState.whiteWidth);
   layoutControls.keyboardHeight.value = String(layoutState.keyboardHeight);
   layoutControls.blackWidth.value = String(layoutState.blackWidth);
@@ -809,6 +841,12 @@ function syncLayoutControls() {
   layoutControls.flickHalf.value = String(layoutState.flick.half);
   layoutControls.longPress.value = String(layoutState.flick.longPressMs);
 
+  layoutOutputs.scoreZoom.textContent = `${layoutState.scoreZoom} %`;
+  layoutOutputs.systemSpacing.textContent = `${layoutState.systemSpacing} %`;
+  layoutOutputs.marginLeft.textContent = `${layoutState.margins.left} u`;
+  layoutOutputs.marginRight.textContent = `${layoutState.margins.right} u`;
+  layoutOutputs.marginTop.textContent = `${layoutState.margins.top} u`;
+  layoutOutputs.marginBottom.textContent = `${layoutState.margins.bottom} u`;
   layoutOutputs.whiteWidth.textContent = `${layoutState.whiteWidth} %`;
   layoutOutputs.keyboardHeight.textContent = `${layoutState.keyboardHeight} %`;
   layoutOutputs.blackWidth.textContent = `${layoutState.blackWidth} %`;
@@ -854,6 +892,12 @@ function bindLayoutControls() {
   rightHandBtn.addEventListener('click', () => { layoutState.handedness = 'right'; applyLayoutState(); });
   leftHandBtn.addEventListener('click', () => { layoutState.handedness = 'left'; applyLayoutState(); });
 
+  layoutControls.scoreZoom.addEventListener('input', e => { layoutState.scoreZoom = Number(e.target.value); applyLayoutState(); });
+  layoutControls.systemSpacing.addEventListener('input', e => { layoutState.systemSpacing = Number(e.target.value); applyLayoutState(); });
+  layoutControls.marginLeft.addEventListener('input', e => { layoutState.margins.left = Number(e.target.value); applyLayoutState(); });
+  layoutControls.marginRight.addEventListener('input', e => { layoutState.margins.right = Number(e.target.value); applyLayoutState(); });
+  layoutControls.marginTop.addEventListener('input', e => { layoutState.margins.top = Number(e.target.value); applyLayoutState(); });
+  layoutControls.marginBottom.addEventListener('input', e => { layoutState.margins.bottom = Number(e.target.value); applyLayoutState(); });
   layoutControls.whiteWidth.addEventListener('input', e => { layoutState.whiteWidth = Number(e.target.value); applyLayoutState(); });
   layoutControls.keyboardHeight.addEventListener('input', e => { layoutState.keyboardHeight = Number(e.target.value); applyLayoutState(); });
   layoutControls.blackWidth.addEventListener('input', e => { layoutState.blackWidth = Number(e.target.value); applyLayoutState(); });
@@ -908,6 +952,24 @@ function applyNoteSpacing({ save = false } = {}) {
   if (save) saveLayoutState();
 }
 
+function getScoreLayoutSignature() {
+  return [
+    layoutState.scoreZoom,
+    layoutState.systemSpacing,
+    layoutState.margins.left,
+    layoutState.margins.right,
+    layoutState.margins.top,
+    layoutState.margins.bottom,
+  ].join('|');
+}
+
+function applyScoreLayout() {
+  if (!state.osmd || state.appliedScoreLayoutSignature === getScoreLayoutSignature()) return;
+  clearTimeout(window.__noteSpacingRenderTimer);
+  clearTimeout(window.__scoreLayoutRenderTimer);
+  window.__scoreLayoutRenderTimer = setTimeout(() => renderScore(), 120);
+}
+
 function normalizeNoteSpacing(value) {
   const parsed = Number(value);
   // Versioissa 0.3.4.1–0.3.4.2 tallennettu arvo oli OSMD:n
@@ -922,6 +984,19 @@ function setOsmdNoteSpacingRules(osmd, percent) {
   osmd.EngravingRules.SoftmaxFactorVexFlow = 15;
   osmd.EngravingRules.VoiceSpacingMultiplierVexflow = 0.65 * scale;
   osmd.EngravingRules.VoiceSpacingAddendVexflow = 2 * scale;
+}
+
+function setOsmdScoreLayoutRules(osmd) {
+  if (!osmd?.EngravingRules) return;
+  const rules = osmd.EngravingRules;
+  const systemSpacingScale = layoutState.systemSpacing / 100;
+  // compacttight-asetuksen alkuarvot ovat molemmissa 1 OSMD-yksikkö.
+  rules.MinimumDistanceBetweenSystems = systemSpacingScale;
+  rules.MinSkyBottomDistBetweenSystems = systemSpacingScale;
+  rules.PageLeftMargin = layoutState.margins.left;
+  rules.PageRightMargin = layoutState.margins.right;
+  rules.PageTopMargin = layoutState.margins.top;
+  rules.PageBottomMargin = layoutState.margins.bottom;
 }
 
 function bindScoreKeyboardDivider() {
@@ -984,6 +1059,14 @@ function importLayoutJson(file) {
         handedness: imported.handedness === 'left' ? 'left' : 'right',
         scoreShare: Number(imported.scoreShare) || defaultLayout.scoreShare,
         noteSpacing: normalizeNoteSpacing(imported.noteSpacing),
+        scoreZoom: finiteLayoutNumber(imported.scoreZoom, defaultLayout.scoreZoom),
+        systemSpacing: finiteLayoutNumber(imported.systemSpacing, defaultLayout.systemSpacing),
+        margins: {
+          left: finiteLayoutNumber(imported.margins?.left, defaultLayout.margins.left),
+          right: finiteLayoutNumber(imported.margins?.right, defaultLayout.margins.right),
+          top: finiteLayoutNumber(imported.margins?.top, defaultLayout.margins.top),
+          bottom: finiteLayoutNumber(imported.margins?.bottom, defaultLayout.margins.bottom),
+        },
         whiteWidth: Number(imported.whiteWidth) || defaultLayout.whiteWidth,
         keyboardHeight: Number(imported.keyboardHeight) || defaultLayout.keyboardHeight,
         blackWidth: Number(imported.blackWidth) || defaultLayout.blackWidth,
@@ -1245,7 +1328,7 @@ function buildMusicXml() {
       </direction>` : '';
     const notesXml = measure.map(noteToXml).join('');
     const systemBreak = i > 0 && state.systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
-    const finalBarline = state.finalBarline && i === measures.length - 1
+    const finalBarline = state.notes.length > 0 && i === measures.length - 1
       ? '<barline location="right"><bar-style>light-heavy</bar-style></barline>'
       : '';
     return `<measure number="${number}">${systemBreak}${attrs}${notesXml}${finalBarline}</measure>`;
@@ -1307,18 +1390,21 @@ async function renderScoreNow() {
     const osmd = state.osmd;
     osmd.setOptions({ stretchLastSystemLine: stretchLastLine });
     setOsmdNoteSpacingRules(osmd, layoutState.noteSpacing);
+    setOsmdScoreLayoutRules(osmd);
     if (osmd.EngravingRules) {
       osmd.EngravingRules.StretchLastSystemLine = stretchLastLine;
       osmd.EngravingRules.LastSystemMaxScalingFactor = stretchLastLine ? 100 : 1.4;
     }
     await osmd.load(xml);
+    setOsmdScoreLayoutRules(osmd);
     if (osmd.EngravingRules) {
       osmd.EngravingRules.StretchLastSystemLine = stretchLastLine;
       osmd.EngravingRules.LastSystemMaxScalingFactor = stretchLastLine ? 100 : 1.4;
     }
-    osmd.zoom = 1.08;
+    osmd.zoom = layoutState.scoreZoom / 100;
     await osmd.render();
     state.appliedNoteSpacing = layoutState.noteSpacing;
+    state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
     statusText.textContent = 'Valmis';
   } catch (err) {
@@ -1437,7 +1523,6 @@ restToggle.addEventListener('click', () => {
 
 systemBreakBtn.addEventListener('click', togglePendingSystemBreak);
 stretchLastLineBtn.addEventListener('click', stretchLastLineOnce);
-finalBarlineBtn.addEventListener('click', toggleFinalBarline);
 
 undoBtn.addEventListener('click', () => {
   undoLastNoteWithFeedback();
@@ -1447,9 +1532,7 @@ clearBtn.addEventListener('click', () => {
   state.notes = [];
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
-  state.finalBarline = false;
   syncSystemBreakButton();
-  syncFinalBarlineButton();
   renderScore();
 });
 
@@ -1530,6 +1613,9 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Kätisyys: ${layoutState.handedness === 'right' ? 'Oikea käsi' : 'Vasen käsi'}`,
     `Nuotti-ikkunan osuus: ${Math.round(layoutState.scoreShare)}%`,
     `Nuottien välistys: ${layoutState.noteSpacing}%`,
+    `Nuottikuvan zoom: ${layoutState.scoreZoom}%`,
+    `Riviväli: ${layoutState.systemSpacing}%`,
+    `Marginaalit (vasen/oikea/ylä/ala): ${layoutState.margins.left}/${layoutState.margins.right}/${layoutState.margins.top}/${layoutState.margins.bottom} u`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
