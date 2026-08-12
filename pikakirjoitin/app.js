@@ -400,6 +400,82 @@ function syncSystemBreakButton() {
   systemBreakBtn.setAttribute('aria-pressed', String(active));
 }
 
+function removeSystemBreak(measureIndex) {
+  state.systemBreaks.delete(measureIndex);
+  if (state.pendingSystemBreakIndex === measureIndex) {
+    state.pendingSystemBreakIndex = null;
+    syncSystemBreakButton();
+  }
+  renderScore();
+}
+
+function renderSystemBreakMarkers() {
+  osmdContainer.querySelector('.system-break-markers')?.remove();
+  if (!state.osmd || state.systemBreaks.size === 0) return;
+
+  const svg = osmdContainer.querySelector('svg');
+  const measureList = state.osmd.GraphicSheet?.MeasureList;
+  if (!svg || !measureList) return;
+
+  const svgRect = svg.getBoundingClientRect();
+  const containerRect = osmdContainer.getBoundingClientRect();
+  const viewBox = svg.viewBox?.baseVal;
+  const viewWidth = viewBox?.width || Number(svg.getAttribute('width')) || svgRect.width;
+  const viewHeight = viewBox?.height || Number(svg.getAttribute('height')) || svgRect.height;
+  if (!viewWidth || !viewHeight || !svgRect.width || !svgRect.height) return;
+
+  const scaleX = svgRect.width / viewWidth;
+  const scaleY = svgRect.height / viewHeight;
+  const layer = document.createElement('div');
+  layer.className = 'system-break-markers';
+  layer.style.width = `${osmdContainer.scrollWidth}px`;
+  layer.style.height = `${osmdContainer.scrollHeight}px`;
+
+  [...state.systemBreaks].sort((a, b) => a - b).forEach(measureIndex => {
+    const measure = measureList[measureIndex - 1]?.find(item => item && item.isVisible?.() !== false);
+    if (!measure) return;
+
+    const stave = measure.stave;
+    let x;
+    let y;
+    if (stave?.getX && stave?.getWidth && stave?.getY) {
+      x = stave.getX() + stave.getWidth();
+      y = stave.getY();
+    } else {
+      const box = measure.PositionAndShape;
+      if (!box?.AbsolutePosition) return;
+      x = (box.AbsolutePosition.x + box.BorderRight) * 10 * state.osmd.zoom;
+      y = (box.AbsolutePosition.y + box.BorderTop) * 10 * state.osmd.zoom;
+    }
+
+    const marker = document.createElement('button');
+    marker.type = 'button';
+    marker.className = 'system-break-marker';
+    marker.textContent = '↵';
+    marker.setAttribute('aria-label', `Poista rivinvaihto tahdin ${measureIndex} jälkeen`);
+    marker.title = `Poista rivinvaihto tahdin ${measureIndex} jälkeen`;
+    const barlineX = svgRect.left - containerRect.left + osmdContainer.scrollLeft
+      + (x - (viewBox?.x || 0)) * scaleX;
+    const staffTopY = svgRect.top - containerRect.top + osmdContainer.scrollTop
+      + (y - (viewBox?.y || 0)) * scaleY;
+    // Pidetään painike kokonaan nuotti-ikkunan sisällä. Täyteen leveyteen
+    // venytetty järjestelmä ei saa työntää merkkiä overflow-rajan taakse.
+    const visibleLeft = osmdContainer.scrollLeft + 4;
+    const visibleRight = osmdContainer.scrollLeft + osmdContainer.clientWidth - 40;
+    marker.style.left = `${clamp(barlineX - 40, visibleLeft, visibleRight)}px`;
+    marker.style.top = `${Math.max(4, staffTopY - 34)}px`;
+    marker.addEventListener('pointerdown', ev => ev.stopPropagation());
+    marker.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      removeSystemBreak(measureIndex);
+    });
+    layer.appendChild(marker);
+  });
+
+  osmdContainer.appendChild(layer);
+}
+
 function restorePendingSystemBreakAfterUndo() {
   const writtenUnits = getWrittenUnits();
   const futureBreaks = [...state.systemBreaks]
@@ -702,6 +778,7 @@ function applyNoteSpacing({ save = false } = {}) {
         setOsmdNoteSpacingRules(state.osmd, spacing);
         await state.osmd.render();
         state.appliedNoteSpacing = spacing;
+        renderSystemBreakMarkers();
       } catch (err) {
         console.warn('OSMD spacing render failed', err);
       }
@@ -1077,6 +1154,7 @@ async function renderScore() {
         drawTitle: true,
         drawComposer: true,
         drawPartNames: false,
+        newSystemFromXML: true,
         pageFormat: 'Endless',
       });
     }
@@ -1085,6 +1163,7 @@ async function renderScore() {
     state.osmd.zoom = 1.08;
     await state.osmd.render();
     state.appliedNoteSpacing = layoutState.noteSpacing;
+    renderSystemBreakMarkers();
     statusText.textContent = 'Valmis';
   } catch (err) {
     console.error(err);
@@ -1236,6 +1315,7 @@ function scheduleOsmdResizeRender() {
       // OSMD laskee järjestelmäleveyden containerin nykyisestä leveydestä renderöinnissä.
       // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
       await state.osmd.render();
+      renderSystemBreakMarkers();
     } catch (err) {
       console.warn('OSMD resize render failed', err);
     }

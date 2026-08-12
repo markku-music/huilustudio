@@ -407,6 +407,7 @@ input, select {
 }
 
 #osmdContainer {
+  position: relative;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -419,6 +420,47 @@ input, select {
   border: 1px solid #e4ebf5;
   padding: 18px 22px;
   touch-action: pan-y;
+}
+
+.system-break-markers {
+  position: absolute;
+  inset: 0 auto auto 0;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.system-break-marker {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #aa8cff;
+  border-radius: 50%;
+  background: #f1ebff;
+  color: #5d35b5;
+  box-shadow: 0 2px 7px rgba(82, 48, 156, .18);
+  display: grid;
+  place-items: center;
+  font: 800 20px/1 system-ui, sans-serif;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.system-break-marker:hover,
+.system-break-marker:focus-visible {
+  background: #e6dbff;
+  border-color: #8057dd;
+  outline: none;
+}
+
+.system-break-marker:active {
+  transform: scale(.94);
+}
+
+@media print {
+  .system-break-markers { display: none !important; }
 }
 
 #osmdContainer > div,
