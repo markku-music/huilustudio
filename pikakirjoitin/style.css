@@ -212,6 +212,10 @@ button { -webkit-tap-highlight-color: transparent; }
   transform: translateY(1px);
 }
 
+.modifier-button-text {
+  font: 700 34px/1 system-ui, sans-serif;
+}
+
 .modifier-icon {
   display: block;
   width: 42px;
@@ -233,6 +237,11 @@ button { -webkit-tap-highlight-color: transparent; }
 .modifier-icon-rest {
   width: 31px;
   height: 42px;
+}
+
+.modifier-icon-end {
+  width: 26px;
+  height: 46px;
 }
 
 .modifier-icon-system-break {
@@ -459,8 +468,32 @@ input, select {
   transform: scale(.94);
 }
 
+.system-break-candidate-svg {
+  color: #765da9;
+  cursor: pointer;
+  opacity: .78;
+  pointer-events: all;
+  touch-action: manipulation;
+}
+
+.system-break-candidate-svg text {
+  fill: currentColor;
+  font: 700 23px/1 system-ui, sans-serif;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.system-break-candidate-svg:hover,
+.system-break-candidate-svg:focus-visible {
+  color: #5d35b5;
+  opacity: 1;
+  outline: none;
+}
+
 @media print {
-  .system-break-markers { display: none !important; }
+  .system-break-markers,
+  .system-break-candidate-svg { display: none !important; }
 }
 
 #osmdContainer > div,

@@ -21,6 +21,8 @@ const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
+const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
+const finalBarlineBtn = document.getElementById('finalBarlineBtn');
 const songPanel = document.getElementById('songPanel');
 const songPanelToggle = document.getElementById('songPanelToggle');
 const songPanelClose = document.getElementById('songPanelClose');
@@ -72,6 +74,8 @@ const defaultLayout = {
 };
 
 let layoutState = loadLayoutState();
+let stretchLastLineOnceRequested = false;
+let stretchLastLineCommandRunning = false;
 
 const titleInput = document.getElementById('titleInput');
 const composerInput = document.getElementById('composerInput');
@@ -179,6 +183,7 @@ const state = {
   currentDurationName: 'quarter',
   systemBreaks: new Set(),
   pendingSystemBreakIndex: null,
+  finalBarline: false,
 };
 
 const scoreTouchGesture = {
@@ -400,6 +405,17 @@ function syncSystemBreakButton() {
   systemBreakBtn.setAttribute('aria-pressed', String(active));
 }
 
+function syncFinalBarlineButton() {
+  finalBarlineBtn.classList.toggle('active', state.finalBarline);
+  finalBarlineBtn.setAttribute('aria-pressed', String(state.finalBarline));
+}
+
+function toggleFinalBarline() {
+  state.finalBarline = !state.finalBarline;
+  syncFinalBarlineButton();
+  renderScore();
+}
+
 function removeSystemBreak(measureIndex) {
   state.systemBreaks.delete(measureIndex);
   if (state.pendingSystemBreakIndex === measureIndex) {
@@ -409,9 +425,20 @@ function removeSystemBreak(measureIndex) {
   renderScore();
 }
 
+function placeSystemBreakAfterMeasure(measureIndex) {
+  if (state.pendingSystemBreakIndex !== null) {
+    state.systemBreaks.delete(state.pendingSystemBreakIndex);
+  }
+  state.systemBreaks.add(measureIndex);
+  state.pendingSystemBreakIndex = null;
+  syncSystemBreakButton();
+  renderScore();
+}
+
 function renderSystemBreakMarkers() {
   osmdContainer.querySelector('.system-break-markers')?.remove();
-  if (!state.osmd || state.systemBreaks.size === 0) return;
+  osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
+  if (!state.osmd || (state.systemBreaks.size === 0 && state.pendingSystemBreakIndex === null)) return;
 
   const svg = osmdContainer.querySelector('svg');
   const measureList = state.osmd.GraphicSheet?.MeasureList;
@@ -430,8 +457,9 @@ function renderSystemBreakMarkers() {
   layer.className = 'system-break-markers';
   layer.style.width = `${osmdContainer.scrollWidth}px`;
   layer.style.height = `${osmdContainer.scrollHeight}px`;
+  const rowYByStaffLine = new WeakMap();
 
-  [...state.systemBreaks].sort((a, b) => a - b).forEach(measureIndex => {
+  const appendMarker = (measureIndex, candidate = false) => {
     const measure = measureList[measureIndex - 1]?.find(item => item && item.isVisible?.() !== false);
     if (!measure) return;
 
@@ -448,12 +476,60 @@ function renderSystemBreakMarkers() {
       y = (box.AbsolutePosition.y + box.BorderTop) * 10 * state.osmd.zoom;
     }
 
+    if (candidate) {
+      const svgNs = 'http://www.w3.org/2000/svg';
+      const zoom = Number(state.osmd.zoom) || 1;
+      const staffLine = measure.ParentStaffLine;
+      if (staffLine && !rowYByStaffLine.has(staffLine)) {
+        const firstMeasure = staffLine.Measures?.find(item => item?.stave?.getY);
+        rowYByStaffLine.set(staffLine, firstMeasure?.stave?.getY?.() ?? y);
+      }
+      const rowY = staffLine ? (rowYByStaffLine.get(staffLine) ?? y) : y;
+      // VexFlow-staven koordinaatit sisältävät jo OSMD-zoomin. SVG-juureen
+      // lisättävä editorimerkki tarvitsee takaisin zoomaamattoman arvon.
+      const markerX = x / zoom;
+      const markerY = rowY / zoom;
+      const group = document.createElementNS(svgNs, 'g');
+      group.classList.add('system-break-candidate-svg');
+      group.setAttribute('role', 'button');
+      group.setAttribute('tabindex', '0');
+      group.setAttribute('aria-label', `Tee rivinvaihto tahdin ${measureIndex} jälkeen`);
+
+      const hitArea = document.createElementNS(svgNs, 'rect');
+      hitArea.setAttribute('x', String(markerX - 18));
+      hitArea.setAttribute('y', String(markerY - 38));
+      hitArea.setAttribute('width', '36');
+      hitArea.setAttribute('height', '36');
+      hitArea.setAttribute('fill', 'transparent');
+
+      const plus = document.createElementNS(svgNs, 'text');
+      plus.setAttribute('x', String(markerX));
+      plus.setAttribute('y', String(markerY - 12));
+      plus.setAttribute('text-anchor', 'middle');
+      plus.textContent = '+';
+
+      const placeBreak = ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        placeSystemBreakAfterMeasure(measureIndex);
+      };
+      group.addEventListener('pointerdown', ev => ev.stopPropagation());
+      group.addEventListener('click', placeBreak);
+      group.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') placeBreak(ev);
+      });
+      group.append(hitArea, plus);
+      svg.appendChild(group);
+      return;
+    }
+
     const marker = document.createElement('button');
     marker.type = 'button';
     marker.className = 'system-break-marker';
     marker.textContent = '↵';
-    marker.setAttribute('aria-label', `Poista rivinvaihto tahdin ${measureIndex} jälkeen`);
-    marker.title = `Poista rivinvaihto tahdin ${measureIndex} jälkeen`;
+    const actionLabel = `Poista rivinvaihto tahdin ${measureIndex} jälkeen`;
+    marker.setAttribute('aria-label', actionLabel);
+    marker.title = actionLabel;
     const barlineX = svgRect.left - containerRect.left + osmdContainer.scrollLeft
       + (x - (viewBox?.x || 0)) * scaleX;
     const staffTopY = svgRect.top - containerRect.top + osmdContainer.scrollTop
@@ -471,7 +547,20 @@ function renderSystemBreakMarkers() {
       removeSystemBreak(measureIndex);
     });
     layer.appendChild(marker);
+  };
+
+  [...state.systemBreaks].sort((a, b) => a - b).forEach(measureIndex => {
+    appendMarker(measureIndex, false);
   });
+
+  if (state.pendingSystemBreakIndex !== null) {
+    measureList.forEach((_, measurePosition) => {
+      const breakAfterMeasure = measurePosition + 1;
+      if (!state.systemBreaks.has(breakAfterMeasure)) {
+        appendMarker(breakAfterMeasure, true);
+      }
+    });
+  }
 
   osmdContainer.appendChild(layer);
 }
@@ -489,7 +578,9 @@ function clearScoreWithFeedback() {
   state.notes = [];
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
+  state.finalBarline = false;
   syncSystemBreakButton();
+  syncFinalBarlineButton();
   renderScore();
   statusText.textContent = 'Nuotit tyhjennetty';
   clearTimeout(window.__clearScoreFeedbackTimer);
@@ -699,6 +790,7 @@ function applyLayoutState({ save = true } = {}) {
   });
 
   syncLayoutControls();
+  syncStretchLastLineButton();
   applyNoteSpacing();
   if (save) saveLayoutState();
 }
@@ -727,6 +819,35 @@ function syncLayoutControls() {
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
   noteSpacingSlider.value = String(layoutState.noteSpacing);
   noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
+}
+
+function syncStretchLastLineButton() {
+  stretchLastLineBtn.classList.toggle('active', stretchLastLineCommandRunning);
+  stretchLastLineBtn.setAttribute('aria-busy', String(stretchLastLineCommandRunning));
+}
+
+async function stretchLastLineOnce() {
+  if (stretchLastLineCommandRunning) return;
+  stretchLastLineCommandRunning = true;
+  stretchLastLineOnceRequested = true;
+  syncStretchLastLineButton();
+  clearTimeout(window.__noteSpacingRenderTimer);
+  clearTimeout(window.__osmdResizeTimer);
+  // Ensimmäinen kierros vaihtaa OSMD:n kaiverrussäännön. Safarissa viimeisen
+  // järjestelmän leveys voi silti jäädä edellisestä GraphicSheetistä, kunnes
+  // jokin muu nappi pyytää uuden renderöinnin. Tehdään sama toinen kierros
+  // automaattisesti heti seuraavassa ruudunpäivityksessä.
+  try {
+    await renderScore();
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    await renderScore();
+  } finally {
+    // Nykyinen GraphicSheet jää venytetyksi. Seuraava tavallinen nuotti- tai
+    // tietomuutos renderöidään taas normaalina, ellei komentoa paineta uudelleen.
+    stretchLastLineOnceRequested = false;
+    stretchLastLineCommandRunning = false;
+    syncStretchLastLineButton();
+  }
 }
 
 function bindLayoutControls() {
@@ -1124,7 +1245,10 @@ function buildMusicXml() {
       </direction>` : '';
     const notesXml = measure.map(noteToXml).join('');
     const systemBreak = i > 0 && state.systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
-    return `<measure number="${number}">${systemBreak}${attrs}${notesXml}</measure>`;
+    const finalBarline = state.finalBarline && i === measures.length - 1
+      ? '<barline location="right"><bar-style>light-heavy</bar-style></barline>'
+      : '';
+    return `<measure number="${number}">${systemBreak}${attrs}${notesXml}${finalBarline}</measure>`;
   }).join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1141,10 +1265,31 @@ function buildMusicXml() {
 </score-partwise>`;
 }
 
-async function renderScore() {
+let scoreRenderRequested = false;
+let scoreRenderLoopPromise = null;
+
+function renderScore() {
+  scoreRenderRequested = true;
+  if (!scoreRenderLoopPromise) {
+    scoreRenderLoopPromise = (async () => {
+      while (scoreRenderRequested) {
+        scoreRenderRequested = false;
+        await renderScoreNow();
+      }
+    })().finally(() => {
+      scoreRenderLoopPromise = null;
+      // Pyyntö voi syntyä aivan viimeisen kierroksen valmistuessa.
+      if (scoreRenderRequested) renderScore();
+    });
+  }
+  return scoreRenderLoopPromise;
+}
+
+async function renderScoreNow() {
   try {
     statusText.textContent = 'Renderöidään…';
     const xml = buildMusicXml();
+    const stretchLastLine = stretchLastLineOnceRequested;
     if (!state.osmd) {
       state.osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer, {
         autoResize: true,
@@ -1155,13 +1300,24 @@ async function renderScore() {
         drawComposer: true,
         drawPartNames: false,
         newSystemFromXML: true,
+        stretchLastSystemLine: stretchLastLine,
         pageFormat: 'Endless',
       });
     }
-    setOsmdNoteSpacingRules(state.osmd, layoutState.noteSpacing);
-    await state.osmd.load(xml);
-    state.osmd.zoom = 1.08;
-    await state.osmd.render();
+    const osmd = state.osmd;
+    osmd.setOptions({ stretchLastSystemLine: stretchLastLine });
+    setOsmdNoteSpacingRules(osmd, layoutState.noteSpacing);
+    if (osmd.EngravingRules) {
+      osmd.EngravingRules.StretchLastSystemLine = stretchLastLine;
+      osmd.EngravingRules.LastSystemMaxScalingFactor = stretchLastLine ? 100 : 1.4;
+    }
+    await osmd.load(xml);
+    if (osmd.EngravingRules) {
+      osmd.EngravingRules.StretchLastSystemLine = stretchLastLine;
+      osmd.EngravingRules.LastSystemMaxScalingFactor = stretchLastLine ? 100 : 1.4;
+    }
+    osmd.zoom = 1.08;
+    await osmd.render();
     state.appliedNoteSpacing = layoutState.noteSpacing;
     renderSystemBreakMarkers();
     statusText.textContent = 'Valmis';
@@ -1280,6 +1436,8 @@ restToggle.addEventListener('click', () => {
 });
 
 systemBreakBtn.addEventListener('click', togglePendingSystemBreak);
+stretchLastLineBtn.addEventListener('click', stretchLastLineOnce);
+finalBarlineBtn.addEventListener('click', toggleFinalBarline);
 
 undoBtn.addEventListener('click', () => {
   undoLastNoteWithFeedback();
@@ -1289,7 +1447,9 @@ clearBtn.addEventListener('click', () => {
   state.notes = [];
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
+  state.finalBarline = false;
   syncSystemBreakButton();
+  syncFinalBarlineButton();
   renderScore();
 });
 

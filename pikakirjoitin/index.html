@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=0.3.5.9" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
@@ -104,6 +104,10 @@
               <path d="M38 21v9c0 4.4-3.6 8-8 8H18"/>
               <path d="m23 33-5 5 5 5"/>
             </svg>
+          </button>
+          <button id="stretchLastLineBtn" class="modifier-button modifier-button-text" type="button" aria-label="Venytä nykyinen viimeinen rivi kerran koko leveyteen">↔</button>
+          <button id="finalBarlineBtn" class="modifier-button" type="button" aria-label="Lisää tai poista lopputahtiviiva" aria-pressed="false">
+            <img class="modifier-icon modifier-icon-end" src="assets/End.svg" alt="" aria-hidden="true">
           </button>
         </div>
       </aside>
@@ -242,6 +246,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app.js"></script>
+  <script src="app-0.3.5.9.js"></script>
 </body>
 </html>
