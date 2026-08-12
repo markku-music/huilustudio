@@ -137,7 +137,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.9.2';
+const PROJECT_APP_VERSION = '0.3.9.3';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -456,6 +456,7 @@ function initKeyboard() {
   keyboardSurface.addEventListener('pointermove', moveFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointerup', endFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointercancel', cancelFlickGesture, { passive: false });
+  keyboardSurface.addEventListener('lostpointercapture', cancelLostFlickGesture);
   bindOctaveNavigator();
 }
 
@@ -560,14 +561,23 @@ function endFlickGesture(ev) {
       deltaX >= 48 &&
       Math.abs(deltaY) <= 14;
   }
-  if (!gesture.committed) commitFlickGesture(gesture);
+  if (!gesture.committed) {
+    commitFlickGesture(gesture);
+    gesture.committed = true;
+  }
   finishFlickGesture();
 }
 
 function cancelFlickGesture(ev) {
   if (!state.gesture) return;
   if (ev.pointerId !== state.gesture.pointerId) return;
-  if (!state.gesture.committed) cancelMidiPreview(state.gesture.audioPreviewId);
+  cancelMidiPreview(state.gesture.audioPreviewId);
+  finishFlickGesture();
+}
+
+function cancelLostFlickGesture(ev) {
+  if (!state.gesture || ev.pointerId !== state.gesture.pointerId) return;
+  cancelMidiPreview(state.gesture.audioPreviewId);
   finishFlickGesture();
 }
 
@@ -579,10 +589,11 @@ function clearLongPressTimer(gesture) {
 
 function finishFlickGesture() {
   if (!state.gesture) return;
-  clearLongPressTimer(state.gesture);
-  state.gesture.keyEl.classList.remove('active');
-  try { keyboardSurface.releasePointerCapture?.(state.gesture.pointerId); } catch {}
+  const gesture = state.gesture;
+  clearLongPressTimer(gesture);
+  gesture.keyEl.classList.remove('active');
   state.gesture = null;
+  try { keyboardSurface.releasePointerCapture?.(gesture.pointerId); } catch {}
   hideFlickHud();
 }
 
@@ -3166,7 +3177,9 @@ function flashKey(keyEl) {
 
 const PREVIEW_GAIN = 0.12;
 const PREVIEW_ATTACK_SECONDS = 0.012;
-const PREVIEW_RELEASE_SECONDS = 0.009;
+const PREVIEW_RELEASE_SECONDS = 0.012;
+const PREVIEW_STARTUP_SAFETY_SECONDS = 2;
+const PREVIEW_STOP_GUARD_MS = 90;
 
 function ensureAudio() {
   if (state.audioContext?.state === 'closed') {
@@ -3196,44 +3209,79 @@ function ensureAudio() {
   return state.audioReadyPromise;
 }
 
-function holdAudioParamAtTime(param, time, fallbackValue = PREVIEW_GAIN) {
-  if (typeof param.cancelAndHoldAtTime === 'function') {
-    param.cancelAndHoldAtTime(time);
-    return;
-  }
-  param.cancelScheduledValues(time);
-  param.setValueAtTime(Math.max(0.0001, Number(param.value) || fallbackValue), time);
-}
-
 function disconnectPreviewVoice(voice) {
   try { voice.osc.disconnect(); } catch {}
   try { voice.gain.disconnect(); } catch {}
 }
 
-function cutPreviewVoice(voice, releaseSeconds = PREVIEW_RELEASE_SECONDS) {
+function finishPreviewVoiceCleanup(voice) {
+  if (!voice || voice.ended) return;
+  voice.ended = true;
+  clearTimeout(voice.stopGuardTimer);
+  disconnectPreviewVoice(voice);
+  if (state.activePreviewVoice === voice) state.activePreviewVoice = null;
+  if (state.audioPreviewRequest?.voice === voice) state.audioPreviewRequest = null;
+}
+
+function forceStopPreviewVoice(voice) {
   if (!voice || voice.ended) return;
   const now = voice.ctx.currentTime;
-  const stopAt = now + Math.max(0.005, releaseSeconds);
-  clearTimeout(voice.safetyTimer);
+  clearTimeout(voice.stopGuardTimer);
   try {
-    holdAudioParamAtTime(voice.gain.gain, now);
-    voice.gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
-    voice.osc.stop(stopAt + 0.003);
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(0.0001, now);
   } catch {}
+  // Pysäytys ja audiosolmun irrotus tehdään erikseen. Vaimennuskäyrän
+  // epäonnistuminen Safarissa ei näin voi jättää oskillaattoria kuulumaan.
+  try { voice.osc.stop(now); } catch {}
+  finishPreviewVoiceCleanup(voice);
+}
+
+function armPreviewVoiceStop(voice, stopAt) {
+  if (!voice || voice.ended) return;
+  const now = voice.ctx.currentTime;
+  const safeStopAt = Math.max(now + PREVIEW_RELEASE_SECONDS, Number(stopAt) || now);
+  const releaseAt = Math.max(now, safeStopAt - PREVIEW_RELEASE_SECONDS);
+  clearTimeout(voice.stopGuardTimer);
+
+  // Äänenvoimakkuuden vaimennus on kosmeettinen. Sen mahdollinen virhe ei saa
+  // estää alla olevaa ehdotonta osc.stop()-kutsua.
+  try {
+    const attackEnd = voice.startedAt + PREVIEW_ATTACK_SECONDS;
+    const attackProgress = clamp(
+      (now - voice.startedAt) / PREVIEW_ATTACK_SECONDS,
+      0,
+      1,
+    );
+    const currentGain = 0.0001 + (PREVIEW_GAIN - 0.0001) * attackProgress;
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(currentGain, now);
+    if (now < attackEnd && releaseAt > attackEnd) {
+      voice.gain.gain.linearRampToValueAtTime(PREVIEW_GAIN, attackEnd);
+    }
+    if (releaseAt > Math.max(now, attackEnd)) {
+      voice.gain.gain.setValueAtTime(PREVIEW_GAIN, releaseAt);
+    }
+    voice.gain.gain.exponentialRampToValueAtTime(0.0001, safeStopAt);
+  } catch {}
+
+  try { voice.osc.stop(safeStopAt + 0.003); } catch {}
+
+  // Selainajasta riippumaton varmistus mykistää ja irrottaa solmun hieman
+  // määräajan jälkeen, vaikka Web Audion ajastus jostain syystä pettäisi.
+  const guardDelayMs = Math.max(0, (safeStopAt - now) * 1000) + PREVIEW_STOP_GUARD_MS;
+  voice.stopGuardTimer = window.setTimeout(() => forceStopPreviewVoice(voice), guardDelayMs);
+}
+
+function cutPreviewVoice(voice, releaseSeconds = PREVIEW_RELEASE_SECONDS) {
+  if (!voice || voice.ended) return;
+  armPreviewVoiceStop(voice, voice.ctx.currentTime + Math.max(0.005, releaseSeconds));
 }
 
 function schedulePreviewVoiceDuration(voice, durationSeconds) {
   if (!voice || voice.ended) return;
-  const now = voice.ctx.currentTime;
   const naturalEnd = voice.startedAt + Math.max(0.04, Number(durationSeconds) || 0.04);
-  const stopAt = Math.max(now + PREVIEW_RELEASE_SECONDS, naturalEnd);
-  const releaseAt = Math.max(now, stopAt - PREVIEW_RELEASE_SECONDS);
-  clearTimeout(voice.safetyTimer);
-  try {
-    holdAudioParamAtTime(voice.gain.gain, releaseAt);
-    voice.gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
-    voice.osc.stop(stopAt + 0.003);
-  } catch {}
+  armPreviewVoiceStop(voice, naturalEnd);
 }
 
 function createPreviewVoice(ctx, request) {
@@ -3250,7 +3298,7 @@ function createPreviewVoice(ctx, request) {
     requestId: request.id,
     startedAt,
     ended: false,
-    safetyTimer: 0,
+    stopGuardTimer: 0,
   };
 
   osc.type = 'triangle';
@@ -3259,17 +3307,15 @@ function createPreviewVoice(ctx, request) {
   gain.gain.linearRampToValueAtTime(PREVIEW_GAIN, startedAt + PREVIEW_ATTACK_SECONDS);
   osc.connect(gain).connect(ctx.destination);
   osc.onended = () => {
-    voice.ended = true;
-    clearTimeout(voice.safetyTimer);
-    disconnectPreviewVoice(voice);
-    if (state.activePreviewVoice === voice) state.activePreviewVoice = null;
-    if (state.audioPreviewRequest === request) state.audioPreviewRequest = null;
+    finishPreviewVoiceCleanup(voice);
   };
   osc.start(startedAt);
 
   request.voice = voice;
   state.activePreviewVoice = voice;
-  voice.safetyTimer = window.setTimeout(() => cutPreviewVoice(voice), 15000);
+  // Vanhan 0.3.3.0-version tapaan jokaisella oskillaattorilla on lopetusaika
+  // heti syntyessään. Pitkä painallus ehtii tarkentaa sen kokonuotiksi.
+  armPreviewVoiceStop(voice, startedAt + PREVIEW_STARTUP_SAFETY_SECONDS);
   if (request.durationSeconds !== null) {
     schedulePreviewVoiceDuration(voice, request.durationSeconds);
   }
@@ -3324,6 +3370,18 @@ function cancelActiveMidiPreview() {
   if (request) request.cancelled = true;
   if (state.activePreviewVoice) cutPreviewVoice(state.activePreviewVoice);
   state.audioPreviewRequest = null;
+}
+
+function silenceAudioForAppLifecycle() {
+  const request = state.audioPreviewRequest;
+  if (request) request.cancelled = true;
+  if (state.activePreviewVoice) forceStopPreviewVoice(state.activePreviewVoice);
+  state.audioPreviewRequest = null;
+  if (!state.gesture) return;
+  clearLongPressTimer(state.gesture);
+  state.gesture.keyEl.classList.remove('active');
+  state.gesture = null;
+  hideFlickHud();
 }
 
 function adjustTempo(delta) {
@@ -4010,6 +4068,17 @@ function scheduleOsmdResizeRender() {
 }
 
 window.addEventListener('resize', scheduleOsmdResizeRender);
+window.addEventListener('pointerup', (ev) => {
+  if (state.gesture?.pointerId === ev.pointerId) endFlickGesture(ev);
+}, { passive: false });
+window.addEventListener('pointercancel', (ev) => {
+  if (state.gesture?.pointerId === ev.pointerId) cancelFlickGesture(ev);
+}, { passive: false });
+window.addEventListener('blur', silenceAudioForAppLifecycle);
+window.addEventListener('pagehide', silenceAudioForAppLifecycle);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) silenceAudioForAppLifecycle();
+});
 
 // ResizeObserver huomaa myös sellaiset layout-muutokset, jotka eivät laukaise window.resize-tapahtumaa.
 if ('ResizeObserver' in window) {
