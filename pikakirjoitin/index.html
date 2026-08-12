@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.7.0" />
+  <link rel="stylesheet" href="style.css?v=0.3.7.1" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -123,6 +123,12 @@
             </svg>
           </button>
           <button id="stretchLastLineBtn" class="modifier-button modifier-button-text" type="button" aria-label="Venytä nykyinen viimeinen rivi kerran koko leveyteen">↔</button>
+          <button id="selectNotesBtn" class="modifier-button" type="button" aria-label="Valitse nuotteja" aria-pressed="false">
+            <svg class="modifier-icon modifier-icon-selection" viewBox="0 0 48 48" aria-hidden="true">
+              <rect x="7" y="8" width="28" height="24" rx="3"/>
+              <path d="m24 22 14 15-8-1-4 7z"/>
+            </svg>
+          </button>
         </div>
       </aside>
 
@@ -137,6 +143,22 @@
           <input id="noteSpacingSlider" type="range" min="50" max="150" step="5" value="100">
           <output id="noteSpacingOut">100 %</output>
         </label>
+        <div id="selectionToolbar" class="selection-toolbar" aria-hidden="true">
+          <span id="selectionCount" class="selection-count" aria-live="polite">Vedä nuottien yli</span>
+          <button id="selectionSlurBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled>
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M7 33C13 13 35 13 41 33"/>
+            </svg>
+          </button>
+          <button id="selectionStaccatoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled>
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <ellipse cx="21" cy="31" rx="7" ry="5" transform="rotate(-18 21 31)"/>
+              <path d="M27 29V9"/>
+              <circle cx="20" cy="17" r="2.7" class="selection-icon-dot"/>
+            </svg>
+          </button>
+          <button id="selectionClearBtn" class="selection-clear-button" type="button" aria-label="Poista valinta">×</button>
+        </div>
         <div id="osmdContainer"></div>
       </section>
 
@@ -356,6 +378,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.7.0.js"></script>
+  <script src="app-0.3.7.1.js"></script>
 </body>
 </html>

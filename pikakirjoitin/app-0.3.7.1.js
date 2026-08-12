@@ -22,6 +22,12 @@ const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
+const selectNotesBtn = document.getElementById('selectNotesBtn');
+const selectionToolbar = document.getElementById('selectionToolbar');
+const selectionCount = document.getElementById('selectionCount');
+const selectionSlurBtn = document.getElementById('selectionSlurBtn');
+const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
+const selectionClearBtn = document.getElementById('selectionClearBtn');
 const songPanel = document.getElementById('songPanel');
 const songPanelToggle = document.getElementById('songPanelToggle');
 const songPanelClose = document.getElementById('songPanelClose');
@@ -244,6 +250,14 @@ const blackKeys = [
 
 const state = {
   notes: [],
+  nextEntryId: 1,
+  nextSlurId: 1,
+  slurs: [],
+  selectionMode: false,
+  selectedNoteIndices: new Set(),
+  noteSelectionHitboxes: [],
+  selectionDrag: null,
+  renderedNoteObjectMap: new Map(),
   restMode: false,
   modifiers: {
     dotPointers: new Set(),
@@ -433,6 +447,8 @@ function hideFlickHud() {
 function undoLastNoteWithFeedback() {
   if (state.notes.length > 0) {
     state.notes.pop();
+    pruneSlurs();
+    clearNoteSelection();
     restorePendingSystemBreakAfterUndo();
     renderScore();
     statusText.textContent = 'Kumottu';
@@ -657,6 +673,8 @@ function restorePendingSystemBreakAfterUndo() {
 
 function clearScoreWithFeedback() {
   state.notes = [];
+  state.slurs = [];
+  clearNoteSelection();
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
   syncSystemBreakButton();
@@ -677,6 +695,7 @@ function resetScoreTouchGesture() {
 
 function initScoreTouchGestures() {
   osmdContainer.addEventListener('pointerdown', (ev) => {
+    if (state.selectionMode) return;
     if (ev.pointerType !== 'touch') return;
     ev.preventDefault();
     if (scoreTouchGesture.pointers.size === 0) resetScoreTouchGesture();
@@ -692,6 +711,7 @@ function initScoreTouchGestures() {
   }, { passive: false });
 
   osmdContainer.addEventListener('pointermove', (ev) => {
+    if (state.selectionMode) return;
     const pointer = scoreTouchGesture.pointers.get(ev.pointerId);
     if (!pointer) return;
     ev.preventDefault();
@@ -701,6 +721,7 @@ function initScoreTouchGestures() {
   }, { passive: false });
 
   const finishPointer = (ev, cancelled = false) => {
+    if (state.selectionMode) return;
     if (!scoreTouchGesture.pointers.has(ev.pointerId)) return;
     ev.preventDefault();
     if (cancelled) scoreTouchGesture.cancelled = true;
@@ -717,6 +738,351 @@ function initScoreTouchGestures() {
 
   osmdContainer.addEventListener('pointerup', ev => finishPointer(ev));
   osmdContainer.addEventListener('pointercancel', ev => finishPointer(ev, true));
+}
+
+function createScoreEntryId() {
+  const id = `entry-${state.nextEntryId}`;
+  state.nextEntryId += 1;
+  return id;
+}
+
+function ensureScoreEntryIds() {
+  state.notes.forEach(entry => {
+    if (!entry.id) entry.id = createScoreEntryId();
+  });
+}
+
+function pruneSlurs() {
+  ensureScoreEntryIds();
+  const entryIds = new Set(state.notes.map(entry => entry.id));
+  state.slurs = state.slurs.filter(slur => (
+    entryIds.has(slur.startId) && entryIds.has(slur.endId)
+  ));
+}
+
+function getSelectedNoteIndices() {
+  return [...state.selectedNoteIndices]
+    .filter(index => state.notes[index]?.kind === 'note')
+    .sort((a, b) => a - b);
+}
+
+function getLegatoSelectionRange() {
+  const indices = getSelectedNoteIndices();
+  if (indices.length < 2) return null;
+  const first = indices[0];
+  const last = indices[indices.length - 1];
+  for (let index = first; index <= last; index += 1) {
+    if (state.notes[index]?.kind !== 'note' || !state.selectedNoteIndices.has(index)) return null;
+  }
+  return {
+    first,
+    last,
+    startId: state.notes[first].id,
+    endId: state.notes[last].id,
+  };
+}
+
+function findExactSelectionSlur(range = getLegatoSelectionRange()) {
+  if (!range) return null;
+  return state.slurs.find(slur => (
+    slur.startId === range.startId && slur.endId === range.endId
+  )) || null;
+}
+
+function rectanglesIntersect(a, b) {
+  return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+}
+
+function normalizedSelectionRectangle(start, end) {
+  return {
+    left: Math.min(start.x, end.x),
+    right: Math.max(start.x, end.x),
+    top: Math.min(start.y, end.y),
+    bottom: Math.max(start.y, end.y),
+  };
+}
+
+function contentPointFromPointer(ev) {
+  const rect = osmdContainer.getBoundingClientRect();
+  return {
+    x: ev.clientX - rect.left + osmdContainer.scrollLeft,
+    y: ev.clientY - rect.top + osmdContainer.scrollTop,
+  };
+}
+
+function getElementClientRectangle(element) {
+  const direct = element?.getBoundingClientRect?.();
+  if (direct && direct.width > 0 && direct.height > 0) {
+    return {
+      left: direct.left,
+      top: direct.top,
+      right: direct.right,
+      bottom: direct.bottom,
+      width: direct.width,
+      height: direct.height,
+    };
+  }
+
+  try {
+    const box = element.getBBox();
+    const matrix = element.getScreenCTM();
+    if (!matrix || !box.width || !box.height) return null;
+    const transform = (x, y) => ({
+      x: matrix.a * x + matrix.c * y + matrix.e,
+      y: matrix.b * x + matrix.d * y + matrix.f,
+    });
+    const corners = [
+      transform(box.x, box.y),
+      transform(box.x + box.width, box.y),
+      transform(box.x, box.y + box.height),
+      transform(box.x + box.width, box.y + box.height),
+    ];
+    const xs = corners.map(point => point.x);
+    const ys = corners.map(point => point.y);
+    const left = Math.min(...xs);
+    const right = Math.max(...xs);
+    const top = Math.min(...ys);
+    const bottom = Math.max(...ys);
+    return { left, right, top, bottom, width: right - left, height: bottom - top };
+  } catch {
+    return null;
+  }
+}
+
+function buildNoteSelectionHitboxes() {
+  state.noteSelectionHitboxes = [];
+  if (!state.selectionMode || !state.osmd) return;
+
+  const measureList = state.osmd.GraphicSheet?.MeasureList || [];
+  const containerRect = osmdContainer.getBoundingClientRect();
+  const visitedGroups = new Set();
+
+  measureList.forEach(measureGroup => {
+    (measureGroup || []).forEach(measure => {
+      (measure?.staffEntries || []).forEach(staffEntry => {
+        (staffEntry?.graphicalVoiceEntries || []).forEach(voiceEntry => {
+          (voiceEntry?.notes || []).forEach(graphicalNote => {
+            const objectId = graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;
+            const entryIndex = state.renderedNoteObjectMap.get(objectId);
+            if (!Number.isInteger(entryIndex) || state.notes[entryIndex]?.kind !== 'note') return;
+
+            const vexRef = graphicalNote.vfnote;
+            const vexNote = Array.isArray(vexRef) ? vexRef[0] : vexRef;
+            const group = vexNote?.attrs?.el || voiceEntry?.mVexFlowStaveNote?.attrs?.el;
+            if (!group || visitedGroups.has(group)) return;
+            visitedGroups.add(group);
+
+            const rect = getElementClientRectangle(group);
+            if (!rect) return;
+            const horizontalPadding = 7;
+            const verticalPadding = 5;
+            const left = rect.left - containerRect.left + osmdContainer.scrollLeft - horizontalPadding;
+            const top = rect.top - containerRect.top + osmdContainer.scrollTop - verticalPadding;
+            const width = Math.max(28, rect.width + horizontalPadding * 2);
+            const height = Math.max(30, rect.height + verticalPadding * 2);
+            state.noteSelectionHitboxes.push({
+              entryIndex,
+              left,
+              top,
+              right: left + width,
+              bottom: top + height,
+              width,
+              height,
+            });
+          });
+        });
+      });
+    });
+  });
+}
+
+function syncNoteSelectionToolbar() {
+  const indices = getSelectedNoteIndices();
+  const legatoRange = getLegatoSelectionRange();
+  const exactSlur = findExactSelectionSlur(legatoRange);
+  const allStaccato = indices.length > 0 && indices.every(index => Boolean(state.notes[index].staccato));
+
+  selectNotesBtn.classList.toggle('active', state.selectionMode);
+  selectNotesBtn.setAttribute('aria-pressed', String(state.selectionMode));
+  osmdContainer.classList.toggle('selection-mode', state.selectionMode);
+  selectionToolbar.classList.toggle('open', state.selectionMode);
+  selectionToolbar.setAttribute('aria-hidden', String(!state.selectionMode));
+  selectionCount.textContent = indices.length > 0
+    ? `${indices.length} ${indices.length === 1 ? 'nuotti' : 'nuottia'}`
+    : 'Vedä nuottien yli';
+
+  selectionStaccatoBtn.disabled = indices.length === 0;
+  selectionStaccatoBtn.classList.toggle('active', allStaccato);
+  selectionStaccatoBtn.setAttribute('aria-pressed', String(allStaccato));
+  selectionSlurBtn.disabled = !legatoRange;
+  selectionSlurBtn.classList.toggle('active', Boolean(exactSlur));
+  selectionSlurBtn.setAttribute('aria-pressed', String(Boolean(exactSlur)));
+}
+
+function renderNoteSelectionOverlay() {
+  osmdContainer.querySelector('.note-selection-layer')?.remove();
+  syncNoteSelectionToolbar();
+  if (!state.selectionMode) return;
+
+  const layer = document.createElement('div');
+  layer.className = 'note-selection-layer';
+  layer.style.width = `${osmdContainer.scrollWidth}px`;
+  layer.style.height = `${osmdContainer.scrollHeight}px`;
+
+  state.noteSelectionHitboxes.forEach(hitbox => {
+    if (!state.selectedNoteIndices.has(hitbox.entryIndex)) return;
+    const highlight = document.createElement('div');
+    highlight.className = 'note-selection-highlight';
+    highlight.style.left = `${hitbox.left}px`;
+    highlight.style.top = `${hitbox.top}px`;
+    highlight.style.width = `${hitbox.width}px`;
+    highlight.style.height = `${hitbox.height}px`;
+    layer.appendChild(highlight);
+  });
+
+  if (state.selectionDrag) {
+    const rect = normalizedSelectionRectangle(state.selectionDrag.start, state.selectionDrag.current);
+    const marquee = document.createElement('div');
+    marquee.className = 'note-selection-marquee';
+    marquee.style.left = `${rect.left}px`;
+    marquee.style.top = `${rect.top}px`;
+    marquee.style.width = `${Math.max(1, rect.right - rect.left)}px`;
+    marquee.style.height = `${Math.max(1, rect.bottom - rect.top)}px`;
+    layer.appendChild(marquee);
+  }
+
+  osmdContainer.appendChild(layer);
+}
+
+function refreshNoteSelectionGeometry() {
+  buildNoteSelectionHitboxes();
+  renderNoteSelectionOverlay();
+}
+
+function clearNoteSelection() {
+  state.selectedNoteIndices.clear();
+  state.selectionDrag = null;
+  renderNoteSelectionOverlay();
+}
+
+function setNoteSelectionMode(enabled) {
+  state.selectionMode = Boolean(enabled);
+  resetScoreTouchGesture();
+  if (!state.selectionMode) {
+    state.selectedNoteIndices.clear();
+    state.noteSelectionHitboxes = [];
+    state.selectionDrag = null;
+  }
+  refreshNoteSelectionGeometry();
+}
+
+function selectNotesInRectangle(rect) {
+  state.selectedNoteIndices.clear();
+  state.noteSelectionHitboxes.forEach(hitbox => {
+    if (rectanglesIntersect(rect, hitbox)) state.selectedNoteIndices.add(hitbox.entryIndex);
+  });
+}
+
+function selectNoteAtPoint(point) {
+  const hits = state.noteSelectionHitboxes
+    .filter(hitbox => rectanglesIntersect(
+      { left: point.x, right: point.x, top: point.y, bottom: point.y },
+      hitbox,
+    ))
+    .sort((a, b) => (a.width * a.height) - (b.width * b.height));
+  state.selectedNoteIndices.clear();
+  if (hits[0]) state.selectedNoteIndices.add(hits[0].entryIndex);
+}
+
+function toggleStaccatoForSelection() {
+  const indices = getSelectedNoteIndices();
+  if (indices.length === 0) return;
+  const enable = !indices.every(index => Boolean(state.notes[index].staccato));
+  indices.forEach(index => { state.notes[index].staccato = enable; });
+  statusText.textContent = enable ? 'Staccato lisätty' : 'Staccato poistettu';
+  renderScore();
+}
+
+function toggleLegatoForSelection() {
+  ensureScoreEntryIds();
+  const range = getLegatoSelectionRange();
+  if (!range) {
+    statusText.textContent = 'Valitse vähintään kaksi peräkkäistä nuottia';
+    return;
+  }
+  const existing = findExactSelectionSlur(range);
+  if (existing) {
+    state.slurs = state.slurs.filter(slur => slur !== existing);
+    statusText.textContent = 'Legatokaari poistettu';
+  } else {
+    state.slurs.push({
+      id: `slur-${state.nextSlurId}`,
+      startId: range.startId,
+      endId: range.endId,
+    });
+    state.nextSlurId += 1;
+    statusText.textContent = 'Legatokaari lisätty';
+  }
+  renderScore();
+}
+
+function initNoteSelection() {
+  selectNotesBtn.addEventListener('click', () => {
+    setNoteSelectionMode(!state.selectionMode);
+  });
+  selectionClearBtn.addEventListener('click', clearNoteSelection);
+  selectionStaccatoBtn.addEventListener('click', toggleStaccatoForSelection);
+  selectionSlurBtn.addEventListener('click', toggleLegatoForSelection);
+
+  osmdContainer.addEventListener('pointerdown', ev => {
+    if (!state.selectionMode || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+    if (ev.target.closest?.('.system-break-marker, .system-break-candidate-svg')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const start = contentPointFromPointer(ev);
+    state.selectionDrag = {
+      pointerId: ev.pointerId,
+      start,
+      current: start,
+      moved: false,
+    };
+    state.selectedNoteIndices.clear();
+    osmdContainer.setPointerCapture?.(ev.pointerId);
+    renderNoteSelectionOverlay();
+  }, { passive: false });
+
+  osmdContainer.addEventListener('pointermove', ev => {
+    const drag = state.selectionDrag;
+    if (!state.selectionMode || !drag || drag.pointerId !== ev.pointerId) return;
+    ev.preventDefault();
+    drag.current = contentPointFromPointer(ev);
+    drag.moved = drag.moved || Math.hypot(
+      drag.current.x - drag.start.x,
+      drag.current.y - drag.start.y,
+    ) > 4;
+    if (drag.moved) selectNotesInRectangle(normalizedSelectionRectangle(drag.start, drag.current));
+    renderNoteSelectionOverlay();
+  }, { passive: false });
+
+  const finishSelection = (ev, cancelled = false) => {
+    const drag = state.selectionDrag;
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    ev.preventDefault();
+    if (!cancelled) {
+      drag.current = contentPointFromPointer(ev);
+      if (drag.moved) selectNotesInRectangle(normalizedSelectionRectangle(drag.start, drag.current));
+      else selectNoteAtPoint(drag.current);
+    } else {
+      state.selectedNoteIndices.clear();
+    }
+    state.selectionDrag = null;
+    try { osmdContainer.releasePointerCapture?.(ev.pointerId); } catch {}
+    renderNoteSelectionOverlay();
+  };
+
+  osmdContainer.addEventListener('pointerup', ev => finishSelection(ev));
+  osmdContainer.addEventListener('pointercancel', ev => finishSelection(ev, true));
+  syncNoteSelectionToolbar();
 }
 
 const durationOrder = ['whole', 'half', 'quarter', 'eighth', '16th'];
@@ -802,7 +1168,9 @@ function commitFlickGesture(gesture) {
   }
 
   const keyEl = gesture.keyEl;
+  clearNoteSelection();
   state.notes.push({
+    id: createScoreEntryId(),
     kind: 'note',
     step: keyEl.dataset.step,
     alter: Number(keyEl.dataset.alter || 0),
@@ -1504,8 +1872,10 @@ function applyNoteSpacing({ save = false } = {}) {
       try {
         setOsmdNoteSpacingRules(state.osmd, spacing);
         await state.osmd.render();
+        applyScoreTextLayout();
         state.appliedNoteSpacing = spacing;
         renderSystemBreakMarkers();
+        refreshNoteSelectionGeometry();
         noteScoreRenderCompleted();
       } catch (err) {
         console.warn('OSMD spacing render failed', err);
@@ -1688,7 +2058,8 @@ function importLayoutJson(file) {
 }
 
 function addRest(units) {
-  state.notes.push({ kind: 'rest', units });
+  clearNoteSelection();
+  state.notes.push({ id: createScoreEntryId(), kind: 'rest', units });
   settlePendingSystemBreak();
   renderScore();
 }
@@ -1756,8 +2127,11 @@ function splitUnitsGreedy(total) {
 }
 
 function createEventsForScore() {
+  ensureScoreEntryIds();
+  pruneSlurs();
   const measureUnits = getMeasureUnits();
   const measures = [];
+  const segmentsByEntryId = new Map();
   let currentMeasure = [];
   let currentUnits = 0;
 
@@ -1767,7 +2141,8 @@ function createEventsForScore() {
     currentUnits = 0;
   };
 
-  const appendSegments = (entry) => {
+  const appendSegments = (entry, entryIndex) => {
+    const sourceSegments = [];
     let remain = entry.units;
     let firstSegment = true;
     while (remain > 0) {
@@ -1782,10 +2157,13 @@ function createEventsForScore() {
           step: entry.step,
           alter: entry.alter,
           octave: entry.octave,
+          sourceEntryId: entry.id,
+          sourceEntryIndex: entryIndex,
           tieStart: false,
           tieStop: false,
         };
         currentMeasure.push(seg);
+        sourceSegments.push(seg);
         currentUnits += piece;
 
         const moreWithinSource = (idx < pieces.length - 1) || (remain - take > 0);
@@ -1804,9 +2182,23 @@ function createEventsForScore() {
         pushMeasure();
       }
     }
+    if (entry.kind === 'note' && sourceSegments.length > 0) {
+      sourceSegments[0].staccato = Boolean(entry.staccato);
+      segmentsByEntryId.set(entry.id, sourceSegments);
+    }
   };
 
-  state.notes.forEach(entry => appendSegments(entry));
+  state.notes.forEach((entry, entryIndex) => appendSegments(entry, entryIndex));
+
+  state.slurs.forEach((slur, slurIndex) => {
+    const startSegments = segmentsByEntryId.get(slur.startId);
+    const stopSegments = segmentsByEntryId.get(slur.endId);
+    if (!startSegments?.length || !stopSegments?.length) return;
+    const number = (slurIndex % 6) + 1;
+    startSegments[0].slurStarts = [...(startSegments[0].slurStarts || []), number];
+    const lastStopSegment = stopSegments[stopSegments.length - 1];
+    lastStopSegment.slurStops = [...(lastStopSegment.slurStops || []), number];
+  });
 
   if (currentMeasure.length > 0 || measures.length === 0) {
     if (currentUnits < measureUnits) {
@@ -1871,6 +2263,18 @@ function beamXml(seg) {
   return seg.beams.map(beam => `<beam number="${beam.number}">${beam.value}</beam>`).join('');
 }
 
+function noteNotationsXml(seg, isRest) {
+  if (isRest) return '';
+  const tied = `${seg.tieStop ? '<tied type="stop"/>' : ''}${seg.tieStart ? '<tied type="start"/>' : ''}`;
+  const slurs = [
+    ...(seg.slurStops || []).map(number => `<slur type="stop" number="${number}"/>`),
+    ...(seg.slurStarts || []).map(number => `<slur type="start" number="${number}"/>`),
+  ].join('');
+  const articulations = seg.staccato ? '<articulations><staccato/></articulations>' : '';
+  const contents = `${tied}${slurs}${articulations}`;
+  return contents ? `<notations>${contents}</notations>` : '';
+}
+
 function noteToXml(seg) {
   const dur = durationMapByUnits.get(seg.units);
   if (!dur) throw new Error(`Tuntematon kesto: ${seg.units}`);
@@ -1894,12 +2298,14 @@ function noteToXml(seg) {
       <type>${dur.type}</type>
       ${dur.dots ? '<dot/>' : ''}
       ${!isRest ? beamXml(seg) : ''}
-      ${(!isRest && (seg.tieStart || seg.tieStop)) ? `<notations>${seg.tieStop ? '<tied type="stop"/>' : ''}${seg.tieStart ? '<tied type="start"/>' : ''}</notations>` : ''}
+      ${noteNotationsXml(seg, isRest)}
     </note>`;
 }
 
 function buildMusicXml() {
   const measures = createEventsForScore().map(annotateDefaultBeams);
+  state.renderedNoteObjectMap = new Map();
+  let renderedNoteObjectId = 0;
   const beats = Number(beatsSelect.value);
   const beatType = Number(beatTypeSelect.value);
   const fifths = Number(keySelect.value);
@@ -1924,7 +2330,13 @@ function buildMusicXml() {
         </direction-type>
         <sound tempo="${bpm}"/>
       </direction>` : '';
-    const notesXml = measure.map(noteToXml).join('');
+    const notesXml = measure.map(seg => {
+      if (Number.isInteger(seg.sourceEntryIndex)) {
+        state.renderedNoteObjectMap.set(renderedNoteObjectId, seg.sourceEntryIndex);
+      }
+      renderedNoteObjectId += 1;
+      return noteToXml(seg);
+    }).join('');
     const systemBreak = i > 0 && state.systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
     const finalBarline = state.notes.length > 0 && i === measures.length - 1
       ? '<barline location="right"><bar-style>light-heavy</bar-style></barline>'
@@ -2007,6 +2419,7 @@ async function renderScoreNow() {
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
+    refreshNoteSelectionGeometry();
     noteScoreRenderCompleted();
     statusText.textContent = 'Valmis';
   } catch (err) {
@@ -2132,6 +2545,8 @@ undoBtn.addEventListener('click', () => {
 
 clearBtn.addEventListener('click', () => {
   state.notes = [];
+  state.slurs = [];
+  clearNoteSelection();
   state.systemBreaks.clear();
   state.pendingSystemBreakIndex = null;
   syncSystemBreakButton();
@@ -2161,7 +2576,9 @@ function scheduleOsmdResizeRender() {
       // OSMD laskee järjestelmäleveyden containerin nykyisestä leveydestä renderöinnissä.
       // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
       await state.osmd.render();
+      applyScoreTextLayout();
       renderSystemBreakMarkers();
+      refreshNoteSelectionGeometry();
       noteScoreRenderCompleted();
     } catch (err) {
       console.warn('OSMD resize render failed', err);
@@ -2246,6 +2663,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
 bindLayoutControls();
 bindScoreKeyboardDivider();
 initKeyboard();
+initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
