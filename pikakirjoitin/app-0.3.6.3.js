@@ -69,12 +69,14 @@ const layoutOutputs = {
 };
 
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
+const LAYOUT_DEFAULTS_VERSION = 2;
 const defaultLayout = {
+  defaultsVersion: LAYOUT_DEFAULTS_VERSION,
   handedness: 'right',
-  scoreShare: 54,
+  scoreShare: 70,
   noteSpacing: 100,
-  scoreZoom: 108,
-  systemSpacing: 300,
+  scoreZoom: 150,
+  systemSpacing: 500,
   margins: {
     left: 2,
     right: 2,
@@ -749,12 +751,19 @@ function loadLayoutState() {
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || 'null');
     if (!saved) return structuredClone(defaultLayout);
+    const usesEarlierDefaults = finiteLayoutNumber(saved.defaultsVersion, 0) < LAYOUT_DEFAULTS_VERSION;
+    const savedScoreShare = finiteLayoutNumber(saved.scoreShare, defaultLayout.scoreShare);
+    const savedScoreZoom = finiteLayoutNumber(saved.scoreZoom, defaultLayout.scoreZoom);
+    const savedSystemSpacing = finiteLayoutNumber(saved.systemSpacing, defaultLayout.systemSpacing);
     return {
+      defaultsVersion: LAYOUT_DEFAULTS_VERSION,
       handedness: saved.handedness === 'left' ? 'left' : 'right',
-      scoreShare: Number(saved.scoreShare) || defaultLayout.scoreShare,
+      scoreShare: usesEarlierDefaults && savedScoreShare === 54 ? defaultLayout.scoreShare : savedScoreShare,
       noteSpacing: normalizeNoteSpacing(saved.noteSpacing),
-      scoreZoom: finiteLayoutNumber(saved.scoreZoom, defaultLayout.scoreZoom),
-      systemSpacing: finiteLayoutNumber(saved.systemSpacing, defaultLayout.systemSpacing),
+      scoreZoom: usesEarlierDefaults && savedScoreZoom === 108 ? defaultLayout.scoreZoom : savedScoreZoom,
+      systemSpacing: usesEarlierDefaults && (savedSystemSpacing === 100 || savedSystemSpacing === 300)
+        ? defaultLayout.systemSpacing
+        : savedSystemSpacing,
       margins: {
         left: finiteLayoutNumber(saved.margins?.left, defaultLayout.margins.left),
         right: finiteLayoutNumber(saved.margins?.right, defaultLayout.margins.right),
@@ -782,11 +791,12 @@ function saveLayoutState() {
 
 function normalizeFlickThresholds() {
   // Ulomman rajan täytyy aina olla sisempää suurempi.
+  layoutState.defaultsVersion = LAYOUT_DEFAULTS_VERSION;
   layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
   layoutState.scoreShare = clamp(Number(layoutState.scoreShare) || defaultLayout.scoreShare, 30, 70);
   layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
   layoutState.scoreZoom = clamp(finiteLayoutNumber(layoutState.scoreZoom, defaultLayout.scoreZoom), 70, 160);
-  layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 50, 400);
+  layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 500, 1000);
   layoutState.margins.left = clamp(finiteLayoutNumber(layoutState.margins.left, defaultLayout.margins.left), 0, 12);
   layoutState.margins.right = clamp(finiteLayoutNumber(layoutState.margins.right, defaultLayout.margins.right), 0, 12);
   layoutState.margins.top = clamp(finiteLayoutNumber(layoutState.margins.top, defaultLayout.margins.top), 0, 15);
@@ -1071,6 +1081,7 @@ function importLayoutJson(file) {
       const parsed = JSON.parse(String(reader.result || ''));
       const imported = parsed.layout || parsed;
       layoutState = {
+        defaultsVersion: LAYOUT_DEFAULTS_VERSION,
         handedness: imported.handedness === 'left' ? 'left' : 'right',
         scoreShare: Number(imported.scoreShare) || defaultLayout.scoreShare,
         noteSpacing: normalizeNoteSpacing(imported.noteSpacing),

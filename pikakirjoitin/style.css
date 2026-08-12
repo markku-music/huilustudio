@@ -344,7 +344,7 @@ input, select {
   padding: 14px 14px 18px;
   display: flex;
   flex-direction: column;
-  flex: 0 0 var(--score-share, 54%);
+  flex: 0 0 var(--score-share, 70%);
 }
 
 .note-spacing-strip {
