@@ -437,6 +437,23 @@ input, select {
   opacity: .38;
 }
 
+.selection-dynamic-select {
+  width: 64px;
+  height: 38px;
+  flex: 0 0 64px;
+  padding: 0 24px 0 8px;
+  border: 1px solid #d3c5f7;
+  border-radius: 11px;
+  background-color: #fff;
+  color: #5633ad;
+  font: italic 800 17px/1 Georgia, "Times New Roman", serif;
+  text-align: center;
+}
+
+.selection-dynamic-select:disabled {
+  opacity: .38;
+}
+
 .selection-clear-button {
   border-color: transparent;
   background: transparent;

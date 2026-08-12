@@ -27,6 +27,8 @@ const selectionToolbar = document.getElementById('selectionToolbar');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
+const selectionAccentBtn = document.getElementById('selectionAccentBtn');
+const selectionDynamicSelect = document.getElementById('selectionDynamicSelect');
 const selectionCrescendoBtn = document.getElementById('selectionCrescendoBtn');
 const selectionDiminuendoBtn = document.getElementById('selectionDiminuendoBtn');
 const selectionClearBtn = document.getElementById('selectionClearBtn');
@@ -926,6 +928,8 @@ function syncNoteSelectionToolbar() {
   const exactCrescendo = findExactSelectionHairpin('crescendo', legatoRange);
   const exactDiminuendo = findExactSelectionHairpin('diminuendo', legatoRange);
   const allStaccato = indices.length > 0 && indices.every(index => Boolean(state.notes[index].staccato));
+  const allAccented = indices.length > 0 && indices.every(index => Boolean(state.notes[index].accent));
+  const firstDynamic = indices.length > 0 ? (state.notes[indices[0]].dynamic || '') : '';
 
   selectNotesBtn.classList.toggle('active', state.selectionMode);
   selectNotesBtn.setAttribute('aria-pressed', String(state.selectionMode));
@@ -939,6 +943,11 @@ function syncNoteSelectionToolbar() {
   selectionStaccatoBtn.disabled = indices.length === 0;
   selectionStaccatoBtn.classList.toggle('active', allStaccato);
   selectionStaccatoBtn.setAttribute('aria-pressed', String(allStaccato));
+  selectionAccentBtn.disabled = indices.length === 0;
+  selectionAccentBtn.classList.toggle('active', allAccented);
+  selectionAccentBtn.setAttribute('aria-pressed', String(allAccented));
+  selectionDynamicSelect.disabled = indices.length === 0;
+  selectionDynamicSelect.value = firstDynamic;
   selectionSlurBtn.disabled = !legatoRange;
   selectionSlurBtn.classList.toggle('active', Boolean(exactSlur));
   selectionSlurBtn.setAttribute('aria-pressed', String(Boolean(exactSlur)));
@@ -1085,6 +1094,29 @@ function toggleStaccatoForSelection() {
   renderScore();
 }
 
+function toggleAccentForSelection() {
+  const indices = getSelectedNoteIndices();
+  if (indices.length === 0) return;
+  const enable = !indices.every(index => Boolean(state.notes[index].accent));
+  indices.forEach(index => { state.notes[index].accent = enable; });
+  statusText.textContent = enable ? 'Aksentti lisätty' : 'Aksentti poistettu';
+  renderScore();
+}
+
+function applyDynamicForSelection(value) {
+  const indices = getSelectedNoteIndices();
+  if (indices.length === 0) return;
+  const allowedDynamics = new Set(['ppp', 'pp', 'p', 'mp', 'mf', 'f', 'ff', 'fff']);
+  indices.forEach(index => { delete state.notes[index].dynamic; });
+  if (allowedDynamics.has(value)) {
+    state.notes[indices[0]].dynamic = value;
+    statusText.textContent = `Dynamiikka ${value} lisätty`;
+  } else {
+    statusText.textContent = 'Dynamiikka poistettu';
+  }
+  renderScore();
+}
+
 function toggleLegatoForSelection() {
   ensureScoreEntryIds();
   const range = getLegatoSelectionRange();
@@ -1141,6 +1173,8 @@ function initNoteSelection() {
   });
   selectionClearBtn.addEventListener('click', clearNoteSelection);
   selectionStaccatoBtn.addEventListener('click', toggleStaccatoForSelection);
+  selectionAccentBtn.addEventListener('click', toggleAccentForSelection);
+  selectionDynamicSelect.addEventListener('change', ev => applyDynamicForSelection(ev.target.value));
   selectionSlurBtn.addEventListener('click', toggleLegatoForSelection);
   selectionCrescendoBtn.addEventListener('click', () => toggleHairpinForSelection('crescendo'));
   selectionDiminuendoBtn.addEventListener('click', () => toggleHairpinForSelection('diminuendo'));
@@ -2297,6 +2331,8 @@ function createEventsForScore() {
     }
     if (entry.kind === 'note' && sourceSegments.length > 0) {
       sourceSegments[0].staccato = Boolean(entry.staccato);
+      sourceSegments[0].accent = Boolean(entry.accent);
+      sourceSegments[0].dynamic = entry.dynamic || '';
       segmentsByEntryId.set(entry.id, sourceSegments);
     }
   };
@@ -2399,7 +2435,8 @@ function noteNotationsXml(seg, isRest) {
     ...(seg.slurStops || []).map(number => `<slur type="stop" number="${number}"/>`),
     ...(seg.slurStarts || []).map(number => `<slur type="start" number="${number}"/>`),
   ].join('');
-  const articulations = seg.staccato ? '<articulations><staccato/></articulations>' : '';
+  const articulationItems = `${seg.staccato ? '<staccato/>' : ''}${seg.accent ? '<accent/>' : ''}`;
+  const articulations = articulationItems ? `<articulations>${articulationItems}</articulations>` : '';
   const contents = `${tied}${slurs}${articulations}`;
   return contents ? `<notations>${contents}</notations>` : '';
 }
@@ -2411,6 +2448,17 @@ function hairpinDirectionsXml(hairpins, stop = false) {
         <wedge type="${stop ? 'stop' : hairpin.type}" number="${hairpin.number}"/>
       </direction-type>
     </direction>`).join('');
+}
+
+function dynamicDirectionXml(dynamic) {
+  const allowedDynamics = new Set(['ppp', 'pp', 'p', 'mp', 'mf', 'f', 'ff', 'fff']);
+  if (!allowedDynamics.has(dynamic)) return '';
+  return `
+    <direction placement="below">
+      <direction-type>
+        <dynamics><${dynamic}/></dynamics>
+      </direction-type>
+    </direction>`;
 }
 
 function noteToXml(seg) {
@@ -2474,9 +2522,10 @@ function buildMusicXml() {
       }
       renderedNoteObjectId += 1;
       const hairpinStart = hairpinDirectionsXml(seg.hairpinStarts);
+      const dynamic = dynamicDirectionXml(seg.dynamic);
       const noteXml = noteToXml(seg);
       const hairpinStop = hairpinDirectionsXml(seg.hairpinStops, true);
-      return `${hairpinStart}${noteXml}${hairpinStop}`;
+      return `${hairpinStart}${dynamic}${noteXml}${hairpinStop}`;
     }).join('');
     const systemBreak = i > 0 && state.systemBreaks.has(i) ? '<print new-system="yes"/>' : '';
     const finalBarline = state.notes.length > 0 && i === measures.length - 1
