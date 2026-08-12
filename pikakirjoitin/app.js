@@ -58,7 +58,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const defaultLayout = {
   handedness: 'right',
   scoreShare: 54,
-  noteSpacing: 5,
+  noteSpacing: 100,
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 43,
@@ -521,7 +521,7 @@ function loadLayoutState() {
     return {
       handedness: saved.handedness === 'left' ? 'left' : 'right',
       scoreShare: Number(saved.scoreShare) || defaultLayout.scoreShare,
-      noteSpacing: Number(saved.noteSpacing) || defaultLayout.noteSpacing,
+      noteSpacing: normalizeNoteSpacing(saved.noteSpacing),
       whiteWidth: Number(saved.whiteWidth) || defaultLayout.whiteWidth,
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
@@ -545,7 +545,7 @@ function normalizeFlickThresholds() {
   // Ulomman rajan täytyy aina olla sisempää suurempi.
   layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
   layoutState.scoreShare = clamp(Number(layoutState.scoreShare) || defaultLayout.scoreShare, 30, 70);
-  layoutState.noteSpacing = clamp(Number(layoutState.noteSpacing) || defaultLayout.noteSpacing, 1, 30);
+  layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
 }
 
 function applyLayoutState({ save = true } = {}) {
@@ -597,7 +597,7 @@ function syncLayoutControls() {
   layoutOutputs.longPress.textContent = `${layoutState.flick.longPressMs} ms`;
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
   noteSpacingSlider.value = String(layoutState.noteSpacing);
-  noteSpacingOut.textContent = String(layoutState.noteSpacing);
+  noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
 }
 
 function bindLayoutControls() {
@@ -637,27 +637,16 @@ function setScoreShare(value, { save = false } = {}) {
 }
 
 function applyNoteSpacing({ save = false } = {}) {
-  layoutState.noteSpacing = clamp(Number(layoutState.noteSpacing) || defaultLayout.noteSpacing, 1, 30);
+  layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
   noteSpacingSlider.value = String(layoutState.noteSpacing);
-  noteSpacingOut.textContent = String(layoutState.noteSpacing);
+  noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
 
   if (state.osmd && state.appliedNoteSpacing !== layoutState.noteSpacing) {
     const spacing = layoutState.noteSpacing;
-    const renderRevision = (state.spacingRenderRevision || 0) + 1;
-    state.spacingRenderRevision = renderRevision;
     clearTimeout(window.__noteSpacingRenderTimer);
     window.__noteSpacingRenderTimer = setTimeout(async () => {
       try {
-        // OSMD 2.1.2 ei aina laske VexFlow-välistystä uudelleen pelkällä
-        // setOptions() + render() -kutsulla. Päivitetään myös EngravingRules
-        // ja ladataan nykyinen MusicXML uudelleen ennen renderöintiä.
-        state.osmd.setOptions({ spacingFactorSoftmax: spacing });
-        if (state.osmd.EngravingRules) {
-          state.osmd.EngravingRules.SoftmaxFactorVexFlow = spacing;
-        }
-        await state.osmd.load(buildMusicXml());
-        if (renderRevision !== state.spacingRenderRevision) return;
-        state.osmd.zoom = 1.08;
+        setOsmdNoteSpacingRules(state.osmd, spacing);
         await state.osmd.render();
         state.appliedNoteSpacing = spacing;
       } catch (err) {
@@ -666,6 +655,22 @@ function applyNoteSpacing({ save = false } = {}) {
     }, 120);
   }
   if (save) saveLayoutState();
+}
+
+function normalizeNoteSpacing(value) {
+  const parsed = Number(value);
+  // Versioissa 0.3.4.1–0.3.4.2 tallennettu arvo oli OSMD:n
+  // softmax-luku välillä 1–30. Se ei vastaa uuden sliderin prosentteja.
+  if (!Number.isFinite(parsed) || parsed <= 30) return defaultLayout.noteSpacing;
+  return clamp(Math.round(parsed), 50, 150);
+}
+
+function setOsmdNoteSpacingRules(osmd, percent) {
+  if (!osmd?.EngravingRules) return;
+  const scale = normalizeNoteSpacing(percent) / 100;
+  osmd.EngravingRules.SoftmaxFactorVexFlow = 15;
+  osmd.EngravingRules.VoiceSpacingMultiplierVexflow = 0.65 * scale;
+  osmd.EngravingRules.VoiceSpacingAddendVexflow = 2 * scale;
 }
 
 function bindScoreKeyboardDivider() {
@@ -727,7 +732,7 @@ function importLayoutJson(file) {
       layoutState = {
         handedness: imported.handedness === 'left' ? 'left' : 'right',
         scoreShare: Number(imported.scoreShare) || defaultLayout.scoreShare,
-        noteSpacing: Number(imported.noteSpacing) || defaultLayout.noteSpacing,
+        noteSpacing: normalizeNoteSpacing(imported.noteSpacing),
         whiteWidth: Number(imported.whiteWidth) || defaultLayout.whiteWidth,
         keyboardHeight: Number(imported.keyboardHeight) || defaultLayout.keyboardHeight,
         blackWidth: Number(imported.blackWidth) || defaultLayout.blackWidth,
@@ -1013,17 +1018,18 @@ async function renderScore() {
         autoResize: true,
         backend: 'svg',
         drawingParameters: 'compacttight',
-        spacingFactorSoftmax: layoutState.noteSpacing,
+        spacingFactorSoftmax: 15,
         drawTitle: true,
         drawComposer: true,
         drawPartNames: false,
         pageFormat: 'Endless',
       });
-      state.appliedNoteSpacing = layoutState.noteSpacing;
     }
+    setOsmdNoteSpacingRules(state.osmd, layoutState.noteSpacing);
     await state.osmd.load(xml);
     state.osmd.zoom = 1.08;
     await state.osmd.render();
+    state.appliedNoteSpacing = layoutState.noteSpacing;
     statusText.textContent = 'Valmis';
   } catch (err) {
     console.error(err);
@@ -1223,7 +1229,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
   const payload = [
     `Kätisyys: ${layoutState.handedness === 'right' ? 'Oikea käsi' : 'Vasen käsi'}`,
     `Nuotti-ikkunan osuus: ${Math.round(layoutState.scoreShare)}%`,
-    `Nuottien välistys: ${layoutState.noteSpacing}`,
+    `Nuottien välistys: ${layoutState.noteSpacing}%`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
