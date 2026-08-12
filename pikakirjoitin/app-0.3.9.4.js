@@ -137,7 +137,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.9.3';
+const PROJECT_APP_VERSION = '0.3.9.4';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -310,7 +310,6 @@ const state = {
     restKeyboard: false,
   },
   audioContext: null,
-  audioReadyPromise: null,
   audioPreviewRequest: null,
   nextAudioPreviewId: 1,
   activePreviewVoice: null,
@@ -3184,12 +3183,11 @@ const PREVIEW_STOP_GUARD_MS = 90;
 function ensureAudio() {
   if (state.audioContext?.state === 'closed') {
     state.audioContext = null;
-    state.audioReadyPromise = null;
   }
 
   if (!state.audioContext) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return Promise.reject(new Error('Web Audio ei ole käytettävissä.'));
+    if (!AudioContextClass) return null;
     try {
       state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
     } catch {
@@ -3198,15 +3196,15 @@ function ensureAudio() {
   }
 
   const ctx = state.audioContext;
-  if (ctx.state === 'running') return Promise.resolve(ctx);
-  if (!state.audioReadyPromise) {
-    state.audioReadyPromise = Promise.resolve(ctx.resume())
-      .then(() => ctx)
-      .finally(() => {
-        state.audioReadyPromise = null;
-      });
+  if (ctx.state !== 'running') {
+    try {
+      const resumeResult = ctx.resume();
+      resumeResult?.catch?.(error => console.warn('Äänimoottoria ei voitu herättää', error));
+    } catch (error) {
+      console.warn('Äänimoottoria ei voitu herättää', error);
+    }
   }
-  return state.audioReadyPromise;
+  return ctx;
 }
 
 function disconnectPreviewVoice(voice) {
@@ -3324,7 +3322,15 @@ function createPreviewVoice(ctx, request) {
 function playMidi(midi) {
   const previousRequest = state.audioPreviewRequest;
   if (previousRequest) previousRequest.cancelled = true;
-  if (state.activePreviewVoice) cutPreviewVoice(state.activePreviewVoice);
+  if (state.activePreviewVoice) {
+    if (state.activePreviewVoice.ctx.state === 'running') {
+      cutPreviewVoice(state.activePreviewVoice);
+    } else {
+      // Vielä lukitussa iPad-kontekstissa vanha ääni poistetaan kokonaan,
+      // jotta useat ensikosketukset eivät odota heräämistä päällekkäin.
+      forceStopPreviewVoice(state.activePreviewVoice);
+    }
+  }
 
   const request = {
     id: state.nextAudioPreviewId++,
@@ -3335,17 +3341,21 @@ function playMidi(midi) {
   };
   state.audioPreviewRequest = request;
 
-  void ensureAudio()
-    .then(ctx => {
-      // Heräämisen aikana tulleista painalluksista soitetaan vain viimeisin.
-      // Näin vanhat äänet eivät purkaudu myöhemmin yhtenä ryppäänä.
-      if (ctx.state !== 'running' || request.cancelled || state.audioPreviewRequest !== request) return;
-      createPreviewVoice(ctx, request);
-    })
-    .catch(error => {
-      if (state.audioPreviewRequest === request) state.audioPreviewRequest = null;
-      console.warn('Koeääntä ei voitu käynnistää', error);
-    });
+  // iPadin WebKit vaatii AudioContextin herätyksen sekä audiosolmun luonnin ja
+  // käynnistyksen saman käyttäjäeleen sisällä. Promise-ketjuun siirtäminen
+  // kadottaa iPadissa kosketukseen liittyvän ääniluvan.
+  const ctx = ensureAudio();
+  if (!ctx) {
+    state.audioPreviewRequest = null;
+    return null;
+  }
+  try {
+    createPreviewVoice(ctx, request);
+  } catch (error) {
+    if (state.audioPreviewRequest === request) state.audioPreviewRequest = null;
+    console.warn('Koeääntä ei voitu käynnistää', error);
+    return null;
+  }
 
   return request.id;
 }
