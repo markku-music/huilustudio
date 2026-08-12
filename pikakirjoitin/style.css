@@ -379,6 +379,7 @@ input, select {
   border-radius: 18px;
   border: 1px solid #e4ebf5;
   padding: 18px 22px;
+  touch-action: pan-y;
 }
 
 #osmdContainer > div,

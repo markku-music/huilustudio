@@ -175,6 +175,13 @@ const state = {
   currentDurationName: 'quarter',
 };
 
+const scoreTouchGesture = {
+  pointers: new Map(),
+  maxCount: 0,
+  moved: false,
+  cancelled: false,
+};
+
 function initKeyboard() {
   const whiteTemplate = document.getElementById('whiteKeyTemplate');
   const blackTemplate = document.getElementById('blackKeyTemplate');
@@ -227,26 +234,7 @@ function startFlickGesture(ev) {
   }
   if (isEditableTarget(document.activeElement)) document.activeElement.blur();
 
-  // Toinen sormi muuttaa keskeneräisen yhden sormen eleen Undo-eleeksi.
-  // Sormien ei tarvitse osua samalle koskettimelle.
-  if (state.gesture) {
-    const gesture = state.gesture;
-    if (ev.pointerType === 'touch' && gesture.pointerType === 'touch' && !gesture.twoFingerUndo) {
-      keyboardSurface.setPointerCapture?.(ev.pointerId);
-      clearLongPressTimer(gesture);
-      gesture.keyEl.classList.remove('active');
-      gesture.twoFingerUndo = {
-        pointerIds: new Set([gesture.pointerId, ev.pointerId]),
-        starts: new Map([
-          [gesture.pointerId, { x: gesture.startX, y: gesture.startY }],
-          [ev.pointerId, { x: ev.clientX, y: ev.clientY }],
-        ]),
-        moved: false,
-      };
-      hideFlickHud();
-    }
-    return;
-  }
+  if (state.gesture) return;
 
   ensureAudio();
   keyboardSurface.setPointerCapture?.(ev.pointerId);
@@ -285,15 +273,6 @@ function startFlickGesture(ev) {
 
 function moveFlickGesture(ev) {
   if (!state.gesture) return;
-  const undoGesture = state.gesture.twoFingerUndo;
-  if (undoGesture?.pointerIds.has(ev.pointerId)) {
-    ev.preventDefault();
-    const start = undoGesture.starts.get(ev.pointerId);
-    if (start && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 24) {
-      undoGesture.moved = true;
-    }
-    return;
-  }
   if (ev.pointerId !== state.gesture.pointerId) return;
   ev.preventDefault();
   const gesture = state.gesture;
@@ -321,17 +300,6 @@ function moveFlickGesture(ev) {
 
 function endFlickGesture(ev) {
   if (!state.gesture) return;
-  const undoGesture = state.gesture.twoFingerUndo;
-  if (undoGesture?.pointerIds.has(ev.pointerId)) {
-    ev.preventDefault();
-    undoGesture.pointerIds.delete(ev.pointerId);
-    try { keyboardSurface.releasePointerCapture?.(ev.pointerId); } catch {}
-    if (undoGesture.pointerIds.size === 0) {
-      if (!undoGesture.moved) undoLastNoteWithFeedback();
-      finishFlickGesture();
-    }
-    return;
-  }
   if (ev.pointerId !== state.gesture.pointerId) return;
   ev.preventDefault();
   const gesture = state.gesture;
@@ -351,13 +319,6 @@ function endFlickGesture(ev) {
 
 function cancelFlickGesture(ev) {
   if (!state.gesture) return;
-  const undoGesture = state.gesture.twoFingerUndo;
-  if (undoGesture?.pointerIds.has(ev.pointerId)) {
-    undoGesture.moved = true;
-    undoGesture.pointerIds.delete(ev.pointerId);
-    if (undoGesture.pointerIds.size === 0) finishFlickGesture();
-    return;
-  }
   if (ev.pointerId !== state.gesture.pointerId) return;
   finishFlickGesture();
 }
@@ -394,6 +355,67 @@ function undoLastNoteWithFeedback() {
   window.__undoFeedbackTimer = setTimeout(() => {
     statusText.textContent = 'Valmis';
   }, 900);
+}
+
+function clearScoreWithFeedback() {
+  state.notes = [];
+  renderScore();
+  statusText.textContent = 'Nuotit tyhjennetty';
+  clearTimeout(window.__clearScoreFeedbackTimer);
+  window.__clearScoreFeedbackTimer = setTimeout(() => {
+    statusText.textContent = 'Valmis';
+  }, 900);
+}
+
+function resetScoreTouchGesture() {
+  scoreTouchGesture.pointers.clear();
+  scoreTouchGesture.maxCount = 0;
+  scoreTouchGesture.moved = false;
+  scoreTouchGesture.cancelled = false;
+}
+
+function initScoreTouchGestures() {
+  osmdContainer.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType !== 'touch') return;
+    ev.preventDefault();
+    if (scoreTouchGesture.pointers.size === 0) resetScoreTouchGesture();
+    scoreTouchGesture.pointers.set(ev.pointerId, {
+      startX: ev.clientX,
+      startY: ev.clientY,
+    });
+    scoreTouchGesture.maxCount = Math.max(
+      scoreTouchGesture.maxCount,
+      scoreTouchGesture.pointers.size,
+    );
+    osmdContainer.setPointerCapture?.(ev.pointerId);
+  }, { passive: false });
+
+  osmdContainer.addEventListener('pointermove', (ev) => {
+    const pointer = scoreTouchGesture.pointers.get(ev.pointerId);
+    if (!pointer) return;
+    ev.preventDefault();
+    if (Math.hypot(ev.clientX - pointer.startX, ev.clientY - pointer.startY) > 24) {
+      scoreTouchGesture.moved = true;
+    }
+  }, { passive: false });
+
+  const finishPointer = (ev, cancelled = false) => {
+    if (!scoreTouchGesture.pointers.has(ev.pointerId)) return;
+    ev.preventDefault();
+    if (cancelled) scoreTouchGesture.cancelled = true;
+    scoreTouchGesture.pointers.delete(ev.pointerId);
+    try { osmdContainer.releasePointerCapture?.(ev.pointerId); } catch {}
+    if (scoreTouchGesture.pointers.size > 0) return;
+
+    if (!scoreTouchGesture.moved && !scoreTouchGesture.cancelled) {
+      if (scoreTouchGesture.maxCount >= 3) clearScoreWithFeedback();
+      else if (scoreTouchGesture.maxCount === 2) undoLastNoteWithFeedback();
+    }
+    resetScoreTouchGesture();
+  };
+
+  osmdContainer.addEventListener('pointerup', ev => finishPointer(ev));
+  osmdContainer.addEventListener('pointercancel', ev => finishPointer(ev, true));
 }
 
 const durationOrder = ['whole', 'half', 'quarter', 'eighth', '16th'];
@@ -1174,6 +1196,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
 bindLayoutControls();
 bindScoreKeyboardDivider();
 initKeyboard();
+initScoreTouchGestures();
 applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
 updateToggleButtons();
