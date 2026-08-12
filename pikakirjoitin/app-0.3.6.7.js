@@ -39,6 +39,9 @@ const printScoreBtn = document.getElementById('printScoreBtn');
 const pdfShareBtn = document.getElementById('pdfShareBtn');
 const pdfShareBtnLabel = document.getElementById('pdfShareBtnLabel');
 const documentActionStatus = document.getElementById('documentActionStatus');
+const printWatermarkToggle = document.getElementById('printWatermarkToggle');
+const printWatermarkState = document.getElementById('printWatermarkState');
+const PRINT_WATERMARK_TEXT = 'HUILUSTUDIO · KOKEILUVERSIO';
 
 const layoutControls = {
   scoreZoom: document.getElementById('scoreZoomSlider'),
@@ -81,6 +84,7 @@ const defaultLayout = {
   noteSpacing: 100,
   scoreZoom: 150,
   systemSpacing: 500,
+  printWatermark: true,
   margins: {
     left: 2,
     right: 2,
@@ -788,6 +792,7 @@ function loadLayoutState() {
       systemSpacing: usesEarlierDefaults && (savedSystemSpacing === 100 || savedSystemSpacing === 300)
         ? defaultLayout.systemSpacing
         : savedSystemSpacing,
+      printWatermark: saved.printWatermark !== false,
       margins: {
         left: finiteLayoutNumber(saved.margins?.left, defaultLayout.margins.left),
         right: finiteLayoutNumber(saved.margins?.right, defaultLayout.margins.right),
@@ -821,6 +826,7 @@ function normalizeFlickThresholds() {
   layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
   layoutState.scoreZoom = clamp(finiteLayoutNumber(layoutState.scoreZoom, defaultLayout.scoreZoom), 70, 160);
   layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 500, 1000);
+  layoutState.printWatermark = layoutState.printWatermark !== false;
   layoutState.margins.left = clamp(finiteLayoutNumber(layoutState.margins.left, defaultLayout.margins.left), 0, 12);
   layoutState.margins.right = clamp(finiteLayoutNumber(layoutState.margins.right, defaultLayout.margins.right), 0, 12);
   layoutState.margins.top = clamp(finiteLayoutNumber(layoutState.margins.top, defaultLayout.margins.top), 0, 15);
@@ -891,6 +897,9 @@ function syncLayoutControls() {
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
   noteSpacingSlider.value = String(layoutState.noteSpacing);
   noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
+  printWatermarkToggle.classList.toggle('active', layoutState.printWatermark);
+  printWatermarkToggle.setAttribute('aria-pressed', String(layoutState.printWatermark));
+  printWatermarkState.textContent = layoutState.printWatermark ? 'Päällä' : 'Pois';
 }
 
 function syncStretchLastLineButton() {
@@ -939,6 +948,12 @@ function bindLayoutControls() {
   layoutControls.flickEighth.addEventListener('input', e => { layoutState.flick.eighth = Number(e.target.value); applyLayoutState(); });
   layoutControls.flickHalf.addEventListener('input', e => { layoutState.flick.half = Number(e.target.value); applyLayoutState(); });
   layoutControls.longPress.addEventListener('input', e => { layoutState.flick.longPressMs = Number(e.target.value); applyLayoutState(); });
+  printWatermarkToggle.addEventListener('click', () => {
+    layoutState.printWatermark = !layoutState.printWatermark;
+    invalidateCachedPdf();
+    syncLayoutControls();
+    saveLayoutState();
+  });
 }
 
 function setLayoutPanelOpen(open) {
@@ -971,7 +986,7 @@ function getScorePageSvgs() {
 }
 
 function getCurrentPdfSignature() {
-  return `${scoreRenderRevision}|${getPdfFilename()}`;
+  return `${scoreRenderRevision}|${getPdfFilename()}|${layoutState.printWatermark ? 'wm1' : 'wm0'}`;
 }
 
 function invalidateCachedPdf() {
@@ -1032,7 +1047,43 @@ function cloneSvgForPdf(sourceSvg) {
   clone.style.display = 'block';
   clone.style.width = '850px';
   clone.style.height = `${850 * 297 / 210}px`;
+  appendPdfWatermark(clone);
   return clone;
+}
+
+function parseSvgViewBox(svg) {
+  const values = String(svg.getAttribute('viewBox') || '')
+    .trim()
+    .split(/[ ,]+/)
+    .map(Number);
+  if (values.length === 4 && values.every(Number.isFinite) && values[2] > 0 && values[3] > 0) {
+    return { x: values[0], y: values[1], width: values[2], height: values[3] };
+  }
+  return { x: 0, y: 0, width: 850, height: 850 * 297 / 210 };
+}
+
+function appendPdfWatermark(svg) {
+  if (!layoutState.printWatermark) return;
+  const box = parseSvgViewBox(svg);
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2;
+  const fontSize = box.width * 0.055;
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.classList.add('pdf-watermark-overlay');
+  text.setAttribute('x', String(centerX));
+  text.setAttribute('y', String(centerY));
+  text.setAttribute('dy', String(fontSize * 0.34));
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('transform', `rotate(-28 ${centerX} ${centerY})`);
+  text.setAttribute('fill', '#6f7785');
+  text.setAttribute('fill-opacity', '0.12');
+  text.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
+  text.setAttribute('font-size', String(fontSize));
+  text.setAttribute('font-weight', '800');
+  text.setAttribute('letter-spacing', String(box.width * 0.002));
+  text.setAttribute('pointer-events', 'none');
+  text.textContent = PRINT_WATERMARK_TEXT;
+  svg.appendChild(text);
 }
 
 async function createScorePdfFile() {
@@ -1171,18 +1222,41 @@ function handlePdfShare() {
   createAndSharePdf();
 }
 
+function removePrintWatermarks() {
+  osmdContainer.querySelectorAll('.print-watermark-overlay').forEach(element => element.remove());
+}
+
+function preparePrintWatermarks() {
+  removePrintWatermarks();
+  if (!layoutState.printWatermark) return;
+  osmdContainer.querySelectorAll('div[id^="osmdCanvasPage"]').forEach(page => {
+    const overlay = document.createElement('div');
+    const label = document.createElement('span');
+    overlay.className = 'print-watermark-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    label.textContent = PRINT_WATERMARK_TEXT;
+    overlay.appendChild(label);
+    page.appendChild(overlay);
+  });
+}
+
 function printScore() {
   const previousTitle = document.title;
   document.title = String(titleInput.value || 'Uusi kappale');
   setSongPanelOpen(false);
+  preparePrintWatermarks();
 
-  const restoreTitle = () => {
+  let printStateRestored = false;
+  const restorePrintState = () => {
+    if (printStateRestored) return;
+    printStateRestored = true;
     document.title = previousTitle;
-    window.removeEventListener('afterprint', restoreTitle);
+    removePrintWatermarks();
+    window.removeEventListener('afterprint', restorePrintState);
   };
-  window.addEventListener('afterprint', restoreTitle, { once: true });
+  window.addEventListener('afterprint', restorePrintState, { once: true });
   window.print();
-  setTimeout(restoreTitle, 3000);
+  setTimeout(restorePrintState, 60000);
 }
 
 function setScoreShare(value, { save = false } = {}) {
@@ -1345,6 +1419,7 @@ function importLayoutJson(file) {
         noteSpacing: normalizeNoteSpacing(imported.noteSpacing),
         scoreZoom: finiteLayoutNumber(imported.scoreZoom, defaultLayout.scoreZoom),
         systemSpacing: finiteLayoutNumber(imported.systemSpacing, defaultLayout.systemSpacing),
+        printWatermark: imported.printWatermark !== false,
         margins: {
           left: finiteLayoutNumber(imported.margins?.left, defaultLayout.margins.left),
           right: finiteLayoutNumber(imported.margins?.right, defaultLayout.margins.right),
@@ -1906,6 +1981,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Nuottien välistys: ${layoutState.noteSpacing}%`,
     `Nuottikuvan zoom: ${layoutState.scoreZoom}%`,
     `Riviväli: ${layoutState.systemSpacing}%`,
+    `Kokeiluvesileima: ${layoutState.printWatermark ? 'Päällä' : 'Pois'}`,
     `Marginaalit (vasen/oikea/ylä/ala): ${layoutState.margins.left}/${layoutState.margins.right}/${layoutState.margins.top}/${layoutState.margins.bottom} u`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,

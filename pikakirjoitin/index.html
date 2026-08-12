@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.6.6" />
+  <link rel="stylesheet" href="style.css?v=0.3.6.7" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -268,6 +268,18 @@
     </div>
 
     <div class="layout-section">
+      <h3>Tulostus ja PDF</h3>
+      <p class="layout-hint">Kokeiluvesileima lisätään jokaisen A4-sivun nuottien päälle. Se ei näy nuottia kirjoitettaessa.</p>
+      <button id="printWatermarkToggle" class="setting-toggle-button active" type="button" aria-pressed="true">
+        <span class="setting-toggle-copy">
+          <strong>HUILUSTUDIO · KOKEILUVERSIO</strong>
+          <small>Vesileima tulosteeseen ja PDF:ään</small>
+        </span>
+        <span id="printWatermarkState" class="setting-toggle-state">Päällä</span>
+      </button>
+    </div>
+
+    <div class="layout-section">
       <h3>Asettelu-JSON</h3>
       <p class="layout-hint">Tallenna kaikki kehittäjätyökalujen arvot ja ikkunoiden jakosuhde JSON-tiedostoksi tai palauta ne aiemmasta tiedostosta.</p>
       <div class="json-actions">
@@ -291,6 +303,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.6.6.js"></script>
+  <script src="app-0.3.6.7.js"></script>
 </body>
 </html>

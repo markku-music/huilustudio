@@ -521,6 +521,8 @@ input, select {
   outline: none;
 }
 
+.print-watermark-overlay { display: none; }
+
 @page { size: A4 portrait; margin: 0; }
 
 @media print {
@@ -572,6 +574,7 @@ input, select {
 
   #osmdContainer > div[id^="osmdCanvasPage"] {
     display: block !important;
+    position: relative !important;
     width: 210mm !important;
     height: 297mm !important;
     margin: 0 !important;
@@ -581,6 +584,28 @@ input, select {
     box-shadow: none !important;
     break-after: page !important;
     page-break-after: always !important;
+  }
+
+  .print-watermark-overlay {
+    display: grid !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 100 !important;
+    place-items: center !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-watermark-overlay span {
+    display: block !important;
+    color: rgba(70, 78, 92, 0.12) !important;
+    font: 800 14mm/1 Arial, Helvetica, sans-serif !important;
+    letter-spacing: .4mm !important;
+    white-space: nowrap !important;
+    transform: rotate(-28deg) !important;
+    transform-origin: center !important;
   }
 
   #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
@@ -965,6 +990,54 @@ input, select {
   border-color: #9bbcff;
   color: #285eb6;
   box-shadow: inset 0 0 0 1px rgba(63, 128, 255, 0.18);
+}
+
+.setting-toggle-button {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #cfd9e7;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.setting-toggle-button.active {
+  background: var(--blue-soft);
+  border-color: #9bbcff;
+  color: #285eb6;
+  box-shadow: inset 0 0 0 1px rgba(63, 128, 255, 0.18);
+}
+
+.setting-toggle-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.setting-toggle-copy strong { font-size: 13px; line-height: 1.25; }
+.setting-toggle-copy small { font-size: 12px; line-height: 1.3; color: var(--muted); }
+
+.setting-toggle-state {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #edf1f6;
+  color: #5d6c84;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.setting-toggle-button.active .setting-toggle-state {
+  background: #dbe8ff;
+  color: #285eb6;
 }
 
 .slider-row { display: block; margin: 12px 0 16px; }
