@@ -31,6 +31,8 @@ const layoutJsonExport = document.getElementById('layoutJsonExport');
 const layoutJsonImport = document.getElementById('layoutJsonImport');
 const layoutJsonFile = document.getElementById('layoutJsonFile');
 const scoreShareOut = document.getElementById('scoreShareOut');
+const noteSpacingSlider = document.getElementById('noteSpacingSlider');
+const noteSpacingOut = document.getElementById('noteSpacingOut');
 
 const layoutControls = {
   whiteWidth: document.getElementById('whiteWidthSlider'),
@@ -56,6 +58,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const defaultLayout = {
   handedness: 'right',
   scoreShare: 54,
+  noteSpacing: 5,
   whiteWidth: 100,
   keyboardHeight: 100,
   blackWidth: 43,
@@ -518,6 +521,7 @@ function loadLayoutState() {
     return {
       handedness: saved.handedness === 'left' ? 'left' : 'right',
       scoreShare: Number(saved.scoreShare) || defaultLayout.scoreShare,
+      noteSpacing: Number(saved.noteSpacing) || defaultLayout.noteSpacing,
       whiteWidth: Number(saved.whiteWidth) || defaultLayout.whiteWidth,
       keyboardHeight: Number(saved.keyboardHeight) || defaultLayout.keyboardHeight,
       blackWidth: Number(saved.blackWidth) || defaultLayout.blackWidth,
@@ -541,6 +545,7 @@ function normalizeFlickThresholds() {
   // Ulomman rajan täytyy aina olla sisempää suurempi.
   layoutState.flick.longPressMs = clamp(layoutState.flick.longPressMs, 300, 1200);
   layoutState.scoreShare = clamp(Number(layoutState.scoreShare) || defaultLayout.scoreShare, 30, 70);
+  layoutState.noteSpacing = clamp(Number(layoutState.noteSpacing) || defaultLayout.noteSpacing, 1, 30);
 }
 
 function applyLayoutState({ save = true } = {}) {
@@ -565,6 +570,7 @@ function applyLayoutState({ save = true } = {}) {
   });
 
   syncLayoutControls();
+  applyNoteSpacing();
   if (save) saveLayoutState();
 }
 
@@ -590,6 +596,8 @@ function syncLayoutControls() {
   layoutOutputs.flickHalf.textContent = `${layoutState.flick.half} px`;
   layoutOutputs.longPress.textContent = `${layoutState.flick.longPressMs} ms`;
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
+  noteSpacingSlider.value = String(layoutState.noteSpacing);
+  noteSpacingOut.textContent = String(layoutState.noteSpacing);
 }
 
 function bindLayoutControls() {
@@ -625,6 +633,26 @@ function setScoreShare(value, { save = false } = {}) {
   scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
   scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
+  if (save) saveLayoutState();
+}
+
+function applyNoteSpacing({ save = false } = {}) {
+  layoutState.noteSpacing = clamp(Number(layoutState.noteSpacing) || defaultLayout.noteSpacing, 1, 30);
+  noteSpacingSlider.value = String(layoutState.noteSpacing);
+  noteSpacingOut.textContent = String(layoutState.noteSpacing);
+
+  if (state.osmd && state.appliedNoteSpacing !== layoutState.noteSpacing) {
+    state.appliedNoteSpacing = layoutState.noteSpacing;
+    state.osmd.setOptions({ spacingFactorSoftmax: layoutState.noteSpacing });
+    clearTimeout(window.__noteSpacingRenderTimer);
+    window.__noteSpacingRenderTimer = setTimeout(async () => {
+      try {
+        await state.osmd.render();
+      } catch (err) {
+        console.warn('OSMD spacing render failed', err);
+      }
+    }, 80);
+  }
   if (save) saveLayoutState();
 }
 
@@ -687,6 +715,7 @@ function importLayoutJson(file) {
       layoutState = {
         handedness: imported.handedness === 'left' ? 'left' : 'right',
         scoreShare: Number(imported.scoreShare) || defaultLayout.scoreShare,
+        noteSpacing: Number(imported.noteSpacing) || defaultLayout.noteSpacing,
         whiteWidth: Number(imported.whiteWidth) || defaultLayout.whiteWidth,
         keyboardHeight: Number(imported.keyboardHeight) || defaultLayout.keyboardHeight,
         blackWidth: Number(imported.blackWidth) || defaultLayout.blackWidth,
@@ -972,11 +1001,13 @@ async function renderScore() {
         autoResize: true,
         backend: 'svg',
         drawingParameters: 'compacttight',
+        spacingFactorSoftmax: layoutState.noteSpacing,
         drawTitle: true,
         drawComposer: true,
         drawPartNames: false,
         pageFormat: 'Endless',
       });
+      state.appliedNoteSpacing = layoutState.noteSpacing;
     }
     await state.osmd.load(xml);
     state.osmd.zoom = 1.08;
@@ -1160,6 +1191,10 @@ layoutJsonFile.addEventListener('change', () => {
   const [file] = layoutJsonFile.files || [];
   if (file) importLayoutJson(file);
 });
+noteSpacingSlider.addEventListener('input', (ev) => {
+  layoutState.noteSpacing = Number(ev.target.value);
+  applyNoteSpacing({ save: true });
+});
 
 window.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && songPanel.classList.contains('open')) {
@@ -1176,6 +1211,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
   const payload = [
     `Kätisyys: ${layoutState.handedness === 'right' ? 'Oikea käsi' : 'Vasen käsi'}`,
     `Nuotti-ikkunan osuus: ${Math.round(layoutState.scoreShare)}%`,
+    `Nuottien välistys: ${layoutState.noteSpacing}`,
     `Valkoinen leveys: ${layoutState.whiteWidth}%`,
     `Koskettimiston korkeus: ${layoutState.keyboardHeight}%`,
     `Musta leveys: ${layoutState.blackWidth}%`,
