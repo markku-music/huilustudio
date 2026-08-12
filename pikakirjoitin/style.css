@@ -324,23 +324,6 @@ input, select {
   background: #fff;
 }
 
-.left-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.left-actions button,
-.song-utility-actions button {
-  height: 58px;
-  border-radius: 16px;
-  border: 1px solid #cfd9e7;
-  background: #fff;
-  color: var(--ink);
-  font-weight: 700;
-}
-
 .main-column {
   width: 100%;
   min-width: 0;
@@ -817,12 +800,6 @@ input, select {
 #osmdContainer > div,
 #osmdContainer svg { max-width: 100%; }
 
-.song-utility-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
 .project-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -869,6 +846,99 @@ input, select {
   color: #6a50a8;
   font-size: 11px;
   line-height: 1.35;
+}
+
+.recent-projects {
+  padding: 10px;
+  border: 1px solid #dce5f0;
+  border-radius: 14px;
+  background: rgba(247, 249, 253, .9);
+}
+
+.recent-projects-head {
+  margin-bottom: 7px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.recent-projects-head strong {
+  color: #3c4f70;
+  font-size: 13px;
+}
+
+.recent-projects-head span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.recent-projects-list {
+  display: grid;
+  gap: 5px;
+}
+
+.recent-project-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 5px;
+}
+
+.recent-project-open,
+.recent-project-delete {
+  min-height: 38px;
+  border: 1px solid #d7dfec;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.recent-project-open {
+  min-width: 0;
+  padding: 5px 8px;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.recent-project-open strong,
+.recent-project-open small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-project-open strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.recent-project-open small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.recent-project-open.current {
+  border-color: #b8a1f3;
+  background: #f3eeff;
+  color: #4f2ba7;
+}
+
+.recent-project-delete {
+  width: 32px;
+  padding: 0;
+  color: #77849a;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.recent-projects-empty {
+  margin: 2px 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .document-actions {

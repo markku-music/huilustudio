@@ -1,11 +1,7 @@
 const osmdContainer = document.getElementById('osmdContainer');
 const appShell = document.getElementById('appShell');
 const keyboardSurface = document.getElementById('keyboardSurface');
-const restToggle = document.getElementById('restToggle');
-const undoBtn = document.getElementById('undoBtn');
-const clearBtn = document.getElementById('clearBtn');
 const statusText = document.getElementById('statusText');
-const playScaleBtn = document.getElementById('playScaleBtn');
 const layoutToggle = document.getElementById('layoutToggle');
 const layoutPanel = document.getElementById('layoutPanel');
 const layoutClose = document.getElementById('layoutClose');
@@ -54,6 +50,7 @@ const projectSaveBtn = document.getElementById('projectSaveBtn');
 const projectLoadBtn = document.getElementById('projectLoadBtn');
 const projectFileInput = document.getElementById('projectFileInput');
 const projectActionStatus = document.getElementById('projectActionStatus');
+const recentProjectsList = document.getElementById('recentProjectsList');
 const printWatermarkToggle = document.getElementById('printWatermarkToggle');
 const printWatermarkState = document.getElementById('printWatermarkState');
 const PRINT_WATERMARK_TEXT = 'HUILUSTUDIO · KOKEILUVERSIO';
@@ -132,8 +129,11 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.7.8';
+const PROJECT_APP_VERSION = '0.3.7.9';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
+const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
+const RECENT_PROJECTS_STORE = 'projects';
+const RECENT_PROJECTS_LIMIT = 10;
 const defaultLayout = {
   defaultsVersion: LAYOUT_DEFAULTS_VERSION,
   handedness: 'right',
@@ -173,6 +173,10 @@ let cachedPdfFile = null;
 let cachedPdfSignature = '';
 let projectAutosaveEnabled = false;
 let projectAutosaveTimer = null;
+let currentProjectId = createProjectId();
+let suppressCurrentProjectInRecents = false;
+let recentProjectsDbPromise = null;
+let recentProjectsWriteQueue = Promise.resolve();
 
 const titleInput = document.getElementById('titleInput');
 const composerInput = document.getElementById('composerInput');
@@ -275,7 +279,6 @@ const state = {
   noteSelectionHitboxes: [],
   selectionDrag: null,
   renderedNoteObjectMap: new Map(),
-  restMode: false,
   modifiers: {
     dotPointers: new Set(),
     sixteenthPointers: new Set(),
@@ -386,7 +389,7 @@ function startFlickGesture(ev) {
 
   // Soittotuntuma tulee heti painalluksesta. Tavallinen nuotti kirjoitetaan
   // irrotettaessa, mutta kokonuotti heti pitkän painalluksen täyttyessä.
-  if (!state.restMode && !isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
+  if (!isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
 }
 
 function moveFlickGesture(ev) {
@@ -1337,7 +1340,7 @@ function showFlickHud(x, y, durationName) {
   flickHud.style.left = `${clamp(left, 10, window.innerWidth - hudW - 10)}px`;
   flickHud.style.top = `${clamp(top, 10, window.innerHeight - hudH - 10)}px`;
   flickHud.dataset.side = 'above';
-  flickHud.classList.toggle('rest', state.restMode || isRestShiftActive());
+  flickHud.classList.toggle('rest', isRestShiftActive());
   flickHud.classList.add('visible');
   flickHud.setAttribute('aria-hidden', 'false');
   updateFlickHud(durationName);
@@ -1381,7 +1384,7 @@ function commitFlickGesture(gesture) {
   const useDot = isDotModifierActive() || gesture.dottedByRightSweep;
   const durationUnits = useDot ? Math.round(base.units * 1.5) : base.units;
 
-  if (state.restMode || isRestShiftActive()) {
+  if (isRestShiftActive()) {
     addRest(durationUnits);
     return;
   }
@@ -2333,6 +2336,13 @@ function projectText(value, fallback = '', maxLength = 200) {
   return String(value ?? fallback).slice(0, maxLength);
 }
 
+function createProjectId() {
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  } catch {}
+  return `project-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function getProjectLayoutData() {
   return {
     noteSpacing: layoutState.noteSpacing,
@@ -2352,6 +2362,7 @@ function createProjectPayload() {
     format: PROJECT_FORMAT,
     version: PROJECT_FORMAT_VERSION,
     appVersion: PROJECT_APP_VERSION,
+    projectId: currentProjectId,
     savedAt: new Date().toISOString(),
     song: {
       title: titleInput.value || 'Uusi kappale',
@@ -2503,6 +2514,7 @@ function parseProjectPayload(raw) {
   return {
     format: PROJECT_FORMAT,
     version,
+    projectId: projectText(raw.projectId, '', 100) || createProjectId(),
     savedAt: projectText(raw.savedAt, '', 60),
     song: {
       title: projectText(raw.song?.title, 'Uusi kappale', 200) || 'Uusi kappale',
@@ -2545,10 +2557,10 @@ function applyProjectPayload(project, { render = true, saveAutosave = true } = {
     state.nextHairpinId = state.hairpins.length + 1;
     state.systemBreaks = new Set(project.score.systemBreaks);
     state.pendingSystemBreakIndex = project.score.pendingSystemBreakIndex;
-    state.restMode = false;
+    currentProjectId = project.projectId;
+    suppressCurrentProjectInRecents = false;
     setNoteSelectionMode(false);
     syncSystemBreakButton();
-    updateToggleButtons();
 
     layoutState.noteSpacing = project.layout.noteSpacing;
     layoutState.scoreZoom = project.layout.scoreZoom;
@@ -2586,6 +2598,7 @@ function downloadProjectFile(file) {
 }
 
 function saveProjectToFile() {
+  suppressCurrentProjectInRecents = false;
   const payload = createProjectPayload();
   const json = JSON.stringify(payload, null, 2);
   const file = new File([json], getProjectFilename(), { type: 'application/json' });
@@ -2634,11 +2647,198 @@ async function loadProjectFile(file) {
   }
 }
 
+function openRecentProjectsDb() {
+  if (recentProjectsDbPromise) return recentProjectsDbPromise;
+  recentProjectsDbPromise = new Promise((resolve, reject) => {
+    if (!globalThis.indexedDB) {
+      reject(new Error('IndexedDB ei ole käytettävissä.'));
+      return;
+    }
+    const request = indexedDB.open(RECENT_PROJECTS_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(RECENT_PROJECTS_STORE)) {
+        db.createObjectStore(RECENT_PROJECTS_STORE, { keyPath: 'projectId' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('Projektimuistia ei voitu avata.'));
+    request.onblocked = () => reject(new Error('Projektimuistin päivitys estyi.'));
+  }).catch(error => {
+    recentProjectsDbPromise = null;
+    throw error;
+  });
+  return recentProjectsDbPromise;
+}
+
+async function readRecentProjectRecords() {
+  const db = await openRecentProjectsDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PROJECTS_STORE, 'readonly');
+    const request = transaction.objectStore(RECENT_PROJECTS_STORE).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error('Projektimuistia ei voitu lukea.'));
+  });
+}
+
+async function readRecentProjectRecord(projectId) {
+  const db = await openRecentProjectsDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PROJECTS_STORE, 'readonly');
+    const request = transaction.objectStore(RECENT_PROJECTS_STORE).get(projectId);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error || new Error('Projektia ei voitu lukea.'));
+  });
+}
+
+async function writeRecentProjectRecord(record) {
+  const db = await openRecentProjectsDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PROJECTS_STORE, 'readwrite');
+    transaction.objectStore(RECENT_PROJECTS_STORE).put(record);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Projektia ei voitu tallentaa muistiin.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Projektin tallennus keskeytyi.'));
+  });
+}
+
+async function deleteRecentProjectRecord(projectId) {
+  const db = await openRecentProjectsDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PROJECTS_STORE, 'readwrite');
+    transaction.objectStore(RECENT_PROJECTS_STORE).delete(projectId);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Projektia ei voitu poistaa.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Projektin poisto keskeytyi.'));
+  });
+}
+
+function sortRecentProjectRecords(records) {
+  return [...records].sort((a, b) => (
+    finiteLayoutNumber(Date.parse(b.savedAt), 0) - finiteLayoutNumber(Date.parse(a.savedAt), 0)
+  ));
+}
+
+async function trimRecentProjects() {
+  const records = sortRecentProjectRecords(await readRecentProjectRecords());
+  const obsolete = records.slice(RECENT_PROJECTS_LIMIT);
+  for (const record of obsolete) await deleteRecentProjectRecord(record.projectId);
+}
+
+function formatRecentProjectTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('fi-FI', {
+    day: 'numeric',
+    month: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+async function openRecentProject(projectId) {
+  try {
+    const record = await readRecentProjectRecord(projectId);
+    if (!record?.payload) throw new Error('Projektia ei löytynyt muistista.');
+    const project = parseProjectPayload(record.payload);
+    applyProjectPayload(project);
+    projectActionStatus.textContent = `Avattu muistista: ${project.song.title}`;
+    statusText.textContent = 'Projekti avattu';
+    setSongPanelOpen(false);
+    setTimeout(() => statusText.textContent = 'Valmis', 1200);
+  } catch (error) {
+    console.warn('Recent project loading failed', error);
+    projectActionStatus.textContent = error?.message || 'Projektia ei voitu avata.';
+  }
+}
+
+async function removeRecentProject(projectId, title) {
+  const remove = window.confirm(`Poistetaanko “${title}” viimeisimpien projektien muistista?`);
+  if (!remove) return;
+  try {
+    await deleteRecentProjectRecord(projectId);
+    if (projectId === currentProjectId) suppressCurrentProjectInRecents = true;
+    await renderRecentProjects();
+    projectActionStatus.textContent = 'Projekti poistettu muistista.';
+  } catch (error) {
+    console.warn('Recent project removal failed', error);
+    projectActionStatus.textContent = 'Projektia ei voitu poistaa muistista.';
+  }
+}
+
+async function renderRecentProjects() {
+  try {
+    const records = sortRecentProjectRecords(await readRecentProjectRecords()).slice(0, RECENT_PROJECTS_LIMIT);
+    recentProjectsList.replaceChildren();
+    if (!records.length) {
+      const empty = document.createElement('p');
+      empty.className = 'recent-projects-empty';
+      empty.textContent = 'Ei tallennettuja projekteja';
+      recentProjectsList.appendChild(empty);
+      return;
+    }
+
+    records.forEach(record => {
+      const row = document.createElement('div');
+      row.className = 'recent-project-row';
+
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'recent-project-open';
+      openButton.classList.toggle('current', record.projectId === currentProjectId);
+      openButton.setAttribute('aria-label', `Avaa projekti ${record.title}`);
+      const title = document.createElement('strong');
+      title.textContent = record.title || 'Nimetön kappale';
+      const meta = document.createElement('small');
+      meta.textContent = [record.composer, formatRecentProjectTime(record.savedAt)].filter(Boolean).join(' · ');
+      openButton.append(title, meta);
+      openButton.addEventListener('click', () => openRecentProject(record.projectId));
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'recent-project-delete';
+      deleteButton.textContent = '×';
+      deleteButton.setAttribute('aria-label', `Poista projekti ${record.title} muistista`);
+      deleteButton.addEventListener('click', () => removeRecentProject(record.projectId, record.title));
+      row.append(openButton, deleteButton);
+      recentProjectsList.appendChild(row);
+    });
+  } catch (error) {
+    console.warn('Recent projects could not be listed', error);
+    recentProjectsList.replaceChildren();
+    const empty = document.createElement('p');
+    empty.className = 'recent-projects-empty';
+    empty.textContent = 'Projektimuisti ei ole käytettävissä';
+    recentProjectsList.appendChild(empty);
+  }
+}
+
+function storeRecentProject(project) {
+  if (suppressCurrentProjectInRecents || !projectHasMeaningfulContent(project)) return;
+  const record = {
+    projectId: project.projectId,
+    title: project.song.title || 'Nimetön kappale',
+    composer: project.song.composer || '',
+    savedAt: project.savedAt || new Date().toISOString(),
+    payload: structuredClone(project),
+  };
+  recentProjectsWriteQueue = recentProjectsWriteQueue
+    .then(async () => {
+      await writeRecentProjectRecord(record);
+      await trimRecentProjects();
+      await renderRecentProjects();
+    })
+    .catch(error => {
+      console.warn('Recent project storing failed', error);
+    });
+}
+
 function saveAutosavedProjectNow({ payload = null, announce = true } = {}) {
   if (!projectAutosaveEnabled && !payload) return;
   try {
     const project = payload || createProjectPayload();
     localStorage.setItem(PROJECT_AUTOSAVE_KEY, JSON.stringify(project));
+    storeRecentProject(project);
     if (announce) {
       const time = new Date().toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
       projectActionStatus.textContent = `Automaattisesti tallennettu ${time}`;
@@ -3114,11 +3314,6 @@ async function renderScoreNow() {
   }
 }
 
-function updateToggleButtons() {
-  restToggle.classList.toggle('active', state.restMode);
-  restToggle.textContent = state.restMode ? '𝄽 tauko: päällä' : '𝄽 tauko: pois';
-}
-
 function isDotModifierActive() {
   return state.modifiers.dotPointers.size > 0 || state.modifiers.dotKeyboard;
 }
@@ -3217,41 +3412,12 @@ document.addEventListener('focusin', (ev) => {
 
 window.addEventListener('blur', clearKeyboardModifiers);
 
-restToggle.addEventListener('click', () => {
-  state.restMode = !state.restMode;
-  updateToggleButtons();
-});
-
 systemBreakBtn.addEventListener('click', togglePendingSystemBreak);
 stretchLastLineBtn.addEventListener('click', stretchLastLineOnce);
-
-undoBtn.addEventListener('click', () => {
-  undoLastNoteWithFeedback();
-});
-
-clearBtn.addEventListener('click', () => {
-  state.notes = [];
-  state.slurs = [];
-  state.hairpins = [];
-  clearNoteSelection();
-  state.systemBreaks.clear();
-  state.pendingSystemBreakIndex = null;
-  syncSystemBreakButton();
-  renderScore();
-});
 
 [titleInput, composerInput, tempoTextInput, bpmInput, beatsSelect, beatTypeSelect, keySelect, modeSelect].forEach(el => {
   el.addEventListener('input', renderScore);
   el.addEventListener('change', renderScore);
-});
-
-playScaleBtn.addEventListener('click', async () => {
-  ensureAudio();
-  const mids = whiteKeys.slice(0, 8).map(k => k.midi);
-  for (let i = 0; i < mids.length; i++) {
-    playMidi(mids[i], 0.25);
-    await new Promise(r => setTimeout(r, 170));
-  }
 });
 
 function scheduleOsmdResizeRender() {
@@ -3361,8 +3527,8 @@ initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
-updateToggleButtons();
 syncPdfActionButton();
 restoreAutosavedProjectOnStartup();
 projectAutosaveEnabled = true;
+renderRecentProjects();
 renderScore();
