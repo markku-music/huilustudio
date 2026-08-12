@@ -53,6 +53,8 @@ const projectActionStatus = document.getElementById('projectActionStatus');
 const recentProjectsList = document.getElementById('recentProjectsList');
 const printWatermarkToggle = document.getElementById('printWatermarkToggle');
 const printWatermarkState = document.getElementById('printWatermarkState');
+const pitchNameToggle = document.getElementById('pitchNameToggle');
+const pitchNameState = document.getElementById('pitchNameState');
 const PRINT_WATERMARK_TEXT = 'HUILUSTUDIO · KOKEILUVERSIO';
 
 const layoutControls = {
@@ -129,7 +131,7 @@ const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
 const LAYOUT_DEFAULTS_VERSION = 3;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
-const PROJECT_APP_VERSION = '0.3.7.9';
+const PROJECT_APP_VERSION = '0.3.8.0';
 const PROJECT_AUTOSAVE_KEY = 'pikakirjoitin-project-autosave-v1';
 const RECENT_PROJECTS_DB_NAME = 'pikakirjoitin-recent-projects';
 const RECENT_PROJECTS_STORE = 'projects';
@@ -141,6 +143,7 @@ const defaultLayout = {
   noteSpacing: 100,
   scoreZoom: 100,
   systemSpacing: 500,
+  pitchNames: true,
   printWatermark: true,
   scoreText: {
     title: { size: 90, x: 0, y: -30 },
@@ -279,6 +282,7 @@ const state = {
   noteSelectionHitboxes: [],
   selectionDrag: null,
   renderedNoteObjectMap: new Map(),
+  renderedNoteUnitsMap: new Map(),
   modifiers: {
     dotPointers: new Set(),
     sixteenthPointers: new Set(),
@@ -1432,6 +1436,7 @@ function loadLayoutState() {
       systemSpacing: usesEarlierDefaults && (savedSystemSpacing === 100 || savedSystemSpacing === 300)
         ? defaultLayout.systemSpacing
         : savedSystemSpacing,
+      pitchNames: saved.pitchNames !== false,
       printWatermark: saved.printWatermark !== false,
       scoreText: {
         title: {
@@ -1484,6 +1489,7 @@ function normalizeFlickThresholds() {
   layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
   layoutState.scoreZoom = clamp(finiteLayoutNumber(layoutState.scoreZoom, defaultLayout.scoreZoom), 70, 160);
   layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 500, 1000);
+  layoutState.pitchNames = layoutState.pitchNames !== false;
   layoutState.printWatermark = layoutState.printWatermark !== false;
   layoutState.scoreText ||= structuredClone(defaultLayout.scoreText);
   SCORE_TEXT_ROLES.forEach(role => {
@@ -1536,6 +1542,7 @@ function applyLayoutState({ save = true } = {}) {
   applyNoteSpacing();
   applyScoreLayout();
   applyScoreTextLayout();
+  renderPitchNameOverlays();
   renderMarginGuides();
   if (save) saveLayoutState();
 }
@@ -1579,6 +1586,9 @@ function syncLayoutControls() {
   printWatermarkToggle.classList.toggle('active', layoutState.printWatermark);
   printWatermarkToggle.setAttribute('aria-pressed', String(layoutState.printWatermark));
   printWatermarkState.textContent = layoutState.printWatermark ? 'Päällä' : 'Pois';
+  pitchNameToggle.classList.toggle('active', layoutState.pitchNames);
+  pitchNameToggle.setAttribute('aria-pressed', String(layoutState.pitchNames));
+  pitchNameState.textContent = layoutState.pitchNames ? 'Päällä' : 'Pois';
   SCORE_TEXT_ROLES.forEach(role => {
     scoreTextControls[role].size.value = String(layoutState.scoreText[role].size);
     scoreTextControls[role].x.value = String(layoutState.scoreText[role].x);
@@ -1640,6 +1650,13 @@ function bindLayoutControls() {
     invalidateCachedPdf();
     syncLayoutControls();
     saveLayoutState();
+  });
+  pitchNameToggle.addEventListener('click', () => {
+    layoutState.pitchNames = !layoutState.pitchNames;
+    syncLayoutControls();
+    saveLayoutState();
+    renderPitchNameOverlays();
+    invalidateCachedPdf();
   });
   SCORE_TEXT_ROLES.forEach(role => {
     ['size', 'x', 'y'].forEach(property => {
@@ -2145,6 +2162,7 @@ function applyNoteSpacing({ save = false } = {}) {
         await state.osmd.render();
         applyScoreTextLayout();
         alignDynamicsByStaffLine();
+        renderPitchNameOverlays();
         state.appliedNoteSpacing = spacing;
         renderSystemBreakMarkers();
         refreshNoteSelectionGeometry();
@@ -2286,6 +2304,7 @@ function importLayoutJson(file) {
         noteSpacing: normalizeNoteSpacing(imported.noteSpacing),
         scoreZoom: finiteLayoutNumber(imported.scoreZoom, defaultLayout.scoreZoom),
         systemSpacing: finiteLayoutNumber(imported.systemSpacing, defaultLayout.systemSpacing),
+        pitchNames: imported.pitchNames !== false,
         printWatermark: imported.printWatermark !== false,
         scoreText: {
           title: {
@@ -2348,6 +2367,7 @@ function getProjectLayoutData() {
     noteSpacing: layoutState.noteSpacing,
     scoreZoom: layoutState.scoreZoom,
     systemSpacing: layoutState.systemSpacing,
+    pitchNames: layoutState.pitchNames,
     printWatermark: layoutState.printWatermark,
     scoreText: structuredClone(layoutState.scoreText),
     margins: structuredClone(layoutState.margins),
@@ -2400,6 +2420,9 @@ function normalizeProjectLayout(imported) {
     noteSpacing: normalizeNoteSpacing(imported.noteSpacing ?? current.noteSpacing),
     scoreZoom: clamp(finiteLayoutNumber(imported.scoreZoom, current.scoreZoom), 70, 160),
     systemSpacing: clamp(finiteLayoutNumber(imported.systemSpacing, current.systemSpacing), 500, 1000),
+    pitchNames: Object.prototype.hasOwnProperty.call(imported, 'pitchNames')
+      ? imported.pitchNames !== false
+      : current.pitchNames,
     printWatermark: Object.prototype.hasOwnProperty.call(imported, 'printWatermark')
       ? imported.printWatermark !== false
       : current.printWatermark,
@@ -2565,6 +2588,7 @@ function applyProjectPayload(project, { render = true, saveAutosave = true } = {
     layoutState.noteSpacing = project.layout.noteSpacing;
     layoutState.scoreZoom = project.layout.scoreZoom;
     layoutState.systemSpacing = project.layout.systemSpacing;
+    layoutState.pitchNames = project.layout.pitchNames;
     layoutState.printWatermark = project.layout.printWatermark;
     layoutState.scoreText = structuredClone(project.layout.scoreText);
     layoutState.margins = structuredClone(project.layout.margins);
@@ -3185,6 +3209,7 @@ function noteToXml(seg) {
 function buildMusicXml() {
   const measures = createEventsForScore().map(annotateDefaultBeams);
   state.renderedNoteObjectMap = new Map();
+  state.renderedNoteUnitsMap = new Map();
   let renderedNoteObjectId = 0;
   const beats = Number(beatsSelect.value);
   const beatType = Number(beatTypeSelect.value);
@@ -3213,6 +3238,7 @@ function buildMusicXml() {
     const notesXml = measure.map(seg => {
       if (Number.isInteger(seg.sourceEntryIndex)) {
         state.renderedNoteObjectMap.set(renderedNoteObjectId, seg.sourceEntryIndex);
+        state.renderedNoteUnitsMap.set(renderedNoteObjectId, seg.units);
       }
       renderedNoteObjectId += 1;
       const hairpinStart = hairpinDirectionsXml(seg.hairpinStarts);
@@ -3240,6 +3266,150 @@ function buildMusicXml() {
     ${measureXml}
   </part>
 </score-partwise>`;
+}
+
+function keySignatureAlterForStep(step) {
+  const fifths = Number(keySelect.value) || 0;
+  const order = fifths > 0
+    ? ['F', 'C', 'G', 'D', 'A', 'E', 'B']
+    : ['B', 'E', 'A', 'D', 'G', 'C', 'F'];
+  return order.slice(0, Math.abs(fifths)).includes(step) ? Math.sign(fifths) : 0;
+}
+
+function buildPitchNameInfo() {
+  const result = new Map();
+  const measureUnits = Number(beatsSelect.value) * divisions * (4 / Number(beatTypeSelect.value));
+  const activeAccidentals = new Map();
+  let positionInMeasure = 0;
+
+  state.notes.forEach((entry, entryIndex) => {
+    if (entry.kind === 'note') {
+      const pitchKey = `${entry.step}${entry.octave}`;
+      const previousAlter = activeAccidentals.has(pitchKey)
+        ? activeAccidentals.get(pitchKey)
+        : keySignatureAlterForStep(entry.step);
+      const accidental = entry.alter > 0
+        ? 'sharp'
+        : entry.alter < 0
+          ? 'flat'
+          : previousAlter !== 0
+            ? 'natural'
+            : '';
+      const finnishStep = entry.step === 'B' && entry.alter >= 0 ? 'H' : entry.step;
+      const letter = entry.octave >= 5 ? finnishStep.toLowerCase() : finnishStep;
+      result.set(entryIndex, {
+        letter,
+        accidental,
+        accidentalCount: Math.min(2, Math.abs(Number(entry.alter) || 0)),
+      });
+      activeAccidentals.set(pitchKey, entry.alter);
+    }
+
+    let remaining = Number(entry.units) || 0;
+    while (remaining > 0 && measureUnits > 0) {
+      const space = measureUnits - positionInMeasure;
+      if (remaining >= space) {
+        remaining -= space;
+        positionInMeasure = 0;
+        activeAccidentals.clear();
+      } else {
+        positionInMeasure += remaining;
+        remaining = 0;
+      }
+    }
+  });
+  return result;
+}
+
+function appendVectorAccidental(parent, type, count, color) {
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const copies = Math.max(1, count || 1);
+  for (let index = 0; index < copies; index += 1) {
+    const path = document.createElementNS(svgNs, 'path');
+    const offset = (index - (copies - 1) / 2) * 2.5;
+    if (type === 'sharp') {
+      path.setAttribute('d', `M${offset - 0.8} -3.1v6.2M${offset + 0.8} -3.5v6.2M${offset - 1.7} -1.1l3.4-.6M${offset - 1.7} 1.2l3.4-.6`);
+    } else if (type === 'flat') {
+      path.setAttribute('d', `M${offset - 0.7} -3.6v6.7M${offset - 0.7} 0c2.7-2.2 3.1 1.7 0 2.4`);
+    } else {
+      path.setAttribute('d', `M${offset - 0.8} -3.2v5.5l1.6-.6v-5.5M${offset - 0.8}-.3l1.6-.6`);
+    }
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '0.72');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    parent.appendChild(path);
+  }
+}
+
+function renderPitchNameOverlays() {
+  osmdContainer.querySelectorAll('.pitch-name-overlay').forEach(element => element.remove());
+  if (!layoutState.pitchNames || !state.osmd) return;
+
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const zoom = Number(state.osmd.zoom) || 1;
+  const pitchNameInfo = buildPitchNameInfo();
+  const measureList = state.osmd.GraphicSheet?.MeasureList || [];
+
+  measureList.forEach(measureGroup => {
+    (measureGroup || []).forEach(measure => {
+      (measure?.staffEntries || []).forEach(staffEntry => {
+        (staffEntry?.graphicalVoiceEntries || []).forEach(voiceEntry => {
+          (voiceEntry?.notes || []).forEach(graphicalNote => {
+            const objectId = graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;
+            const entryIndex = state.renderedNoteObjectMap.get(objectId);
+            const info = pitchNameInfo.get(entryIndex);
+            if (!info) return;
+
+            const vexRef = graphicalNote.vfnote;
+            const vexNote = Array.isArray(vexRef) ? vexRef[0] : vexRef;
+            const noteHeadIndex = Array.isArray(vexRef) ? (Number(vexRef[1]) || 0) : 0;
+            const svg = vexNote?.attrs?.el?.ownerSVGElement || voiceEntry?.mVexFlowStaveNote?.attrs?.el?.ownerSVGElement;
+            const ys = vexNote?.getYs?.();
+            const beginX = Number(vexNote?.getNoteHeadBeginX?.());
+            const endX = Number(vexNote?.getNoteHeadEndX?.());
+            const fallbackX = Number(vexNote?.getAbsoluteX?.());
+            const rawX = Number.isFinite(beginX) && Number.isFinite(endX)
+              ? (beginX + endX) / 2
+              : fallbackX;
+            const rawY = Number(ys?.[noteHeadIndex]);
+            if (!svg || !Number.isFinite(rawX) || !Number.isFinite(rawY)) return;
+
+            const renderedUnits = state.renderedNoteUnitsMap.get(objectId);
+            const color = Number(renderedUnits) >= 16 ? '#111111' : '#ffffff';
+            const group = document.createElementNS(svgNs, 'g');
+            group.classList.add('pitch-name-overlay');
+            group.setAttribute('aria-hidden', 'true');
+            group.setAttribute('pointer-events', 'none');
+            group.setAttribute('data-entry-index', String(entryIndex));
+            group.setAttribute('transform', `translate(${rawX / zoom} ${rawY / zoom})`);
+
+            const text = document.createElementNS(svgNs, 'text');
+            const hasAccidental = Boolean(info.accidental);
+            text.setAttribute('x', hasAccidental ? '-1.55' : '0');
+            text.setAttribute('y', '0');
+            text.setAttribute('dy', '0.34em');
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', color);
+            text.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
+            text.setAttribute('font-size', hasAccidental ? '5.8' : '7.2');
+            text.setAttribute('font-weight', '800');
+            text.textContent = info.letter;
+            group.appendChild(text);
+
+            if (hasAccidental) {
+              const accidentalGroup = document.createElementNS(svgNs, 'g');
+              accidentalGroup.setAttribute('transform', `translate(${info.accidentalCount > 1 ? 2.35 : 2.5} 0) scale(${info.accidentalCount > 1 ? 0.72 : 0.88})`);
+              appendVectorAccidental(accidentalGroup, info.accidental, info.accidentalCount, color);
+              group.appendChild(accidentalGroup);
+            }
+            svg.appendChild(group);
+          });
+        });
+      });
+    });
+  });
 }
 
 let scoreRenderRequested = false;
@@ -3302,6 +3472,7 @@ async function renderScoreNow() {
     await osmd.render();
     applyScoreTextLayout();
     alignDynamicsByStaffLine();
+    renderPitchNameOverlays();
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
@@ -3431,6 +3602,7 @@ function scheduleOsmdResizeRender() {
       await state.osmd.render();
       applyScoreTextLayout();
       alignDynamicsByStaffLine();
+      renderPitchNameOverlays();
       renderSystemBreakMarkers();
       refreshNoteSelectionGeometry();
       noteScoreRenderCompleted();
@@ -3498,6 +3670,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Nuottien välistys: ${layoutState.noteSpacing}%`,
     `Nuottikuvan zoom: ${layoutState.scoreZoom}%`,
     `Riviväli: ${layoutState.systemSpacing}%`,
+    `Sävelnimet nuottipalloissa: ${layoutState.pitchNames ? 'Päällä' : 'Pois'}`,
     `Kokeiluvesileima: ${layoutState.printWatermark ? 'Päällä' : 'Pois'}`,
     `Otsikko (koko/X/Y): ${layoutState.scoreText.title.size}% / ${layoutState.scoreText.title.x} / ${layoutState.scoreText.title.y} u`,
     `Säveltäjä (koko/X/Y): ${layoutState.scoreText.composer.size}% / ${layoutState.scoreText.composer.x} / ${layoutState.scoreText.composer.y} u`,

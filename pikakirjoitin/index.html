@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.7.9" />
+  <link rel="stylesheet" href="style.css?v=0.3.8.0" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -271,6 +271,13 @@
 
     <div class="layout-section">
       <h3>Nuottikuva</h3>
+      <button id="pitchNameToggle" class="setting-toggle-button active" type="button" aria-pressed="true">
+        <span class="setting-toggle-copy">
+          <strong>Sävelnimet nuottipalloissa</strong>
+          <small>Myös ♯, ♭ ja ♮ piirretään vektoreina</small>
+        </span>
+        <span id="pitchNameState" class="setting-toggle-state">Päällä</span>
+      </button>
       <label class="slider-row">
         <span>Zoom <output id="scoreZoomOut">100 %</output></span>
         <input id="scoreZoomSlider" type="range" min="70" max="160" step="1" value="100">
@@ -427,6 +434,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.7.9.js"></script>
+  <script src="app-0.3.8.0.js"></script>
 </body>
 </html>
