@@ -193,7 +193,6 @@ const titleInput = document.getElementById('titleInput');
 const startupOverlay = document.getElementById('startupOverlay');
 const startupTitleInput = document.getElementById('startupTitleInput');
 const startupBeginBtn = document.getElementById('startupBeginBtn');
-const startupHint = document.getElementById('startupHint');
 const composerInput = document.getElementById('composerInput');
 const tempoTextInput = document.getElementById('tempoTextInput');
 const bpmInput = document.getElementById('bpmInput');
@@ -3159,29 +3158,8 @@ function projectHasMeaningfulContent(project) {
 }
 
 function restoreAutosavedProjectOnStartup() {
-  const raw = localStorage.getItem(PROJECT_AUTOSAVE_KEY);
-  if (!raw) return false;
-  try {
-    const project = parseProjectPayload(JSON.parse(raw));
-    if (!projectHasMeaningfulContent(project)) return false;
-    const savedTime = Number.isNaN(Date.parse(project.savedAt))
-      ? ''
-      : `\nTallennettu ${new Date(project.savedAt).toLocaleString('fi-FI')}.`;
-    const restore = window.confirm(
-      `Edellinen keskeneräinen kappale “${project.song.title}” löytyi.${savedTime}\n\nPalautetaanko se?`,
-    );
-    if (!restore) {
-      localStorage.removeItem(PROJECT_AUTOSAVE_KEY);
-      return false;
-    }
-    applyProjectPayload(project, { render: false, saveAutosave: false });
-    projectActionStatus.textContent = 'Edellinen keskeneräinen kappale palautettiin.';
-    return true;
-  } catch (error) {
-    console.warn('Autosaved project could not be restored', error);
-    localStorage.removeItem(PROJECT_AUTOSAVE_KEY);
-    return false;
-  }
+  // 0.3.9.8: ei enää käynnistyksen keskeneräisen kappaleen jatkamisehdotusta.
+  return false;
 }
 
 function addRest(units) {
@@ -3250,7 +3228,6 @@ function finishStartupGate() {
     startupTitleInput.classList.remove('name-needed');
     void startupTitleInput.offsetWidth;
     startupTitleInput.classList.add('name-needed');
-    startupHint.textContent = 'Kirjoita ensin kappaleen nimi.';
     startupTitleInput.focus();
     return;
   }
@@ -3277,7 +3254,6 @@ function initStartupGate() {
 
   startupTitleInput.addEventListener('input', () => {
     startupTitleInput.classList.remove('name-needed');
-    startupHint.textContent = 'Anna kappaleelle nimi ja aloita.';
   });
 
   startupTitleInput.addEventListener('keydown', (event) => {
