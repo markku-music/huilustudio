@@ -188,9 +188,10 @@ let recentProjectsDbPromise = null;
 let recentProjectsWriteQueue = Promise.resolve();
 
 const titleInput = document.getElementById('titleInput');
-const startupGate = document.getElementById('startupGate');
+const startupOverlay = document.getElementById('startupOverlay');
 const startupTitleInput = document.getElementById('startupTitleInput');
 const startupBeginBtn = document.getElementById('startupBeginBtn');
+const startupHint = document.getElementById('startupHint');
 const composerInput = document.getElementById('composerInput');
 const tempoTextInput = document.getElementById('tempoTextInput');
 const bpmInput = document.getElementById('bpmInput');
@@ -3163,50 +3164,84 @@ function ensureAudio() {
       state.audioContext = new AudioContextClass();
     }
   }
-  if (state.audioContext.state === 'suspended') state.audioContext.resume().catch(() => {});
-  return state.audioContext;
+  if (state.audioContext.state === 'suspended') state.audioContext.resume();
 }
 
 function unlockAudioFromStartupGesture() {
-  const ctx = ensureAudio();
-  if (!ctx) return;
-
-  // iPad/WebKit: käynnistetään käyttäjäeleen sisällä myös äänetön lähde.
-  // Varsinaista ääntä ei kuulu, mutta audiosessio avautuu ennen koskettimiston käyttöä.
   try {
+    ensureAudio();
+    const ctx = state.audioContext;
+    if (!ctx) return;
+
+    // Äänetön yhden näytteen lähde käynnistetään samassa käyttäjäeleessä.
+    // Tämä ei kuulu käyttäjälle, mutta auttaa iPad/Safaria avaamaan Web Audion.
     const buffer = ctx.createBuffer(1, 1, 22050);
     const source = ctx.createBufferSource();
     const silentGain = ctx.createGain();
     silentGain.gain.value = 0.000001;
     source.buffer = buffer;
-    source.connect(silentGain).connect(ctx.destination);
+    source.connect(silentGain);
+    silentGain.connect(ctx.destination);
     source.start(0);
-  } catch {}
 
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (ctx.state === 'suspended') {
+      const resumePromise = ctx.resume();
+      if (resumePromise && typeof resumePromise.catch === 'function') {
+        resumePromise.catch(() => {});
+      }
+    }
+  } catch (error) {
+    console.warn('Startup audio unlock failed', error);
+  }
 }
 
 function finishStartupGate() {
-  unlockAudioFromStartupGesture();
-  const nextTitle = String(startupTitleInput.value || '').trim() || 'Uusi kappale';
+  const nextTitle = String(startupTitleInput.value || '').trim();
+  if (!nextTitle) {
+    startupTitleInput.classList.remove('name-needed');
+    void startupTitleInput.offsetWidth;
+    startupTitleInput.classList.add('name-needed');
+    startupHint.textContent = 'Kirjoita ensin kappaleen nimi.';
+    startupTitleInput.focus();
+    return;
+  }
+
+  startupTitleInput.classList.remove('name-needed');
   titleInput.value = nextTitle;
-  startupGate.classList.add('hidden');
-  startupGate.setAttribute('aria-hidden', 'true');
+  startupTitleInput.blur();
+  startupOverlay.classList.add('hidden');
+  startupOverlay.setAttribute('aria-hidden', 'true');
   renderScore();
   scheduleProjectAutosave();
 }
 
 function initStartupGate() {
-  startupTitleInput.value = titleInput.value || 'Uusi kappale';
+  if (!startupOverlay || !startupTitleInput || !startupBeginBtn) return;
 
-  // Pointerdown on tärkein iPadissa: audioherätys tapahtuu suoraan kosketuseleessä.
+  // Jos automaattisesti palautetulla projektilla on oikea nimi, näytetään se valmiina.
+  const restoredTitle = String(titleInput.value || '').trim();
+  startupTitleInput.value = restoredTitle && restoredTitle !== 'Uusi kappale' ? restoredTitle : '';
+
+  // Pointerdown on varsinainen iPadin käyttäjäele, jolla Web Audio herätetään.
   startupBeginBtn.addEventListener('pointerdown', unlockAudioFromStartupGesture, { passive: true });
   startupBeginBtn.addEventListener('click', finishStartupGate);
-  startupTitleInput.addEventListener('keydown', event => {
+
+  startupTitleInput.addEventListener('input', () => {
+    startupTitleInput.classList.remove('name-needed');
+    startupHint.textContent = 'Anna kappaleelle nimi ja aloita.';
+  });
+
+  startupTitleInput.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
+    unlockAudioFromStartupGesture();
     finishStartupGate();
   });
+
+  setTimeout(() => {
+    try { startupTitleInput.focus({ preventScroll: true }); }
+    catch { startupTitleInput.focus(); }
+  }, 80);
 }
 
 function playMidi(midi, seconds = 0.45) {
@@ -3998,7 +4033,7 @@ applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
 syncPdfActionButton();
 restoreAutosavedProjectOnStartup();
-initStartupGate();
 projectAutosaveEnabled = true;
 renderRecentProjects();
 renderScore();
+initStartupGate();

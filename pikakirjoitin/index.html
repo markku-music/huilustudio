@@ -10,16 +10,23 @@
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
 </head>
 <body>
-  <div id="startupGate" class="startup-gate" role="dialog" aria-modal="true" aria-labelledby="startupGateTitle">
-    <div class="startup-card">
-      <div class="startup-badge">🎼 Pikakirjoitin</div>
-      <h1 id="startupGateTitle">Uusi kappale</h1>
-      <label class="startup-label" for="startupTitleInput">Kappaleen nimi</label>
-      <input id="startupTitleInput" class="startup-title-input" type="text" value="Uusi kappale" autocomplete="off" enterkeyhint="done" />
-      <button id="startupBeginBtn" class="startup-begin-button" type="button">Aloita</button>
+
+  <div id="startupOverlay" class="startup-overlay" role="dialog" aria-modal="true" aria-labelledby="startupTitle">
+    <div class="startup-card panel">
+      <h1 id="startupTitle">Pikakirjoitin</h1>
+      <div class="startup-name-row">
+        <input id="startupTitleInput"
+               type="text"
+               maxlength="80"
+               autocomplete="off"
+               enterkeyhint="done"
+               placeholder="Kappaleen nimi"
+               aria-label="Kappaleen nimi">
+        <button id="startupBeginBtn" class="startup-begin-btn" type="button">Aloita</button>
+      </div>
+      <p id="startupHint" class="startup-hint">Anna kappaleelle nimi ja aloita.</p>
     </div>
   </div>
-
   <div id="appShell" class="app-shell">
     <div class="side-column">
       <button id="songPanelToggle" class="panel song-panel-toggle" type="button" aria-expanded="false">
