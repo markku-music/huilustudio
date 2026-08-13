@@ -154,7 +154,7 @@ const defaultLayout = {
   pitchNames: true,
   printWatermark: true,
   scoreText: {
-    title: { size: 90, x: 75, y: 0 },
+    title: { size: 90, x: 0, y: -30 },
     composer: { size: 100, x: 0, y: 15 },
     tempo: { size: 100, x: 55, y: 0 },
   },
@@ -193,6 +193,7 @@ const titleInput = document.getElementById('titleInput');
 const startupOverlay = document.getElementById('startupOverlay');
 const startupTitleInput = document.getElementById('startupTitleInput');
 const startupBeginBtn = document.getElementById('startupBeginBtn');
+const startupHint = document.getElementById('startupHint');
 const composerInput = document.getElementById('composerInput');
 const tempoTextInput = document.getElementById('tempoTextInput');
 const bpmInput = document.getElementById('bpmInput');
@@ -648,9 +649,7 @@ function placeSystemBreakAfterMeasure(measureIndex) {
 function renderSystemBreakMarkers() {
   osmdContainer.querySelector('.system-break-markers')?.remove();
   osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
-  // 0.4.0.2: kaikki rivinvaihtoeditorin apumerkit näkyvät vain editoritilan aikana.
-  // Itse rivinvaihdot säilyvät state.systemBreaksissa myös tilan sulkemisen jälkeen.
-  if (!state.osmd || !state.systemBreakModeActive) return;
+  if (!state.osmd || (state.systemBreaks.size === 0 && !state.systemBreakModeActive)) return;
 
   const graphicSheet = state.osmd.GraphicSheet;
   const measureList = graphicSheet?.MeasureList;
@@ -3160,8 +3159,29 @@ function projectHasMeaningfulContent(project) {
 }
 
 function restoreAutosavedProjectOnStartup() {
-  // 0.3.9.8: ei enää käynnistyksen keskeneräisen kappaleen jatkamisehdotusta.
-  return false;
+  const raw = localStorage.getItem(PROJECT_AUTOSAVE_KEY);
+  if (!raw) return false;
+  try {
+    const project = parseProjectPayload(JSON.parse(raw));
+    if (!projectHasMeaningfulContent(project)) return false;
+    const savedTime = Number.isNaN(Date.parse(project.savedAt))
+      ? ''
+      : `\nTallennettu ${new Date(project.savedAt).toLocaleString('fi-FI')}.`;
+    const restore = window.confirm(
+      `Edellinen keskeneräinen kappale “${project.song.title}” löytyi.${savedTime}\n\nPalautetaanko se?`,
+    );
+    if (!restore) {
+      localStorage.removeItem(PROJECT_AUTOSAVE_KEY);
+      return false;
+    }
+    applyProjectPayload(project, { render: false, saveAutosave: false });
+    projectActionStatus.textContent = 'Edellinen keskeneräinen kappale palautettiin.';
+    return true;
+  } catch (error) {
+    console.warn('Autosaved project could not be restored', error);
+    localStorage.removeItem(PROJECT_AUTOSAVE_KEY);
+    return false;
+  }
 }
 
 function addRest(units) {
@@ -3230,6 +3250,7 @@ function finishStartupGate() {
     startupTitleInput.classList.remove('name-needed');
     void startupTitleInput.offsetWidth;
     startupTitleInput.classList.add('name-needed');
+    startupHint.textContent = 'Kirjoita ensin kappaleen nimi.';
     startupTitleInput.focus();
     return;
   }
@@ -3256,6 +3277,7 @@ function initStartupGate() {
 
   startupTitleInput.addEventListener('input', () => {
     startupTitleInput.classList.remove('name-needed');
+    startupHint.textContent = 'Anna kappaleelle nimi ja aloita.';
   });
 
   startupTitleInput.addEventListener('keydown', (event) => {
