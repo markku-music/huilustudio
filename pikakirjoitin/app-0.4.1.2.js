@@ -178,7 +178,7 @@ const defaultLayout = {
 };
 
 let layoutState = loadLayoutState();
-let stretchLastLineOnceRequested = false;
+let stretchLastLinePersistent = false;
 let stretchLastLineCommandRunning = false;
 let scoreRenderRevision = 0;
 let pdfActionRunning = false;
@@ -1883,29 +1883,32 @@ function syncLayoutControls() {
 }
 
 function syncStretchLastLineButton() {
-  stretchLastLineBtn.classList.toggle('active', stretchLastLineCommandRunning);
+  stretchLastLineBtn.classList.toggle('active', stretchLastLinePersistent);
+  stretchLastLineBtn.setAttribute('aria-pressed', String(stretchLastLinePersistent));
   stretchLastLineBtn.setAttribute('aria-busy', String(stretchLastLineCommandRunning));
 }
 
-async function stretchLastLineOnce() {
+async function toggleStretchLastLine() {
   if (stretchLastLineCommandRunning) return;
+
+  // 0.4.1.1: viimeisen rivin tasaus on nyt pysyvä dokumentin näyttötila.
+  // Jokainen myöhempi OSMD-renderöinti käyttää samaa asetusta, kunnes
+  // käyttäjä painaa painiketta uudelleen.
+  stretchLastLinePersistent = !stretchLastLinePersistent;
   stretchLastLineCommandRunning = true;
-  stretchLastLineOnceRequested = true;
+  stretchReapplyNeeded = false;
   syncStretchLastLineButton();
+
   clearTimeout(window.__noteSpacingRenderTimer);
   clearTimeout(window.__osmdResizeTimer);
-  // Ensimmäinen kierros vaihtaa OSMD:n kaiverrussäännön. Safarissa viimeisen
-  // järjestelmän leveys voi silti jäädä edellisestä GraphicSheetistä, kunnes
-  // jokin muu nappi pyytää uuden renderöinnin. Tehdään sama toinen kierros
-  // automaattisesti heti seuraavassa ruudunpäivityksessä.
+
   try {
+    // Kaksi kierrosta säilytetään, koska Safari/iPad voi tarvita uuden
+    // GraphicSheetin ennen kuin viimeisen järjestelmän leveys asettuu oikein.
     await renderScore();
     await new Promise(resolve => requestAnimationFrame(() => resolve()));
     await renderScore();
   } finally {
-    // Nykyinen GraphicSheet jää venytetyksi. Seuraava tavallinen nuotti- tai
-    // tietomuutos renderöidään taas normaalina, ellei komentoa paineta uudelleen.
-    stretchLastLineOnceRequested = false;
     stretchLastLineCommandRunning = false;
     syncStretchLastLineButton();
   }
@@ -3828,9 +3831,47 @@ function renderPitchNameOverlays() {
 let scoreRenderRequested = false;
 let scoreRenderLoopPromise = null;
 
+
+let stretchReapplyInProgress = false;
+let stretchReapplyNeeded = false;
+
+async function reapplyPersistentLastLineStretch() {
+  if (!stretchLastLinePersistent || stretchLastLineCommandRunning || stretchReapplyInProgress || !stretchReapplyNeeded) return;
+
+  stretchReapplyInProgress = true;
+  stretchReapplyNeeded = false;
+  try {
+    // Safari/iPad voi jättää uuden GraphicSheetin viimeisen järjestelmän
+    // normaalileveyteen joidenkin viimeistelytoimintojen jälkeen.
+    // Pakotetaan sama venytysasetus vielä kerran valmiin renderöinnin päälle.
+    const osmd = state.osmd;
+    if (!osmd) return;
+
+    osmd.setOptions({ stretchLastSystemLine: true });
+
+    if (osmd.EngravingRules) {
+      osmd.EngravingRules.StretchLastSystemLine = true;
+      osmd.EngravingRules.LastSystemMaxScalingFactor = 100;
+    }
+
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+
+    // Uusi normaali renderScore-kierros käyttää jo persistent=true,
+    // mutta toinen kierros varmistaa Safarin GraphicSheetin päivittymisen.
+    scoreRenderRequested = true;
+  } finally {
+    stretchReapplyInProgress = false;
+  }
+}
+
 function renderScore() {
   invalidateCachedPdf();
   scheduleProjectAutosave();
+
+  if (stretchLastLinePersistent && !stretchLastLineCommandRunning && !stretchReapplyInProgress) {
+    stretchReapplyNeeded = true;
+  }
+
   scoreRenderRequested = true;
   if (!scoreRenderLoopPromise) {
     scoreRenderLoopPromise = (async () => {
@@ -3838,8 +3879,17 @@ function renderScore() {
         scoreRenderRequested = false;
         await renderScoreNow();
       }
-    })().finally(() => {
+    })().finally(async () => {
       scoreRenderLoopPromise = null;
+
+      // 0.4.1.2:
+      // joidenkin viimeistelytoimintojen (esim. legatokaari/dynamiikka)
+      // jälkeen Safari voi palauttaa viimeisen järjestelmän normaalileveyteen.
+      // Jos pysyvä tasaus on päällä, pyydetään vielä yksi varmistava renderöinti.
+      if (stretchLastLinePersistent && !stretchLastLineCommandRunning && !stretchReapplyInProgress) {
+        await reapplyPersistentLastLineStretch();
+      }
+
       // Pyyntö voi syntyä aivan viimeisen kierroksen valmistuessa.
       if (scoreRenderRequested) renderScore();
     });
@@ -3851,7 +3901,7 @@ async function renderScoreNow() {
   try {
     statusText.textContent = 'Renderöidään…';
     const xml = buildMusicXml();
-    const stretchLastLine = stretchLastLineOnceRequested;
+    const stretchLastLine = stretchLastLinePersistent;
     if (!state.osmd) {
       state.osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer, {
         autoResize: true,
@@ -3997,7 +4047,7 @@ document.addEventListener('focusin', (ev) => {
 window.addEventListener('blur', clearKeyboardModifiers);
 
 systemBreakBtn.addEventListener('click', togglePendingSystemBreak);
-stretchLastLineBtn.addEventListener('click', stretchLastLineOnce);
+stretchLastLineBtn.addEventListener('click', toggleStretchLastLine);
 
 [titleInput, composerInput, tempoTextInput, bpmInput, beatsSelect, beatTypeSelect, keySelect, modeSelect].forEach(el => {
   el.addEventListener('input', renderScore);
