@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.2.0" />
+  <link rel="stylesheet" href="style.css?v=0.4.2.1" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -196,14 +196,16 @@
         </button>
       </div>
 
+      <div id="outputToolbar" class="output-toolbar" aria-hidden="true">
+        <button id="outputSaveProjectBtn" class="output-action-button" type="button">Tallenna projekti</button>
+        <button id="outputPrintBtn" class="output-action-button" type="button">Tulosta</button>
+        <button id="outputPdfBtn" class="output-action-button output-action-primary" type="button">PDF / Jaa</button>
+        <button id="outputXmlBtn" class="output-action-button" type="button">MusicXML</button>
+      </div>
+
       <section class="panel paper-panel">
         <span id="statusText" hidden>Valmis</span>
-        <label class="note-spacing-strip" aria-label="Nuottien välistys">
-          <span aria-hidden="true">↔</span>
-          <input id="noteSpacingSlider" type="range" min="50" max="150" step="5" value="100">
-          <output id="noteSpacingOut">100 %</output>
-        </label>
-        <div id="selectionToolbar" class="selection-toolbar" aria-hidden="true">
+<div id="selectionToolbar" class="selection-toolbar" aria-hidden="true">
           <span id="selectionCount" class="selection-count" aria-live="polite">Vedä nuottien yli</span>
           <button id="selectionSlurBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled>
             <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -251,14 +253,7 @@
           </button>
           <button id="selectionClearBtn" class="selection-clear-button" type="button" aria-label="Poista valinta">×</button>
         </div>
-
-        <div id="outputToolbar" class="output-toolbar" aria-hidden="true">
-          <button id="outputSaveProjectBtn" class="output-action-button" type="button">Tallenna projekti</button>
-          <button id="outputPrintBtn" class="output-action-button" type="button">Tulosta</button>
-          <button id="outputPdfBtn" class="output-action-button output-action-primary" type="button">PDF / Jaa</button>
-          <button id="outputXmlBtn" class="output-action-button" type="button">MusicXML</button>
-        </div>
-        <div id="osmdContainer"></div>
+<div id="osmdContainer"></div>
       </section>
 
       <div class="keyboard-toggle-strip">
@@ -507,6 +502,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.2.0.js"></script>
+  <script src="app-0.4.2.1.js"></script>
 </body>
 </html>

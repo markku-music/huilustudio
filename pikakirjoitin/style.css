@@ -2217,3 +2217,42 @@ input, select {
     flex: 1 1 42%;
   }
 }
+
+
+/* 0.4.2.1 · Tulosta & tallenna -työkalut paperin ulkopuolelle */
+
+.main-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.output-toolbar {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  align-self: center;
+  z-index: auto !important;
+  margin: 58px 0 10px;
+}
+
+.work-mode-output .output-toolbar {
+  display: flex;
+}
+
+.work-mode-write .output-toolbar,
+.work-mode-finish .output-toolbar {
+  display: none !important;
+}
+
+/* Nuottivälistyksen yläslideri poistettu käyttöliittymästä. */
+.note-spacing-strip {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .output-toolbar {
+    width: min(94%, 560px);
+    margin-top: 54px;
+  }
+}
