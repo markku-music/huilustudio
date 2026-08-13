@@ -648,7 +648,9 @@ function placeSystemBreakAfterMeasure(measureIndex) {
 function renderSystemBreakMarkers() {
   osmdContainer.querySelector('.system-break-markers')?.remove();
   osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
-  if (!state.osmd || (state.systemBreaks.size === 0 && !state.systemBreakModeActive)) return;
+  // 0.4.0.2: kaikki rivinvaihtoeditorin apumerkit näkyvät vain editoritilan aikana.
+  // Itse rivinvaihdot säilyvät state.systemBreaksissa myös tilan sulkemisen jälkeen.
+  if (!state.osmd || !state.systemBreakModeActive) return;
 
   const graphicSheet = state.osmd.GraphicSheet;
   const measureList = graphicSheet?.MeasureList;
