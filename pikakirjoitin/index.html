@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.2.3" />
+  <link rel="stylesheet" href="style.css?v=0.4.2.2" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -205,6 +205,12 @@
 
       <section class="panel paper-panel">
         <span id="statusText" hidden>Valmis</span>
+        <label class="note-spacing-strip note-spacing-strip-hidden" aria-hidden="true">
+          <span aria-hidden="true">↔</span>
+          <input id="noteSpacingSlider" type="range" min="50" max="150" step="5" value="100" tabindex="-1">
+          <output id="noteSpacingOut">100 %</output>
+        </label>
+
 <div id="selectionToolbar" class="selection-toolbar" aria-hidden="true">
           <span id="selectionCount" class="selection-count" aria-live="polite">Vedä nuottien yli</span>
           <button id="selectionSlurBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled>
@@ -502,6 +508,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.2.3.js"></script>
+  <script src="app-0.4.2.2.js"></script>
 </body>
 </html>
