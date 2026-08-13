@@ -1795,3 +1795,10 @@ input, select {
 .main-column.keyboard-collapsed .keyboard-toggle-strip {
   display: none !important;
 }
+
+
+/* 0.3.9.6 · Koskettimisto avataan ja suljetaan vain nuottikuvaa napauttamalla.
+   Erillinen Avaa/Sulje koskettimisto -rivi poistetaan kokonaan. */
+.keyboard-toggle-strip {
+  display: none !important;
+}

@@ -878,29 +878,30 @@ function initScoreTouchGestures() {
         clearScoreWithFeedback();
       } else if (scoreTouchGesture.maxCount === 2) {
         undoLastNoteWithFeedback();
-      } else if (
-        scoreTouchGesture.maxCount === 1 &&
-        mainColumn.classList.contains('keyboard-collapsed')
-      ) {
-        // 0.3.9.5 TESTI:
-        // Koskettimisto on jo valmiiksi renderöitynä mutta täysin läpinäkyvänä.
-        // Audio herätetään suoraan tämän tavallisen paperikosketuksen käyttäjäeleessä.
-        try {
-          ensureAudio();
-          const ctx = state.audioContext;
-          if (ctx && ctx.state === 'suspended') {
-            const resumePromise = ctx.resume();
-            if (resumePromise && typeof resumePromise.catch === 'function') {
-              resumePromise.catch(() => {});
-            }
-          }
-        } catch (error) {
-          console.warn('Paper tap audio wake failed', error);
-        }
+      } else if (scoreTouchGesture.maxCount === 1) {
+        const keyboardIsClosed = mainColumn.classList.contains('keyboard-collapsed');
 
-        // Ei setTimeoutia: paljastus tehdään samassa tapahtumaketjussa
-        // vasta audioherätyksen kutsumisen jälkeen.
-        setKeyboardOpen(true);
+        if (keyboardIsClosed) {
+          // 0.3.9.6:
+          // Pidä toimivaksi todettu iPad-audioherätys täsmälleen tässä avauspolussa.
+          try {
+            ensureAudio();
+            const ctx = state.audioContext;
+            if (ctx && ctx.state === 'suspended') {
+              const resumePromise = ctx.resume();
+              if (resumePromise && typeof resumePromise.catch === 'function') {
+                resumePromise.catch(() => {});
+              }
+            }
+          } catch (error) {
+            console.warn('Paper tap audio wake failed', error);
+          }
+
+          setKeyboardOpen(true);
+        } else {
+          // Sama yksi paperin napautus sulkee koskettimiston.
+          setKeyboardOpen(false);
+        }
       }
     }
     resetScoreTouchGesture();
@@ -2501,15 +2502,8 @@ function setKeyboardOpen(open, { focus = false } = {}) {
 }
 
 function bindKeyboardToggle() {
-  if (!keyboardToggleBtn) return;
-
-  // Kun koskettimisto on jo auki, nappi voi edelleen sulkea sen.
-  // Avaaminen tapahtuu 0.3.9.4-versiossa suoraan nuottikuvaa napauttamalla.
-  keyboardToggleBtn.addEventListener('click', () => {
-    const opening = mainColumn.classList.contains('keyboard-collapsed');
-    setKeyboardOpen(opening);
-  });
-
+  // 0.3.9.6: erillinen avaa/sulje-nappi poistetaan käytöstä.
+  // Koskettimisto avataan ja suljetaan nuottikuvaa napauttamalla.
   setKeyboardOpen(false);
 }
 
