@@ -1669,3 +1669,75 @@ input, select {
   .startup-name-row { flex-direction: column; }
   .startup-begin-btn { width: 100%; }
 }
+
+
+/* 0.3.9.3 · Nuottikuva etusijalla, koskettimisto avattavissa tarvittaessa */
+.keyboard-toggle-strip {
+  flex: 0 0 auto;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px 8px;
+}
+
+.keyboard-toggle-button {
+  min-height: 40px;
+  padding: 6px 16px;
+  border: 1px solid #b8cef8;
+  border-radius: 999px;
+  background: rgba(240, 246, 255, .96);
+  color: #2b5fb6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font: 800 14px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 2px 8px rgba(63, 92, 132, .10);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.keyboard-toggle-button svg {
+  width: 30px;
+  height: 18px;
+  fill: #fff;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.keyboard-toggle-button:active { transform: translateY(1px); }
+
+.main-column.keyboard-collapsed .paper-panel {
+  flex: 1 1 auto;
+}
+
+.main-column.keyboard-collapsed .score-keyboard-divider,
+.main-column.keyboard-collapsed .zone-panel {
+  display: none;
+}
+
+.main-column:not(.keyboard-collapsed) .keyboard-toggle-strip {
+  padding-bottom: 0;
+}
+
+.main-column:not(.keyboard-collapsed) .keyboard-toggle-button {
+  min-height: 34px;
+  padding: 4px 13px;
+  font-size: 12px;
+  opacity: .82;
+}
+
+.main-column:not(.keyboard-collapsed) .keyboard-toggle-button svg {
+  width: 25px;
+  height: 15px;
+}
+
+@media print {
+  .keyboard-toggle-strip { display: none !important; }
+}

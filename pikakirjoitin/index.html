@@ -169,7 +169,7 @@
       <button id="layoutToggle" class="panel layout-rail-button" type="button" aria-label="Avaa asettelu">⚙</button>
     </div>
 
-    <main class="main-column">
+    <main class="main-column keyboard-collapsed">
       <section class="panel paper-panel">
         <span id="statusText" hidden>Valmis</span>
         <label class="note-spacing-strip" aria-label="Nuottien välistys">
@@ -227,6 +227,16 @@
         </div>
         <div id="osmdContainer"></div>
       </section>
+
+      <div class="keyboard-toggle-strip">
+        <button id="keyboardToggleBtn" class="keyboard-toggle-button" type="button" aria-expanded="false" aria-controls="zoneKeyboard">
+          <svg viewBox="0 0 64 32" aria-hidden="true">
+            <rect x="3" y="4" width="58" height="24" rx="5"/>
+            <path d="M12 4v24M21 4v24M30 4v24M39 4v24M48 4v24M3 16h58"/>
+          </svg>
+          <span id="keyboardToggleLabel">Avaa koskettimisto</span>
+        </button>
+      </div>
 
       <div id="scoreKeyboardDivider" class="score-keyboard-divider" role="separator" aria-label="Muuta nuotti-ikkunan ja koskettimiston suhdetta" aria-orientation="horizontal" tabindex="0">
         <span class="divider-grip"></span>

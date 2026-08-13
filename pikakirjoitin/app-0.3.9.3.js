@@ -42,6 +42,8 @@ const songPanelDone = document.getElementById('songPanelDone');
 const songPanelBackdrop = document.getElementById('songPanelBackdrop');
 const mainColumn = document.querySelector('.main-column');
 const scoreKeyboardDivider = document.getElementById('scoreKeyboardDivider');
+const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
+const keyboardToggleLabel = document.getElementById('keyboardToggleLabel');
 const layoutJsonExport = document.getElementById('layoutJsonExport');
 const layoutJsonImport = document.getElementById('layoutJsonImport');
 const layoutJsonFile = document.getElementById('layoutJsonFile');
@@ -452,13 +454,6 @@ function initKeyboard() {
     keyboardSurface.appendChild(el);
   });
 
-  // iPad/Safari: audio yritetään herättää mahdollisimman aikaisin,
-  // jo touchstartin capture-vaiheessa ennen normaalia pointerdown-elelogiikkaa.
-  keyboardSurface.addEventListener('touchstart', primeKeyboardAudio, {
-    passive: true,
-    capture: true,
-  });
-
   keyboardSurface.addEventListener('pointerdown', startFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointermove', moveFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointerup', endFlickGesture, { passive: false });
@@ -466,44 +461,7 @@ function initKeyboard() {
   bindOctaveNavigator();
 }
 
-function primeKeyboardAudio() {
-  try {
-    ensureAudio();
-    const ctx = state.audioContext;
-    if (ctx && ctx.state === 'suspended') {
-      const promise = ctx.resume();
-      if (promise && typeof promise.catch === 'function') {
-        promise.catch(() => {});
-      }
-    }
-  } catch (error) {
-    console.warn('Keyboard audio prime failed', error);
-  }
-}
-
-function playKeyboardMidiWhenReady(midi, seconds = 0.24) {
-  ensureAudio();
-  const ctx = state.audioContext;
-  if (!ctx) return;
-
-  if (ctx.state === 'running') {
-    playMidi(midi, seconds);
-    return;
-  }
-
-  // Ensimmäisellä iPad-kosketuksella resume voi valmistua vasta hetkeä myöhemmin.
-  // Soitetaan sama ensimmäinen nuotti heti kun context todella muuttuu running-tilaan.
-  const resumePromise = ctx.resume();
-  if (resumePromise && typeof resumePromise.then === 'function') {
-    resumePromise
-      .then(() => playMidi(midi, seconds))
-      .catch(() => {});
-  }
-}
-
 function startFlickGesture(ev) {
-  // Tämä on tarkoituksella ensimmäinen asia handlerissa.
-  primeKeyboardAudio();
   ev.preventDefault();
 
   const target = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -553,9 +511,7 @@ function startFlickGesture(ev) {
 
   // Soittotuntuma tulee heti painalluksesta. Tavallinen nuotti kirjoitetaan
   // irrotettaessa, mutta kokonuotti heti pitkän painalluksen täyttyessä.
-  if (!isRestShiftActive()) {
-    playKeyboardMidiWhenReady(Number(keyEl.dataset.midi), 0.24);
-  }
+  if (!isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
 }
 
 function moveFlickGesture(ev) {
@@ -2487,6 +2443,51 @@ function setOsmdScoreLayoutRules(osmd) {
   rules.PageBottomMargin = layoutState.margins.bottom;
 }
 
+function primeAudioFromKeyboardToggle() {
+  try {
+    ensureAudio();
+    const ctx = state.audioContext;
+    if (ctx && ctx.state === 'suspended') {
+      const promise = ctx.resume();
+      if (promise && typeof promise.catch === 'function') promise.catch(() => {});
+    }
+  } catch (error) {
+    console.warn('Keyboard toggle audio prime failed', error);
+  }
+}
+
+function setKeyboardOpen(open, { focus = false } = {}) {
+  const isOpen = Boolean(open);
+  mainColumn.classList.toggle('keyboard-collapsed', !isOpen);
+  keyboardToggleBtn.setAttribute('aria-expanded', String(isOpen));
+  keyboardToggleLabel.textContent = isOpen ? 'Sulje koskettimisto' : 'Avaa koskettimisto';
+  zoneKeyboard.setAttribute('aria-hidden', String(!isOpen));
+
+  if (isOpen) {
+    requestAnimationFrame(() => {
+      updateKeyboardOctavePosition();
+      if (focus) keyboardSurface.focus?.({ preventScroll: true });
+    });
+  }
+
+  scheduleOsmdResizeRender();
+}
+
+function bindKeyboardToggle() {
+  if (!keyboardToggleBtn) return;
+
+  // Tämä painallus on tarkoituksella tavallinen, koskettimiston ulkopuolinen käyttäjäele.
+  // Samalla yritetään avata Web Audio ennen kuin käyttäjä koskee ensimmäiseen nuottikoskettimeen.
+  keyboardToggleBtn.addEventListener('pointerdown', primeAudioFromKeyboardToggle, { passive: true });
+  keyboardToggleBtn.addEventListener('touchstart', primeAudioFromKeyboardToggle, { passive: true });
+  keyboardToggleBtn.addEventListener('click', () => {
+    const opening = mainColumn.classList.contains('keyboard-collapsed');
+    setKeyboardOpen(opening);
+  });
+
+  setKeyboardOpen(false);
+}
+
 function bindScoreKeyboardDivider() {
   let activePointerId = null;
 
@@ -4073,6 +4074,7 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
 bindLayoutControls();
 bindScoreKeyboardDivider();
 initKeyboard();
+bindKeyboardToggle();
 initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });
