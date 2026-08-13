@@ -326,6 +326,7 @@ const state = {
   scoreEntryToFollowId: null,
   systemBreaks: new Set(),
   pendingSystemBreakIndex: null,
+  systemBreakModeActive: false,
 };
 
 const scoreTouchGesture = {
@@ -613,29 +614,18 @@ function getNextMeasureIndex() {
 }
 
 function togglePendingSystemBreak() {
-  if (state.pendingSystemBreakIndex !== null) {
-    state.systemBreaks.delete(state.pendingSystemBreakIndex);
-    state.pendingSystemBreakIndex = null;
-  } else {
-    const measureIndex = getNextMeasureIndex();
-    state.systemBreaks.add(measureIndex);
-    state.pendingSystemBreakIndex = measureIndex;
-  }
+  state.systemBreakModeActive = !state.systemBreakModeActive;
+  state.pendingSystemBreakIndex = null;
   syncSystemBreakButton();
   renderScore();
 }
 
 function settlePendingSystemBreak() {
-  if (state.pendingSystemBreakIndex === null) return;
-  const breakStartsAtUnits = state.pendingSystemBreakIndex * getMeasureUnits();
-  if (getWrittenUnits() > breakStartsAtUnits) {
-    state.pendingSystemBreakIndex = null;
-    syncSystemBreakButton();
-  }
+  // Rivinvaihtotyökalu pysyy päällä, kunnes käyttäjä painaa napin itse pois.
 }
 
 function syncSystemBreakButton() {
-  const active = state.pendingSystemBreakIndex !== null;
+  const active = Boolean(state.systemBreakModeActive);
   systemBreakBtn.classList.toggle('active', active);
   systemBreakBtn.setAttribute('aria-pressed', String(active));
 }
@@ -644,15 +634,12 @@ function removeSystemBreak(measureIndex) {
   state.systemBreaks.delete(measureIndex);
   if (state.pendingSystemBreakIndex === measureIndex) {
     state.pendingSystemBreakIndex = null;
-    syncSystemBreakButton();
   }
+  syncSystemBreakButton();
   renderScore();
 }
 
 function placeSystemBreakAfterMeasure(measureIndex) {
-  if (state.pendingSystemBreakIndex !== null) {
-    state.systemBreaks.delete(state.pendingSystemBreakIndex);
-  }
   state.systemBreaks.add(measureIndex);
   state.pendingSystemBreakIndex = null;
   syncSystemBreakButton();
@@ -662,7 +649,7 @@ function placeSystemBreakAfterMeasure(measureIndex) {
 function renderSystemBreakMarkers() {
   osmdContainer.querySelector('.system-break-markers')?.remove();
   osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
-  if (!state.osmd || (state.systemBreaks.size === 0 && state.pendingSystemBreakIndex === null)) return;
+  if (!state.osmd || (state.systemBreaks.size === 0 && !state.systemBreakModeActive)) return;
 
   const graphicSheet = state.osmd.GraphicSheet;
   const measureList = graphicSheet?.MeasureList;
@@ -793,7 +780,7 @@ function renderSystemBreakMarkers() {
     appendMarker(measureIndex, false);
   });
 
-  if (state.pendingSystemBreakIndex !== null) {
+  if (state.systemBreakModeActive) {
     measureList.forEach((_, measurePosition) => {
       const breakAfterMeasure = measurePosition + 1;
       if (!state.systemBreaks.has(breakAfterMeasure)) {
@@ -806,11 +793,7 @@ function renderSystemBreakMarkers() {
 }
 
 function restorePendingSystemBreakAfterUndo() {
-  const writtenUnits = getWrittenUnits();
-  const futureBreaks = [...state.systemBreaks]
-    .filter(index => writtenUnits <= index * getMeasureUnits())
-    .sort((a, b) => a - b);
-  state.pendingSystemBreakIndex = futureBreaks[0] ?? null;
+  state.pendingSystemBreakIndex = null;
   syncSystemBreakButton();
 }
 
