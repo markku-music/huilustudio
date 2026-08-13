@@ -326,7 +326,6 @@ const state = {
   scoreEntryToFollowId: null,
   systemBreaks: new Set(),
   pendingSystemBreakIndex: null,
-  systemBreakModeActive: false,
 };
 
 const scoreTouchGesture = {
@@ -614,18 +613,29 @@ function getNextMeasureIndex() {
 }
 
 function togglePendingSystemBreak() {
-  state.systemBreakModeActive = !state.systemBreakModeActive;
-  state.pendingSystemBreakIndex = null;
+  if (state.pendingSystemBreakIndex !== null) {
+    state.systemBreaks.delete(state.pendingSystemBreakIndex);
+    state.pendingSystemBreakIndex = null;
+  } else {
+    const measureIndex = getNextMeasureIndex();
+    state.systemBreaks.add(measureIndex);
+    state.pendingSystemBreakIndex = measureIndex;
+  }
   syncSystemBreakButton();
   renderScore();
 }
 
 function settlePendingSystemBreak() {
-  // Rivinvaihtotyökalu pysyy päällä, kunnes käyttäjä painaa napin itse pois.
+  if (state.pendingSystemBreakIndex === null) return;
+  const breakStartsAtUnits = state.pendingSystemBreakIndex * getMeasureUnits();
+  if (getWrittenUnits() > breakStartsAtUnits) {
+    state.pendingSystemBreakIndex = null;
+    syncSystemBreakButton();
+  }
 }
 
 function syncSystemBreakButton() {
-  const active = Boolean(state.systemBreakModeActive);
+  const active = state.pendingSystemBreakIndex !== null;
   systemBreakBtn.classList.toggle('active', active);
   systemBreakBtn.setAttribute('aria-pressed', String(active));
 }
@@ -634,12 +644,15 @@ function removeSystemBreak(measureIndex) {
   state.systemBreaks.delete(measureIndex);
   if (state.pendingSystemBreakIndex === measureIndex) {
     state.pendingSystemBreakIndex = null;
+    syncSystemBreakButton();
   }
-  syncSystemBreakButton();
   renderScore();
 }
 
 function placeSystemBreakAfterMeasure(measureIndex) {
+  if (state.pendingSystemBreakIndex !== null) {
+    state.systemBreaks.delete(state.pendingSystemBreakIndex);
+  }
   state.systemBreaks.add(measureIndex);
   state.pendingSystemBreakIndex = null;
   syncSystemBreakButton();
@@ -649,7 +662,7 @@ function placeSystemBreakAfterMeasure(measureIndex) {
 function renderSystemBreakMarkers() {
   osmdContainer.querySelector('.system-break-markers')?.remove();
   osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element => element.remove());
-  if (!state.osmd || (state.systemBreaks.size === 0 && !state.systemBreakModeActive)) return;
+  if (!state.osmd || (state.systemBreaks.size === 0 && state.pendingSystemBreakIndex === null)) return;
 
   const graphicSheet = state.osmd.GraphicSheet;
   const measureList = graphicSheet?.MeasureList;
@@ -780,7 +793,7 @@ function renderSystemBreakMarkers() {
     appendMarker(measureIndex, false);
   });
 
-  if (state.systemBreakModeActive) {
+  if (state.pendingSystemBreakIndex !== null) {
     measureList.forEach((_, measurePosition) => {
       const breakAfterMeasure = measurePosition + 1;
       if (!state.systemBreaks.has(breakAfterMeasure)) {
@@ -793,7 +806,11 @@ function renderSystemBreakMarkers() {
 }
 
 function restorePendingSystemBreakAfterUndo() {
-  state.pendingSystemBreakIndex = null;
+  const writtenUnits = getWrittenUnits();
+  const futureBreaks = [...state.systemBreaks]
+    .filter(index => writtenUnits <= index * getMeasureUnits())
+    .sort((a, b) => a - b);
+  state.pendingSystemBreakIndex = futureBreaks[0] ?? null;
   syncSystemBreakButton();
 }
 
@@ -857,35 +874,8 @@ function initScoreTouchGestures() {
     if (scoreTouchGesture.pointers.size > 0) return;
 
     if (!scoreTouchGesture.moved && !scoreTouchGesture.cancelled) {
-      if (scoreTouchGesture.maxCount >= 3) {
-        clearScoreWithFeedback();
-      } else if (scoreTouchGesture.maxCount === 2) {
-        undoLastNoteWithFeedback();
-      } else if (scoreTouchGesture.maxCount === 1) {
-        const keyboardIsClosed = mainColumn.classList.contains('keyboard-collapsed');
-
-        if (keyboardIsClosed) {
-          // 0.3.9.6:
-          // Pidä toimivaksi todettu iPad-audioherätys täsmälleen tässä avauspolussa.
-          try {
-            ensureAudio();
-            const ctx = state.audioContext;
-            if (ctx && ctx.state === 'suspended') {
-              const resumePromise = ctx.resume();
-              if (resumePromise && typeof resumePromise.catch === 'function') {
-                resumePromise.catch(() => {});
-              }
-            }
-          } catch (error) {
-            console.warn('Paper tap audio wake failed', error);
-          }
-
-          setKeyboardOpen(true);
-        } else {
-          // Sama yksi paperin napautus sulkee koskettimiston.
-          setKeyboardOpen(false);
-        }
-      }
+      if (scoreTouchGesture.maxCount >= 3) clearScoreWithFeedback();
+      else if (scoreTouchGesture.maxCount === 2) undoLastNoteWithFeedback();
     }
     resetScoreTouchGesture();
   };
@@ -2469,7 +2459,6 @@ function primeAudioFromKeyboardToggle() {
 function setKeyboardOpen(open, { focus = false } = {}) {
   const isOpen = Boolean(open);
   mainColumn.classList.toggle('keyboard-collapsed', !isOpen);
-  mainColumn.classList.toggle('keyboard-preloaded-hidden', !isOpen);
   keyboardToggleBtn.setAttribute('aria-expanded', String(isOpen));
   keyboardToggleLabel.textContent = isOpen ? 'Sulje koskettimisto' : 'Avaa koskettimisto';
   zoneKeyboard.setAttribute('aria-hidden', String(!isOpen));
@@ -2485,8 +2474,17 @@ function setKeyboardOpen(open, { focus = false } = {}) {
 }
 
 function bindKeyboardToggle() {
-  // 0.3.9.6: erillinen avaa/sulje-nappi poistetaan käytöstä.
-  // Koskettimisto avataan ja suljetaan nuottikuvaa napauttamalla.
+  if (!keyboardToggleBtn) return;
+
+  // Tämä painallus on tarkoituksella tavallinen, koskettimiston ulkopuolinen käyttäjäele.
+  // Samalla yritetään avata Web Audio ennen kuin käyttäjä koskee ensimmäiseen nuottikoskettimeen.
+  keyboardToggleBtn.addEventListener('pointerdown', primeAudioFromKeyboardToggle, { passive: true });
+  keyboardToggleBtn.addEventListener('touchstart', primeAudioFromKeyboardToggle, { passive: true });
+  keyboardToggleBtn.addEventListener('click', () => {
+    const opening = mainColumn.classList.contains('keyboard-collapsed');
+    setKeyboardOpen(opening);
+  });
+
   setKeyboardOpen(false);
 }
 
