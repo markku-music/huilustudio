@@ -1741,3 +1741,10 @@ input, select {
 @media print {
   .keyboard-toggle-strip { display: none !important; }
 }
+
+
+/* 0.3.9.4 · Nuottikuvan yksi tavallinen napautus avaa koskettimiston.
+   Ei avausohjetta eikä avausnappia piilotetussa tilassa. */
+.main-column.keyboard-collapsed .keyboard-toggle-strip {
+  display: none !important;
+}

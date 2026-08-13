@@ -874,8 +874,19 @@ function initScoreTouchGestures() {
     if (scoreTouchGesture.pointers.size > 0) return;
 
     if (!scoreTouchGesture.moved && !scoreTouchGesture.cancelled) {
-      if (scoreTouchGesture.maxCount >= 3) clearScoreWithFeedback();
-      else if (scoreTouchGesture.maxCount === 2) undoLastNoteWithFeedback();
+      if (scoreTouchGesture.maxCount >= 3) {
+        clearScoreWithFeedback();
+      } else if (scoreTouchGesture.maxCount === 2) {
+        undoLastNoteWithFeedback();
+      } else if (
+        scoreTouchGesture.maxCount === 1 &&
+        mainColumn.classList.contains('keyboard-collapsed')
+      ) {
+        // Tärkeä testi iPadille:
+        // tämä yksittäinen nuottikuvan kosketus saa loppua ensin täysin normaalisti.
+        // Koskettimisto avataan vasta seuraavassa event-loopin kierrossa.
+        setTimeout(() => setKeyboardOpen(true), 0);
+      }
     }
     resetScoreTouchGesture();
   };
@@ -2476,10 +2487,8 @@ function setKeyboardOpen(open, { focus = false } = {}) {
 function bindKeyboardToggle() {
   if (!keyboardToggleBtn) return;
 
-  // Tämä painallus on tarkoituksella tavallinen, koskettimiston ulkopuolinen käyttäjäele.
-  // Samalla yritetään avata Web Audio ennen kuin käyttäjä koskee ensimmäiseen nuottikoskettimeen.
-  keyboardToggleBtn.addEventListener('pointerdown', primeAudioFromKeyboardToggle, { passive: true });
-  keyboardToggleBtn.addEventListener('touchstart', primeAudioFromKeyboardToggle, { passive: true });
+  // Kun koskettimisto on jo auki, nappi voi edelleen sulkea sen.
+  // Avaaminen tapahtuu 0.3.9.4-versiossa suoraan nuottikuvaa napauttamalla.
   keyboardToggleBtn.addEventListener('click', () => {
     const opening = mainColumn.classList.contains('keyboard-collapsed');
     setKeyboardOpen(opening);
