@@ -882,10 +882,25 @@ function initScoreTouchGestures() {
         scoreTouchGesture.maxCount === 1 &&
         mainColumn.classList.contains('keyboard-collapsed')
       ) {
-        // Tärkeä testi iPadille:
-        // tämä yksittäinen nuottikuvan kosketus saa loppua ensin täysin normaalisti.
-        // Koskettimisto avataan vasta seuraavassa event-loopin kierrossa.
-        setTimeout(() => setKeyboardOpen(true), 0);
+        // 0.3.9.5 TESTI:
+        // Koskettimisto on jo valmiiksi renderöitynä mutta täysin läpinäkyvänä.
+        // Audio herätetään suoraan tämän tavallisen paperikosketuksen käyttäjäeleessä.
+        try {
+          ensureAudio();
+          const ctx = state.audioContext;
+          if (ctx && ctx.state === 'suspended') {
+            const resumePromise = ctx.resume();
+            if (resumePromise && typeof resumePromise.catch === 'function') {
+              resumePromise.catch(() => {});
+            }
+          }
+        } catch (error) {
+          console.warn('Paper tap audio wake failed', error);
+        }
+
+        // Ei setTimeoutia: paljastus tehdään samassa tapahtumaketjussa
+        // vasta audioherätyksen kutsumisen jälkeen.
+        setKeyboardOpen(true);
       }
     }
     resetScoreTouchGesture();
@@ -2470,6 +2485,7 @@ function primeAudioFromKeyboardToggle() {
 function setKeyboardOpen(open, { focus = false } = {}) {
   const isOpen = Boolean(open);
   mainColumn.classList.toggle('keyboard-collapsed', !isOpen);
+  mainColumn.classList.toggle('keyboard-preloaded-hidden', !isOpen);
   keyboardToggleBtn.setAttribute('aria-expanded', String(isOpen));
   keyboardToggleLabel.textContent = isOpen ? 'Sulje koskettimisto' : 'Avaa koskettimisto';
   zoneKeyboard.setAttribute('aria-hidden', String(!isOpen));
