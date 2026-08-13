@@ -2027,3 +2027,98 @@ input, select {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+
+/* 0.4.1.0 · Kaksitilainen käyttöliittymä: KIRJOITA / VIIMEISTELE */
+
+.main-column {
+  position: relative;
+}
+
+.mode-switch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 1450;
+  transform: translateX(-50%);
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  min-width: 260px;
+  padding: 3px;
+  border: 1px solid #cfd9e7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 14px rgba(26, 46, 88, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.mode-switch-button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #63728a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  cursor: pointer;
+}
+
+.mode-switch-button.active {
+  background: #e8f0ff;
+  color: #285eb6;
+}
+
+/* Selection-toolbar siirtyy hieman alemmas, jotta tilavalitsin ei peitä sitä. */
+.app-shell.work-mode-finish .selection-toolbar {
+  top: 62px;
+}
+
+/* KIRJOITA:
+   rytmi-/syöttötyökalut näkyvät, viimeistelytyökalut sivupalkista piiloon. */
+.app-shell.work-mode-write #systemBreakBtn,
+.app-shell.work-mode-write #stretchLastLineBtn,
+.app-shell.work-mode-write #selectNotesBtn {
+  display: none !important;
+}
+
+/* VIIMEISTELE:
+   koskettimella kirjoittamiseen kuuluvat modifierit pois.
+   Rivinvaihto + rivin venytys jäävät näkyviin. */
+.app-shell.work-mode-finish #dotShiftBtn,
+.app-shell.work-mode-finish #sixteenthShiftBtn,
+.app-shell.work-mode-finish #restShiftBtn,
+.app-shell.work-mode-finish #selectNotesBtn {
+  display: none !important;
+}
+
+/* Viimeistelyssä koskettimisto ei saa avautua näkyviin. */
+.app-shell.work-mode-finish .main-column .zone-panel,
+.app-shell.work-mode-finish .main-column .score-keyboard-divider,
+.app-shell.work-mode-finish .main-column .keyboard-toggle-strip {
+  pointer-events: none;
+}
+
+/* Tilavalitsin ei saa viedä nuottipaperilta pysyvää korkeutta. */
+.paper-panel {
+  position: relative;
+}
+
+@media (max-width: 700px) {
+  .mode-switch {
+    min-width: 220px;
+    top: 8px;
+  }
+
+  .mode-switch-button {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .app-shell.work-mode-finish .selection-toolbar {
+    top: 56px;
+  }
+}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0.2" />
+  <link rel="stylesheet" href="style.css?v=0.4.1.0" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -183,6 +183,16 @@
     </div>
 
     <main class="main-column keyboard-collapsed">
+
+      <div class="mode-switch" role="group" aria-label="Työskentelytila">
+        <button id="writeModeBtn" class="mode-switch-button active" type="button" aria-pressed="true">
+          KIRJOITA
+        </button>
+        <button id="finishModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
+          VIIMEISTELE
+        </button>
+      </div>
+
       <section class="panel paper-panel">
         <span id="statusText" hidden>Valmis</span>
         <label class="note-spacing-strip" aria-label="Nuottien välistys">
@@ -487,6 +497,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.0.2.js"></script>
+  <script src="app-0.4.1.0.js"></script>
 </body>
 </html>

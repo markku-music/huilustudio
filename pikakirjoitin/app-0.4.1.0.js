@@ -26,6 +26,8 @@ const systemBreakBtn = document.getElementById('systemBreakBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
 const selectNotesBtn = document.getElementById('selectNotesBtn');
 const selectionToolbar = document.getElementById('selectionToolbar');
+const writeModeBtn = document.getElementById('writeModeBtn');
+const finishModeBtn = document.getElementById('finishModeBtn');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
@@ -300,6 +302,7 @@ const state = {
   nextHairpinId: 1,
   slurs: [],
   hairpins: [],
+  workMode: 'write',
   selectionMode: false,
   selectedNoteIndices: new Set(),
   noteSelectionHitboxes: [],
@@ -1351,6 +1354,59 @@ function clearNoteSelection() {
   renderNoteSelectionOverlay();
 }
 
+
+function syncWorkModeUI() {
+  const finishing = state.workMode === 'finish';
+
+  appShell.classList.toggle('work-mode-write', !finishing);
+  appShell.classList.toggle('work-mode-finish', finishing);
+
+  writeModeBtn?.classList.toggle('active', !finishing);
+  finishModeBtn?.classList.toggle('active', finishing);
+  writeModeBtn?.setAttribute('aria-pressed', String(!finishing));
+  finishModeBtn?.setAttribute('aria-pressed', String(finishing));
+}
+
+function setWorkMode(mode) {
+  const nextMode = mode === 'finish' ? 'finish' : 'write';
+  if (state.workMode === nextMode) {
+    syncWorkModeUI();
+    return;
+  }
+
+  state.workMode = nextMode;
+
+  if (nextMode === 'finish') {
+    // Viimeistelyssä nuottikuva saa etusijan.
+    // Sulkeminen EI muuta toimivaksi todettua audioherätyspolkua.
+    setKeyboardOpen(false);
+    setNoteSelectionMode(true);
+  } else {
+    // Kirjoitustila palauttaa normaalin nuotinkirjoituksen.
+    // Koskettimisto jää tarkoituksella piiloon, kunnes paperia napautetaan,
+    // jotta iPadin toimivaksi todettu audioherätys säilyy ennallaan.
+    setNoteSelectionMode(false);
+
+    // Sammuta viimeistelyyn kuuluvat editoritilat, mutta älä poista
+    // jo tehtyjä rivinvaihtoja tai muita nuottimerkintöjä.
+    if (state.systemBreakModeActive) {
+      state.systemBreakModeActive = false;
+      state.pendingSystemBreakIndex = null;
+      syncSystemBreakButton();
+      renderScore();
+    }
+  }
+
+  syncWorkModeUI();
+  scheduleOsmdResizeRender();
+}
+
+function bindWorkModeSwitch() {
+  writeModeBtn?.addEventListener('click', () => setWorkMode('write'));
+  finishModeBtn?.addEventListener('click', () => setWorkMode('finish'));
+  syncWorkModeUI();
+}
+
 function setNoteSelectionMode(enabled) {
   state.selectionMode = Boolean(enabled);
   resetScoreTouchGesture();
@@ -1473,7 +1529,7 @@ function toggleHairpinForSelection(type) {
 
 function initNoteSelection() {
   selectNotesBtn.addEventListener('click', () => {
-    setNoteSelectionMode(!state.selectionMode);
+    setWorkMode(state.workMode === 'finish' ? 'write' : 'finish');
   });
   selectionClearBtn.addEventListener('click', clearNoteSelection);
   selectionStaccatoBtn.addEventListener('click', toggleStaccatoForSelection);
@@ -4055,6 +4111,7 @@ bindLayoutControls();
 bindScoreKeyboardDivider();
 initKeyboard();
 bindKeyboardToggle();
+bindWorkModeSwitch();
 initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });
