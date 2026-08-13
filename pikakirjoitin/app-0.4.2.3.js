@@ -56,8 +56,6 @@ const layoutJsonExport = document.getElementById('layoutJsonExport');
 const layoutJsonImport = document.getElementById('layoutJsonImport');
 const layoutJsonFile = document.getElementById('layoutJsonFile');
 const scoreShareOut = document.getElementById('scoreShareOut');
-const noteSpacingSlider = document.getElementById('noteSpacingSlider');
-const noteSpacingOut = document.getElementById('noteSpacingOut');
 const printScoreBtn = document.getElementById('printScoreBtn');
 const pdfShareBtn = document.getElementById('pdfShareBtn');
 const pdfShareBtnLabel = document.getElementById('pdfShareBtnLabel');
@@ -1912,8 +1910,6 @@ function syncLayoutControls() {
   layoutOutputs.flickHalf.textContent = `${layoutState.flick.half} px`;
   layoutOutputs.longPress.textContent = `${layoutState.flick.longPressMs} ms`;
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
-  noteSpacingSlider.value = String(layoutState.noteSpacing);
-  noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
   printWatermarkToggle.classList.toggle('active', layoutState.printWatermark);
   printWatermarkToggle.setAttribute('aria-pressed', String(layoutState.printWatermark));
   printWatermarkState.textContent = layoutState.printWatermark ? 'Päällä' : 'Pois';
@@ -2484,8 +2480,6 @@ function setScoreShare(value, { save = false } = {}) {
 
 function applyNoteSpacing({ save = false } = {}) {
   layoutState.noteSpacing = normalizeNoteSpacing(layoutState.noteSpacing);
-  noteSpacingSlider.value = String(layoutState.noteSpacing);
-  noteSpacingOut.textContent = `${layoutState.noteSpacing} %`;
 
   if (state.osmd && state.appliedNoteSpacing !== layoutState.noteSpacing) {
     invalidateCachedPdf();
@@ -4158,10 +4152,6 @@ layoutJsonImport.addEventListener('click', () => layoutJsonFile.click());
 layoutJsonFile.addEventListener('change', () => {
   const [file] = layoutJsonFile.files || [];
   if (file) importLayoutJson(file);
-});
-noteSpacingSlider.addEventListener('input', (ev) => {
-  layoutState.noteSpacing = Number(ev.target.value);
-  applyNoteSpacing({ save: true });
 });
 
 window.addEventListener('keydown', (ev) => {
