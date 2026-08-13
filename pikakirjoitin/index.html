@@ -4,12 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.3.9.1" />
+  <link rel="stylesheet" href="style.css?v=0.3.9.2" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
 </head>
 <body>
+  <div id="startupGate" class="startup-gate" role="dialog" aria-modal="true" aria-labelledby="startupGateTitle">
+    <div class="startup-card">
+      <div class="startup-badge">🎼 Pikakirjoitin</div>
+      <h1 id="startupGateTitle">Uusi kappale</h1>
+      <label class="startup-label" for="startupTitleInput">Kappaleen nimi</label>
+      <input id="startupTitleInput" class="startup-title-input" type="text" value="Uusi kappale" autocomplete="off" enterkeyhint="done" />
+      <button id="startupBeginBtn" class="startup-begin-button" type="button">Aloita</button>
+    </div>
+  </div>
+
   <div id="appShell" class="app-shell">
     <div class="side-column">
       <button id="songPanelToggle" class="panel song-panel-toggle" type="button" aria-expanded="false">
@@ -447,6 +457,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.3.9.1.js"></script>
+  <script src="app-0.3.9.2.js"></script>
 </body>
 </html>

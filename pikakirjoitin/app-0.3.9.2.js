@@ -188,6 +188,9 @@ let recentProjectsDbPromise = null;
 let recentProjectsWriteQueue = Promise.resolve();
 
 const titleInput = document.getElementById('titleInput');
+const startupGate = document.getElementById('startupGate');
+const startupTitleInput = document.getElementById('startupTitleInput');
+const startupBeginBtn = document.getElementById('startupBeginBtn');
 const composerInput = document.getElementById('composerInput');
 const tempoTextInput = document.getElementById('tempoTextInput');
 const bpmInput = document.getElementById('bpmInput');
@@ -3153,9 +3156,57 @@ function flashKey(keyEl) {
 
 function ensureAudio() {
   if (!state.audioContext) {
-    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    try {
+      state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+    } catch {
+      state.audioContext = new AudioContextClass();
+    }
   }
-  if (state.audioContext.state === 'suspended') state.audioContext.resume();
+  if (state.audioContext.state === 'suspended') state.audioContext.resume().catch(() => {});
+  return state.audioContext;
+}
+
+function unlockAudioFromStartupGesture() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  // iPad/WebKit: käynnistetään käyttäjäeleen sisällä myös äänetön lähde.
+  // Varsinaista ääntä ei kuulu, mutta audiosessio avautuu ennen koskettimiston käyttöä.
+  try {
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    const silentGain = ctx.createGain();
+    silentGain.gain.value = 0.000001;
+    source.buffer = buffer;
+    source.connect(silentGain).connect(ctx.destination);
+    source.start(0);
+  } catch {}
+
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+}
+
+function finishStartupGate() {
+  unlockAudioFromStartupGesture();
+  const nextTitle = String(startupTitleInput.value || '').trim() || 'Uusi kappale';
+  titleInput.value = nextTitle;
+  startupGate.classList.add('hidden');
+  startupGate.setAttribute('aria-hidden', 'true');
+  renderScore();
+  scheduleProjectAutosave();
+}
+
+function initStartupGate() {
+  startupTitleInput.value = titleInput.value || 'Uusi kappale';
+
+  // Pointerdown on tärkein iPadissa: audioherätys tapahtuu suoraan kosketuseleessä.
+  startupBeginBtn.addEventListener('pointerdown', unlockAudioFromStartupGesture, { passive: true });
+  startupBeginBtn.addEventListener('click', finishStartupGate);
+  startupTitleInput.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    finishStartupGate();
+  });
 }
 
 function playMidi(midi, seconds = 0.45) {
@@ -3947,6 +3998,7 @@ applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
 syncPdfActionButton();
 restoreAutosavedProjectOnStartup();
+initStartupGate();
 projectAutosaveEnabled = true;
 renderRecentProjects();
 renderScore();
