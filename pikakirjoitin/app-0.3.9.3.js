@@ -192,7 +192,6 @@ const startupOverlay = document.getElementById('startupOverlay');
 const startupTitleInput = document.getElementById('startupTitleInput');
 const startupBeginBtn = document.getElementById('startupBeginBtn');
 const startupHint = document.getElementById('startupHint');
-const startupAudio = document.getElementById('startupAudio');
 const composerInput = document.getElementById('composerInput');
 const tempoTextInput = document.getElementById('tempoTextInput');
 const bpmInput = document.getElementById('bpmInput');
@@ -453,6 +452,13 @@ function initKeyboard() {
     keyboardSurface.appendChild(el);
   });
 
+  // iPad/Safari: audio yritetään herättää mahdollisimman aikaisin,
+  // jo touchstartin capture-vaiheessa ennen normaalia pointerdown-elelogiikkaa.
+  keyboardSurface.addEventListener('touchstart', primeKeyboardAudio, {
+    passive: true,
+    capture: true,
+  });
+
   keyboardSurface.addEventListener('pointerdown', startFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointermove', moveFlickGesture, { passive: false });
   keyboardSurface.addEventListener('pointerup', endFlickGesture, { passive: false });
@@ -460,7 +466,44 @@ function initKeyboard() {
   bindOctaveNavigator();
 }
 
+function primeKeyboardAudio() {
+  try {
+    ensureAudio();
+    const ctx = state.audioContext;
+    if (ctx && ctx.state === 'suspended') {
+      const promise = ctx.resume();
+      if (promise && typeof promise.catch === 'function') {
+        promise.catch(() => {});
+      }
+    }
+  } catch (error) {
+    console.warn('Keyboard audio prime failed', error);
+  }
+}
+
+function playKeyboardMidiWhenReady(midi, seconds = 0.24) {
+  ensureAudio();
+  const ctx = state.audioContext;
+  if (!ctx) return;
+
+  if (ctx.state === 'running') {
+    playMidi(midi, seconds);
+    return;
+  }
+
+  // Ensimmäisellä iPad-kosketuksella resume voi valmistua vasta hetkeä myöhemmin.
+  // Soitetaan sama ensimmäinen nuotti heti kun context todella muuttuu running-tilaan.
+  const resumePromise = ctx.resume();
+  if (resumePromise && typeof resumePromise.then === 'function') {
+    resumePromise
+      .then(() => playMidi(midi, seconds))
+      .catch(() => {});
+  }
+}
+
 function startFlickGesture(ev) {
+  // Tämä on tarkoituksella ensimmäinen asia handlerissa.
+  primeKeyboardAudio();
   ev.preventDefault();
 
   const target = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -510,7 +553,9 @@ function startFlickGesture(ev) {
 
   // Soittotuntuma tulee heti painalluksesta. Tavallinen nuotti kirjoitetaan
   // irrotettaessa, mutta kokonuotti heti pitkän painalluksen täyttyessä.
-  if (!isRestShiftActive()) playMidi(Number(keyEl.dataset.midi), 0.24);
+  if (!isRestShiftActive()) {
+    playKeyboardMidiWhenReady(Number(keyEl.dataset.midi), 0.24);
+  }
 }
 
 function moveFlickGesture(ev) {
@@ -3170,24 +3215,25 @@ function ensureAudio() {
 
 function unlockAudioFromStartupGesture() {
   try {
-    // Herätä Pikakirjoittimen Web Audio.
     ensureAudio();
+    const ctx = state.audioContext;
+    if (!ctx) return;
 
-    if (state.audioContext && state.audioContext.state === 'suspended') {
-      const resumePromise = state.audioContext.resume();
+    // Äänetön yhden näytteen lähde käynnistetään samassa käyttäjäeleessä.
+    // Tämä ei kuulu käyttäjälle, mutta auttaa iPad/Safaria avaamaan Web Audion.
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    const silentGain = ctx.createGain();
+    silentGain.gain.value = 0.000001;
+    source.buffer = buffer;
+    source.connect(silentGain);
+    silentGain.connect(ctx.destination);
+    source.start(0);
+
+    if (ctx.state === 'suspended') {
+      const resumePromise = ctx.resume();
       if (resumePromise && typeof resumePromise.catch === 'function') {
         resumePromise.catch(() => {});
-      }
-    }
-
-    // Soita oikea MP3 suoraan käyttäjän Aloita-eleestä.
-    if (startupAudio) {
-      try { startupAudio.currentTime = 0; } catch {}
-      const playPromise = startupAudio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch((error) => {
-          console.warn('Startup MP3 play failed', error);
-        });
       }
     }
   } catch (error) {
@@ -3222,7 +3268,7 @@ function initStartupGate() {
   const restoredTitle = String(titleInput.value || '').trim();
   startupTitleInput.value = restoredTitle && restoredTitle !== 'Uusi kappale' ? restoredTitle : '';
 
-  // MP3 + Web Audio käynnistyvät suoraan käyttäjän Aloita-eleestä.
+  // Pointerdown on varsinainen iPadin käyttäjäele, jolla Web Audio herätetään.
   startupBeginBtn.addEventListener('pointerdown', unlockAudioFromStartupGesture, { passive: true });
   startupBeginBtn.addEventListener('click', finishStartupGate);
 
