@@ -192,6 +192,7 @@ const startupOverlay = document.getElementById('startupOverlay');
 const startupTitleInput = document.getElementById('startupTitleInput');
 const startupBeginBtn = document.getElementById('startupBeginBtn');
 const startupHint = document.getElementById('startupHint');
+const startupAudio = document.getElementById('startupAudio');
 const composerInput = document.getElementById('composerInput');
 const tempoTextInput = document.getElementById('tempoTextInput');
 const bpmInput = document.getElementById('bpmInput');
@@ -3169,25 +3170,24 @@ function ensureAudio() {
 
 function unlockAudioFromStartupGesture() {
   try {
+    // Herätä Pikakirjoittimen Web Audio.
     ensureAudio();
-    const ctx = state.audioContext;
-    if (!ctx) return;
 
-    // Äänetön yhden näytteen lähde käynnistetään samassa käyttäjäeleessä.
-    // Tämä ei kuulu käyttäjälle, mutta auttaa iPad/Safaria avaamaan Web Audion.
-    const buffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    const silentGain = ctx.createGain();
-    silentGain.gain.value = 0.000001;
-    source.buffer = buffer;
-    source.connect(silentGain);
-    silentGain.connect(ctx.destination);
-    source.start(0);
-
-    if (ctx.state === 'suspended') {
-      const resumePromise = ctx.resume();
+    if (state.audioContext && state.audioContext.state === 'suspended') {
+      const resumePromise = state.audioContext.resume();
       if (resumePromise && typeof resumePromise.catch === 'function') {
         resumePromise.catch(() => {});
+      }
+    }
+
+    // Soita oikea MP3 suoraan käyttäjän Aloita-eleestä.
+    if (startupAudio) {
+      try { startupAudio.currentTime = 0; } catch {}
+      const playPromise = startupAudio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((error) => {
+          console.warn('Startup MP3 play failed', error);
+        });
       }
     }
   } catch (error) {
@@ -3222,7 +3222,7 @@ function initStartupGate() {
   const restoredTitle = String(titleInput.value || '').trim();
   startupTitleInput.value = restoredTitle && restoredTitle !== 'Uusi kappale' ? restoredTitle : '';
 
-  // Pointerdown on varsinainen iPadin käyttäjäele, jolla Web Audio herätetään.
+  // MP3 + Web Audio käynnistyvät suoraan käyttäjän Aloita-eleestä.
   startupBeginBtn.addEventListener('pointerdown', unlockAudioFromStartupGesture, { passive: true });
   startupBeginBtn.addEventListener('click', finishStartupGate);
 
