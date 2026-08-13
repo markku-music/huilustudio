@@ -28,6 +28,12 @@ const selectNotesBtn = document.getElementById('selectNotesBtn');
 const selectionToolbar = document.getElementById('selectionToolbar');
 const writeModeBtn = document.getElementById('writeModeBtn');
 const finishModeBtn = document.getElementById('finishModeBtn');
+const outputModeBtn = document.getElementById('outputModeBtn');
+const outputToolbar = document.getElementById('outputToolbar');
+const outputSaveProjectBtn = document.getElementById('outputSaveProjectBtn');
+const outputPrintBtn = document.getElementById('outputPrintBtn');
+const outputPdfBtn = document.getElementById('outputPdfBtn');
+const outputXmlBtn = document.getElementById('outputXmlBtn');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
@@ -1356,19 +1362,29 @@ function clearNoteSelection() {
 
 
 function syncWorkModeUI() {
+  const writing = state.workMode === 'write';
   const finishing = state.workMode === 'finish';
+  const outputting = state.workMode === 'output';
 
-  appShell.classList.toggle('work-mode-write', !finishing);
+  appShell.classList.toggle('work-mode-write', writing);
   appShell.classList.toggle('work-mode-finish', finishing);
+  appShell.classList.toggle('work-mode-output', outputting);
 
-  writeModeBtn?.classList.toggle('active', !finishing);
+  writeModeBtn?.classList.toggle('active', writing);
   finishModeBtn?.classList.toggle('active', finishing);
-  writeModeBtn?.setAttribute('aria-pressed', String(!finishing));
+  outputModeBtn?.classList.toggle('active', outputting);
+
+  writeModeBtn?.setAttribute('aria-pressed', String(writing));
   finishModeBtn?.setAttribute('aria-pressed', String(finishing));
+  outputModeBtn?.setAttribute('aria-pressed', String(outputting));
+
+  if (outputToolbar) {
+    outputToolbar.setAttribute('aria-hidden', String(!outputting));
+  }
 }
 
 function setWorkMode(mode) {
-  const nextMode = mode === 'finish' ? 'finish' : 'write';
+  const nextMode = mode === 'finish' ? 'finish' : mode === 'output' ? 'output' : 'write';
   if (state.workMode === nextMode) {
     syncWorkModeUI();
     return;
@@ -1377,18 +1393,22 @@ function setWorkMode(mode) {
   state.workMode = nextMode;
 
   if (nextMode === 'finish') {
-    // Viimeistelyssä nuottikuva saa etusijan.
-    // Sulkeminen EI muuta toimivaksi todettua audioherätyspolkua.
     setKeyboardOpen(false);
     setNoteSelectionMode(true);
-  } else {
-    // Kirjoitustila palauttaa normaalin nuotinkirjoituksen.
-    // Koskettimisto jää tarkoituksella piiloon, kunnes paperia napautetaan,
-    // jotta iPadin toimivaksi todettu audioherätys säilyy ennallaan.
+  } else if (nextMode === 'output') {
+    // Valmis nuotti etusijalle: ei koskettimistoa eikä valintatyökaluja.
+    setKeyboardOpen(false);
     setNoteSelectionMode(false);
 
-    // Sammuta viimeistelyyn kuuluvat editoritilat, mutta älä poista
-    // jo tehtyjä rivinvaihtoja tai muita nuottimerkintöjä.
+    if (state.systemBreakModeActive) {
+      state.systemBreakModeActive = false;
+      state.pendingSystemBreakIndex = null;
+      syncSystemBreakButton();
+      renderScore();
+    }
+  } else {
+    setNoteSelectionMode(false);
+
     if (state.systemBreakModeActive) {
       state.systemBreakModeActive = false;
       state.pendingSystemBreakIndex = null;
@@ -1401,9 +1421,37 @@ function setWorkMode(mode) {
   scheduleOsmdResizeRender();
 }
 
+function downloadMusicXmlFile() {
+  const xml = buildMusicXml();
+  const safeTitle = String(titleInput.value || 'Pikakirjoitin')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .slice(0, 80) || 'Pikakirjoitin';
+
+  const blob = new Blob([xml], { type: 'application/vnd.recordare.musicxml+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${safeTitle}.musicxml`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 function bindWorkModeSwitch() {
   writeModeBtn?.addEventListener('click', () => setWorkMode('write'));
   finishModeBtn?.addEventListener('click', () => setWorkMode('finish'));
+  outputModeBtn?.addEventListener('click', () => setWorkMode('output'));
+
+  // Kolmannen tilan painikkeet käyttävät samoja jo toimiviksi todettuja
+  // tallennus-, tulostus- ja PDF-polkuja kuin Kappale-paneelin painikkeet.
+  outputSaveProjectBtn?.addEventListener('click', () => projectSaveBtn?.click());
+  outputPrintBtn?.addEventListener('click', () => printScoreBtn?.click());
+  outputPdfBtn?.addEventListener('click', () => pdfShareBtn?.click());
+  outputXmlBtn?.addEventListener('click', downloadMusicXmlFile);
+
   syncWorkModeUI();
 }
 

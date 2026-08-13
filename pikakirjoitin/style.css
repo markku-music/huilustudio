@@ -2122,3 +2122,98 @@ input, select {
     top: 56px;
   }
 }
+
+
+/* 0.4.2.0 · Kolmivaiheinen työnkulku */
+
+.mode-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  min-width: 520px !important;
+}
+
+.mode-switch-button {
+  white-space: nowrap;
+}
+
+.output-toolbar {
+  display: none;
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  z-index: 1400;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid #cfd9e7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 3px 14px rgba(26, 46, 88, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.work-mode-output .output-toolbar {
+  display: flex;
+}
+
+.output-action-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #c7d2df;
+  border-radius: 8px;
+  background: #fff;
+  color: #33465b;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.output-action-primary {
+  border-color: #416d9b;
+  background: #416d9b;
+  color: #fff;
+}
+
+/* Tulosta & tallenna: paperi on pääasia. */
+.work-mode-output .selection-toolbar,
+.work-mode-output .keyboard-toggle-strip,
+.work-mode-output .score-keyboard-divider,
+.work-mode-output .zone-panel {
+  display: none !important;
+}
+
+/* Sivun muunnin- ja asettelutyökalut pois valmiin nuotin näkymästä. */
+.work-mode-output .modifier-panel,
+.work-mode-output .layout-rail-button {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Paperin välistysslideri kuuluu kirjoitus/viimeistelyvaiheeseen, ei vientiin. */
+.work-mode-output .note-spacing-strip {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .mode-switch {
+    min-width: min(94vw, 520px) !important;
+  }
+
+  .mode-switch-button {
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.025em !important;
+  }
+
+  .output-toolbar {
+    top: 58px;
+    width: min(94%, 560px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .output-action-button {
+    flex: 1 1 42%;
+  }
+}

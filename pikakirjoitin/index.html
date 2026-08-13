@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.1.2" />
+  <link rel="stylesheet" href="style.css?v=0.4.2.0" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -191,6 +191,9 @@
         <button id="finishModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
           VIIMEISTELE
         </button>
+        <button id="outputModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
+          TULOSTA &amp; TALLENNA
+        </button>
       </div>
 
       <section class="panel paper-panel">
@@ -247,6 +250,13 @@
             </svg>
           </button>
           <button id="selectionClearBtn" class="selection-clear-button" type="button" aria-label="Poista valinta">×</button>
+        </div>
+
+        <div id="outputToolbar" class="output-toolbar" aria-hidden="true">
+          <button id="outputSaveProjectBtn" class="output-action-button" type="button">Tallenna projekti</button>
+          <button id="outputPrintBtn" class="output-action-button" type="button">Tulosta</button>
+          <button id="outputPdfBtn" class="output-action-button output-action-primary" type="button">PDF / Jaa</button>
+          <button id="outputXmlBtn" class="output-action-button" type="button">MusicXML</button>
         </div>
         <div id="osmdContainer"></div>
       </section>
@@ -497,6 +507,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.1.2.js"></script>
+  <script src="app-0.4.2.0.js"></script>
 </body>
 </html>
