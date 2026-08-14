@@ -2928,3 +2928,51 @@ input, select {
     max-height: 190px !important;
   }
 }
+
+
+/* 0.4.4.1 · Piilota scrollbarit, säilytä tarvittaessa kosketusvieritys */
+@media screen {
+  html,
+  body,
+  .app-shell,
+  .side-column,
+  .main-column,
+  .paper-panel,
+  .zone-panel,
+  #osmdContainer {
+    scrollbar-width: none !important;       /* Firefox */
+    -ms-overflow-style: none !important;    /* vanha Edge */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .app-shell::-webkit-scrollbar,
+  .side-column::-webkit-scrollbar,
+  .main-column::-webkit-scrollbar,
+  .paper-panel::-webkit-scrollbar,
+  .zone-panel::-webkit-scrollbar,
+  #osmdContainer::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  /* Ulompi käyttöliittymä ei saa scrollata lainkaan. */
+  html,
+  body,
+  .app-shell,
+  .side-column,
+  .main-column,
+  .paper-panel,
+  .zone-panel {
+    overflow: hidden !important;
+  }
+
+  /* Nuottialue saa edelleen tarvittaessa vierittyä sormella,
+     mutta ilman näkyviä scrollbar-kiskoja. */
+  #osmdContainer {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain !important;
+  }
+}
