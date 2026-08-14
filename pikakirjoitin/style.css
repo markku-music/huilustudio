@@ -2583,3 +2583,47 @@ input, select {
     page-break-after: avoid !important;
   }
 }
+
+
+/* 0.4.3.7 · iPad viewport: koko käyttöliittymä aina selaimen näkyvään alueeseen */
+@media screen {
+  html,
+  body {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .app-shell,
+  .app-shell.left-handed {
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+
+  .side-column,
+  .main-column {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .paper-panel {
+    min-height: 0 !important;
+  }
+
+  .zone-panel {
+    min-height: 0 !important;
+  }
+}
