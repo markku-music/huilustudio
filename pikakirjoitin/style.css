@@ -2346,3 +2346,850 @@ input, select {
     letter-spacing: 0.025em !important;
   }
 }
+
+
+/* 0.4.2.9 · Sidekaari kertakytkin */
+.modifier-icon-tie {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.modifier-icon-tie ellipse {
+  fill: currentColor;
+  stroke: none;
+}
+.app-shell.work-mode-finish #tieShiftBtn,
+.app-shell.work-mode-output #tieShiftBtn {
+  display: none !important;
+}
+
+
+/* 0.4.3.0 · Viimeistely: sidekaaren suunnan kääntö */
+#selectionTieFlipBtn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+/* 0.4.3.1 · Sidekaaren kääntöpainike varmasti näkyviin Viimeistele-tilassa */
+.app-shell.work-mode-finish #selectionTieFlipBtn {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 64px;
+  padding: 0 8px;
+}
+
+.app-shell.work-mode-finish #selectionTieFlipBtn:disabled {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 0.42 !important;
+}
+
+#selectionTieFlipBtn svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.selection-tie-flip-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.app-shell.work-mode-write #selectionTieFlipBtn,
+.app-shell.work-mode-output #selectionTieFlipBtn {
+  display: none !important;
+}
+
+
+/* 0.4.3.5 · Puhdas AirPrint: tulosteessa vain varsinainen nuottipaperi */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    background: #fff !important;
+  }
+
+  /* Kaikki sivun ulkopuoliset kerrokset pois tulosteesta. */
+  body > *:not(#appShell) {
+    display: none !important;
+  }
+
+  #appShell,
+  #appShell.app-shell,
+  #appShell.app-shell.left-handed {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Sivupalkki kokonaan pois. */
+  #appShell > .side-column {
+    display: none !important;
+  }
+
+  #appShell > .main-column {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /*
+    Vahva sääntö: main-columnin kaikki käyttöliittymäosat piiloon.
+    Ainoastaan paper-panel saa jäädä tulostukseen.
+  */
+  #appShell > .main-column > * {
+    display: none !important;
+  }
+
+  #appShell > .main-column > .paper-panel {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Paperin sisältä vain nuottikuva. */
+  .paper-panel > *:not(#osmdContainer) {
+    display: none !important;
+  }
+
+  #osmdContainer {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Editorin apukerrokset eivät kuulu nuottipaperiin. */
+  #osmdContainer .selection-toolbar,
+  #osmdContainer .note-selection-layer,
+  #osmdContainer .note-selection-highlight,
+  #osmdContainer .note-selection-marquee,
+  #osmdContainer .system-break-markers,
+  #osmdContainer .system-break-candidate-svg,
+  #osmdContainer .margin-guide-overlay {
+    display: none !important;
+  }
+
+  /* OSMD:n A4-sivut tulostetaan 1:1. */
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+}
+
+
+/* 0.4.3.6 · iPad/AirPrint: estä tyhjä toinen sivu */
+@media print {
+  html,
+  body,
+  #appShell,
+  #appShell > .main-column,
+  #appShell > .main-column > .paper-panel,
+  #osmdContainer {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    /*
+      1 mm turvamarginaali estää WebKitin 297 mm -> 297 mm + murto-osa
+      -pyöristyksen aiheuttaman tyhjän lisäsivun.
+      Nuottigrafiikan leveys säilyy A4-leveänä; vain printtilaatikon
+      alarajaa tuodaan hieman sisään.
+    */
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    box-sizing: border-box !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] > svg {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    max-height: 296mm !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+}
+
+
+/* 0.4.3.7 · iPad viewport: koko käyttöliittymä aina selaimen näkyvään alueeseen */
+@media screen {
+  html,
+  body {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .app-shell,
+  .app-shell.left-handed {
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+
+  .side-column,
+  .main-column {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .paper-panel {
+    min-height: 0 !important;
+  }
+
+  .zone-panel {
+    min-height: 0 !important;
+  }
+}
+
+
+/* 0.4.3.8 · iPad vaaka: oikeasti mahtuva pystylayout */
+@media screen and (orientation: landscape) {
+  .app-shell,
+  .app-shell.left-handed {
+    padding-top: max(6px, env(safe-area-inset-top)) !important;
+    padding-right: max(8px, env(safe-area-inset-right)) !important;
+    padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+    padding-left: max(8px, env(safe-area-inset-left)) !important;
+    gap: 10px !important;
+  }
+
+  .side-column {
+    gap: 8px !important;
+  }
+
+  .song-panel-toggle {
+    min-height: 54px !important;
+    padding: 5px 4px !important;
+  }
+
+  .song-panel-icon {
+    font-size: 21px !important;
+  }
+
+  .layout-rail-button {
+    min-height: 48px !important;
+  }
+
+  .modifier-panel {
+    padding: 5px !important;
+  }
+
+  .modifier-buttons {
+    gap: 5px !important;
+  }
+
+  .modifier-button {
+    min-height: 48px !important;
+  }
+
+  .mode-panel {
+    margin: 4px 0 4px !important;
+    padding: 3px !important;
+  }
+
+  .mode-switch-button {
+    min-height: 28px !important;
+    padding: 0 7px !important;
+    font-size: 9px !important;
+  }
+
+  .output-toolbar {
+    margin: 0 0 4px !important;
+    padding: 4px !important;
+    gap: 5px !important;
+  }
+
+  .output-action-button {
+    min-height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
+
+  .paper-panel {
+    padding: 8px 8px 10px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  #osmdContainer {
+    min-height: 0 !important;
+  }
+
+  .keyboard-toggle-strip {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+  }
+
+  .main-column:not(.keyboard-collapsed) .keyboard-toggle-button {
+    min-height: 28px !important;
+    padding: 2px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .score-keyboard-divider {
+    flex: 0 0 16px !important;
+    min-height: 16px !important;
+    height: 16px !important;
+  }
+
+  .zone-panel {
+    padding: 8px !important;
+    flex: 0 1 28% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .zone-keyboard {
+    min-height: 96px !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 16px !important;
+  }
+
+  .octave-navigator {
+    height: 38px !important;
+    grid-template-columns: 34px minmax(0, 1fr) 34px !important;
+  }
+}
+
+/* Erityisen matala Safari-viewport */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .app-shell,
+  .app-shell.left-handed {
+    padding-top: max(4px, env(safe-area-inset-top)) !important;
+    padding-bottom: max(4px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .mode-panel {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .paper-panel {
+    padding-top: 5px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .zone-panel {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+
+  .zone-keyboard {
+    min-height: 82px !important;
+  }
+
+  .modifier-button {
+    min-height: 42px !important;
+  }
+}
+
+
+/* 0.4.3.9 · Todellinen visualViewport-lukitus iPad/Safari */
+:root {
+  --app-viewport-height: 100dvh;
+  --app-viewport-width: 100vw;
+}
+
+@media screen {
+  html,
+  body {
+    position: fixed !important;
+    inset: 0 !important;
+    width: var(--app-viewport-width) !important;
+    height: var(--app-viewport-height) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: var(--app-viewport-width) !important;
+    max-height: var(--app-viewport-height) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .app-shell,
+  .app-shell.left-handed {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .side-column,
+  .main-column {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .main-column {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .mode-panel,
+  .output-toolbar,
+  .keyboard-toggle-strip,
+  .score-keyboard-divider {
+    flex: 0 0 auto !important;
+  }
+
+  .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #osmdContainer {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .zone-panel {
+    min-height: 0 !important;
+    max-height: 32% !important;
+    overflow: hidden !important;
+  }
+
+  .zone-keyboard {
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+}
+
+
+/* 0.4.4.0 · VisualViewport + koskettimisto takaisin näkyviin */
+@media screen {
+  .main-column {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Kun koskettimisto on suljettu, paperi saa kaiken tilan. */
+  .main-column.keyboard-collapsed .paper-panel,
+  .main-column.keyboard-preloaded-hidden .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* Kun koskettimisto on auki, paperi + koskettimisto jakavat viewportin. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    display: block !important;
+    position: relative !important;
+    flex: 0 0 clamp(150px, 28%, 250px) !important;
+    height: clamp(150px, 28%, 250px) !important;
+    min-height: 150px !important;
+    max-height: 250px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-surface,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .key {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    flex: 0 0 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+  }
+}
+
+/* Matalalla iPad-vaakanäytöllä pienempi mutta aina näkyvä koskettimisto. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    flex-basis: clamp(120px, 25%, 190px) !important;
+    height: clamp(120px, 25%, 190px) !important;
+    min-height: 120px !important;
+    max-height: 190px !important;
+  }
+}
+
+
+/* 0.4.4.1 · Piilota scrollbarit, säilytä tarvittaessa kosketusvieritys */
+@media screen {
+  html,
+  body,
+  .app-shell,
+  .side-column,
+  .main-column,
+  .paper-panel,
+  .zone-panel,
+  #osmdContainer {
+    scrollbar-width: none !important;       /* Firefox */
+    -ms-overflow-style: none !important;    /* vanha Edge */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .app-shell::-webkit-scrollbar,
+  .side-column::-webkit-scrollbar,
+  .main-column::-webkit-scrollbar,
+  .paper-panel::-webkit-scrollbar,
+  .zone-panel::-webkit-scrollbar,
+  #osmdContainer::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  /* Ulompi käyttöliittymä ei saa scrollata lainkaan. */
+  html,
+  body,
+  .app-shell,
+  .side-column,
+  .main-column,
+  .paper-panel,
+  .zone-panel {
+    overflow: hidden !important;
+  }
+
+  /* Nuottialue saa edelleen tarvittaessa vierittyä sormella,
+     mutta ilman näkyviä scrollbar-kiskoja. */
+  #osmdContainer {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain !important;
+  }
+}
+
+
+/* 0.4.4.2 · Koko käyttöliittymä lukittu, vain nuottialue saa vierittyä */
+@media screen {
+  html,
+  body {
+    position: fixed !important;
+    inset: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    touch-action: none;
+  }
+
+  .app-shell,
+  .side-column,
+  .main-column {
+    position: relative;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .mode-panel,
+  .output-toolbar {
+    position: relative !important;
+    z-index: 1500 !important;
+    flex: 0 0 auto !important;
+    touch-action: manipulation;
+  }
+
+  .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #osmdContainer {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  .zone-panel,
+  .zone-keyboard,
+  .keyboard-surface {
+    touch-action: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
+
+/* 0.4.4.3 · Jakokahva takaisin selkeäksi + turha alatyhjyys pois */
+@media screen {
+
+  /* Nuotti-ikkunan ja koskettimiston välinen vedettävä jakokahva. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    position: relative !important;
+    flex: 0 0 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+    z-index: 20 !important;
+    background: transparent !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {
+    display: block !important;
+    width: 86px !important;
+    height: 5px !important;
+    min-height: 5px !important;
+    border-radius: 999px !important;
+    background: rgba(76, 99, 132, 0.42) !important;
+    box-shadow: 0 1px 2px rgba(32, 48, 72, 0.10) !important;
+    pointer-events: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden)
+  .score-keyboard-divider:active .divider-grip,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden)
+  .score-keyboard-divider.dragging .divider-grip {
+    width: 110px !important;
+    background: var(--blue) !important;
+  }
+
+  /* Koskettimisto istuu suoraan viewportin alareunaan ilman turhaa tyhjää vyöhykettä. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    margin: 0 !important;
+    padding: 6px 8px 0 !important;
+    padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+    align-self: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    align-self: stretch !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-viewport {
+    margin: 0 !important;
+  }
+}
+
+/* Matalassa iPad-vaakanäkymässäkin jakokahva jää helposti tartuttavaksi. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex-basis: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {
+    width: 76px !important;
+    height: 4px !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    padding-top: 4px !important;
+    padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+  }
+}
+\n\n/* 0.4.4.4 · Todellinen vedettävä jako + viewport alareunaan asti */\n@media screen {\n  /* Jakaja ohjaa jälleen samaa --score-share-arvoa kuin alkuperäisessä toteutuksessa. */\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {\n    flex: 0 1 var(--score-share, 70%) !important;\n    height: auto !important;\n    min-height: 0 !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {\n    display: block !important;\n    position: relative !important;\n    flex: 1 1 0 !important;\n    height: auto !important;\n    min-height: 0 !important;\n    max-height: none !important;\n    margin: 0 !important;\n    padding: 4px 8px 0 !important;\n    overflow: hidden !important;\n    opacity: 1 !important;\n    visibility: visible !important;\n    pointer-events: auto !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {\n    display: block !important;\n    position: relative !important;\n    width: 100% !important;\n    height: 100% !important;\n    min-height: 0 !important;\n    max-height: 100% !important;\n    margin: 0 !important;\n    align-self: stretch !important;\n  }\n\n  /* Jakaja pysyy helposti tartuttavana mutta ei syö turhaa korkeutta. */\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {\n    display: flex !important;\n    flex: 0 0 18px !important;\n    height: 18px !important;\n    min-height: 18px !important;\n    max-height: 18px !important;\n    position: relative !important;\n    align-items: center !important;\n    justify-content: center !important;\n    overflow: visible !important;\n    touch-action: none !important;\n    cursor: ns-resize !important;\n    z-index: 30 !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider::before {\n    top: 50% !important;\n    height: 42px !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {\n    width: 84px !important;\n    height: 5px !important;\n  }\n}\n\n@media screen and (orientation: landscape) and (max-height: 820px) {\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {\n    /* Ei enää kiinteää 120–190 px korkeutta: jakokahva saa määrätä koon. */\n    flex: 1 1 0 !important;\n    height: auto !important;\n    min-height: 0 !important;\n    max-height: none !important;\n    padding-bottom: 0 !important;\n  }\n}\n
+
+/* 0.4.4.5 · Yksi oikea jakosuhde: --score-share ohjaa paperi/koskettimisto-jakoa */
+@media screen {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .mode-panel,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .output-toolbar,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-toggle-strip,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex: 0 0 auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {
+    flex: 0 0 var(--score-share, 70%) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    flex: 0 0 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 6px 8px max(0px, env(safe-area-inset-bottom)) !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+}
+
+/* Pienellä korkeudella kahva pysyy käyttökelpoisena, mutta jako toimii yhä samasta muuttujasta. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex-basis: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+  }
+}
+
+
+/* 0.4.4.6 · Jakokahva ohjaa suoraan pikselikorkeuksia */
+@media screen {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    pointer-events: auto !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    touch-action: none !important;
+  }
+}

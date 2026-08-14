@@ -22,6 +22,7 @@ const leftHandBtn = document.getElementById('leftHandBtn');
 const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
+const tieButton = document.getElementById('tieShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
 const selectNotesBtn = document.getElementById('selectNotesBtn');
@@ -36,6 +37,7 @@ const outputPdfBtn = document.getElementById('outputPdfBtn');
 const outputXmlBtn = document.getElementById('outputXmlBtn');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
+const selectionTieFlipBtn = document.getElementById('selectionTieFlipBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
 const selectionPortatoBtn = document.getElementById('selectionPortatoBtn');
 const selectionAccentBtn = document.getElementById('selectionAccentBtn');
@@ -299,6 +301,73 @@ const blackKeys = [
   { midi: 94, step: 'A', alter: 1, octave: 6, afterWhiteIndex: 19 },
 ];
 
+
+let viewportSyncFrame = 0;
+
+function syncVisualViewportSize() {
+  cancelAnimationFrame(viewportSyncFrame);
+  viewportSyncFrame = requestAnimationFrame(() => {
+    const viewport = window.visualViewport;
+
+    // iPad Safarissa visualViewport.height voi joissakin tilanteissa jäädä
+    // selainikkunan todellista sisältöaluetta pienemmäksi ja jättää appin alle
+    // tyhjän kaistaleen. innerHeight seuraa tässä luotettavammin näkyvää aluetta.
+    const height = Math.max(
+      1,
+      Math.round(window.innerHeight || viewport?.height || document.documentElement.clientHeight || 1)
+    );
+    const width = Math.max(
+      1,
+      Math.round(window.innerWidth || viewport?.width || document.documentElement.clientWidth || 1)
+    );
+
+    document.documentElement.style.setProperty('--app-viewport-height', `${height}px`);
+    document.documentElement.style.setProperty('--app-viewport-width', `${width}px`);
+    applyScoreKeyboardSplitPixels?.(layoutState?.scoreShare);
+  });
+}
+
+
+function bindHardViewportScrollLock() {
+  const resetOuterScroll = () => {
+    if (window.scrollX !== 0 || window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+
+  window.addEventListener('scroll', resetOuterScroll, { passive: true });
+
+  document.addEventListener('touchmove', (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+
+    // Nuottialue saa vierittyä omassa laatikossaan.
+    if (target?.closest('#osmdContainer')) return;
+
+    // Muun käyttöliittymän pystypyyhkäisy ei saa liikuttaa koko sivua.
+    ev.preventDefault();
+  }, { passive: false });
+
+  resetOuterScroll();
+}
+
+function bindVisualViewportLock() {
+  syncVisualViewportSize();
+
+  window.addEventListener('resize', syncVisualViewportSize, { passive: true });
+  window.addEventListener('orientationchange', syncVisualViewportSize, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncVisualViewportSize, { passive: true });
+    window.visualViewport.addEventListener('scroll', syncVisualViewportSize, { passive: true });
+  }
+
+  // iPad Safari voi viimeistellä selainpalkkien koon hieman resize-eventin jälkeen.
+  setTimeout(syncVisualViewportSize, 80);
+  setTimeout(syncVisualViewportSize, 300);
+}
+
 const state = {
   notes: [],
   nextEntryId: 1,
@@ -321,6 +390,7 @@ const state = {
     sixteenthKeyboard: false,
     restKeyboard: false,
   },
+  tieOneShotArmed: false,
   audioContext: null,
   osmd: null,
   appliedScoreLayoutSignature: null,
@@ -936,6 +1006,105 @@ function getSelectedNoteIndices() {
     .sort((a, b) => a - b);
 }
 
+function samePitch(a, b) {
+  return Boolean(
+    a && b
+    && a.kind === 'note'
+    && b.kind === 'note'
+    && a.step === b.step
+    && Number(a.alter || 0) === Number(b.alter || 0)
+    && Number(a.octave) === Number(b.octave)
+  );
+}
+
+function getSelectedTieStartIndex() {
+  const indices = getSelectedNoteIndices();
+  if (indices.length === 0) return null;
+
+  // Jos valittuna on kaksi peräkkäistä nuottia, suosi niiden välistä sidekaarta.
+  if (indices.length >= 2) {
+    for (let i = 0; i < indices.length - 1; i += 1) {
+      const a = indices[i];
+      const b = indices[i + 1];
+      if (b === a + 1 && state.notes[a]?.tieToNext) return a;
+    }
+  }
+
+  // Yhden valitun nuotin tapauksessa tunnista sidekaari sen jälkeen tai ennen sitä.
+  const index = indices[0];
+  if (state.notes[index]?.tieToNext) return index;
+  if (index > 0 && state.notes[index - 1]?.tieToNext) return index - 1;
+
+  return null;
+}
+
+function renderedTieDefaultPlacementForEntryIndex(entryIndex) {
+  if (!Number.isInteger(entryIndex) || !state.osmd) return null;
+
+  const measureList = state.osmd.GraphicSheet?.MeasureList || [];
+
+  for (const measureGroup of measureList) {
+    for (const measure of (measureGroup || [])) {
+      for (const staffEntry of (measure?.staffEntries || [])) {
+        for (const voiceEntry of (staffEntry?.graphicalVoiceEntries || [])) {
+          for (const graphicalNote of (voiceEntry?.notes || [])) {
+            const objectId = graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;
+            const mappedIndex = state.renderedNoteObjectMap.get(objectId);
+            if (mappedIndex !== entryIndex) continue;
+
+            const vexRef = graphicalNote.vfnote;
+            const vexNote = Array.isArray(vexRef) ? vexRef[0] : vexRef;
+            if (!vexNote) continue;
+
+            let stemDirection = null;
+
+            if (typeof vexNote.getStemDirection === 'function') {
+              stemDirection = Number(vexNote.getStemDirection());
+            } else if (typeof vexNote.getStemDirection === 'number') {
+              stemDirection = Number(vexNote.getStemDirection);
+            } else if (Number.isFinite(Number(vexNote.stem_direction))) {
+              stemDirection = Number(vexNote.stem_direction);
+            } else if (Number.isFinite(Number(vexNote.stemDirection))) {
+              stemDirection = Number(vexNote.stemDirection);
+            }
+
+            // VexFlow: +1 = stem up, -1 = stem down.
+            // Automaattinen tie on normaalisti varren vastakkaisella puolella.
+            if (stemDirection > 0) return 'below';
+            if (stemDirection < 0) return 'above';
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function fallbackTieDefaultPlacementForEntry(entry) {
+  if (!entry || entry.kind !== 'note') return 'below';
+
+  // Varareitti vain jos renderöidyn nuotin vartta ei saada luettua.
+  const stepOrder = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
+  const diatonic = Number(entry.octave) * 7 + (stepOrder[entry.step] ?? 0);
+  const middleLineB4 = 4 * 7 + 6;
+  return diatonic >= middleLineB4 ? 'above' : 'below';
+}
+
+function toggleSelectedTiePlacement() {
+  const startIndex = getSelectedTieStartIndex();
+  if (!Number.isInteger(startIndex)) return;
+
+  const entry = state.notes[startIndex];
+
+  // Lähtösuunta on tallennettu renderöinnin jälkeen, joten vaihto on aina yksiselitteinen.
+  const current = entry.tiePlacement === 'above' ? 'above' : 'below';
+  entry.tiePlacement = current === 'above' ? 'below' : 'above';
+
+  syncNoteSelectionToolbar();
+  renderScore();
+}
+
 function getLegatoSelectionRange() {
   const indices = getSelectedNoteIndices();
   if (indices.length < 2) return null;
@@ -1172,6 +1341,7 @@ function buildNoteSelectionHitboxes() {
 
 function syncNoteSelectionToolbar() {
   const indices = getSelectedNoteIndices();
+  const selectedTieStartIndex = getSelectedTieStartIndex();
   const legatoRange = getLegatoSelectionRange();
   const exactSlur = findExactSelectionSlur(legatoRange);
   const exactCrescendo = findExactSelectionHairpin('crescendo', legatoRange);
@@ -1202,6 +1372,8 @@ function syncNoteSelectionToolbar() {
   selectionDynamicSelect.disabled = indices.length === 0;
   selectionDynamicSelect.value = firstDynamic;
   selectionSlurBtn.disabled = !legatoRange;
+  selectionTieFlipBtn.disabled = !Number.isInteger(selectedTieStartIndex);
+  selectionTieFlipBtn.classList.toggle('active', Number.isInteger(selectedTieStartIndex));
   selectionSlurBtn.classList.toggle('active', Boolean(exactSlur));
   selectionSlurBtn.setAttribute('aria-pressed', String(Boolean(exactSlur)));
   selectionCrescendoBtn.disabled = !legatoRange;
@@ -1245,6 +1417,27 @@ function renderNoteSelectionOverlay() {
   }
 
   osmdContainer.appendChild(layer);
+}
+
+function captureAutomaticTiePlacementsFromRenderedScore() {
+  if (!state.osmd) return;
+
+  const candidates = state.notes
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry?.kind === 'note' && entry.tieToNext && !entry.tiePlacement);
+
+  if (candidates.length === 0) return;
+
+  candidates.forEach(({ entry, index }) => {
+    const placement = renderedTieDefaultPlacementForEntryIndex(index)
+      || fallbackTieDefaultPlacementForEntry(entry);
+
+    if (placement === 'above' || placement === 'below') {
+      // Tallennetaan automaattinen näkyvä lähtösuunta heti renderöinnin jälkeen.
+      // Kääntönappi ei enää koskaan joudu arvaamaan tätä myöhemmin.
+      entry.tiePlacement = placement;
+    }
+  });
 }
 
 function refreshNoteSelectionGeometry() {
@@ -1357,7 +1550,6 @@ function clearNoteSelection() {
   state.selectionDrag = null;
   renderNoteSelectionOverlay();
 }
-
 
 function syncWorkModeUI() {
   const writing = state.workMode === 'write';
@@ -1583,6 +1775,7 @@ function initNoteSelection() {
   selectionAccentBtn.addEventListener('click', toggleAccentForSelection);
   selectionDynamicSelect.addEventListener('change', ev => applyDynamicForSelection(ev.target.value));
   selectionSlurBtn.addEventListener('click', toggleLegatoForSelection);
+selectionTieFlipBtn.addEventListener('click', toggleSelectedTiePlacement);
   selectionCrescendoBtn.addEventListener('click', () => toggleHairpinForSelection('crescendo'));
   selectionDiminuendoBtn.addEventListener('click', () => toggleHairpinForSelection('diminuendo'));
 
@@ -1729,7 +1922,20 @@ function commitFlickGesture(gesture) {
     octave: Number(keyEl.dataset.octave),
     units: durationUnits,
   };
+  const previousEntry = state.notes[state.notes.length - 1] || null;
   state.notes.push(entry);
+
+  if (state.tieOneShotArmed) {
+    if (samePitch(previousEntry, entry)) {
+      previousEntry.tieToNext = true;
+    }
+
+    // Kertakytkin koskee aina vain seuraavaa kirjoitettua nuottia.
+    // Sama sävel -> sidekaari. Eri sävel -> ei sidekaarta.
+    state.tieOneShotArmed = false;
+    syncModifierButtons();
+  }
+
   requestScoreEntryFollow(entry);
   settlePendingSystemBreak();
   renderScore();
@@ -1940,7 +2146,7 @@ async function toggleStretchLastLine() {
   // käyttäjä painaa painiketta uudelleen.
   stretchLastLinePersistent = !stretchLastLinePersistent;
   stretchLastLineCommandRunning = true;
-  stretchReapplyNeeded = false;
+  stretchSecondPassPending = false;
   syncStretchLastLineButton();
 
   clearTimeout(window.__noteSpacingRenderTimer);
@@ -2468,13 +2674,53 @@ function printScore() {
   setTimeout(restorePrintState, 60000);
 }
 
+function applyScoreKeyboardSplitPixels(share = layoutState.scoreShare) {
+  const keyboardOpen =
+    !mainColumn.classList.contains('keyboard-collapsed')
+    && !mainColumn.classList.contains('keyboard-preloaded-hidden');
+
+  if (!keyboardOpen) {
+    paperPanel.style.removeProperty('height');
+    paperPanel.style.removeProperty('flex-basis');
+    zonePanel.style.removeProperty('height');
+    zonePanel.style.removeProperty('flex-basis');
+    return;
+  }
+
+  const mainRect = mainColumn.getBoundingClientRect();
+  const modeHeight = document.querySelector('.mode-panel')?.getBoundingClientRect().height || 0;
+  const outputHeight = outputToolbar?.offsetParent
+    ? outputToolbar.getBoundingClientRect().height
+    : 0;
+  const toggleHeight = document.querySelector('.keyboard-toggle-strip')?.getBoundingClientRect().height || 0;
+  const dividerHeight = scoreKeyboardDivider.getBoundingClientRect().height || 22;
+
+  const fixedHeight = modeHeight + outputHeight + toggleHeight + dividerHeight;
+  const available = Math.max(1, mainRect.height - fixedHeight);
+
+  const clampedShare = clamp(Number(share) || defaultLayout.scoreShare, 45, 85);
+  const paperHeight = Math.round(available * clampedShare / 100);
+  const keyboardHeight = Math.max(0, available - paperHeight);
+
+  paperPanel.style.setProperty('flex', '0 0 auto', 'important');
+  paperPanel.style.setProperty('height', `${paperHeight}px`, 'important');
+  paperPanel.style.setProperty('flex-basis', `${paperHeight}px`, 'important');
+
+  zonePanel.style.setProperty('flex', '0 0 auto', 'important');
+  zonePanel.style.setProperty('height', `${keyboardHeight}px`, 'important');
+  zonePanel.style.setProperty('flex-basis', `${keyboardHeight}px`, 'important');
+}
+
 function setScoreShare(value, { save = false } = {}) {
-  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 30, 70);
+  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 45, 85);
   mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
   scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
-  scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
-  scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
+  scoreKeyboardDivider.setAttribute('aria-valuemin', '45');
+  scoreKeyboardDivider.setAttribute('aria-valuemax', '85');
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
+
+  applyScoreKeyboardSplitPixels(layoutState.scoreShare);
+
   if (save) saveLayoutState();
 }
 
@@ -2593,51 +2839,86 @@ function bindKeyboardToggle() {
 }
 
 function bindScoreKeyboardDivider() {
-  let activePointerId = null;
+  if (!scoreKeyboardDivider) return;
 
-  const updateFromPointer = (ev) => {
-    if (activePointerId === null || ev.pointerId !== activePointerId) return;
-    ev.preventDefault();
-    const rect = mainColumn.getBoundingClientRect();
-    if (!rect.height) return;
-    setScoreShare(((ev.clientY - rect.top) / rect.height) * 100);
+  let activePointerId = null;
+  let splitTop = 0;
+  let splitHeight = 1;
+
+  const updateFromClientY = clientY => {
+    if (activePointerId === null) return;
+
+    const relative = clamp(clientY - splitTop, 0, splitHeight);
+    const share = clamp((relative / splitHeight) * 100, 45, 85);
+
+    // Vedon aikana ei tallenneta localStorageen joka framella.
+    setScoreShare(share, { save: false });
   };
 
-  const finishDrag = (ev) => {
+  const finishDrag = ev => {
     if (activePointerId === null) return;
     if (ev?.pointerId !== undefined && ev.pointerId !== activePointerId) return;
+
     const pointerId = activePointerId;
     activePointerId = null;
-    if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
-      try { scoreKeyboardDivider.releasePointerCapture(pointerId); } catch {}
-    }
+
+    try {
+      if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
+        scoreKeyboardDivider.releasePointerCapture(pointerId);
+      }
+    } catch {}
+
     scoreKeyboardDivider.classList.remove('dragging');
     saveLayoutState();
   };
 
-  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
+  scoreKeyboardDivider.addEventListener('pointerdown', ev => {
     if (activePointerId !== null) return;
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    if (
+      mainColumn.classList.contains('keyboard-collapsed')
+      || mainColumn.classList.contains('keyboard-preloaded-hidden')
+    ) return;
+
     ev.preventDefault();
+    ev.stopPropagation();
+
+    const paperRect = paperPanel.getBoundingClientRect();
+    const zoneRect = zonePanel.getBoundingClientRect();
+
+    splitTop = paperRect.top;
+    splitHeight = Math.max(1, paperRect.height + zoneRect.height);
+
     activePointerId = ev.pointerId;
     scoreKeyboardDivider.classList.add('dragging');
+
     try { scoreKeyboardDivider.setPointerCapture?.(ev.pointerId); } catch {}
+
+    updateFromClientY(ev.clientY);
   }, { passive: false });
 
-  // iPadOS Safari ei aina pidä pointer capturea voimassa. Ikkunatason
-  // kuuntelu pitää vedon toiminnassa myös silloin, kun sormi poistuu kahvalta.
-  window.addEventListener('pointermove', updateFromPointer, { passive: false });
+  const move = ev => {
+    if (activePointerId === null || ev.pointerId !== activePointerId) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    updateFromClientY(ev.clientY);
+  };
+
+  scoreKeyboardDivider.addEventListener('pointermove', move, { passive: false });
+  window.addEventListener('pointermove', move, { passive: false });
   window.addEventListener('pointerup', finishDrag);
   window.addEventListener('pointercancel', finishDrag);
   window.addEventListener('blur', () => finishDrag());
 
-  scoreKeyboardDivider.addEventListener('keydown', (ev) => {
+  scoreKeyboardDivider.addEventListener('keydown', ev => {
     if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
     ev.preventDefault();
-    setScoreShare(layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1), { save: true });
+    setScoreShare(
+      layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1),
+      { save: true }
+    );
   });
 }
-
 function exportLayoutJson() {
   const payload = {
     format: 'Pikakirjoitin layout',
@@ -3484,6 +3765,28 @@ function createEventsForScore() {
 
   state.notes.forEach((entry, entryIndex) => appendSegments(entry, entryIndex));
 
+  // Käyttäjän kirjoitustilassa tekemät sidekaaret.
+  // Ensimmäisen nuotin viimeinen segmentti saa tie-startin ja seuraavan
+  // saman sävelen ensimmäinen segmentti tie-stopin. Tämä toimii myös,
+  // jos jompikumpi nuotti on jakautunut tahtiviivan yli.
+  state.notes.forEach((entry, entryIndex) => {
+    if (!entry?.tieToNext || entry.kind !== 'note') return;
+    const next = state.notes[entryIndex + 1];
+    if (!next || next.kind !== 'note') return;
+
+    if (!samePitch(entry, next)) return;
+
+    const fromSegments = segmentsByEntryId.get(entry.id);
+    const toSegments = segmentsByEntryId.get(next.id);
+    if (!fromSegments?.length || !toSegments?.length) return;
+
+    const tiePlacement = entry.tiePlacement || '';
+    fromSegments[fromSegments.length - 1].tieStart = true;
+    fromSegments[fromSegments.length - 1].tiePlacement = tiePlacement;
+    toSegments[0].tieStop = true;
+    toSegments[0].tiePlacement = tiePlacement;
+  });
+
   state.slurs.forEach((slur, slurIndex) => {
     const startSegments = segmentsByEntryId.get(slur.startId);
     const stopSegments = segmentsByEntryId.get(slur.endId);
@@ -3534,13 +3837,84 @@ function escapeXml(text) {
     .replace(/'/g, '&apos;');
 }
 
-
 function annotateDefaultBeams(measure) {
-  // Oletuspalkitus: peräkkäiset 1/8-nuotit pareittain ja 1/16-nuotit neljän ryhmiin.
-  // Tauko, eri aika-arvo tai tahdin raja katkaisee ryhmän.
-  const annotateRuns = (units, groupSize, beamLevels) => {
+  measure.forEach(seg => { delete seg.beams; });
+
+  const beats = Number(beatsSelect.value);
+  const beatType = Number(beatTypeSelect.value);
+
+  // 0.4.2.6: musiikillisen iskun mukainen palkitus.
+  // 2/4, 3/4, 4/4 = neljäsosaisku (8 units).
+  // 6/8 = pisteellinen neljäsosaisku, 3+3 kahdeksasosaa (12 units).
+  let beatUnits = null;
+  if (beatType === 4 && [2, 3, 4].includes(beats)) beatUnits = 8;
+  if (beats === 6 && beatType === 8) beatUnits = 12;
+
+  if (beatUnits !== null) {
+    let beatPosition = 0;
     let run = [];
 
+    const beamable = seg =>
+      seg.kind === 'note' && [2, 3, 4, 6].includes(seg.units);
+
+    const addBeam = (seg, number, value) => {
+      seg.beams = seg.beams || [];
+      seg.beams.push({ number, value });
+    };
+
+    const flush = () => {
+      if (run.length < 2) {
+        run = [];
+        return;
+      }
+
+      run.forEach((seg, i) => {
+        addBeam(seg, 1, i === 0 ? 'begin' : i === run.length - 1 ? 'end' : 'continue');
+      });
+
+      const secondLevel = seg => seg.units <= 3;
+      let i = 0;
+      while (i < run.length) {
+        if (!secondLevel(run[i])) {
+          i++;
+          continue;
+        }
+
+        const first = i;
+        while (i + 1 < run.length && secondLevel(run[i + 1])) i++;
+        const last = i;
+
+        if (last > first) {
+          for (let j = first; j <= last; j++) {
+            addBeam(run[j], 2, j === first ? 'begin' : j === last ? 'end' : 'continue');
+          }
+        } else {
+          addBeam(run[first], 2, first === 0 ? 'forward hook' : 'backward hook');
+        }
+        i++;
+      }
+      run = [];
+    };
+
+    measure.forEach(seg => {
+      const units = Number(seg.units) || 0;
+
+      if (beatPosition > 0 && beatPosition % beatUnits === 0) flush();
+
+      if (beamable(seg)) run.push(seg);
+      else flush();
+
+      beatPosition += units;
+      if (beatPosition % beatUnits === 0) flush();
+    });
+
+    flush();
+    return measure;
+  }
+
+  // Muut tahtilajit käyttävät edelleen aiempaa turvallista oletusta.
+  const annotateRuns = (units, groupSize, beamLevels) => {
+    let run = [];
     const flush = () => {
       for (let start = 0; start + groupSize <= run.length; start += groupSize) {
         const group = run.slice(start, start + groupSize);
@@ -3551,20 +3925,15 @@ function annotateDefaultBeams(measure) {
       }
       run = [];
     };
-
     measure.forEach(seg => {
-      if (seg.kind === 'note' && seg.units === units) {
-        run.push(seg);
-      } else {
-        flush();
-      }
+      if (seg.kind === 'note' && seg.units === units) run.push(seg);
+      else flush();
     });
     flush();
   };
 
-  measure.forEach(seg => { delete seg.beams; });
-  annotateRuns(4, 2, [1]);       // 1/8: kaksi nuottia samaan palkkiin
-  annotateRuns(2, 4, [1, 2]);    // 1/16: neljä nuottia, kaksi palkkitasoa
+  annotateRuns(4, 2, [1]);
+  annotateRuns(2, 4, [1, 2]);
   return measure;
 }
 
@@ -3575,7 +3944,10 @@ function beamXml(seg) {
 
 function noteNotationsXml(seg, isRest) {
   if (isRest) return '';
-  const tied = `${seg.tieStop ? '<tied type="stop"/>' : ''}${seg.tieStart ? '<tied type="start"/>' : ''}`;
+  const tiePlacement = seg.tiePlacement === 'above' || seg.tiePlacement === 'below'
+    ? ` placement="${seg.tiePlacement}"`
+    : '';
+  const tied = `${seg.tieStop ? `<tied type="stop"${tiePlacement}/>` : ''}${seg.tieStart ? `<tied type="start"${tiePlacement}/>` : ''}`;
   const slurs = [
     ...(seg.slurStops || []).map(number => `<slur type="stop" number="${number}"/>`),
     ...(seg.slurStarts || []).map(number => `<slur type="start" number="${number}"/>`),
@@ -3873,69 +4245,38 @@ function renderPitchNameOverlays() {
 let scoreRenderRequested = false;
 let scoreRenderLoopPromise = null;
 
-
-let stretchReapplyInProgress = false;
-let stretchReapplyNeeded = false;
-
-async function reapplyPersistentLastLineStretch() {
-  if (!stretchLastLinePersistent || stretchLastLineCommandRunning || stretchReapplyInProgress || !stretchReapplyNeeded) return;
-
-  stretchReapplyInProgress = true;
-  stretchReapplyNeeded = false;
-  try {
-    // Safari/iPad voi jättää uuden GraphicSheetin viimeisen järjestelmän
-    // normaalileveyteen joidenkin viimeistelytoimintojen jälkeen.
-    // Pakotetaan sama venytysasetus vielä kerran valmiin renderöinnin päälle.
-    const osmd = state.osmd;
-    if (!osmd) return;
-
-    osmd.setOptions({ stretchLastSystemLine: true });
-
-    if (osmd.EngravingRules) {
-      osmd.EngravingRules.StretchLastSystemLine = true;
-      osmd.EngravingRules.LastSystemMaxScalingFactor = 100;
-    }
-
-    await new Promise(resolve => requestAnimationFrame(() => resolve()));
-
-    // Uusi normaali renderScore-kierros käyttää jo persistent=true,
-    // mutta toinen kierros varmistaa Safarin GraphicSheetin päivittymisen.
-    scoreRenderRequested = true;
-  } finally {
-    stretchReapplyInProgress = false;
-  }
-}
+let stretchSecondPassPending = false;
 
 function renderScore() {
   invalidateCachedPdf();
   scheduleProjectAutosave();
 
-  if (stretchLastLinePersistent && !stretchLastLineCommandRunning && !stretchReapplyInProgress) {
-    stretchReapplyNeeded = true;
+  // Jokainen ulkoinen muutos pyytää yhden normaalin renderöinnin.
+  // Pysyvä viimeisen rivin tasaus saa lisäksi vain yhden varmistuskierroksen.
+  if (!scoreRenderLoopPromise) {
+    stretchSecondPassPending = Boolean(stretchLastLinePersistent);
   }
 
   scoreRenderRequested = true;
+
   if (!scoreRenderLoopPromise) {
     scoreRenderLoopPromise = (async () => {
       while (scoreRenderRequested) {
         scoreRenderRequested = false;
         await renderScoreNow();
+
+        if (stretchLastLinePersistent && stretchSecondPassPending) {
+          stretchSecondPassPending = false;
+          await new Promise(resolve => requestAnimationFrame(() => resolve()));
+          scoreRenderRequested = true;
+        }
       }
-    })().finally(async () => {
+    })().finally(() => {
       scoreRenderLoopPromise = null;
-
-      // 0.4.1.2:
-      // joidenkin viimeistelytoimintojen (esim. legatokaari/dynamiikka)
-      // jälkeen Safari voi palauttaa viimeisen järjestelmän normaalileveyteen.
-      // Jos pysyvä tasaus on päällä, pyydetään vielä yksi varmistava renderöinti.
-      if (stretchLastLinePersistent && !stretchLastLineCommandRunning && !stretchReapplyInProgress) {
-        await reapplyPersistentLastLineStretch();
-      }
-
-      // Pyyntö voi syntyä aivan viimeisen kierroksen valmistuessa.
       if (scoreRenderRequested) renderScore();
     });
   }
+
   return scoreRenderLoopPromise;
 }
 
@@ -3981,6 +4322,7 @@ async function renderScoreNow() {
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
+    captureAutomaticTiePlacementsFromRenderedScore();
     refreshNoteSelectionGeometry();
     noteScoreRenderCompleted();
     statusText.textContent = 'Valmis';
@@ -4006,12 +4348,15 @@ function syncModifierButtons() {
   const dotActive = isDotModifierActive();
   const sixteenthActive = isSixteenthModifierActive();
   const restActive = isRestShiftActive();
+  const tieActive = Boolean(state.tieOneShotArmed);
   dotShiftBtn.classList.toggle('active', dotActive);
   dotShiftBtn.setAttribute('aria-pressed', String(dotActive));
   sixteenthShiftBtn.classList.toggle('active', sixteenthActive);
   sixteenthShiftBtn.setAttribute('aria-pressed', String(sixteenthActive));
   restShiftBtn.classList.toggle('active', restActive);
   restShiftBtn.setAttribute('aria-pressed', String(restActive));
+  tieButton.classList.toggle('active', tieActive);
+  tieButton.setAttribute('aria-pressed', String(tieActive));
 }
 
 function bindHoldModifier(button, pointerSet) {
@@ -4039,6 +4384,12 @@ function bindHoldModifier(button, pointerSet) {
 bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
 bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
 bindHoldModifier(restShiftBtn, state.modifiers.restPointers);
+
+tieButton.addEventListener('click', () => {
+  // Kertakytkin: paina kerran, niin seuraava nuotti yrittää sitoutua edelliseen.
+  state.tieOneShotArmed = !state.tieOneShotArmed;
+  syncModifierButtons();
+});
 
 function isEditableTarget(target) {
   return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
@@ -4200,6 +4551,8 @@ bindScoreKeyboardDivider();
 initKeyboard();
 bindKeyboardToggle();
 bindWorkModeSwitch();
+bindVisualViewportLock();
+bindHardViewportScrollLock();
 initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });

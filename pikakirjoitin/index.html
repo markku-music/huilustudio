@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.2.4" />
+  <link rel="stylesheet" href="style.css?v=0.4.4.6" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -162,6 +162,15 @@
           <button id="restShiftBtn" class="modifier-button" type="button" aria-label="Tauko" aria-pressed="false">
             <img class="modifier-icon modifier-icon-rest" src="assets/Rest.svg" alt="" aria-hidden="true">
           </button>
+          <button id="tieShiftBtn" class="modifier-button" type="button" aria-label="Sidekaari seuraavaan samaan säveleen" aria-pressed="false">
+            <svg class="modifier-icon modifier-icon-tie" viewBox="0 0 48 48" aria-hidden="true">
+              <ellipse cx="14" cy="18" rx="7" ry="5" transform="rotate(-18 14 18)"/>
+              <path d="M20 18v-13"/>
+              <ellipse cx="34" cy="18" rx="7" ry="5" transform="rotate(-18 34 18)"/>
+              <path d="M40 18v-13"/>
+              <path d="M10 31C16 40 32 40 38 31"/>
+            </svg>
+          </button>
           <button id="systemBreakBtn" class="modifier-button" type="button" aria-label="Seuraava tahti uudelle riville" aria-pressed="false">
             <svg class="modifier-icon modifier-icon-system-break" viewBox="0 0 48 48" aria-hidden="true">
               <path d="M8 12h32M8 21h24M8 30h20"/>
@@ -213,6 +222,19 @@
             <svg viewBox="0 0 48 48" aria-hidden="true">
               <path d="M7 33C13 13 35 13 41 33"/>
             </svg>
+          </button>
+          <button id="selectionTieFlipBtn"
+                  class="selection-action-button selection-tie-flip-button"
+                  type="button"
+                  aria-label="Käännä sidekaari"
+                  aria-pressed="false"
+                  disabled>
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M8 29C15 15 33 15 40 29"/>
+              <path d="m18 37 6 6 6-6"/>
+              <path d="M24 43V31"/>
+            </svg>
+            <span class="selection-tie-flip-label">TIE ↕</span>
           </button>
           <button id="selectionStaccatoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled>
             <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -504,6 +526,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.2.4.js"></script>
+  <script src="app-0.4.4.6.js"></script>
 </body>
 </html>
