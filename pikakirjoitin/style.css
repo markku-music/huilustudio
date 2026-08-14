@@ -3176,20 +3176,3 @@ input, select {
     max-height: 18px !important;
   }
 }
-
-
-/* 0.4.4.6 · Jakokahva ohjaa suoraan pikselikorkeuksia */
-@media screen {
-  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel,
-  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
-    min-height: 0 !important;
-    max-height: none !important;
-  }
-
-  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
-    pointer-events: auto !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    touch-action: none !important;
-  }
-}
