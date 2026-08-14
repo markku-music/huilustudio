@@ -22,6 +22,7 @@ const leftHandBtn = document.getElementById('leftHandBtn');
 const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
+const tieShiftBtn = document.getElementById('tieShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
 const selectNotesBtn = document.getElementById('selectNotesBtn');
@@ -317,10 +318,13 @@ const state = {
     dotPointers: new Set(),
     sixteenthPointers: new Set(),
     restPointers: new Set(),
+    tiePointers: new Set(),
     dotKeyboard: false,
     sixteenthKeyboard: false,
     restKeyboard: false,
+    tieKeyboard: false,
   },
+  tiePendingEntryId: null,
   audioContext: null,
   osmd: null,
   appliedScoreLayoutSignature: null,
@@ -594,6 +598,7 @@ function hideFlickHud() {
 }
 
 function undoLastNoteWithFeedback() {
+  state.tiePendingEntryId = null;
   if (state.notes.length > 0) {
     state.notes.pop();
     pruneSlurs();
@@ -806,6 +811,7 @@ function restorePendingSystemBreakAfterUndo() {
 }
 
 function clearScoreWithFeedback() {
+  state.tiePendingEntryId = null;
   state.notes = [];
   state.slurs = [];
   state.hairpins = [];
@@ -1730,6 +1736,34 @@ function commitFlickGesture(gesture) {
     units: durationUnits,
   };
   state.notes.push(entry);
+
+  if (isTieShiftActive()) {
+    const pendingId = state.tiePendingEntryId;
+    const pendingIndex = pendingId
+      ? state.notes.findIndex(note => note.id === pendingId)
+      : -1;
+    const pending = pendingIndex >= 0 ? state.notes[pendingIndex] : null;
+    const currentIndex = state.notes.length - 1;
+
+    const samePitch = pending &&
+      pending.kind === 'note' &&
+      pending.step === entry.step &&
+      Number(pending.alter || 0) === Number(entry.alter || 0) &&
+      Number(pending.octave) === Number(entry.octave);
+
+    const consecutive = pendingIndex === currentIndex - 1;
+
+    if (samePitch && consecutive) {
+      pending.tieToNext = true;
+      state.tiePendingEntryId = null;
+    } else {
+      // Ensimmäinen sidekaaren nuotti tai uusi yritys eri sävelen jälkeen.
+      state.tiePendingEntryId = entry.id;
+    }
+  } else {
+    state.tiePendingEntryId = null;
+  }
+
   requestScoreEntryFollow(entry);
   settlePendingSystemBreak();
   renderScore();
@@ -3484,6 +3518,30 @@ function createEventsForScore() {
 
   state.notes.forEach((entry, entryIndex) => appendSegments(entry, entryIndex));
 
+
+  // Käyttäjän kirjoitustilassa tekemät sidekaaret.
+  // Ensimmäisen nuotin viimeinen segmentti saa tie-startin ja seuraavan
+  // saman sävelen ensimmäinen segmentti tie-stopin. Tämä toimii myös,
+  // jos jompikumpi nuotti on jakautunut tahtiviivan yli.
+  state.notes.forEach((entry, entryIndex) => {
+    if (!entry?.tieToNext || entry.kind !== 'note') return;
+    const next = state.notes[entryIndex + 1];
+    if (!next || next.kind !== 'note') return;
+
+    const samePitch =
+      entry.step === next.step &&
+      Number(entry.alter || 0) === Number(next.alter || 0) &&
+      Number(entry.octave) === Number(next.octave);
+    if (!samePitch) return;
+
+    const fromSegments = segmentsByEntryId.get(entry.id);
+    const toSegments = segmentsByEntryId.get(next.id);
+    if (!fromSegments?.length || !toSegments?.length) return;
+
+    fromSegments[fromSegments.length - 1].tieStart = true;
+    toSegments[0].tieStop = true;
+  });
+
   state.slurs.forEach((slur, slurIndex) => {
     const startSegments = segmentsByEntryId.get(slur.startId);
     const stopSegments = segmentsByEntryId.get(slur.endId);
@@ -4039,16 +4097,23 @@ function isRestShiftActive() {
   return state.modifiers.restPointers.size > 0 || state.modifiers.restKeyboard;
 }
 
+function isTieShiftActive() {
+  return state.modifiers.tiePointers.size > 0 || state.modifiers.tieKeyboard;
+}
+
 function syncModifierButtons() {
   const dotActive = isDotModifierActive();
   const sixteenthActive = isSixteenthModifierActive();
   const restActive = isRestShiftActive();
+  const tieActive = isTieShiftActive();
   dotShiftBtn.classList.toggle('active', dotActive);
   dotShiftBtn.setAttribute('aria-pressed', String(dotActive));
   sixteenthShiftBtn.classList.toggle('active', sixteenthActive);
   sixteenthShiftBtn.setAttribute('aria-pressed', String(sixteenthActive));
   restShiftBtn.classList.toggle('active', restActive);
   restShiftBtn.setAttribute('aria-pressed', String(restActive));
+  tieShiftBtn.classList.toggle('active', tieActive);
+  tieShiftBtn.setAttribute('aria-pressed', String(tieActive));
 }
 
 function bindHoldModifier(button, pointerSet) {
@@ -4076,6 +4141,17 @@ function bindHoldModifier(button, pointerSet) {
 bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
 bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
 bindHoldModifier(restShiftBtn, state.modifiers.restPointers);
+bindHoldModifier(tieShiftBtn, state.modifiers.tiePointers);
+
+const clearPendingTieIfReleased = () => {
+  queueMicrotask(() => {
+    if (!isTieShiftActive()) state.tiePendingEntryId = null;
+  });
+};
+tieShiftBtn.addEventListener('pointerup', clearPendingTieIfReleased);
+tieShiftBtn.addEventListener('pointercancel', clearPendingTieIfReleased);
+tieShiftBtn.addEventListener('lostpointercapture', clearPendingTieIfReleased);
+
 
 function isEditableTarget(target) {
   return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
@@ -4085,6 +4161,8 @@ function clearKeyboardModifiers() {
   state.modifiers.dotKeyboard = false;
   state.modifiers.sixteenthKeyboard = false;
   state.modifiers.restKeyboard = false;
+  state.modifiers.tieKeyboard = false;
+  state.tiePendingEntryId = null;
   syncModifierButtons();
 }
 

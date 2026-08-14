@@ -2346,3 +2346,21 @@ input, select {
     letter-spacing: 0.025em !important;
   }
 }
+
+
+/* 0.4.2.8 · Sidekaari-Shift */
+.modifier-icon-tie {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.modifier-icon-tie ellipse {
+  fill: currentColor;
+  stroke: none;
+}
+.app-shell.work-mode-finish #tieShiftBtn,
+.app-shell.work-mode-output #tieShiftBtn {
+  display: none !important;
+}
