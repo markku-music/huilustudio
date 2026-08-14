@@ -301,6 +301,43 @@ const blackKeys = [
   { midi: 94, step: 'A', alter: 1, octave: 6, afterWhiteIndex: 19 },
 ];
 
+
+let viewportSyncFrame = 0;
+
+function syncVisualViewportSize() {
+  cancelAnimationFrame(viewportSyncFrame);
+  viewportSyncFrame = requestAnimationFrame(() => {
+    const viewport = window.visualViewport;
+    const height = Math.max(
+      1,
+      Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 1)
+    );
+    const width = Math.max(
+      1,
+      Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 1)
+    );
+
+    document.documentElement.style.setProperty('--app-viewport-height', `${height}px`);
+    document.documentElement.style.setProperty('--app-viewport-width', `${width}px`);
+  });
+}
+
+function bindVisualViewportLock() {
+  syncVisualViewportSize();
+
+  window.addEventListener('resize', syncVisualViewportSize, { passive: true });
+  window.addEventListener('orientationchange', syncVisualViewportSize, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncVisualViewportSize, { passive: true });
+    window.visualViewport.addEventListener('scroll', syncVisualViewportSize, { passive: true });
+  }
+
+  // iPad Safari voi viimeistellä selainpalkkien koon hieman resize-eventin jälkeen.
+  setTimeout(syncVisualViewportSize, 80);
+  setTimeout(syncVisualViewportSize, 300);
+}
+
 const state = {
   notes: [],
   nextEntryId: 1,
@@ -4409,6 +4446,7 @@ bindScoreKeyboardDivider();
 initKeyboard();
 bindKeyboardToggle();
 bindWorkModeSwitch();
+bindVisualViewportLock();
 initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });
