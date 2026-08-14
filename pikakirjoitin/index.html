@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.4.9" />
+  <link rel="stylesheet" href="style.css?v=0.4.5.0" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -13,36 +13,48 @@
 
   <div id="startupOverlay" class="startup-overlay" role="dialog" aria-modal="true" aria-label="Kappaleen aloitus">
     <div class="startup-card panel">
-      <header class="startup-header">
-        <div class="startup-product">Pikakirjoitin 1.0</div>
-        <div class="startup-tagline">Nopea nuotinkirjoitin huilunopetukseen</div>
-      </header>
-
-      <div class="startup-name-row">
-        <input id="startupTitleInput"
-               type="text"
-               maxlength="80"
-               autocomplete="off"
-               enterkeyhint="done"
-               placeholder="Kappaleen nimi"
-               aria-label="Kappaleen nimi">
-        <button id="startupBeginBtn" class="startup-begin-btn" type="button">Aloita</button>
+      <div class="startup-header">
+        <h1 class="startup-product">Pikakirjoitin 1.0</h1>
       </div>
 
-      <div class="startup-credits">
-        <div class="startup-person">Markku Hirvonen</div>
-        <div class="startup-role">Huilunsoitonopettaja</div>
-        <div class="startup-org">Riihimäen musiikkiopisto</div>
+      <div class="startup-name-row">
+        <input
+          id="startupTitleInput"
+          type="text"
+          maxlength="80"
+          autocomplete="off"
+          enterkeyhint="done"
+          placeholder="Kappaleen nimi"
+          aria-label="Kappaleen nimi"
+        >
+        <button id="startupBeginBtn" class="startup-begin-btn" type="button">
+          Aloita
+        </button>
+      </div>
 
-        <div class="startup-email-label">Sähköposti</div>
-        <a class="startup-email" href="mailto:markku.hirvonen@riihimaki.fi">markku.hirvonen@riihimaki.fi</a>
+      <div class="startup-info">
+        <div class="startup-author">
+          <strong>Markku Hirvonen</strong><br>
+          Huilunsoitonopettaja<br>
+          Riihimäen musiikkiopisto<br>
+          <a href="mailto:markku.hirvonen@riihimaki.fi">
+            markku.hirvonen@riihimaki.fi
+          </a>
+        </div>
 
-        <div class="startup-ai">Suunniteltu ja kehitetty yhdessä Sanita-tekoälyn kanssa</div>
+        <div class="startup-ai">
+          Suunniteltu ja kehitetty yhdessä Sanita-tekoälyn kanssa
+        </div>
+
         <div class="startup-license">
-          <span>© 2026 Markku Hirvonen · Avoin lähdekoodi · </span>
-          <a href="https://opensource.org/license/mit"
-             target="_blank"
-             rel="noopener noreferrer">MIT License</a>
+          © 2026 Markku Hirvonen · Avoin lähdekoodi ·
+          <a
+            href="https://opensource.org/license/mit"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            MIT License
+          </a>
         </div>
       </div>
     </div>
@@ -535,6 +547,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.4.9.js"></script>
+  <script src="app-0.4.5.0.js"></script>
 </body>
 </html>

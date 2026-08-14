@@ -2990,3 +2990,137 @@ input, select {
     width: 100% !important;
   }
 }
+
+
+/* 0.4.5.0 · Hyväksytty aloitusikkuna */
+.startup-overlay {
+  background: rgba(23, 31, 42, 0.24) !important;
+  backdrop-filter: blur(9px) saturate(0.9) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(0.9) !important;
+}
+
+.startup-card {
+  width: min(560px, calc(100vw - 40px)) !important;
+  padding: 32px 36px 28px !important;
+  border: 1px solid #cfd8e2 !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: 0 16px 48px rgba(34, 51, 69, .16) !important;
+}
+
+.startup-header {
+  margin-bottom: 24px !important;
+}
+
+.startup-product {
+  margin: 0 !important;
+  color: #1f2d3d !important;
+  font-size: 24px !important;
+  font-weight: 720 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.startup-name-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 112px !important;
+  gap: 10px !important;
+  margin-bottom: 28px !important;
+}
+
+.startup-name-row input {
+  height: 50px !important;
+  min-width: 0 !important;
+  padding: 0 15px !important;
+  border: 1px solid #c6d0db !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #1f2d3d !important;
+  font-size: 16px !important;
+  outline: none !important;
+}
+
+.startup-name-row input:focus {
+  border-color: #6f8da8 !important;
+  box-shadow: 0 0 0 3px rgba(55, 92, 124, .10) !important;
+}
+
+.startup-begin-btn {
+  height: 50px !important;
+  min-height: 50px !important;
+  padding: 0 18px !important;
+  border: 1px solid #2f5b7d !important;
+  border-radius: 8px !important;
+  background: #2f5b7d !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.startup-begin-btn:hover {
+  background: #274b67 !important;
+}
+
+.startup-info {
+  border-top: 1px solid #e3e8ee !important;
+  padding-top: 22px !important;
+  text-align: left !important;
+}
+
+.startup-author {
+  color: #526173 !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+}
+
+.startup-author strong {
+  color: #1f2d3d !important;
+  font-size: 15px !important;
+}
+
+.startup-author a {
+  color: #315d7f !important;
+  text-decoration: none !important;
+}
+
+.startup-author a:hover,
+.startup-author a:focus-visible {
+  text-decoration: underline !important;
+}
+
+.startup-ai {
+  margin-top: 24px !important;
+  padding-top: 17px !important;
+  border-top: 1px solid #edf1f4 !important;
+  color: #667587 !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.startup-license {
+  margin-top: 8px !important;
+  color: #8a95a1 !important;
+  font-size: 10.5px !important;
+  line-height: 1.45 !important;
+}
+
+.startup-license a {
+  color: #556e84 !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+}
+
+@media (max-width: 520px) {
+  .startup-card {
+    padding: 26px 24px 24px !important;
+  }
+
+  .startup-name-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .startup-begin-btn {
+    width: 100% !important;
+  }
+}
