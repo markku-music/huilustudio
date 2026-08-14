@@ -322,6 +322,31 @@ function syncVisualViewportSize() {
   });
 }
 
+
+function bindHardViewportScrollLock() {
+  const resetOuterScroll = () => {
+    if (window.scrollX !== 0 || window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+
+  window.addEventListener('scroll', resetOuterScroll, { passive: true });
+
+  document.addEventListener('touchmove', (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+
+    // Nuottialue saa vierittyä omassa laatikossaan.
+    if (target?.closest('#osmdContainer')) return;
+
+    // Muun käyttöliittymän pystypyyhkäisy ei saa liikuttaa koko sivua.
+    ev.preventDefault();
+  }, { passive: false });
+
+  resetOuterScroll();
+}
+
 function bindVisualViewportLock() {
   syncVisualViewportSize();
 
@@ -4447,6 +4472,7 @@ initKeyboard();
 bindKeyboardToggle();
 bindWorkModeSwitch();
 bindVisualViewportLock();
+bindHardViewportScrollLock();
 initNoteSelection();
 initScoreTouchGestures();
 applyLayoutState({ save: false });

@@ -2976,3 +2976,59 @@ input, select {
     overscroll-behavior: contain !important;
   }
 }
+
+
+/* 0.4.4.2 · Koko käyttöliittymä lukittu, vain nuottialue saa vierittyä */
+@media screen {
+  html,
+  body {
+    position: fixed !important;
+    inset: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    touch-action: none;
+  }
+
+  .app-shell,
+  .side-column,
+  .main-column {
+    position: relative;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .mode-panel,
+  .output-toolbar {
+    position: relative !important;
+    z-index: 1500 !important;
+    flex: 0 0 auto !important;
+    touch-action: manipulation;
+  }
+
+  .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #osmdContainer {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  .zone-panel,
+  .zone-keyboard,
+  .keyboard-surface {
+    touch-action: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
