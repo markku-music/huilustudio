@@ -308,22 +308,17 @@ function syncVisualViewportSize() {
   cancelAnimationFrame(viewportSyncFrame);
   viewportSyncFrame = requestAnimationFrame(() => {
     const viewport = window.visualViewport;
-
-    // iPad Safarissa visualViewport.height voi joissakin tilanteissa jäädä
-    // selainikkunan todellista sisältöaluetta pienemmäksi ja jättää appin alle
-    // tyhjän kaistaleen. innerHeight seuraa tässä luotettavammin näkyvää aluetta.
     const height = Math.max(
       1,
-      Math.round(window.innerHeight || viewport?.height || document.documentElement.clientHeight || 1)
+      Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 1)
     );
     const width = Math.max(
       1,
-      Math.round(window.innerWidth || viewport?.width || document.documentElement.clientWidth || 1)
+      Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 1)
     );
 
     document.documentElement.style.setProperty('--app-viewport-height', `${height}px`);
     document.documentElement.style.setProperty('--app-viewport-width', `${width}px`);
-    applyScoreKeyboardSplitPixels?.(layoutState?.scoreShare);
   });
 }
 
@@ -2674,53 +2669,13 @@ function printScore() {
   setTimeout(restorePrintState, 60000);
 }
 
-function applyScoreKeyboardSplitPixels(share = layoutState.scoreShare) {
-  const keyboardOpen =
-    !mainColumn.classList.contains('keyboard-collapsed')
-    && !mainColumn.classList.contains('keyboard-preloaded-hidden');
-
-  if (!keyboardOpen) {
-    paperPanel.style.removeProperty('height');
-    paperPanel.style.removeProperty('flex-basis');
-    zonePanel.style.removeProperty('height');
-    zonePanel.style.removeProperty('flex-basis');
-    return;
-  }
-
-  const mainRect = mainColumn.getBoundingClientRect();
-  const modeHeight = document.querySelector('.mode-panel')?.getBoundingClientRect().height || 0;
-  const outputHeight = outputToolbar?.offsetParent
-    ? outputToolbar.getBoundingClientRect().height
-    : 0;
-  const toggleHeight = document.querySelector('.keyboard-toggle-strip')?.getBoundingClientRect().height || 0;
-  const dividerHeight = scoreKeyboardDivider.getBoundingClientRect().height || 22;
-
-  const fixedHeight = modeHeight + outputHeight + toggleHeight + dividerHeight;
-  const available = Math.max(1, mainRect.height - fixedHeight);
-
-  const clampedShare = clamp(Number(share) || defaultLayout.scoreShare, 45, 85);
-  const paperHeight = Math.round(available * clampedShare / 100);
-  const keyboardHeight = Math.max(0, available - paperHeight);
-
-  paperPanel.style.setProperty('flex', '0 0 auto', 'important');
-  paperPanel.style.setProperty('height', `${paperHeight}px`, 'important');
-  paperPanel.style.setProperty('flex-basis', `${paperHeight}px`, 'important');
-
-  zonePanel.style.setProperty('flex', '0 0 auto', 'important');
-  zonePanel.style.setProperty('height', `${keyboardHeight}px`, 'important');
-  zonePanel.style.setProperty('flex-basis', `${keyboardHeight}px`, 'important');
-}
-
 function setScoreShare(value, { save = false } = {}) {
-  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 45, 85);
+  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 30, 70);
   mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
   scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
-  scoreKeyboardDivider.setAttribute('aria-valuemin', '45');
-  scoreKeyboardDivider.setAttribute('aria-valuemax', '85');
+  scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
+  scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
-
-  applyScoreKeyboardSplitPixels(layoutState.scoreShare);
-
   if (save) saveLayoutState();
 }
 
@@ -2839,86 +2794,51 @@ function bindKeyboardToggle() {
 }
 
 function bindScoreKeyboardDivider() {
-  if (!scoreKeyboardDivider) return;
-
   let activePointerId = null;
-  let splitTop = 0;
-  let splitHeight = 1;
 
-  const updateFromClientY = clientY => {
-    if (activePointerId === null) return;
-
-    const relative = clamp(clientY - splitTop, 0, splitHeight);
-    const share = clamp((relative / splitHeight) * 100, 45, 85);
-
-    // Vedon aikana ei tallenneta localStorageen joka framella.
-    setScoreShare(share, { save: false });
+  const updateFromPointer = (ev) => {
+    if (activePointerId === null || ev.pointerId !== activePointerId) return;
+    ev.preventDefault();
+    const rect = mainColumn.getBoundingClientRect();
+    if (!rect.height) return;
+    setScoreShare(((ev.clientY - rect.top) / rect.height) * 100);
   };
 
-  const finishDrag = ev => {
+  const finishDrag = (ev) => {
     if (activePointerId === null) return;
     if (ev?.pointerId !== undefined && ev.pointerId !== activePointerId) return;
-
     const pointerId = activePointerId;
     activePointerId = null;
-
-    try {
-      if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
-        scoreKeyboardDivider.releasePointerCapture(pointerId);
-      }
-    } catch {}
-
+    if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
+      try { scoreKeyboardDivider.releasePointerCapture(pointerId); } catch {}
+    }
     scoreKeyboardDivider.classList.remove('dragging');
     saveLayoutState();
   };
 
-  scoreKeyboardDivider.addEventListener('pointerdown', ev => {
+  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
     if (activePointerId !== null) return;
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-    if (
-      mainColumn.classList.contains('keyboard-collapsed')
-      || mainColumn.classList.contains('keyboard-preloaded-hidden')
-    ) return;
-
     ev.preventDefault();
-    ev.stopPropagation();
-
-    const paperRect = paperPanel.getBoundingClientRect();
-    const zoneRect = zonePanel.getBoundingClientRect();
-
-    splitTop = paperRect.top;
-    splitHeight = Math.max(1, paperRect.height + zoneRect.height);
-
     activePointerId = ev.pointerId;
     scoreKeyboardDivider.classList.add('dragging');
-
     try { scoreKeyboardDivider.setPointerCapture?.(ev.pointerId); } catch {}
-
-    updateFromClientY(ev.clientY);
   }, { passive: false });
 
-  const move = ev => {
-    if (activePointerId === null || ev.pointerId !== activePointerId) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    updateFromClientY(ev.clientY);
-  };
-
-  scoreKeyboardDivider.addEventListener('pointermove', move, { passive: false });
-  window.addEventListener('pointermove', move, { passive: false });
+  // iPadOS Safari ei aina pidä pointer capturea voimassa. Ikkunatason
+  // kuuntelu pitää vedon toiminnassa myös silloin, kun sormi poistuu kahvalta.
+  window.addEventListener('pointermove', updateFromPointer, { passive: false });
   window.addEventListener('pointerup', finishDrag);
   window.addEventListener('pointercancel', finishDrag);
   window.addEventListener('blur', () => finishDrag());
 
-  scoreKeyboardDivider.addEventListener('keydown', ev => {
+  scoreKeyboardDivider.addEventListener('keydown', (ev) => {
     if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
     ev.preventDefault();
-    setScoreShare(
-      layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1),
-      { save: true }
-    );
+    setScoreShare(layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1), { save: true });
   });
 }
+
 function exportLayoutJson() {
   const payload = {
     format: 'Pikakirjoitin layout',
