@@ -51,6 +51,7 @@ const songPanelClose = document.getElementById('songPanelClose');
 const songPanelDone = document.getElementById('songPanelDone');
 const songPanelBackdrop = document.getElementById('songPanelBackdrop');
 const mainColumn = document.querySelector('.main-column');
+const scoreKeyboardSplit = document.getElementById('scoreKeyboardSplit');
 const scoreKeyboardDivider = document.getElementById('scoreKeyboardDivider');
 const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
 const keyboardToggleLabel = document.getElementById('keyboardToggleLabel');
@@ -2674,10 +2675,11 @@ function printScore() {
 }
 
 function setScoreShare(value, { save = false } = {}) {
-  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 45, 85);
+  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 30, 85);
+  scoreKeyboardSplit.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
   mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
   scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
-  scoreKeyboardDivider.setAttribute('aria-valuemin', '45');
+  scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
   scoreKeyboardDivider.setAttribute('aria-valuemax', '85');
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
   if (save) saveLayoutState();
@@ -2798,71 +2800,53 @@ function bindKeyboardToggle() {
 }
 
 function bindScoreKeyboardDivider() {
-  if (!scoreKeyboardDivider) return;
+  let activePointerId = null;
 
-  let drag = null;
-
-  const applyFromClientY = clientY => {
-    if (!drag) return;
-
-    const rect = mainColumn.getBoundingClientRect();
-    const availableHeight = Math.max(1, rect.height - drag.fixedHeight);
-
-    const paperTop = drag.paperTop;
-    const relativeY = clientY - paperTop;
-    const share = clamp((relativeY / availableHeight) * 100, 45, 85);
-
-    setScoreShare(share, { save: true });
+  const updateFromPointer = (ev) => {
+    if (activePointerId === null || ev.pointerId !== activePointerId) return;
+    ev.preventDefault();
+    const rect = scoreKeyboardSplit.getBoundingClientRect();
+    if (!rect.height) return;
+    setScoreShare(((ev.clientY - rect.top) / rect.height) * 100);
   };
 
-  scoreKeyboardDivider.addEventListener('pointerdown', ev => {
+  const finishDrag = (ev) => {
+    if (activePointerId === null) return;
+    if (ev?.pointerId !== undefined && ev.pointerId !== activePointerId) return;
+    const pointerId = activePointerId;
+    activePointerId = null;
+    try {
+      if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
+        scoreKeyboardDivider.releasePointerCapture(pointerId);
+      }
+    } catch {}
+    scoreKeyboardDivider.classList.remove('dragging');
+    saveLayoutState();
+  };
+
+  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
     if (mainColumn.classList.contains('keyboard-collapsed')) return;
     if (mainColumn.classList.contains('keyboard-preloaded-hidden')) return;
-
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     ev.preventDefault();
-
-    const mainRect = mainColumn.getBoundingClientRect();
-    const paperRect = paperPanel.getBoundingClientRect();
-    const dividerRect = scoreKeyboardDivider.getBoundingClientRect();
-    const zoneRect = zonePanel.getBoundingClientRect();
-
-    // Kaikki muu kuin paperi + koskettimisto lasketaan kiinteäksi korkeudeksi.
-    const paperAndKeyboardHeight = paperRect.height + zoneRect.height;
-    const fixedHeight = Math.max(0, mainRect.height - paperAndKeyboardHeight);
-
-    drag = {
-      pointerId: ev.pointerId,
-      paperTop: paperRect.top,
-      fixedHeight,
-    };
-
-    scoreKeyboardDivider.setPointerCapture?.(ev.pointerId);
+    activePointerId = ev.pointerId;
     scoreKeyboardDivider.classList.add('dragging');
-    applyFromClientY(ev.clientY);
+    try { scoreKeyboardDivider.setPointerCapture?.(ev.pointerId); } catch {}
+    updateFromPointer(ev);
   }, { passive: false });
 
-  scoreKeyboardDivider.addEventListener('pointermove', ev => {
-    if (!drag || ev.pointerId !== drag.pointerId) return;
-    ev.preventDefault();
-    applyFromClientY(ev.clientY);
-  }, { passive: false });
+  scoreKeyboardDivider.addEventListener('pointermove', updateFromPointer, { passive: false });
+  window.addEventListener('pointermove', updateFromPointer, { passive: false });
+  window.addEventListener('pointerup', finishDrag);
+  window.addEventListener('pointercancel', finishDrag);
+  window.addEventListener('blur', () => finishDrag());
 
-  const finish = ev => {
-    if (!drag || ev.pointerId !== drag.pointerId) return;
+  scoreKeyboardDivider.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
     ev.preventDefault();
-    try { scoreKeyboardDivider.releasePointerCapture?.(ev.pointerId); } catch {}
-    scoreKeyboardDivider.classList.remove('dragging');
-    drag = null;
-  };
-
-  scoreKeyboardDivider.addEventListener('pointerup', finish, { passive: false });
-  scoreKeyboardDivider.addEventListener('pointercancel', finish, { passive: false });
-  scoreKeyboardDivider.addEventListener('lostpointercapture', () => {
-    scoreKeyboardDivider.classList.remove('dragging');
-    drag = null;
+    setScoreShare(layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1), { save: true });
   });
 }
-
 function exportLayoutJson() {
   const payload = {
     format: 'Pikakirjoitin layout',
