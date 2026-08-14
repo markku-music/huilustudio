@@ -3032,3 +3032,85 @@ input, select {
     touch-action: manipulation;
   }
 }
+
+
+/* 0.4.4.3 · Jakokahva takaisin selkeäksi + turha alatyhjyys pois */
+@media screen {
+
+  /* Nuotti-ikkunan ja koskettimiston välinen vedettävä jakokahva. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    position: relative !important;
+    flex: 0 0 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+    z-index: 20 !important;
+    background: transparent !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {
+    display: block !important;
+    width: 86px !important;
+    height: 5px !important;
+    min-height: 5px !important;
+    border-radius: 999px !important;
+    background: rgba(76, 99, 132, 0.42) !important;
+    box-shadow: 0 1px 2px rgba(32, 48, 72, 0.10) !important;
+    pointer-events: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden)
+  .score-keyboard-divider:active .divider-grip,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden)
+  .score-keyboard-divider.dragging .divider-grip {
+    width: 110px !important;
+    background: var(--blue) !important;
+  }
+
+  /* Koskettimisto istuu suoraan viewportin alareunaan ilman turhaa tyhjää vyöhykettä. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    margin: 0 !important;
+    padding: 6px 8px 0 !important;
+    padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+    align-self: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    align-self: stretch !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-viewport {
+    margin: 0 !important;
+  }
+}
+
+/* Matalassa iPad-vaakanäkymässäkin jakokahva jää helposti tartuttavaksi. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex-basis: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {
+    width: 76px !important;
+    height: 4px !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    padding-top: 4px !important;
+    padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+  }
+}
