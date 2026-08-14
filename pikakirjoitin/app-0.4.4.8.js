@@ -145,7 +145,7 @@ const scoreTextOutputs = {
 const SCORE_TEXT_ROLES = ['title', 'composer', 'tempo'];
 
 const LAYOUT_STORAGE_KEY = 'melody-writer-flick-layout-v1';
-const LAYOUT_DEFAULTS_VERSION = 3;
+const LAYOUT_DEFAULTS_VERSION = 4;
 const PROJECT_FORMAT = 'Pikakirjoitin project';
 const PROJECT_FORMAT_VERSION = 1;
 const PROJECT_APP_VERSION = '0.3.9.1';
@@ -1962,7 +1962,7 @@ function loadLayoutState() {
     return {
       defaultsVersion: LAYOUT_DEFAULTS_VERSION,
       handedness: saved.handedness === 'left' ? 'left' : 'right',
-      scoreShare: usesEarlierDefaults && savedScoreShare === 54 ? defaultLayout.scoreShare : savedScoreShare,
+      scoreShare: usesEarlierDefaults ? defaultLayout.scoreShare : savedScoreShare,
       noteSpacing: normalizeNoteSpacing(saved.noteSpacing),
       scoreZoom: usesEarlierDefaults && (savedScoreZoom === 108 || savedScoreZoom === 150)
         ? defaultLayout.scoreZoom
