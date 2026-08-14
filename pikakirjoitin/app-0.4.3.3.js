@@ -1019,15 +1019,10 @@ function toggleSelectedTiePlacement() {
 
   const entry = state.notes[startIndex];
 
-  let current = entry.tiePlacement || '';
-  if (!current) {
-    // Ensimmäisellä painalluksella luetaan juuri nyt näkyvän nuotin todellinen
-    // varren suunta OSMD/VexFlowsta. Tämä huomioi myös palkkiryhmän yhteisen
-    // varrensuunnan, jota ei voi päätellä luotettavasti pelkästä sävelkorkeudesta.
-    current = renderedTieDefaultPlacementForEntryIndex(startIndex)
-      || fallbackTieDefaultPlacementForEntry(entry);
-  }
-
+  // 0.4.3.3:
+  // sidekaaren todellinen automaattinen lähtösuunta tallennetaan jo renderöinnin
+  // jälkeen. Tästä eteenpäin nappi tekee vain yksiselitteisen ylös/alas-vaihdon.
+  const current = entry.tiePlacement === 'above' ? 'above' : 'below';
   entry.tiePlacement = current === 'above' ? 'below' : 'above';
 
   syncNoteSelectionToolbar();
@@ -1346,6 +1341,28 @@ function renderNoteSelectionOverlay() {
   }
 
   osmdContainer.appendChild(layer);
+}
+
+
+function captureAutomaticTiePlacementsFromRenderedScore() {
+  if (!state.osmd) return;
+
+  const candidates = state.notes
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry?.kind === 'note' && entry.tieToNext && !entry.tiePlacement);
+
+  if (candidates.length === 0) return;
+
+  candidates.forEach(({ entry, index }) => {
+    const placement = renderedTieDefaultPlacementForEntryIndex(index)
+      || fallbackTieDefaultPlacementForEntry(entry);
+
+    if (placement === 'above' || placement === 'below') {
+      // Tallennetaan automaattinen näkyvä lähtösuunta heti renderöinnin jälkeen.
+      // Kääntönappi ei enää koskaan joudu arvaamaan tätä myöhemmin.
+      entry.tiePlacement = placement;
+    }
+  });
 }
 
 function refreshNoteSelectionGeometry() {
@@ -4169,6 +4186,7 @@ async function renderScoreNow() {
     state.appliedNoteSpacing = layoutState.noteSpacing;
     state.appliedScoreLayoutSignature = getScoreLayoutSignature();
     renderSystemBreakMarkers();
+    captureAutomaticTiePlacementsFromRenderedScore();
     refreshNoteSelectionGeometry();
     noteScoreRenderCompleted();
     statusText.textContent = 'Valmis';
