@@ -318,13 +318,11 @@ const state = {
     dotPointers: new Set(),
     sixteenthPointers: new Set(),
     restPointers: new Set(),
-    tiePointers: new Set(),
     dotKeyboard: false,
     sixteenthKeyboard: false,
     restKeyboard: false,
-    tieKeyboard: false,
   },
-  tiePendingEntryId: null,
+  tieOneShotArmed: false,
   audioContext: null,
   osmd: null,
   appliedScoreLayoutSignature: null,
@@ -598,7 +596,6 @@ function hideFlickHud() {
 }
 
 function undoLastNoteWithFeedback() {
-  state.tiePendingEntryId = null;
   if (state.notes.length > 0) {
     state.notes.pop();
     pruneSlurs();
@@ -811,7 +808,6 @@ function restorePendingSystemBreakAfterUndo() {
 }
 
 function clearScoreWithFeedback() {
-  state.tiePendingEntryId = null;
   state.notes = [];
   state.slurs = [];
   state.hairpins = [];
@@ -1735,33 +1731,24 @@ function commitFlickGesture(gesture) {
     octave: Number(keyEl.dataset.octave),
     units: durationUnits,
   };
+  const previousEntry = state.notes[state.notes.length - 1] || null;
   state.notes.push(entry);
 
-  if (isTieShiftActive()) {
-    const pendingId = state.tiePendingEntryId;
-    const pendingIndex = pendingId
-      ? state.notes.findIndex(note => note.id === pendingId)
-      : -1;
-    const pending = pendingIndex >= 0 ? state.notes[pendingIndex] : null;
-    const currentIndex = state.notes.length - 1;
+  if (state.tieOneShotArmed) {
+    const samePitch = previousEntry &&
+      previousEntry.kind === 'note' &&
+      previousEntry.step === entry.step &&
+      Number(previousEntry.alter || 0) === Number(entry.alter || 0) &&
+      Number(previousEntry.octave) === Number(entry.octave);
 
-    const samePitch = pending &&
-      pending.kind === 'note' &&
-      pending.step === entry.step &&
-      Number(pending.alter || 0) === Number(entry.alter || 0) &&
-      Number(pending.octave) === Number(entry.octave);
-
-    const consecutive = pendingIndex === currentIndex - 1;
-
-    if (samePitch && consecutive) {
-      pending.tieToNext = true;
-      state.tiePendingEntryId = null;
-    } else {
-      // Ensimmäinen sidekaaren nuotti tai uusi yritys eri sävelen jälkeen.
-      state.tiePendingEntryId = entry.id;
+    if (samePitch) {
+      previousEntry.tieToNext = true;
     }
-  } else {
-    state.tiePendingEntryId = null;
+
+    // Kertakytkin koskee aina vain seuraavaa kirjoitettua nuottia.
+    // Sama sävel -> sidekaari. Eri sävel -> ei sidekaarta.
+    state.tieOneShotArmed = false;
+    syncModifierButtons();
   }
 
   requestScoreEntryFollow(entry);
@@ -4097,15 +4084,12 @@ function isRestShiftActive() {
   return state.modifiers.restPointers.size > 0 || state.modifiers.restKeyboard;
 }
 
-function isTieShiftActive() {
-  return state.modifiers.tiePointers.size > 0 || state.modifiers.tieKeyboard;
-}
 
 function syncModifierButtons() {
   const dotActive = isDotModifierActive();
   const sixteenthActive = isSixteenthModifierActive();
   const restActive = isRestShiftActive();
-  const tieActive = isTieShiftActive();
+  const tieActive = Boolean(state.tieOneShotArmed);
   dotShiftBtn.classList.toggle('active', dotActive);
   dotShiftBtn.setAttribute('aria-pressed', String(dotActive));
   sixteenthShiftBtn.classList.toggle('active', sixteenthActive);
@@ -4141,16 +4125,14 @@ function bindHoldModifier(button, pointerSet) {
 bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
 bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
 bindHoldModifier(restShiftBtn, state.modifiers.restPointers);
-bindHoldModifier(tieShiftBtn, state.modifiers.tiePointers);
 
-const clearPendingTieIfReleased = () => {
-  queueMicrotask(() => {
-    if (!isTieShiftActive()) state.tiePendingEntryId = null;
-  });
-};
-tieShiftBtn.addEventListener('pointerup', clearPendingTieIfReleased);
-tieShiftBtn.addEventListener('pointercancel', clearPendingTieIfReleased);
-tieShiftBtn.addEventListener('lostpointercapture', clearPendingTieIfReleased);
+tieShiftBtn.addEventListener('click', () => {
+  // Kertakytkin: paina kerran, niin seuraava nuotti yrittää sitoutua edelliseen.
+  state.tieOneShotArmed = !state.tieOneShotArmed;
+  syncModifierButtons();
+});
+
+
 
 
 function isEditableTarget(target) {
@@ -4161,8 +4143,6 @@ function clearKeyboardModifiers() {
   state.modifiers.dotKeyboard = false;
   state.modifiers.sixteenthKeyboard = false;
   state.modifiers.restKeyboard = false;
-  state.modifiers.tieKeyboard = false;
-  state.tiePendingEntryId = null;
   syncModifierButtons();
 }
 
