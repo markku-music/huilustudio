@@ -2674,11 +2674,11 @@ function printScore() {
 }
 
 function setScoreShare(value, { save = false } = {}) {
-  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 30, 70);
+  layoutState.scoreShare = clamp(Number(value) || defaultLayout.scoreShare, 45, 85);
   mainColumn.style.setProperty('--score-share', `${layoutState.scoreShare}%`);
   scoreKeyboardDivider.setAttribute('aria-valuenow', String(Math.round(layoutState.scoreShare)));
-  scoreKeyboardDivider.setAttribute('aria-valuemin', '30');
-  scoreKeyboardDivider.setAttribute('aria-valuemax', '70');
+  scoreKeyboardDivider.setAttribute('aria-valuemin', '45');
+  scoreKeyboardDivider.setAttribute('aria-valuemax', '85');
   scoreShareOut.textContent = `${Math.round(layoutState.scoreShare)} %`;
   if (save) saveLayoutState();
 }
@@ -2798,48 +2798,68 @@ function bindKeyboardToggle() {
 }
 
 function bindScoreKeyboardDivider() {
-  let activePointerId = null;
+  if (!scoreKeyboardDivider) return;
 
-  const updateFromPointer = (ev) => {
-    if (activePointerId === null || ev.pointerId !== activePointerId) return;
-    ev.preventDefault();
+  let drag = null;
+
+  const applyFromClientY = clientY => {
+    if (!drag) return;
+
     const rect = mainColumn.getBoundingClientRect();
-    if (!rect.height) return;
-    setScoreShare(((ev.clientY - rect.top) / rect.height) * 100);
+    const availableHeight = Math.max(1, rect.height - drag.fixedHeight);
+
+    const paperTop = drag.paperTop;
+    const relativeY = clientY - paperTop;
+    const share = clamp((relativeY / availableHeight) * 100, 45, 85);
+
+    setScoreShare(share, { save: true });
   };
 
-  const finishDrag = (ev) => {
-    if (activePointerId === null) return;
-    if (ev?.pointerId !== undefined && ev.pointerId !== activePointerId) return;
-    const pointerId = activePointerId;
-    activePointerId = null;
-    if (scoreKeyboardDivider.hasPointerCapture?.(pointerId)) {
-      try { scoreKeyboardDivider.releasePointerCapture(pointerId); } catch {}
-    }
-    scoreKeyboardDivider.classList.remove('dragging');
-    saveLayoutState();
-  };
+  scoreKeyboardDivider.addEventListener('pointerdown', ev => {
+    if (mainColumn.classList.contains('keyboard-collapsed')) return;
+    if (mainColumn.classList.contains('keyboard-preloaded-hidden')) return;
 
-  scoreKeyboardDivider.addEventListener('pointerdown', (ev) => {
-    if (activePointerId !== null) return;
-    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     ev.preventDefault();
-    activePointerId = ev.pointerId;
+
+    const mainRect = mainColumn.getBoundingClientRect();
+    const paperRect = paperPanel.getBoundingClientRect();
+    const dividerRect = scoreKeyboardDivider.getBoundingClientRect();
+    const zoneRect = zonePanel.getBoundingClientRect();
+
+    // Kaikki muu kuin paperi + koskettimisto lasketaan kiinteäksi korkeudeksi.
+    const paperAndKeyboardHeight = paperRect.height + zoneRect.height;
+    const fixedHeight = Math.max(0, mainRect.height - paperAndKeyboardHeight);
+
+    drag = {
+      pointerId: ev.pointerId,
+      paperTop: paperRect.top,
+      fixedHeight,
+    };
+
+    scoreKeyboardDivider.setPointerCapture?.(ev.pointerId);
     scoreKeyboardDivider.classList.add('dragging');
-    try { scoreKeyboardDivider.setPointerCapture?.(ev.pointerId); } catch {}
+    applyFromClientY(ev.clientY);
   }, { passive: false });
 
-  // iPadOS Safari ei aina pidä pointer capturea voimassa. Ikkunatason
-  // kuuntelu pitää vedon toiminnassa myös silloin, kun sormi poistuu kahvalta.
-  window.addEventListener('pointermove', updateFromPointer, { passive: false });
-  window.addEventListener('pointerup', finishDrag);
-  window.addEventListener('pointercancel', finishDrag);
-  window.addEventListener('blur', () => finishDrag());
-
-  scoreKeyboardDivider.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
+  scoreKeyboardDivider.addEventListener('pointermove', ev => {
+    if (!drag || ev.pointerId !== drag.pointerId) return;
     ev.preventDefault();
-    setScoreShare(layoutState.scoreShare + (ev.key === 'ArrowDown' ? 1 : -1), { save: true });
+    applyFromClientY(ev.clientY);
+  }, { passive: false });
+
+  const finish = ev => {
+    if (!drag || ev.pointerId !== drag.pointerId) return;
+    ev.preventDefault();
+    try { scoreKeyboardDivider.releasePointerCapture?.(ev.pointerId); } catch {}
+    scoreKeyboardDivider.classList.remove('dragging');
+    drag = null;
+  };
+
+  scoreKeyboardDivider.addEventListener('pointerup', finish, { passive: false });
+  scoreKeyboardDivider.addEventListener('pointercancel', finish, { passive: false });
+  scoreKeyboardDivider.addEventListener('lostpointercapture', () => {
+    scoreKeyboardDivider.classList.remove('dragging');
+    drag = null;
   });
 }
 
