@@ -3541,14 +3541,18 @@ function annotateDefaultBeams(measure) {
   const beats = Number(beatsSelect.value);
   const beatType = Number(beatTypeSelect.value);
 
-  // 0.4.2.5 · 4/4:n iskupohjainen palkitus.
-  // Yksi neljäsosaisku = 8 sisäistä yksikköä, eikä palkitus ylitä iskun rajaa.
-  if (beats === 4 && beatType === 4) {
-    const beatUnits = 8;
+  // 0.4.2.6: musiikillisen iskun mukainen palkitus.
+  // 2/4, 3/4, 4/4 = neljäsosaisku (8 units).
+  // 6/8 = pisteellinen neljäsosaisku, 3+3 kahdeksasosaa (12 units).
+  let beatUnits = null;
+  if (beatType === 4 && [2, 3, 4].includes(beats)) beatUnits = 8;
+  if (beats === 6 && beatType === 8) beatUnits = 12;
+
+  if (beatUnits !== null) {
     let beatPosition = 0;
     let run = [];
 
-    const isBeamableNote = seg =>
+    const beamable = seg =>
       seg.kind === 'note' && [2, 3, 4, 6].includes(seg.units);
 
     const addBeam = (seg, number, value) => {
@@ -3556,89 +3560,62 @@ function annotateDefaultBeams(measure) {
       seg.beams.push({ number, value });
     };
 
-    const flushRun = () => {
+    const flush = () => {
       if (run.length < 2) {
         run = [];
         return;
       }
 
-      // Ensimmäinen palkkitaso yhdistää kaikki palkitettavat nuotit.
-      run.forEach((seg, index) => {
-        addBeam(
-          seg,
-          1,
-          index === 0 ? 'begin' : index === run.length - 1 ? 'end' : 'continue'
-        );
+      run.forEach((seg, i) => {
+        addBeam(seg, 1, i === 0 ? 'begin' : i === run.length - 1 ? 'end' : 'continue');
       });
 
-      // Toinen palkkitaso koskee 1/16- ja pisteellisiä 1/16-nuotteja.
-      const hasSecondBeam = seg => seg.units <= 3;
-      let index = 0;
-
-      while (index < run.length) {
-        if (!hasSecondBeam(run[index])) {
-          index += 1;
+      const secondLevel = seg => seg.units <= 3;
+      let i = 0;
+      while (i < run.length) {
+        if (!secondLevel(run[i])) {
+          i++;
           continue;
         }
 
-        const startIndex = index;
-        while (index + 1 < run.length && hasSecondBeam(run[index + 1])) {
-          index += 1;
-        }
-        const endIndex = index;
-        const length = endIndex - startIndex + 1;
+        const first = i;
+        while (i + 1 < run.length && secondLevel(run[i + 1])) i++;
+        const last = i;
 
-        if (length >= 2) {
-          for (let i = startIndex; i <= endIndex; i += 1) {
-            addBeam(
-              run[i],
-              2,
-              i === startIndex ? 'begin' : i === endIndex ? 'end' : 'continue'
-            );
+        if (last > first) {
+          for (let j = first; j <= last; j++) {
+            addBeam(run[j], 2, j === first ? 'begin' : j === last ? 'end' : 'continue');
           }
         } else {
-          // Yksittäisen 1/16-nuotin toinen palkki muodostetaan koukuksi.
-          const hook = startIndex === 0 ? 'forward hook' : 'backward hook';
-          addBeam(run[startIndex], 2, hook);
+          addBeam(run[first], 2, first === 0 ? 'forward hook' : 'backward hook');
         }
-
-        index += 1;
+        i++;
       }
-
       run = [];
     };
 
     measure.forEach(seg => {
       const units = Number(seg.units) || 0;
 
-      if (beatPosition > 0 && beatPosition % beatUnits === 0) {
-        flushRun();
-      }
+      if (beatPosition > 0 && beatPosition % beatUnits === 0) flush();
 
-      if (isBeamableNote(seg)) {
-        run.push(seg);
-      } else {
-        flushRun();
-      }
+      if (beamable(seg)) run.push(seg);
+      else flush();
 
       beatPosition += units;
-
-      if (beatPosition % beatUnits === 0) {
-        flushRun();
-      }
+      if (beatPosition % beatUnits === 0) flush();
     });
 
-    flushRun();
+    flush();
     return measure;
   }
 
-  // Muissa tahtilajeissa säilytetään toistaiseksi vanha toimiva logiikka.
+  // Muut tahtilajit käyttävät edelleen aiempaa turvallista oletusta.
   const annotateRuns = (units, groupSize, beamLevels) => {
     let run = [];
-
     const flush = () => {
-      for (let startIndex = 0; startIndex + groupSize <= run.length; startIndex += groupSize) {
-        const group = run.slice(startIndex, startIndex + groupSize);
+      for (let start = 0; start + groupSize <= run.length; start += groupSize) {
+        const group = run.slice(start, start + groupSize);
         group.forEach((seg, index) => {
           const value = index === 0 ? 'begin' : index === group.length - 1 ? 'end' : 'continue';
           seg.beams = beamLevels.map(number => ({ number, value }));
@@ -3646,13 +3623,9 @@ function annotateDefaultBeams(measure) {
       }
       run = [];
     };
-
     measure.forEach(seg => {
-      if (seg.kind === 'note' && seg.units === units) {
-        run.push(seg);
-      } else {
-        flush();
-      }
+      if (seg.kind === 'note' && seg.units === units) run.push(seg);
+      else flush();
     });
     flush();
   };
