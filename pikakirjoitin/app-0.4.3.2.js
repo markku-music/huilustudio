@@ -960,12 +960,53 @@ function getSelectedTieStartIndex() {
   return null;
 }
 
-function defaultTiePlacementForEntry(entry) {
+function renderedTieDefaultPlacementForEntryIndex(entryIndex) {
+  if (!Number.isInteger(entryIndex) || !state.osmd) return null;
+
+  const measureList = state.osmd.GraphicSheet?.MeasureList || [];
+
+  for (const measureGroup of measureList) {
+    for (const measure of (measureGroup || [])) {
+      for (const staffEntry of (measure?.staffEntries || [])) {
+        for (const voiceEntry of (staffEntry?.graphicalVoiceEntries || [])) {
+          for (const graphicalNote of (voiceEntry?.notes || [])) {
+            const objectId = graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;
+            const mappedIndex = state.renderedNoteObjectMap.get(objectId);
+            if (mappedIndex !== entryIndex) continue;
+
+            const vexRef = graphicalNote.vfnote;
+            const vexNote = Array.isArray(vexRef) ? vexRef[0] : vexRef;
+            if (!vexNote) continue;
+
+            let stemDirection = null;
+
+            if (typeof vexNote.getStemDirection === 'function') {
+              stemDirection = Number(vexNote.getStemDirection());
+            } else if (typeof vexNote.getStemDirection === 'number') {
+              stemDirection = Number(vexNote.getStemDirection);
+            } else if (Number.isFinite(Number(vexNote.stem_direction))) {
+              stemDirection = Number(vexNote.stem_direction);
+            } else if (Number.isFinite(Number(vexNote.stemDirection))) {
+              stemDirection = Number(vexNote.stemDirection);
+            }
+
+            // VexFlow: +1 = stem up, -1 = stem down.
+            // Automaattinen tie on normaalisti varren vastakkaisella puolella.
+            if (stemDirection > 0) return 'below';
+            if (stemDirection < 0) return 'above';
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function fallbackTieDefaultPlacementForEntry(entry) {
   if (!entry || entry.kind !== 'note') return 'below';
 
-  // Yksiviivaisessa diskanttiavaimen stemmassa OSMD:n oletus seuraa
-  // tavallisesti varren suuntaa: A4 ja alemmat -> varsi ylös -> tie alle,
-  // B4 ja ylemmät -> varsi alas -> tie päälle.
+  // Varareitti vain jos renderöidyn nuotin vartta ei saada luettua.
   const stepOrder = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
   const diatonic = Number(entry.octave) * 7 + (stepOrder[entry.step] ?? 0);
   const middleLineB4 = 4 * 7 + 6;
@@ -977,9 +1018,16 @@ function toggleSelectedTiePlacement() {
   if (!Number.isInteger(startIndex)) return;
 
   const entry = state.notes[startIndex];
-  const current = entry.tiePlacement || defaultTiePlacementForEntry(entry);
 
-  // Ensimmäinen painallus kääntää automaattisen suunnan nimenomaan toiselle puolelle.
+  let current = entry.tiePlacement || '';
+  if (!current) {
+    // Ensimmäisellä painalluksella luetaan juuri nyt näkyvän nuotin todellinen
+    // varren suunta OSMD/VexFlowsta. Tämä huomioi myös palkkiryhmän yhteisen
+    // varrensuunnan, jota ei voi päätellä luotettavasti pelkästä sävelkorkeudesta.
+    current = renderedTieDefaultPlacementForEntryIndex(startIndex)
+      || fallbackTieDefaultPlacementForEntry(entry);
+  }
+
   entry.tiePlacement = current === 'above' ? 'below' : 'above';
 
   syncNoteSelectionToolbar();
