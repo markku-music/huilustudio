@@ -2412,3 +2412,131 @@ input, select {
 .app-shell.work-mode-output #selectionTieFlipBtn {
   display: none !important;
 }
+
+
+/* 0.4.3.5 · Puhdas AirPrint: tulosteessa vain varsinainen nuottipaperi */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    background: #fff !important;
+  }
+
+  /* Kaikki sivun ulkopuoliset kerrokset pois tulosteesta. */
+  body > *:not(#appShell) {
+    display: none !important;
+  }
+
+  #appShell,
+  #appShell.app-shell,
+  #appShell.app-shell.left-handed {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Sivupalkki kokonaan pois. */
+  #appShell > .side-column {
+    display: none !important;
+  }
+
+  #appShell > .main-column {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /*
+    Vahva sääntö: main-columnin kaikki käyttöliittymäosat piiloon.
+    Ainoastaan paper-panel saa jäädä tulostukseen.
+  */
+  #appShell > .main-column > * {
+    display: none !important;
+  }
+
+  #appShell > .main-column > .paper-panel {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Paperin sisältä vain nuottikuva. */
+  .paper-panel > *:not(#osmdContainer) {
+    display: none !important;
+  }
+
+  #osmdContainer {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Editorin apukerrokset eivät kuulu nuottipaperiin. */
+  #osmdContainer .selection-toolbar,
+  #osmdContainer .note-selection-layer,
+  #osmdContainer .note-selection-highlight,
+  #osmdContainer .note-selection-marquee,
+  #osmdContainer .system-break-markers,
+  #osmdContainer .system-break-candidate-svg,
+  #osmdContainer .margin-guide-overlay {
+    display: none !important;
+  }
+
+  /* OSMD:n A4-sivut tulostetaan 1:1. */
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+}
