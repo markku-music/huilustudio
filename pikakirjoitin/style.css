@@ -1,0 +1,3195 @@
+:root {
+  --bg: #eef2f7;
+  --panel: #ffffff;
+  --line: #d7dfea;
+  --ink: #10203f;
+  --muted: #50617f;
+  --blue: #3f80ff;
+  --blue-soft: #e8f0ff;
+  --purple: #8653f6;
+  --purple-soft: #efe8ff;
+  --shadow: 0 10px 30px rgba(26, 46, 88, 0.08);
+  --r: 24px;
+  --a4-screen-width: 850px;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+button, input, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.app-shell {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 94px minmax(0, 1fr);
+  gap: 18px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+}
+
+/* Vasenkätisessä asettelussa koskettimisto jää vasemman käden puolelle
+   ja sivuikkunat siirtyvät oikeaan reunaan. */
+.app-shell.left-handed {
+  grid-template-columns: minmax(0, 1fr) 94px;
+}
+
+.app-shell.left-handed .side-column {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.app-shell.left-handed .main-column {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+
+.side-column {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.layout-rail-button {
+  width: 100%;
+  min-height: 68px;
+  margin-top: auto;
+  border: 1px solid var(--line);
+  color: #50617f;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.left-panel {
+  position: fixed;
+  z-index: 2600;
+  top: 16px;
+  bottom: 16px;
+  left: 112px;
+  width: min(370px, calc(100vw - 128px));
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-22px);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms;
+}
+
+.app-shell.left-handed .left-panel {
+  right: 112px;
+  left: auto;
+  transform: translateX(22px);
+}
+
+.left-panel.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.song-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(16, 32, 63, .18);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 160ms;
+}
+
+.song-panel-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.song-panel-toggle {
+  min-height: 78px;
+  padding: 8px 5px;
+  border: 1px solid var(--line);
+  color: #3265bf;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.song-panel-icon { font-size: 25px; line-height: 1; }
+
+.song-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.song-panel-done {
+  min-height: 48px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--blue);
+  color: white;
+  font-weight: 800;
+}
+
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #3265bf;
+}
+
+.left-panel h2 {
+  margin: 4px 0 2px;
+  font-size: 25px;
+}
+
+.left-panel input,
+.left-panel select,
+.left-panel .stepper-btn {
+  height: 46px;
+}
+
+.modifier-panel {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  padding: 8px;
+}
+
+.modifier-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.modifier-button {
+  min-height: 82px;
+  padding: 8px;
+  border: 1px solid #cfd9e7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.modifier-button.active {
+  background: var(--purple-soft);
+  border-color: #aa8cff;
+  color: #4e2ca8;
+  box-shadow: inset 0 0 0 2px rgba(134, 83, 246, .18);
+  transform: translateY(1px);
+}
+
+.modifier-button-text {
+  font: 700 34px/1 system-ui, sans-serif;
+}
+
+.modifier-icon {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.modifier-icon-dotted {
+  width: 35px;
+  height: 46px;
+}
+
+.modifier-icon-sixteenth {
+  width: 32px;
+  height: 46px;
+}
+
+.modifier-icon-rest {
+  width: 31px;
+  height: 42px;
+}
+
+.modifier-icon-end {
+  width: 26px;
+  height: 46px;
+}
+
+.modifier-icon-system-break {
+  width: 42px;
+  height: 42px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.modifier-icon-selection {
+  width: 42px;
+  height: 42px;
+  fill: rgba(134, 83, 246, .10);
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.modifier-icon-selection rect { stroke-dasharray: 5 4; }
+.modifier-icon-selection path { fill: #fff; }
+.modifier-button.active .modifier-icon-selection path { fill: var(--purple-soft); }
+
+label { display: flex; flex-direction: column; gap: 8px; }
+label > span {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+input, select {
+  height: 54px;
+  border-radius: 14px;
+  border: 1px solid #cfd9e7;
+  background: #fff;
+  padding: 0 14px;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.centered { text-align: center; }
+
+.inline-selects {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.slash {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.stepper-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  gap: 10px;
+}
+
+.stepper-btn {
+  height: 54px;
+  border: 1px solid #cfd9e7;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.main-column {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.paper-panel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #e7ecf3;
+  padding: 14px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--score-share, 70%);
+}
+
+.selection-toolbar {
+  position: absolute;
+  z-index: 30;
+  top: 42px;
+  left: 50%;
+  min-height: 48px;
+  max-width: calc(100% - 38px);
+  padding: 5px 7px 5px 13px;
+  border: 1px solid #b8a1f3;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 8px 24px rgba(72, 45, 137, .18);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -8px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms;
+}
+
+.selection-toolbar.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.selection-count {
+  min-width: 108px;
+  color: #4e2ca8;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.selection-action-button,
+.selection-clear-button {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  padding: 0;
+  border: 1px solid #d3c5f7;
+  border-radius: 11px;
+  background: #fff;
+  color: #5633ad;
+  display: grid;
+  place-items: center;
+}
+
+.selection-action-button svg {
+  width: 30px;
+  height: 30px;
+  overflow: visible;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.selection-action-button svg path:first-child { fill: none; }
+.selection-action-button.active {
+  border-color: #8653f6;
+  background: var(--purple-soft);
+  box-shadow: inset 0 0 0 1px rgba(134, 83, 246, .20);
+}
+
+.selection-action-button:disabled {
+  opacity: .38;
+}
+
+.selection-dynamic-control {
+  height: 38px;
+  flex: 0 0 auto;
+  padding-left: 8px;
+  border: 1px solid #d3c5f7;
+  border-radius: 11px;
+  background: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+}
+
+.selection-dynamic-label {
+  color: #6a50a8;
+  font: 750 12px/1 system-ui, sans-serif;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.selection-dynamic-select {
+  width: 58px;
+  height: 36px;
+  flex: 0 0 58px;
+  padding: 0 22px 0 5px;
+  border: 0;
+  border-left: 1px solid #e6ddfa;
+  border-radius: 0 10px 10px 0;
+  background-color: transparent;
+  color: #5633ad;
+  font: italic 800 17px/1 Georgia, "Times New Roman", serif;
+  text-align: center;
+}
+
+.selection-dynamic-select:disabled {
+  opacity: .38;
+}
+
+.selection-clear-button {
+  border-color: transparent;
+  background: transparent;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.note-spacing-strip {
+  flex: 0 0 24px;
+  height: 24px;
+  width: calc(100% - 12px);
+  max-width: calc(var(--a4-screen-width) - 12px);
+  align-self: center;
+  margin: -5px 6px 3px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 6px;
+  color: #71819b;
+  font-size: 12px;
+}
+
+.note-spacing-strip input[type="range"] {
+  width: 100%;
+  height: 18px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.note-spacing-strip output {
+  text-align: right;
+  color: #4671bd;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.paper-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 15px;
+  border: 1px solid #d6deec;
+}
+
+.status-chip { background: #eef7ea; color: #2d6a2f; }
+.note-chip { background: #f5f8fe; color: var(--muted); }
+
+.toolbar-button {
+  margin-left: auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #cfd9e7;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.split-value-row {
+  min-height: 54px;
+  padding: 0 14px;
+  border: 1px solid #d6deec;
+  border-radius: 14px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.split-value-row output {
+  color: #4671bd;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+#osmdContainer {
+  position: relative;
+  width: 100%;
+  max-width: var(--a4-screen-width);
+  align-self: center;
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: #e7ecf3;
+  border-radius: 18px;
+  border: 1px solid #e4ebf5;
+  padding: 18px 22px;
+  touch-action: pan-y;
+}
+
+#osmdContainer.selection-mode {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.note-selection-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.note-selection-highlight {
+  position: absolute;
+  border: 2px solid rgba(104, 65, 214, .88);
+  border-radius: 9px;
+  background: rgba(134, 83, 246, .16);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .55);
+}
+
+.note-selection-marquee {
+  position: absolute;
+  border: 2px dashed #7045d0;
+  border-radius: 8px;
+  background: rgba(134, 83, 246, .10);
+}
+
+#osmdContainer > div[id^="osmdCanvasPage"] {
+  margin-right: auto;
+  margin-left: auto;
+  background: #fff;
+  border: 1px solid #d5dce7;
+  box-shadow: 0 5px 18px rgba(16, 32, 63, .12);
+}
+
+#osmdContainer > div[id^="osmdCanvasPage"] + div[id^="osmdCanvasPage"] {
+  margin-top: 18px;
+}
+
+.margin-guide-overlay {
+  display: none;
+  pointer-events: none;
+}
+
+#osmdContainer.show-margin-guides .margin-guide-overlay {
+  display: inline;
+}
+
+.margin-guide-overlay line {
+  fill: none;
+  stroke: #7350c7;
+  stroke-width: 1.25;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: .62;
+}
+
+.system-break-markers {
+  position: absolute;
+  inset: 0 auto auto 0;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.system-break-marker {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #aa8cff;
+  border-radius: 50%;
+  background: #f1ebff;
+  color: #5d35b5;
+  box-shadow: 0 2px 7px rgba(82, 48, 156, .18);
+  display: grid;
+  place-items: center;
+  font: 800 20px/1 system-ui, sans-serif;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.system-break-marker:hover,
+.system-break-marker:focus-visible {
+  background: #e6dbff;
+  border-color: #8057dd;
+  outline: none;
+}
+
+.system-break-marker:active {
+  transform: scale(.94);
+}
+
+.system-break-candidate-svg {
+  color: #765da9;
+  cursor: pointer;
+  opacity: .78;
+  pointer-events: all;
+  touch-action: manipulation;
+}
+
+.system-break-candidate-svg text {
+  fill: currentColor;
+  font: 700 23px/1 system-ui, sans-serif;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.system-break-candidate-svg:hover,
+.system-break-candidate-svg:focus-visible {
+  color: #5d35b5;
+  opacity: 1;
+  outline: none;
+}
+
+.print-watermark-overlay { display: none; }
+
+@page { size: A4 portrait; margin: 0; }
+
+@media print {
+  html,
+  body {
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .app-shell,
+  .app-shell.left-handed {
+    display: block !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .side-column,
+  .score-keyboard-divider,
+  .zone-panel,
+  .note-spacing-strip,
+  .system-break-markers,
+  .system-break-candidate-svg,
+  .song-panel-backdrop,
+  .flick-hud,
+  .layout-panel,
+  .selection-toolbar,
+  .note-selection-layer,
+  .margin-guide-overlay,
+  #statusText { display: none !important; }
+
+  .main-column,
+  .paper-panel,
+  #osmdContainer {
+    display: block !important;
+    width: 210mm !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  .print-watermark-overlay {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 100 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-watermark-overlay span {
+    display: block !important;
+    position: absolute !important;
+    left: 50% !important;
+    color: rgba(70, 78, 92, 0.12) !important;
+    font: 800 13mm/1 Arial, Helvetica, sans-serif !important;
+    letter-spacing: .4mm !important;
+    white-space: nowrap !important;
+    transform: translate(-50%, -50%) rotate(-28deg) !important;
+    transform-origin: center !important;
+  }
+
+  .print-watermark-overlay span:nth-child(1) { top: 22% !important; }
+  .print-watermark-overlay span:nth-child(2) { top: 50% !important; }
+  .print-watermark-overlay span:nth-child(3) { top: 78% !important; }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] + div[id^="osmdCanvasPage"] {
+    margin-top: 0 !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] > svg {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: none !important;
+  }
+}
+
+#osmdContainer > div,
+#osmdContainer svg { max-width: 100%; }
+
+.project-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.project-action-button {
+  min-height: 58px;
+  padding: 8px 9px;
+  border: 1px solid #cfd9e7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.project-action-button svg {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.project-action-button.project-action-primary {
+  border-color: #b8a1f3;
+  background: #f0eaff;
+  color: #5633ad;
+}
+
+.project-action-status {
+  min-height: 17px;
+  margin: -2px 0 0;
+  color: #6a50a8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.recent-projects {
+  padding: 10px;
+  border: 1px solid #dce5f0;
+  border-radius: 14px;
+  background: rgba(247, 249, 253, .9);
+}
+
+.recent-projects-head {
+  margin-bottom: 7px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.recent-projects-head strong {
+  color: #3c4f70;
+  font-size: 13px;
+}
+
+.recent-projects-head span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.recent-projects-list {
+  display: grid;
+  gap: 5px;
+}
+
+.recent-project-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 5px;
+}
+
+.recent-project-open,
+.recent-project-delete {
+  min-height: 38px;
+  border: 1px solid #d7dfec;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.recent-project-open {
+  min-width: 0;
+  padding: 5px 8px;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.recent-project-open strong,
+.recent-project-open small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-project-open strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.recent-project-open small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.recent-project-open.current {
+  border-color: #b8a1f3;
+  background: #f3eeff;
+  color: #4f2ba7;
+}
+
+.recent-project-delete {
+  width: 32px;
+  padding: 0;
+  color: #77849a;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.recent-projects-empty {
+  margin: 2px 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.document-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.document-action-button {
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid #cfd9e7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 750;
+}
+
+.document-action-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.document-action-button.document-action-primary {
+  border-color: #9bbcff;
+  background: var(--blue-soft);
+  color: #285eb6;
+}
+
+.document-action-button:disabled {
+  opacity: .62;
+  cursor: wait;
+}
+
+.document-action-status {
+  min-height: 34px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pdf-svg-scratch {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 850px;
+  height: auto;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.score-keyboard-divider {
+  flex: 0 0 18px;
+  position: relative;
+  z-index: 10;
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+  display: grid;
+  place-items: center;
+}
+
+.score-keyboard-divider::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.divider-grip {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  width: 82px;
+  height: 6px;
+  border-radius: 999px;
+  background: #aab8ce;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8);
+  transition: width 100ms ease, background 100ms ease;
+}
+
+.score-keyboard-divider:hover .divider-grip,
+.score-keyboard-divider.dragging .divider-grip {
+  width: 112px;
+  background: var(--blue);
+}
+
+.mode-btn.active {
+  background: var(--purple-soft);
+  border-color: #c3b0ff;
+  color: #4e2ca8;
+}
+
+.mode-btn.secondary.active {
+  background: var(--blue-soft);
+  border-color: #b8cef8;
+  color: #2b5fb6;
+}
+
+.zone-panel {
+  --keyboard-height-scale: 1;
+  --white-width-scale: 1;
+  --black-width-ratio: .43;
+  --black-height-ratio: 46%;
+  display: block;
+  padding: 16px;
+  min-height: 0;
+  overflow: visible;
+  flex: 1 1 0;
+}
+
+.zone-keyboard {
+  position: relative;
+  align-self: end;
+  height: calc(100% * var(--keyboard-height-scale));
+  max-height: 100%;
+  min-height: 120px;
+  min-height: clamp(120px, 18dvh, 180px);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #d7dfea;
+  background: #fff;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.75);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.octave-navigator {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px 5px;
+  border-bottom: 1px solid #d7e0ed;
+  background: linear-gradient(180deg, #f7faff 0%, #eef4fc 100%);
+  touch-action: none;
+}
+
+.octave-nav-button {
+  width: 38px;
+  height: 36px;
+  padding: 0 0 3px;
+  border: 1px solid #bdcce0;
+  border-radius: 12px;
+  background: #fff;
+  color: #315f9f;
+  box-shadow: 0 1px 3px rgba(41, 75, 125, .10);
+  font: 700 27px/1 system-ui, sans-serif;
+  touch-action: manipulation;
+}
+
+.octave-nav-button:disabled {
+  opacity: .32;
+  box-shadow: none;
+}
+
+.octave-rail {
+  min-width: 0;
+  height: 38px;
+  display: grid;
+  grid-template-rows: 18px 17px;
+  align-content: center;
+  gap: 1px;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+
+.octave-rail.dragging { cursor: grabbing; }
+
+.octave-rail:focus-visible {
+  border-radius: 9px;
+  box-shadow: 0 0 0 3px rgba(63, 128, 255, .22);
+}
+
+.octave-range-label {
+  align-self: center;
+  text-align: center;
+  color: #315f9f;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: .08em;
+  pointer-events: none;
+}
+
+.octave-map {
+  position: relative;
+  height: 17px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1px solid #b9c9df;
+  border-radius: 999px;
+  background: #fff;
+  color: #5d6c84;
+  font: 800 10px/15px system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.octave-map > span:not(.octave-window-marker) {
+  position: relative;
+  z-index: 2;
+  border-right: 1px solid rgba(139, 158, 187, .28);
+}
+
+.octave-map > span:last-child { border-right: 0; }
+
+.octave-window-marker {
+  position: absolute;
+  z-index: 1;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  width: 66.6667%;
+  border-radius: 999px;
+  background: #dbe8ff;
+  box-shadow: inset 0 0 0 1px rgba(63, 128, 255, .20);
+  transform: translateX(0);
+  transition: transform 180ms ease;
+}
+
+.zone-keyboard.octave-dragging .octave-window-marker,
+.zone-keyboard.octave-dragging .keyboard-surface {
+  transition: none;
+}
+
+.keyboard-viewport {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.keyboard-surface {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(150% * var(--white-width-scale));
+  left: 0;
+  transform: translateX(0);
+  transition: transform 180ms ease;
+  overflow: visible;
+  touch-action: none;
+}
+
+.white-key {
+  position: absolute;
+  bottom: 0;
+  top: 0;
+  border-right: 1px solid rgba(16,32,63,0.35);
+  background: linear-gradient(180deg, #fff 0%, #fff 76%, #f2f4f8 100%);
+  z-index: 2;
+  transition: background 70ms ease, box-shadow 70ms ease;
+}
+
+.white-key.active {
+  background: linear-gradient(180deg, #e7f0ff 0%, #f7fbff 78%, #e8eef8 100%);
+  box-shadow: inset 0 0 0 3px rgba(63,128,255,0.35);
+}
+
+.key-label {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(16,32,63,0.95);
+  pointer-events: none;
+}
+
+.key-octave-badge {
+  position: absolute;
+  bottom: 37px;
+  left: 50%;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 5px;
+  transform: translateX(-50%);
+  border: 1px solid #bfd0e7;
+  border-radius: 999px;
+  background: #edf4ff;
+  color: #315f9f;
+  font: 800 11px/19px system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.black-key {
+  position: absolute;
+  top: 0;
+  height: var(--black-height-ratio);
+  background: linear-gradient(180deg, #1a2436 0%, #101827 100%);
+  border: 1px solid rgba(16,32,63,0.6);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  box-shadow: inset 0 -6px 10px rgba(255,255,255,0.06), 0 3px 5px rgba(0,0,0,0.18);
+  z-index: 3;
+  transition: background 70ms ease, box-shadow 70ms ease;
+}
+
+.black-key.active {
+  background: linear-gradient(180deg, #315a9f 0%, #1a3567 100%);
+  box-shadow: inset 0 0 0 2px rgba(137,181,255,0.65), 0 2px 3px rgba(0,0,0,0.22);
+}
+
+/* Sweep-palautteen kolmen aika-arvon valitsin.
+   Ylhäällä seuraava pidempi, keskellä valittu, alhaalla seuraava lyhyempi. */
+.flick-hud {
+  position: fixed;
+  z-index: 2000;
+  width: 82px;
+  min-height: 154px;
+  padding: 7px 6px;
+  border-radius: 22px;
+  border: 1px solid rgba(177,190,213,0.95);
+  background: rgba(248,251,255,0.96);
+  box-shadow: 0 14px 36px rgba(16,32,63,0.20);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transform: scale(.94);
+  pointer-events: none;
+  transition: opacity 70ms ease, transform 70ms ease;
+  display: grid;
+  grid-template-rows: 1fr 1.22fr 1fr;
+  gap: 4px;
+  align-items: stretch;
+}
+
+.flick-hud.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.flick-duration-option {
+  min-width: 68px;
+  min-height: 42px;
+  padding: 3px 5px;
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 1px;
+  color: #415779;
+  transition: opacity 60ms ease, transform 60ms ease, background 60ms ease;
+}
+
+.flick-duration-neighbor {
+  opacity: .58;
+  background: rgba(239,244,252,0.72);
+}
+
+.flick-duration-neighbor.unavailable {
+  visibility: hidden;
+}
+
+.flick-duration-current {
+  color: #2458ad;
+  background: #e8f0ff;
+  box-shadow: inset 0 0 0 1px rgba(80,125,207,0.24);
+  transform: scale(1.04);
+}
+
+.flick-duration-symbol {
+  font-family: "Times New Roman", serif;
+  font-size: 26px;
+  line-height: .95;
+}
+
+.flick-duration-label {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: .01em;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.flick-hud.rest .flick-duration-current {
+  background: #efe8ff;
+  color: #5630a8;
+  box-shadow: inset 0 0 0 1px rgba(116,83,194,0.18);
+}
+
+.layout-panel {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  width: min(390px, calc(100vw - 36px));
+  max-height: none;
+  overflow: hidden;
+  z-index: 3000;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
+  border: 1px solid #cbd6e6;
+  background: rgba(249, 251, 255, 0.97);
+  box-shadow: 0 24px 70px rgba(16, 32, 63, 0.24);
+  backdrop-filter: blur(18px);
+  transform: translateX(calc(100% + 36px));
+  transition: transform 180ms ease;
+}
+
+.layout-panel.open { transform: translateX(0); }
+
+.layout-panel-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #dce5f0;
+}
+
+.layout-panel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+
+.layout-panel-head h2 { margin: 2px 0 0; font-size: 24px; }
+.layout-kicker { font-size: 12px; letter-spacing: .11em; font-weight: 800; color: #6d7f9f; }
+
+.icon-button {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid #cfd9e7;
+  background: white;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.layout-section { padding: 16px 0; border-bottom: 1px solid #dce5f0; }
+.layout-section h3 { margin: 0 0 12px; font-size: 17px; }
+.layout-hint { margin: -4px 0 12px; font-size: 13px; line-height: 1.4; color: var(--muted); }
+
+.handedness-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.hand-button {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid #cfd9e7;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.hand-button.active {
+  background: var(--blue-soft);
+  border-color: #9bbcff;
+  color: #285eb6;
+  box-shadow: inset 0 0 0 1px rgba(63, 128, 255, 0.18);
+}
+
+.setting-toggle-button {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #cfd9e7;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.setting-toggle-button.active {
+  background: var(--blue-soft);
+  border-color: #9bbcff;
+  color: #285eb6;
+  box-shadow: inset 0 0 0 1px rgba(63, 128, 255, 0.18);
+}
+
+.setting-toggle-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.setting-toggle-copy strong { font-size: 13px; line-height: 1.25; }
+.setting-toggle-copy small { font-size: 12px; line-height: 1.3; color: var(--muted); }
+
+.setting-toggle-state {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #edf1f6;
+  color: #5d6c84;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.setting-toggle-button.active .setting-toggle-state {
+  background: #dbe8ff;
+  color: #285eb6;
+}
+
+.text-layout-block {
+  margin-top: 12px;
+  padding: 12px 12px 2px;
+  border: 1px solid #dce5f0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.text-layout-block h4 {
+  margin: 0 0 6px;
+  color: #315f9f;
+  font-size: 14px;
+}
+
+.text-layout-block .slider-row { margin: 8px 0 11px; }
+
+.slider-row { display: block; margin: 12px 0 16px; }
+.slider-row > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.slider-row output { color: #4671bd; font-variant-numeric: tabular-nums; }
+.slider-row input[type="range"] { width: 100%; height: 28px; padding: 0; accent-color: var(--blue); }
+
+.layout-actions {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 16px;
+}
+.layout-actions button {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid #cfd9e7;
+  background: white;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.json-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.json-actions button {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid #cfd9e7;
+  background: white;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .app-shell,
+  .app-shell.left-handed { grid-template-columns: 78px minmax(0, 1fr); }
+  .app-shell.left-handed .side-column { grid-column: 1; grid-row: 1; }
+  .app-shell.left-handed .main-column { grid-column: 2; grid-row: 1; }
+  .left-panel,
+  .app-shell.left-handed .left-panel {
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
+  .main-column { min-height: 0; }
+}
+
+@media (max-height: 720px) {
+  .side-column { gap: 10px; }
+  .song-panel-toggle { min-height: 64px; }
+  .layout-rail-button { min-height: 58px; }
+  .modifier-panel { padding: 6px; }
+  .modifier-buttons { gap: 6px; }
+  .modifier-button { min-height: 64px; }
+  .selection-toolbar { top: 34px; }
+}
+
+
+/* 0.3.9.2 · Sävelkoju-tyylinen aloitus */
+.startup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top))
+           max(20px, env(safe-area-inset-right))
+           max(20px, env(safe-area-inset-bottom))
+           max(20px, env(safe-area-inset-left));
+  background: rgba(35, 54, 49, 0.30);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.startup-overlay.hidden {
+  display: none !important;
+}
+
+.startup-card {
+  width: min(620px, calc(100vw - 36px));
+  padding: 28px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(185, 199, 217, 0.95);
+  border-radius: 22px;
+  box-shadow: 0 18px 60px rgba(34, 52, 73, 0.24);
+}
+
+.startup-card h1 {
+  margin: 0 0 18px;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1;
+  color: var(--ink);
+}
+
+.startup-name-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.startup-name-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 54px;
+  padding: 0 16px;
+  border: 1px solid #cfd9e7;
+  border-radius: 15px;
+  background: #fff;
+  color: var(--ink);
+  font: 700 18px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  outline: none;
+}
+
+.startup-name-row input:focus {
+  border-color: #7ea8e6;
+  box-shadow: 0 0 0 3px rgba(95, 145, 218, 0.18);
+}
+
+.startup-name-row input.name-needed {
+  animation: startupNameShake 180ms ease-in-out 0s 2;
+  border-color: #d96868;
+}
+
+.startup-begin-btn {
+  flex: 0 0 auto;
+  min-width: 122px;
+  min-height: 54px;
+  margin: 0;
+  padding: 0 24px;
+  border: 1px solid #9bbcff;
+  border-radius: 15px;
+  background: var(--blue-soft);
+  color: #285eb6;
+  font: 800 18px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.startup-begin-btn:active {
+  transform: translateY(1px);
+}
+
+.startup-hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@keyframes startupNameShake {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+@media (max-width: 560px) {
+  .startup-card { padding: 20px; }
+  .startup-name-row { flex-direction: column; }
+  .startup-begin-btn { width: 100%; }
+}
+
+
+/* 0.3.9.3 · Nuottikuva etusijalla, koskettimisto avattavissa tarvittaessa */
+.keyboard-toggle-strip {
+  flex: 0 0 auto;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px 8px;
+}
+
+.keyboard-toggle-button {
+  min-height: 40px;
+  padding: 6px 16px;
+  border: 1px solid #b8cef8;
+  border-radius: 999px;
+  background: rgba(240, 246, 255, .96);
+  color: #2b5fb6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font: 800 14px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 2px 8px rgba(63, 92, 132, .10);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.keyboard-toggle-button svg {
+  width: 30px;
+  height: 18px;
+  fill: #fff;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.keyboard-toggle-button:active { transform: translateY(1px); }
+
+.main-column.keyboard-collapsed .paper-panel {
+  flex: 1 1 auto;
+}
+
+.main-column.keyboard-collapsed .score-keyboard-divider,
+.main-column.keyboard-collapsed .zone-panel {
+  display: none;
+}
+
+.main-column:not(.keyboard-collapsed) .keyboard-toggle-strip {
+  padding-bottom: 0;
+}
+
+.main-column:not(.keyboard-collapsed) .keyboard-toggle-button {
+  min-height: 34px;
+  padding: 4px 13px;
+  font-size: 12px;
+  opacity: .82;
+}
+
+.main-column:not(.keyboard-collapsed) .keyboard-toggle-button svg {
+  width: 25px;
+  height: 15px;
+}
+
+@media print {
+  .keyboard-toggle-strip { display: none !important; }
+}
+
+
+/* 0.3.9.4 · Nuottikuvan yksi tavallinen napautus avaa koskettimiston.
+   Ei avausohjetta eikä avausnappia piilotetussa tilassa. */
+.main-column.keyboard-collapsed .keyboard-toggle-strip {
+  display: none !important;
+}
+
+
+/* 0.3.9.5 · PRELOADED HIDDEN KEYBOARD TEST
+   Koskettimistoa EI poisteta display:none-tilaan.
+   Se on alusta asti renderöitynä, mutta läpinäkyvänä ja kosketuksilta suljettuna.
+   Absoluuttinen sijoitus pitää nuottikuvan silti etusijalla. */
+
+.main-column {
+  position: relative;
+}
+
+.main-column.keyboard-preloaded-hidden .zone-panel {
+  display: block !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: clamp(170px, 25dvh, 260px) !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+.main-column.keyboard-preloaded-hidden .zone-keyboard,
+.main-column.keyboard-preloaded-hidden .keyboard-surface,
+.main-column.keyboard-preloaded-hidden .key {
+  opacity: 0 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+
+.main-column.keyboard-preloaded-hidden .score-keyboard-divider {
+  display: none !important;
+}
+
+.main-column:not(.keyboard-preloaded-hidden) .zone-panel {
+  position: relative !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: auto !important;
+}
+
+.main-column.keyboard-collapsed .keyboard-toggle-strip {
+  display: none !important;
+}
+
+
+/* 0.3.9.6 · Koskettimisto avataan ja suljetaan vain nuottikuvaa napauttamalla.
+   Erillinen Avaa/Sulje koskettimisto -rivi poistetaan kokonaan. */
+.keyboard-toggle-strip {
+  display: none !important;
+}
+
+
+/* 0.3.9.8 · Aloitusikkunan tekijätiedot */
+.startup-credits {
+  margin-top: 16px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.startup-author {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.startup-ai {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.startup-email {
+  display: inline-block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.startup-email:hover,
+.startup-email:focus-visible {
+  text-decoration: underline;
+}
+
+.startup-card {
+  padding-top: 24px;
+}
+
+
+/* 0.3.9.9 · Premium / banking-style startup identity
+   Tarkoituksella oma, hillitty finanssipalvelun estetiikka ilman brändikopiota. */
+
+.startup-overlay {
+  background: rgba(24, 34, 46, 0.28);
+  backdrop-filter: blur(8px) saturate(0.88);
+  -webkit-backdrop-filter: blur(8px) saturate(0.88);
+}
+
+.startup-card {
+  width: min(640px, calc(100vw - 44px));
+  padding: 34px 38px 30px;
+  background: rgba(252, 253, 255, 0.985);
+  border: 1px solid rgba(201, 211, 223, 0.92);
+  border-radius: 14px;
+  box-shadow:
+    0 2px 8px rgba(27, 38, 51, 0.06),
+    0 24px 70px rgba(27, 38, 51, 0.19);
+}
+
+.startup-name-row {
+  margin: 0 0 30px;
+  gap: 12px;
+}
+
+.startup-name-row input {
+  height: 56px;
+  padding: 0 17px;
+  border: 1px solid #c9d3df;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f2b38;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  box-shadow: inset 0 1px 1px rgba(22, 35, 48, 0.025);
+}
+
+.startup-name-row input::placeholder {
+  color: #7a8795;
+  font-weight: 500;
+}
+
+.startup-name-row input:focus {
+  border-color: #4b6f91;
+  box-shadow: 0 0 0 3px rgba(75, 111, 145, 0.12);
+}
+
+.startup-begin-btn {
+  min-width: 124px;
+  min-height: 56px;
+  padding: 0 24px;
+  border: 1px solid #314d68;
+  border-radius: 8px;
+  background: #314d68;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: none;
+}
+
+.startup-begin-btn:hover {
+  background: #29445e;
+}
+
+.startup-begin-btn:active {
+  transform: none;
+  background: #233a50;
+}
+
+.startup-credits {
+  margin-top: 0;
+  padding-top: 24px;
+  border-top: 1px solid #dfe5ec;
+  text-align: left;
+  color: #41505f;
+  line-height: 1.35;
+}
+
+.startup-product {
+  margin-bottom: 22px;
+  color: #172536;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.startup-person {
+  color: #1f2d3a;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+.startup-role {
+  margin-top: 5px;
+  color: #4d5b68;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.startup-org {
+  margin-top: 3px;
+  color: #4d5b68;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.startup-email-label {
+  margin-top: 22px;
+  color: #728090;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.startup-email {
+  display: inline-block;
+  margin-top: 5px;
+  color: #2f5575;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.startup-email:hover,
+.startup-email:focus-visible {
+  color: #203f59;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.startup-ai {
+  margin-top: 25px;
+  padding-top: 18px;
+  border-top: 1px solid #e7ebf0;
+  color: #718090;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .startup-card {
+    padding: 26px 22px 24px;
+    border-radius: 12px;
+  }
+
+  .startup-name-row {
+    margin-bottom: 24px;
+  }
+
+  .startup-product {
+    font-size: 20px;
+    margin-bottom: 18px;
+  }
+
+  .startup-person {
+    font-size: 16px;
+  }
+}
+
+
+/* 0.4.0.0 · MIT-lisenssirivi */
+.startup-license {
+  margin-top: 10px;
+  color: #8a95a0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.startup-license a {
+  color: #496985;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.startup-license a:hover,
+.startup-license a:focus-visible {
+  color: #2f4f6b;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
+/* 0.4.1.0 · Kaksitilainen käyttöliittymä: KIRJOITA / VIIMEISTELE */
+
+.main-column {
+  position: relative;
+}
+
+.mode-switch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 1450;
+  transform: translateX(-50%);
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  min-width: 260px;
+  padding: 3px;
+  border: 1px solid #cfd9e7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 14px rgba(26, 46, 88, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.mode-switch-button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #63728a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  cursor: pointer;
+}
+
+.mode-switch-button.active {
+  background: #e8f0ff;
+  color: #285eb6;
+}
+
+/* Selection-toolbar siirtyy hieman alemmas, jotta tilavalitsin ei peitä sitä. */
+.app-shell.work-mode-finish .selection-toolbar {
+  top: 62px;
+}
+
+/* KIRJOITA:
+   rytmi-/syöttötyökalut näkyvät, viimeistelytyökalut sivupalkista piiloon. */
+.app-shell.work-mode-write #systemBreakBtn,
+.app-shell.work-mode-write #stretchLastLineBtn,
+.app-shell.work-mode-write #selectNotesBtn {
+  display: none !important;
+}
+
+/* VIIMEISTELE:
+   koskettimella kirjoittamiseen kuuluvat modifierit pois.
+   Rivinvaihto + rivin venytys jäävät näkyviin. */
+.app-shell.work-mode-finish #dotShiftBtn,
+.app-shell.work-mode-finish #sixteenthShiftBtn,
+.app-shell.work-mode-finish #restShiftBtn,
+.app-shell.work-mode-finish #selectNotesBtn {
+  display: none !important;
+}
+
+/* Viimeistelyssä koskettimisto ei saa avautua näkyviin. */
+.app-shell.work-mode-finish .main-column .zone-panel,
+.app-shell.work-mode-finish .main-column .score-keyboard-divider,
+.app-shell.work-mode-finish .main-column .keyboard-toggle-strip {
+  pointer-events: none;
+}
+
+/* Tilavalitsin ei saa viedä nuottipaperilta pysyvää korkeutta. */
+.paper-panel {
+  position: relative;
+}
+
+@media (max-width: 700px) {
+  .mode-switch {
+    min-width: 220px;
+    top: 8px;
+  }
+
+  .mode-switch-button {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .app-shell.work-mode-finish .selection-toolbar {
+    top: 56px;
+  }
+}
+
+
+/* 0.4.2.0 · Kolmivaiheinen työnkulku */
+
+.mode-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  min-width: 520px !important;
+}
+
+.mode-switch-button {
+  white-space: nowrap;
+}
+
+.output-toolbar {
+  display: none;
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  z-index: 1400;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid #cfd9e7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 3px 14px rgba(26, 46, 88, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.work-mode-output .output-toolbar {
+  display: flex;
+}
+
+.output-action-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #c7d2df;
+  border-radius: 8px;
+  background: #fff;
+  color: #33465b;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.output-action-primary {
+  border-color: #416d9b;
+  background: #416d9b;
+  color: #fff;
+}
+
+/* Tulosta & tallenna: paperi on pääasia. */
+.work-mode-output .selection-toolbar,
+.work-mode-output .keyboard-toggle-strip,
+.work-mode-output .score-keyboard-divider,
+.work-mode-output .zone-panel {
+  display: none !important;
+}
+
+/* Sivun muunnin- ja asettelutyökalut pois valmiin nuotin näkymästä. */
+.work-mode-output .modifier-panel,
+.work-mode-output .layout-rail-button {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Paperin välistysslideri kuuluu kirjoitus/viimeistelyvaiheeseen, ei vientiin. */
+.work-mode-output .note-spacing-strip {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .mode-switch {
+    min-width: min(94vw, 520px) !important;
+  }
+
+  .mode-switch-button {
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.025em !important;
+  }
+
+  .output-toolbar {
+    top: 58px;
+    width: min(94%, 560px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .output-action-button {
+    flex: 1 1 42%;
+  }
+}
+
+
+/* 0.4.2.1 · Tulosta & tallenna -työkalut paperin ulkopuolelle */
+
+.main-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.output-toolbar {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  align-self: center;
+  z-index: auto !important;
+  margin: 58px 0 10px;
+}
+
+.work-mode-output .output-toolbar {
+  display: flex;
+}
+
+.work-mode-write .output-toolbar,
+.work-mode-finish .output-toolbar {
+  display: none !important;
+}
+
+/* Nuottivälistyksen yläslideri poistettu käyttöliittymästä. */
+.note-spacing-strip {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .output-toolbar {
+    width: min(94%, 560px);
+    margin-top: 54px;
+  }
+}
+
+
+
+
+/* 0.4.2.4 · Työskentelytiloille oma kompakti paneeli */
+.mode-panel {
+  align-self: center;
+  width: min(430px, calc(100% - 28px));
+  margin: 10px 0 8px;
+  padding: 4px;
+  border: 1px solid rgba(190, 202, 216, 0.95);
+  border-radius: 13px;
+  background: rgba(250, 252, 255, 0.97);
+  box-shadow:
+    0 1px 2px rgba(32, 50, 70, 0.04),
+    0 4px 14px rgba(32, 50, 70, 0.07);
+}
+
+.mode-switch {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1.38fr !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.mode-switch-button {
+  min-height: 34px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #667486 !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.045em !important;
+  white-space: nowrap;
+}
+
+.mode-switch-button.active {
+  background: #e7eef7 !important;
+  color: #294c6d !important;
+  box-shadow: inset 0 0 0 1px rgba(80, 108, 136, 0.08);
+}
+
+.mode-switch-button + .mode-switch-button {
+  border-left: 1px solid rgba(210, 219, 229, 0.72) !important;
+}
+
+.mode-switch-button.active + .mode-switch-button,
+.mode-switch-button + .mode-switch-button.active {
+  border-left-color: transparent !important;
+}
+
+.output-toolbar {
+  margin-top: 2px !important;
+}
+
+.paper-panel {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 620px) {
+  .mode-panel {
+    width: min(96%, 430px);
+    margin-top: 8px;
+    padding: 3px;
+  }
+
+  .mode-switch {
+    grid-template-columns: 1fr 1fr 1.3fr !important;
+  }
+
+  .mode-switch-button {
+    min-height: 32px !important;
+    padding: 0 7px !important;
+    font-size: 9px !important;
+    letter-spacing: 0.025em !important;
+  }
+}
+
+
+/* 0.4.2.9 · Sidekaari kertakytkin */
+.modifier-icon-tie {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.modifier-icon-tie ellipse {
+  fill: currentColor;
+  stroke: none;
+}
+.app-shell.work-mode-finish #tieShiftBtn,
+.app-shell.work-mode-output #tieShiftBtn {
+  display: none !important;
+}
+
+
+/* 0.4.3.0 · Viimeistely: sidekaaren suunnan kääntö */
+#selectionTieFlipBtn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+/* 0.4.3.1 · Sidekaaren kääntöpainike varmasti näkyviin Viimeistele-tilassa */
+.app-shell.work-mode-finish #selectionTieFlipBtn {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 64px;
+  padding: 0 8px;
+}
+
+.app-shell.work-mode-finish #selectionTieFlipBtn:disabled {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 0.42 !important;
+}
+
+#selectionTieFlipBtn svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.selection-tie-flip-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.app-shell.work-mode-write #selectionTieFlipBtn,
+.app-shell.work-mode-output #selectionTieFlipBtn {
+  display: none !important;
+}
+
+
+/* 0.4.3.5 · Puhdas AirPrint: tulosteessa vain varsinainen nuottipaperi */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    background: #fff !important;
+  }
+
+  /* Kaikki sivun ulkopuoliset kerrokset pois tulosteesta. */
+  body > *:not(#appShell) {
+    display: none !important;
+  }
+
+  #appShell,
+  #appShell.app-shell,
+  #appShell.app-shell.left-handed {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Sivupalkki kokonaan pois. */
+  #appShell > .side-column {
+    display: none !important;
+  }
+
+  #appShell > .main-column {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /*
+    Vahva sääntö: main-columnin kaikki käyttöliittymäosat piiloon.
+    Ainoastaan paper-panel saa jäädä tulostukseen.
+  */
+  #appShell > .main-column > * {
+    display: none !important;
+  }
+
+  #appShell > .main-column > .paper-panel {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Paperin sisältä vain nuottikuva. */
+  .paper-panel > *:not(#osmdContainer) {
+    display: none !important;
+  }
+
+  #osmdContainer {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Editorin apukerrokset eivät kuulu nuottipaperiin. */
+  #osmdContainer .selection-toolbar,
+  #osmdContainer .note-selection-layer,
+  #osmdContainer .note-selection-highlight,
+  #osmdContainer .note-selection-marquee,
+  #osmdContainer .system-break-markers,
+  #osmdContainer .system-break-candidate-svg,
+  #osmdContainer .margin-guide-overlay {
+    display: none !important;
+  }
+
+  /* OSMD:n A4-sivut tulostetaan 1:1. */
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+}
+
+
+/* 0.4.3.6 · iPad/AirPrint: estä tyhjä toinen sivu */
+@media print {
+  html,
+  body,
+  #appShell,
+  #appShell > .main-column,
+  #appShell > .main-column > .paper-panel,
+  #osmdContainer {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    /*
+      1 mm turvamarginaali estää WebKitin 297 mm -> 297 mm + murto-osa
+      -pyöristyksen aiheuttaman tyhjän lisäsivun.
+      Nuottigrafiikan leveys säilyy A4-leveänä; vain printtilaatikon
+      alarajaa tuodaan hieman sisään.
+    */
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    box-sizing: border-box !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] > svg {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    max-height: 296mm !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+}
+
+
+/* 0.4.3.7 · iPad viewport: koko käyttöliittymä aina selaimen näkyvään alueeseen */
+@media screen {
+  html,
+  body {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .app-shell,
+  .app-shell.left-handed {
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+
+  .side-column,
+  .main-column {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .paper-panel {
+    min-height: 0 !important;
+  }
+
+  .zone-panel {
+    min-height: 0 !important;
+  }
+}
+
+
+/* 0.4.3.8 · iPad vaaka: oikeasti mahtuva pystylayout */
+@media screen and (orientation: landscape) {
+  .app-shell,
+  .app-shell.left-handed {
+    padding-top: max(6px, env(safe-area-inset-top)) !important;
+    padding-right: max(8px, env(safe-area-inset-right)) !important;
+    padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+    padding-left: max(8px, env(safe-area-inset-left)) !important;
+    gap: 10px !important;
+  }
+
+  .side-column {
+    gap: 8px !important;
+  }
+
+  .song-panel-toggle {
+    min-height: 54px !important;
+    padding: 5px 4px !important;
+  }
+
+  .song-panel-icon {
+    font-size: 21px !important;
+  }
+
+  .layout-rail-button {
+    min-height: 48px !important;
+  }
+
+  .modifier-panel {
+    padding: 5px !important;
+  }
+
+  .modifier-buttons {
+    gap: 5px !important;
+  }
+
+  .modifier-button {
+    min-height: 48px !important;
+  }
+
+  .mode-panel {
+    margin: 4px 0 4px !important;
+    padding: 3px !important;
+  }
+
+  .mode-switch-button {
+    min-height: 28px !important;
+    padding: 0 7px !important;
+    font-size: 9px !important;
+  }
+
+  .output-toolbar {
+    margin: 0 0 4px !important;
+    padding: 4px !important;
+    gap: 5px !important;
+  }
+
+  .output-action-button {
+    min-height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
+
+  .paper-panel {
+    padding: 8px 8px 10px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  #osmdContainer {
+    min-height: 0 !important;
+  }
+
+  .keyboard-toggle-strip {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+  }
+
+  .main-column:not(.keyboard-collapsed) .keyboard-toggle-button {
+    min-height: 28px !important;
+    padding: 2px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .score-keyboard-divider {
+    flex: 0 0 16px !important;
+    min-height: 16px !important;
+    height: 16px !important;
+  }
+
+  .zone-panel {
+    padding: 8px !important;
+    flex: 0 1 28% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .zone-keyboard {
+    min-height: 96px !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 16px !important;
+  }
+
+  .octave-navigator {
+    height: 38px !important;
+    grid-template-columns: 34px minmax(0, 1fr) 34px !important;
+  }
+}
+
+/* Erityisen matala Safari-viewport */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .app-shell,
+  .app-shell.left-handed {
+    padding-top: max(4px, env(safe-area-inset-top)) !important;
+    padding-bottom: max(4px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .mode-panel {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .paper-panel {
+    padding-top: 5px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .zone-panel {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+
+  .zone-keyboard {
+    min-height: 82px !important;
+  }
+
+  .modifier-button {
+    min-height: 42px !important;
+  }
+}
+
+
+/* 0.4.3.9 · Todellinen visualViewport-lukitus iPad/Safari */
+:root {
+  --app-viewport-height: 100dvh;
+  --app-viewport-width: 100vw;
+}
+
+@media screen {
+  html,
+  body {
+    position: fixed !important;
+    inset: 0 !important;
+    width: var(--app-viewport-width) !important;
+    height: var(--app-viewport-height) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: var(--app-viewport-width) !important;
+    max-height: var(--app-viewport-height) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .app-shell,
+  .app-shell.left-handed {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .side-column,
+  .main-column {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .main-column {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .mode-panel,
+  .output-toolbar,
+  .keyboard-toggle-strip,
+  .score-keyboard-divider {
+    flex: 0 0 auto !important;
+  }
+
+  .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #osmdContainer {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .zone-panel {
+    min-height: 0 !important;
+    max-height: 32% !important;
+    overflow: hidden !important;
+  }
+
+  .zone-keyboard {
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+}
+
+
+/* 0.4.4.0 · VisualViewport + koskettimisto takaisin näkyviin */
+@media screen {
+  .main-column {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Kun koskettimisto on suljettu, paperi saa kaiken tilan. */
+  .main-column.keyboard-collapsed .paper-panel,
+  .main-column.keyboard-preloaded-hidden .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* Kun koskettimisto on auki, paperi + koskettimisto jakavat viewportin. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    display: block !important;
+    position: relative !important;
+    flex: 0 0 clamp(150px, 28%, 250px) !important;
+    height: clamp(150px, 28%, 250px) !important;
+    min-height: 150px !important;
+    max-height: 250px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-surface,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .key {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    flex: 0 0 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+  }
+}
+
+/* Matalalla iPad-vaakanäytöllä pienempi mutta aina näkyvä koskettimisto. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    flex-basis: clamp(120px, 25%, 190px) !important;
+    height: clamp(120px, 25%, 190px) !important;
+    min-height: 120px !important;
+    max-height: 190px !important;
+  }
+}
+
+
+/* 0.4.4.1 · Piilota scrollbarit, säilytä tarvittaessa kosketusvieritys */
+@media screen {
+  html,
+  body,
+  .app-shell,
+  .side-column,
+  .main-column,
+  .paper-panel,
+  .zone-panel,
+  #osmdContainer {
+    scrollbar-width: none !important;       /* Firefox */
+    -ms-overflow-style: none !important;    /* vanha Edge */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .app-shell::-webkit-scrollbar,
+  .side-column::-webkit-scrollbar,
+  .main-column::-webkit-scrollbar,
+  .paper-panel::-webkit-scrollbar,
+  .zone-panel::-webkit-scrollbar,
+  #osmdContainer::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  /* Ulompi käyttöliittymä ei saa scrollata lainkaan. */
+  html,
+  body,
+  .app-shell,
+  .side-column,
+  .main-column,
+  .paper-panel,
+  .zone-panel {
+    overflow: hidden !important;
+  }
+
+  /* Nuottialue saa edelleen tarvittaessa vierittyä sormella,
+     mutta ilman näkyviä scrollbar-kiskoja. */
+  #osmdContainer {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain !important;
+  }
+}
+
+
+/* 0.4.4.2 · Koko käyttöliittymä lukittu, vain nuottialue saa vierittyä */
+@media screen {
+  html,
+  body {
+    position: fixed !important;
+    inset: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    touch-action: none;
+  }
+
+  .app-shell,
+  .side-column,
+  .main-column {
+    position: relative;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .mode-panel,
+  .output-toolbar {
+    position: relative !important;
+    z-index: 1500 !important;
+    flex: 0 0 auto !important;
+    touch-action: manipulation;
+  }
+
+  .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #osmdContainer {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  .zone-panel,
+  .zone-keyboard,
+  .keyboard-surface {
+    touch-action: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
+
+/* 0.4.4.3 · Jakokahva takaisin selkeäksi + turha alatyhjyys pois */
+@media screen {
+
+  /* Nuotti-ikkunan ja koskettimiston välinen vedettävä jakokahva. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    position: relative !important;
+    flex: 0 0 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+    z-index: 20 !important;
+    background: transparent !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {
+    display: block !important;
+    width: 86px !important;
+    height: 5px !important;
+    min-height: 5px !important;
+    border-radius: 999px !important;
+    background: rgba(76, 99, 132, 0.42) !important;
+    box-shadow: 0 1px 2px rgba(32, 48, 72, 0.10) !important;
+    pointer-events: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden)
+  .score-keyboard-divider:active .divider-grip,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden)
+  .score-keyboard-divider.dragging .divider-grip {
+    width: 110px !important;
+    background: var(--blue) !important;
+  }
+
+  /* Koskettimisto istuu suoraan viewportin alareunaan ilman turhaa tyhjää vyöhykettä. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    margin: 0 !important;
+    padding: 6px 8px 0 !important;
+    padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+    align-self: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    align-self: stretch !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-viewport {
+    margin: 0 !important;
+  }
+}
+
+/* Matalassa iPad-vaakanäkymässäkin jakokahva jää helposti tartuttavaksi. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex-basis: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {
+    width: 76px !important;
+    height: 4px !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    padding-top: 4px !important;
+    padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+  }
+}
+\n\n/* 0.4.4.4 · Todellinen vedettävä jako + viewport alareunaan asti */\n@media screen {\n  /* Jakaja ohjaa jälleen samaa --score-share-arvoa kuin alkuperäisessä toteutuksessa. */\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {\n    flex: 0 1 var(--score-share, 70%) !important;\n    height: auto !important;\n    min-height: 0 !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {\n    display: block !important;\n    position: relative !important;\n    flex: 1 1 0 !important;\n    height: auto !important;\n    min-height: 0 !important;\n    max-height: none !important;\n    margin: 0 !important;\n    padding: 4px 8px 0 !important;\n    overflow: hidden !important;\n    opacity: 1 !important;\n    visibility: visible !important;\n    pointer-events: auto !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {\n    display: block !important;\n    position: relative !important;\n    width: 100% !important;\n    height: 100% !important;\n    min-height: 0 !important;\n    max-height: 100% !important;\n    margin: 0 !important;\n    align-self: stretch !important;\n  }\n\n  /* Jakaja pysyy helposti tartuttavana mutta ei syö turhaa korkeutta. */\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {\n    display: flex !important;\n    flex: 0 0 18px !important;\n    height: 18px !important;\n    min-height: 18px !important;\n    max-height: 18px !important;\n    position: relative !important;\n    align-items: center !important;\n    justify-content: center !important;\n    overflow: visible !important;\n    touch-action: none !important;\n    cursor: ns-resize !important;\n    z-index: 30 !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider::before {\n    top: 50% !important;\n    height: 42px !important;\n  }\n\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .divider-grip {\n    width: 84px !important;\n    height: 5px !important;\n  }\n}\n\n@media screen and (orientation: landscape) and (max-height: 820px) {\n  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {\n    /* Ei enää kiinteää 120–190 px korkeutta: jakokahva saa määrätä koon. */\n    flex: 1 1 0 !important;\n    height: auto !important;\n    min-height: 0 !important;\n    max-height: none !important;\n    padding-bottom: 0 !important;\n  }\n}\n
+
+/* 0.4.4.5 · Yksi oikea jakosuhde: --score-share ohjaa paperi/koskettimisto-jakoa */
+@media screen {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .mode-panel,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .output-toolbar,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-toggle-strip,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex: 0 0 auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {
+    flex: 0 0 var(--score-share, 70%) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    flex: 0 0 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 6px 8px max(0px, env(safe-area-inset-bottom)) !important;
+    overflow: hidden !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+}
+
+/* Pienellä korkeudella kahva pysyy käyttökelpoisena, mutta jako toimii yhä samasta muuttujasta. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    flex-basis: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+  }
+}
+
+
+/* 0.4.4.6 · Jakokahva ohjaa suoraan pikselikorkeuksia */
+@media screen {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    pointer-events: auto !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    touch-action: none !important;
+  }
+}
