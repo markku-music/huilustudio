@@ -22,7 +22,7 @@ const leftHandBtn = document.getElementById('leftHandBtn');
 const dotShiftBtn = document.getElementById('dotShiftBtn');
 const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
-const tieShiftBtn = document.getElementById('tieShiftBtn');
+const tieButton = document.getElementById('tieShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
 const selectNotesBtn = document.getElementById('selectNotesBtn');
@@ -939,6 +939,17 @@ function getSelectedNoteIndices() {
     .sort((a, b) => a - b);
 }
 
+function samePitch(a, b) {
+  return Boolean(
+    a && b
+    && a.kind === 'note'
+    && b.kind === 'note'
+    && a.step === b.step
+    && Number(a.alter || 0) === Number(b.alter || 0)
+    && Number(a.octave) === Number(b.octave)
+  );
+}
+
 function getSelectedTieStartIndex() {
   const indices = getSelectedNoteIndices();
   if (indices.length === 0) return null;
@@ -1019,9 +1030,7 @@ function toggleSelectedTiePlacement() {
 
   const entry = state.notes[startIndex];
 
-  // 0.4.3.3:
-  // sidekaaren todellinen automaattinen lähtösuunta tallennetaan jo renderöinnin
-  // jälkeen. Tästä eteenpäin nappi tekee vain yksiselitteisen ylös/alas-vaihdon.
+  // Lähtösuunta on tallennettu renderöinnin jälkeen, joten vaihto on aina yksiselitteinen.
   const current = entry.tiePlacement === 'above' ? 'above' : 'below';
   entry.tiePlacement = current === 'above' ? 'below' : 'above';
 
@@ -1343,7 +1352,6 @@ function renderNoteSelectionOverlay() {
   osmdContainer.appendChild(layer);
 }
 
-
 function captureAutomaticTiePlacementsFromRenderedScore() {
   if (!state.osmd) return;
 
@@ -1475,7 +1483,6 @@ function clearNoteSelection() {
   state.selectionDrag = null;
   renderNoteSelectionOverlay();
 }
-
 
 function syncWorkModeUI() {
   const writing = state.workMode === 'write';
@@ -1852,13 +1859,7 @@ function commitFlickGesture(gesture) {
   state.notes.push(entry);
 
   if (state.tieOneShotArmed) {
-    const samePitch = previousEntry &&
-      previousEntry.kind === 'note' &&
-      previousEntry.step === entry.step &&
-      Number(previousEntry.alter || 0) === Number(entry.alter || 0) &&
-      Number(previousEntry.octave) === Number(entry.octave);
-
-    if (samePitch) {
+    if (samePitch(previousEntry, entry)) {
       previousEntry.tieToNext = true;
     }
 
@@ -3622,7 +3623,6 @@ function createEventsForScore() {
 
   state.notes.forEach((entry, entryIndex) => appendSegments(entry, entryIndex));
 
-
   // Käyttäjän kirjoitustilassa tekemät sidekaaret.
   // Ensimmäisen nuotin viimeinen segmentti saa tie-startin ja seuraavan
   // saman sävelen ensimmäinen segmentti tie-stopin. Tämä toimii myös,
@@ -3632,11 +3632,7 @@ function createEventsForScore() {
     const next = state.notes[entryIndex + 1];
     if (!next || next.kind !== 'note') return;
 
-    const samePitch =
-      entry.step === next.step &&
-      Number(entry.alter || 0) === Number(next.alter || 0) &&
-      Number(entry.octave) === Number(next.octave);
-    if (!samePitch) return;
+    if (!samePitch(entry, next)) return;
 
     const fromSegments = segmentsByEntryId.get(entry.id);
     const toSegments = segmentsByEntryId.get(next.id);
@@ -3698,7 +3694,6 @@ function escapeXml(text) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
-
 
 function annotateDefaultBeams(measure) {
   measure.forEach(seg => { delete seg.beams; });
@@ -4108,7 +4103,6 @@ function renderPitchNameOverlays() {
 let scoreRenderRequested = false;
 let scoreRenderLoopPromise = null;
 
-
 let stretchSecondPassPending = false;
 
 function renderScore() {
@@ -4208,7 +4202,6 @@ function isRestShiftActive() {
   return state.modifiers.restPointers.size > 0 || state.modifiers.restKeyboard;
 }
 
-
 function syncModifierButtons() {
   const dotActive = isDotModifierActive();
   const sixteenthActive = isSixteenthModifierActive();
@@ -4220,8 +4213,8 @@ function syncModifierButtons() {
   sixteenthShiftBtn.setAttribute('aria-pressed', String(sixteenthActive));
   restShiftBtn.classList.toggle('active', restActive);
   restShiftBtn.setAttribute('aria-pressed', String(restActive));
-  tieShiftBtn.classList.toggle('active', tieActive);
-  tieShiftBtn.setAttribute('aria-pressed', String(tieActive));
+  tieButton.classList.toggle('active', tieActive);
+  tieButton.setAttribute('aria-pressed', String(tieActive));
 }
 
 function bindHoldModifier(button, pointerSet) {
@@ -4250,14 +4243,11 @@ bindHoldModifier(dotShiftBtn, state.modifiers.dotPointers);
 bindHoldModifier(sixteenthShiftBtn, state.modifiers.sixteenthPointers);
 bindHoldModifier(restShiftBtn, state.modifiers.restPointers);
 
-tieShiftBtn.addEventListener('click', () => {
+tieButton.addEventListener('click', () => {
   // Kertakytkin: paina kerran, niin seuraava nuotti yrittää sitoutua edelliseen.
   state.tieOneShotArmed = !state.tieOneShotArmed;
   syncModifierButtons();
 });
-
-
-
 
 function isEditableTarget(target) {
   return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
