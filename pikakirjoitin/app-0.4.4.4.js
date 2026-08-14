@@ -308,13 +308,17 @@ function syncVisualViewportSize() {
   cancelAnimationFrame(viewportSyncFrame);
   viewportSyncFrame = requestAnimationFrame(() => {
     const viewport = window.visualViewport;
+
+    // iPad Safarissa visualViewport.height voi joissakin tilanteissa jäädä
+    // selainikkunan todellista sisältöaluetta pienemmäksi ja jättää appin alle
+    // tyhjän kaistaleen. innerHeight seuraa tässä luotettavammin näkyvää aluetta.
     const height = Math.max(
       1,
-      Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 1)
+      Math.round(window.innerHeight || viewport?.height || document.documentElement.clientHeight || 1)
     );
     const width = Math.max(
       1,
-      Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 1)
+      Math.round(window.innerWidth || viewport?.width || document.documentElement.clientWidth || 1)
     );
 
     document.documentElement.style.setProperty('--app-viewport-height', `${height}px`);
