@@ -2540,3 +2540,46 @@ input, select {
     page-break-after: auto !important;
   }
 }
+
+
+/* 0.4.3.6 · iPad/AirPrint: estä tyhjä toinen sivu */
+@media print {
+  html,
+  body,
+  #appShell,
+  #appShell > .main-column,
+  #appShell > .main-column > .paper-panel,
+  #osmdContainer {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] {
+    /*
+      1 mm turvamarginaali estää WebKitin 297 mm -> 297 mm + murto-osa
+      -pyöristyksen aiheuttaman tyhjän lisäsivun.
+      Nuottigrafiikan leveys säilyy A4-leveänä; vain printtilaatikon
+      alarajaa tuodaan hieman sisään.
+    */
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    box-sizing: border-box !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"] > svg {
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    max-height: 296mm !important;
+  }
+
+  #osmdContainer > div[id^="osmdCanvasPage"]:last-of-type {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+}
