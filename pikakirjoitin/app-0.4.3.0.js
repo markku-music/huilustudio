@@ -37,6 +37,7 @@ const outputPdfBtn = document.getElementById('outputPdfBtn');
 const outputXmlBtn = document.getElementById('outputXmlBtn');
 const selectionCount = document.getElementById('selectionCount');
 const selectionSlurBtn = document.getElementById('selectionSlurBtn');
+const selectionTieFlipBtn = document.getElementById('selectionTieFlipBtn');
 const selectionStaccatoBtn = document.getElementById('selectionStaccatoBtn');
 const selectionPortatoBtn = document.getElementById('selectionPortatoBtn');
 const selectionAccentBtn = document.getElementById('selectionAccentBtn');
@@ -938,6 +939,53 @@ function getSelectedNoteIndices() {
     .sort((a, b) => a - b);
 }
 
+function getSelectedTieStartIndex() {
+  const indices = getSelectedNoteIndices();
+  if (indices.length === 0) return null;
+
+  // Jos valittuna on kaksi peräkkäistä nuottia, suosi niiden välistä sidekaarta.
+  if (indices.length >= 2) {
+    for (let i = 0; i < indices.length - 1; i += 1) {
+      const a = indices[i];
+      const b = indices[i + 1];
+      if (b === a + 1 && state.notes[a]?.tieToNext) return a;
+    }
+  }
+
+  // Yhden valitun nuotin tapauksessa tunnista sidekaari sen jälkeen tai ennen sitä.
+  const index = indices[0];
+  if (state.notes[index]?.tieToNext) return index;
+  if (index > 0 && state.notes[index - 1]?.tieToNext) return index - 1;
+
+  return null;
+}
+
+function defaultTiePlacementForEntry(entry) {
+  if (!entry || entry.kind !== 'note') return 'below';
+
+  // Yksiviivaisessa diskanttiavaimen stemmassa OSMD:n oletus seuraa
+  // tavallisesti varren suuntaa: A4 ja alemmat -> varsi ylös -> tie alle,
+  // B4 ja ylemmät -> varsi alas -> tie päälle.
+  const stepOrder = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
+  const diatonic = Number(entry.octave) * 7 + (stepOrder[entry.step] ?? 0);
+  const middleLineB4 = 4 * 7 + 6;
+  return diatonic >= middleLineB4 ? 'above' : 'below';
+}
+
+function toggleSelectedTiePlacement() {
+  const startIndex = getSelectedTieStartIndex();
+  if (!Number.isInteger(startIndex)) return;
+
+  const entry = state.notes[startIndex];
+  const current = entry.tiePlacement || defaultTiePlacementForEntry(entry);
+
+  // Ensimmäinen painallus kääntää automaattisen suunnan nimenomaan toiselle puolelle.
+  entry.tiePlacement = current === 'above' ? 'below' : 'above';
+
+  syncNoteSelectionToolbar();
+  renderScore();
+}
+
 function getLegatoSelectionRange() {
   const indices = getSelectedNoteIndices();
   if (indices.length < 2) return null;
@@ -1174,6 +1222,7 @@ function buildNoteSelectionHitboxes() {
 
 function syncNoteSelectionToolbar() {
   const indices = getSelectedNoteIndices();
+  const selectedTieStartIndex = getSelectedTieStartIndex();
   const legatoRange = getLegatoSelectionRange();
   const exactSlur = findExactSelectionSlur(legatoRange);
   const exactCrescendo = findExactSelectionHairpin('crescendo', legatoRange);
@@ -1204,6 +1253,8 @@ function syncNoteSelectionToolbar() {
   selectionDynamicSelect.disabled = indices.length === 0;
   selectionDynamicSelect.value = firstDynamic;
   selectionSlurBtn.disabled = !legatoRange;
+  selectionTieFlipBtn.disabled = !Number.isInteger(selectedTieStartIndex);
+  selectionTieFlipBtn.classList.toggle('active', Number.isInteger(selectedTieStartIndex));
   selectionSlurBtn.classList.toggle('active', Boolean(exactSlur));
   selectionSlurBtn.setAttribute('aria-pressed', String(Boolean(exactSlur)));
   selectionCrescendoBtn.disabled = !legatoRange;
@@ -1585,6 +1636,7 @@ function initNoteSelection() {
   selectionAccentBtn.addEventListener('click', toggleAccentForSelection);
   selectionDynamicSelect.addEventListener('change', ev => applyDynamicForSelection(ev.target.value));
   selectionSlurBtn.addEventListener('click', toggleLegatoForSelection);
+selectionTieFlipBtn.addEventListener('click', toggleSelectedTiePlacement);
   selectionCrescendoBtn.addEventListener('click', () => toggleHairpinForSelection('crescendo'));
   selectionDiminuendoBtn.addEventListener('click', () => toggleHairpinForSelection('diminuendo'));
 
@@ -3525,8 +3577,11 @@ function createEventsForScore() {
     const toSegments = segmentsByEntryId.get(next.id);
     if (!fromSegments?.length || !toSegments?.length) return;
 
+    const tiePlacement = entry.tiePlacement || '';
     fromSegments[fromSegments.length - 1].tieStart = true;
+    fromSegments[fromSegments.length - 1].tiePlacement = tiePlacement;
     toSegments[0].tieStop = true;
+    toSegments[0].tiePlacement = tiePlacement;
   });
 
   state.slurs.forEach((slur, slurIndex) => {
@@ -3687,7 +3742,10 @@ function beamXml(seg) {
 
 function noteNotationsXml(seg, isRest) {
   if (isRest) return '';
-  const tied = `${seg.tieStop ? '<tied type="stop"/>' : ''}${seg.tieStart ? '<tied type="start"/>' : ''}`;
+  const tiePlacement = seg.tiePlacement === 'above' || seg.tiePlacement === 'below'
+    ? ` placement="${seg.tiePlacement}"`
+    : '';
+  const tied = `${seg.tieStop ? `<tied type="stop"${tiePlacement}/>` : ''}${seg.tieStart ? `<tied type="start"${tiePlacement}/>` : ''}`;
   const slurs = [
     ...(seg.slurStops || []).map(number => `<slur type="stop" number="${number}"/>`),
     ...(seg.slurStarts || []).map(number => `<slur type="start" number="${number}"/>`),

@@ -2364,3 +2364,13 @@ input, select {
 .app-shell.work-mode-output #tieShiftBtn {
   display: none !important;
 }
+
+
+/* 0.4.3.0 · Viimeistely: sidekaaren suunnan kääntö */
+#selectionTieFlipBtn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
