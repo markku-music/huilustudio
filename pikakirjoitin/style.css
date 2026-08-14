@@ -2374,3 +2374,41 @@ input, select {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+
+/* 0.4.3.1 · Sidekaaren kääntöpainike varmasti näkyviin Viimeistele-tilassa */
+.app-shell.work-mode-finish #selectionTieFlipBtn {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 64px;
+  padding: 0 8px;
+}
+
+.app-shell.work-mode-finish #selectionTieFlipBtn:disabled {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 0.42 !important;
+}
+
+#selectionTieFlipBtn svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.selection-tie-flip-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.app-shell.work-mode-write #selectionTieFlipBtn,
+.app-shell.work-mode-output #selectionTieFlipBtn {
+  display: none !important;
+}

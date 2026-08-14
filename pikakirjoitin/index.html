@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.3.0" />
+  <link rel="stylesheet" href="style.css?v=0.4.3.1" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -223,13 +223,18 @@
               <path d="M7 33C13 13 35 13 41 33"/>
             </svg>
           </button>
-          <button id="selectionTieFlipBtn" class="selection-action-button" type="button"
-                  aria-label="Käännä sidekaari" aria-pressed="false" disabled>
+          <button id="selectionTieFlipBtn"
+                  class="selection-action-button selection-tie-flip-button"
+                  type="button"
+                  aria-label="Käännä sidekaari"
+                  aria-pressed="false"
+                  disabled>
             <svg viewBox="0 0 48 48" aria-hidden="true">
               <path d="M8 29C15 15 33 15 40 29"/>
               <path d="m18 37 6 6 6-6"/>
               <path d="M24 43V31"/>
             </svg>
+            <span class="selection-tie-flip-label">TIE ↕</span>
           </button>
           <button id="selectionStaccatoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled>
             <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -521,6 +526,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.3.0.js"></script>
+  <script src="app-0.4.3.1.js"></script>
 </body>
 </html>
