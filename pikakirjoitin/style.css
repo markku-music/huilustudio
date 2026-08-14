@@ -2853,3 +2853,78 @@ input, select {
     max-height: 100% !important;
   }
 }
+
+
+/* 0.4.4.0 · VisualViewport + koskettimisto takaisin näkyviin */
+@media screen {
+  .main-column {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Kun koskettimisto on suljettu, paperi saa kaiken tilan. */
+  .main-column.keyboard-collapsed .paper-panel,
+  .main-column.keyboard-preloaded-hidden .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* Kun koskettimisto on auki, paperi + koskettimisto jakavat viewportin. */
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .paper-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    display: block !important;
+    position: relative !important;
+    flex: 0 0 clamp(150px, 28%, 250px) !important;
+    height: clamp(150px, 28%, 250px) !important;
+    min-height: 150px !important;
+    max-height: 250px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-keyboard {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .keyboard-surface,
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .key {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .score-keyboard-divider {
+    display: flex !important;
+    flex: 0 0 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+  }
+}
+
+/* Matalalla iPad-vaakanäytöllä pienempi mutta aina näkyvä koskettimisto. */
+@media screen and (orientation: landscape) and (max-height: 820px) {
+  .main-column:not(.keyboard-collapsed):not(.keyboard-preloaded-hidden) .zone-panel {
+    flex-basis: clamp(120px, 25%, 190px) !important;
+    height: clamp(120px, 25%, 190px) !important;
+    min-height: 120px !important;
+    max-height: 190px !important;
+  }
+}
