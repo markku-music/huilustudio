@@ -88,13 +88,19 @@
     .field.wide{grid-column:1/-1}
     .field input,.field select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
     .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
-    .instrument-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-    .instrument-choice{min-height:46px;padding:7px 10px;border:1px solid #9ba6b4;border-radius:9px;background:#f6f8fb;color:#263342;font-size:13px;font-weight:750;touch-action:manipulation;cursor:pointer}
-    .instrument-choice:active,.instrument-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83}
+    .instrument-picker{position:relative}
+    .instrument-trigger{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#263342;font-size:15px;font-weight:700;text-align:left;touch-action:manipulation;cursor:pointer}
+    .instrument-trigger svg{width:12px;height:8px;flex:none;transition:transform .15s ease;pointer-events:none}
+    .instrument-trigger[aria-expanded="true"] svg{transform:rotate(180deg)}
+    .instrument-menu{position:absolute;z-index:20;left:0;right:0;bottom:calc(100% + 6px);max-height:min(220px,36svh);overflow:auto;padding:4px;border:1px solid #9ba6b4;border-radius:11px;background:#fff;box-shadow:0 12px 30px #1c273538;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+    .instrument-menu[hidden]{display:none}
+    .instrument-choice{width:100%;min-height:42px;padding:7px 10px;border:0;border-bottom:1px solid #e0e6ed;border-radius:7px;background:#fff;color:#263342;font-size:13px;font-weight:700;text-align:left;touch-action:manipulation;cursor:pointer}
+    .instrument-choice:last-child{border-bottom:0}
+    .instrument-choice:active,.instrument-choice[aria-selected="true"]{background:#dcecff;color:#174d83}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
-    @media (max-width:520px){.project-grid,.instrument-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-dock{width:calc(100% - 34px)}.mode-button{padding:0 5px;font-size:8px}}
+    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-dock{width:calc(100% - 34px)}.mode-button{padding:0 5px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
@@ -175,17 +181,23 @@
         </label>
       </div>
       <p class="instrument-heading" id="instrumentHeading">VALITSE SOITIN JA ALOITA</p>
-      <div class="instrument-grid" id="instrumentGrid">
-        <button class="instrument-choice" type="button" data-instrument="flute-oboe" aria-pressed="false">Huilu / oboe (C)</button>
-        <button class="instrument-choice" type="button" data-instrument="clarinet" aria-pressed="false">Klarinetti (B♭)</button>
-        <button class="instrument-choice" type="button" data-instrument="alto-saxophone" aria-pressed="false">Alttosaksofoni (E♭)</button>
-        <button class="instrument-choice" type="button" data-instrument="trumpet" aria-pressed="false">Trumpetti (B♭)</button>
-        <button class="instrument-choice" type="button" data-instrument="french-horn" aria-pressed="false">Käyrätorvi (F)</button>
-        <button class="instrument-choice" type="button" data-instrument="trombone" aria-pressed="false">Pasuuna (C)</button>
-        <button class="instrument-choice" type="button" data-instrument="violin" aria-pressed="false">Viulu (C)</button>
-        <button class="instrument-choice" type="button" data-instrument="viola" aria-pressed="false">Alttoviulu (C)</button>
-        <button class="instrument-choice" type="button" data-instrument="cello" aria-pressed="false">Sello (C)</button>
-        <button class="instrument-choice" type="button" data-instrument="double-bass" aria-pressed="false">Kontrabasso (C · 8vb)</button>
+      <div class="instrument-picker" id="instrumentPicker">
+        <button class="instrument-trigger" id="instrumentTrigger" type="button" aria-haspopup="listbox" aria-controls="instrumentMenu" aria-expanded="false">
+          <span id="instrumentTriggerLabel">Valitse soitin</span>
+          <svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="instrument-menu" id="instrumentMenu" role="listbox" aria-label="Soitin" hidden>
+          <button class="instrument-choice" type="button" role="option" data-instrument="flute-oboe" aria-selected="false">Huilu / oboe (C)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="clarinet" aria-selected="false">Klarinetti (B♭)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="alto-saxophone" aria-selected="false">Alttosaksofoni (E♭)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="trumpet" aria-selected="false">Trumpetti (B♭)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="french-horn" aria-selected="false">Käyrätorvi (F)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="trombone" aria-selected="false">Pasuuna (C)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="violin" aria-selected="false">Viulu (C)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="viola" aria-selected="false">Alttoviulu (C)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="cello" aria-selected="false">Sello (C)</button>
+          <button class="instrument-choice" type="button" role="option" data-instrument="double-bass" aria-selected="false">Kontrabasso (C · 8vb)</button>
+        </div>
       </div>
       <button class="start-button" id="projectSaveButton" type="submit" hidden>Tallenna</button>
     </form>
@@ -251,7 +263,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeDock=document.querySelector('#modeDock'),modeHandle=document.querySelector('#modeHandle'),modeHandleLabel=document.querySelector('#modeHandleLabel'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentGrid=document.querySelector('#instrumentGrid'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeDock=document.querySelector('#modeDock'),modeHandle=document.querySelector('#modeHandle'),modeHandleLabel=document.querySelector('#modeHandleLabel'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -489,11 +501,15 @@
       try{localStorage.setItem(INSTRUMENT_KEY,instrumentSelect.value)}catch{}
     }
     function selectedText(select){return select.options[select.selectedIndex].textContent}
-    function syncInstrumentChoices(){
-      instrumentGrid.querySelectorAll('.instrument-choice').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.instrument===instrumentSelect.value)));
+    function setInstrumentMenuOpen(open){
+      const value=Boolean(open);instrumentMenu.hidden=!value;instrumentTrigger.setAttribute('aria-expanded',String(value));
+    }
+    function syncInstrumentChoices(showSelection=Boolean(projectData)){
+      instrumentMenu.querySelectorAll('.instrument-choice').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.instrument===instrumentSelect.value)));
+      instrumentTriggerLabel.textContent=showSelection?selectedText(instrumentSelect):'Valitse soitin';
     }
     function showProjectModal(){
-      syncInstrumentChoices();instrumentHeading.textContent='VALITSE SOITIN';projectSaveButton.hidden=false;projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
+      syncInstrumentChoices(true);setInstrumentMenuOpen(false);instrumentHeading.textContent='VALITSE SOITIN';projectSaveButton.hidden=false;projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
     }
     function editProjectFromTitle(e){
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
@@ -503,6 +519,7 @@
     function applyProjectData(){
       saveInstrument();
       projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
+      syncInstrumentChoices(true);setInstrumentMenuOpen(false);
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
       scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
@@ -516,7 +533,7 @@
     function chooseInstrument(e){
       const button=e.target.closest('.instrument-choice');
       if(!button||(e.pointerType==='mouse'&&e.button!==0))return;
-      e.preventDefault();instrumentSelect.value=button.dataset.instrument;syncInstrumentChoices();
+      e.preventDefault();instrumentSelect.value=button.dataset.instrument;syncInstrumentChoices(true);setInstrumentMenuOpen(false);
       if(projectData)return;
       togglePiano(e);applyProjectData();
     }
@@ -776,9 +793,10 @@
     writeModeButton.addEventListener('click',()=>setWorkMode('write'));
     editModeButton.addEventListener('click',()=>setWorkMode('edit'));
     printModeButton.addEventListener('click',()=>setWorkMode('print'));
-    document.addEventListener('pointerdown',e=>{if(modeDock.dataset.open==='true'&&!modeDock.contains(e.target))setModeDockOpen(false)},{capture:true});
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')setModeDockOpen(false)});
-    instrumentGrid.addEventListener('pointerup',chooseInstrument);
+    instrumentTrigger.addEventListener('click',()=>setInstrumentMenuOpen(instrumentMenu.hidden));
+    document.addEventListener('pointerdown',e=>{if(modeDock.dataset.open==='true'&&!modeDock.contains(e.target))setModeDockOpen(false);if(!instrumentMenu.hidden&&!instrumentPicker.contains(e.target))setInstrumentMenuOpen(false)},{capture:true});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){setModeDockOpen(false);setInstrumentMenuOpen(false)}});
+    instrumentMenu.addEventListener('pointerup',chooseInstrument);
     projectForm.addEventListener('submit',saveProject);
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
