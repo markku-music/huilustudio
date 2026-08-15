@@ -1585,13 +1585,6 @@ function setWorkMode(mode) {
   if (nextMode === 'finish') {
     setKeyboardOpen(false);
     setNoteSelectionMode(true);
-
-    // 0.4.5.1: rivien editointi on Viimeistele-tilan oletustyökalu.
-    // Käyttäjä voi edelleen kytkeä sen napista pois päältä.
-    state.systemBreakModeActive = true;
-    state.pendingSystemBreakIndex = null;
-    syncSystemBreakButton();
-    renderScore();
   } else if (nextMode === 'output') {
     // Valmis nuotti etusijalle: ei koskettimistoa eikä valintatyökaluja.
     setKeyboardOpen(false);
