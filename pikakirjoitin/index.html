@@ -12,10 +12,11 @@
   <style>
     *{box-sizing:border-box}
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
-    html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+    html,body{width:100%;height:100%;max-width:100%;max-height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+    html{position:fixed;inset:0}
     body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
-    .app{position:fixed;inset:0;width:100%;height:auto;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
+    .app{position:fixed;inset:0;width:100%;height:100%;max-height:100%;overflow:hidden;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
     p{margin:0;color:#586474;font-size:14px}
     .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
     .score-area{position:relative;min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
@@ -33,7 +34,7 @@
     .score-prompt[hidden]{display:none}
     .modifier-rail{position:absolute;z-index:12;top:calc(100% - 228px);left:0;width:58px;display:grid;gap:6px;padding:7px 5px 7px 6px;border:1px solid #677281;border-left:0;border-radius:0 13px 13px 0;background:#20242af2;box-shadow:5px 7px 18px #10182045;transform:translateX(-105%);opacity:0;visibility:hidden;pointer-events:none;touch-action:none;-webkit-touch-callout:none;transition:transform .16s ease-out,opacity .16s ease-out,visibility 0s linear .16s}
     .app.keyboard-open .modifier-rail{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
-    .modifier-button{width:46px;height:50px;display:grid;place-items:center;align-content:center;gap:1px;padding:2px;border:1px solid #778493;border-radius:9px;background:#f6f8fb;color:#1b2735;box-shadow:0 2px 5px #0004;font-weight:850;line-height:1;touch-action:none;cursor:pointer}
+    .modifier-button{width:46px;height:50px;overflow:hidden;display:grid;place-items:center;align-content:center;gap:1px;padding:2px;border:1px solid #778493;border-radius:9px;background:#f6f8fb;color:#1b2735;box-shadow:0 2px 5px #0004;font-weight:850;line-height:1;touch-action:none;cursor:pointer}
     .modifier-button[aria-pressed="true"]{border-color:#9dcbff;background:#2873c5;color:#fff;box-shadow:inset 0 2px 5px #0b3c7355,0 0 0 2px #73b4fa}
     .modifier-drag-handle{width:46px;height:24px;display:grid;place-items:center;padding:0;border:1px solid #687685;border-radius:8px;background:#343b45;color:#cbd5e0;touch-action:none;cursor:ns-resize}
     .modifier-drag-handle:active{background:#465260;color:#fff}
@@ -88,7 +89,7 @@
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
       .orientation-blocker,.keyboard-panel,.modifier-rail,#status,.score-prompt{display:none!important}
-      .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
+      .app{position:static;display:block!important;width:210mm;height:auto;max-height:none;overflow:visible;padding:0;background:#fff}
       .workspace{display:block}
       .score-area{display:block;padding:0}
       .score{width:210mm;min-height:0;overflow:visible;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none}
