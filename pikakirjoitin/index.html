@@ -17,6 +17,13 @@
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
     .app{position:fixed;inset:0;width:100%;height:auto;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
     p{margin:0;color:#586474;font-size:14px}
+    .mode-panel{flex:none;align-self:center;width:min(430px,calc(100% - 28px));margin:0 0 8px;padding:4px;border:1px solid #becad8;border-radius:13px;background:#fafcfffa;box-shadow:0 1px 2px #2032460a,0 4px 14px #20324612}
+    .mode-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+    .mode-button{min-height:34px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#667486;font-size:10px;font-weight:750;letter-spacing:.045em;white-space:nowrap;cursor:pointer}
+    .mode-button+.mode-button{border-left:1px solid #d2dbe5b8}
+    .mode-button[aria-pressed="true"]{background:#e7eef7;color:#294c6d;box-shadow:inset 0 0 0 1px #506c8814}
+    .mode-button:disabled{opacity:.35;cursor:default}
+    .mode-button:focus-visible{outline:3px solid #62a7ff;outline-offset:1px}
     .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
     .score-area{position:relative;min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
     .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
@@ -76,12 +83,12 @@
     .field input,.field select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
-    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}}
+    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-panel{width:calc(100% - 20px);margin-bottom:6px}.mode-button{min-height:32px;padding:0 6px;font-size:9px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.keyboard-panel,.modifier-rail,#status,.score-prompt{display:none!important}
+      .orientation-blocker,.mode-panel,.keyboard-panel,.modifier-rail,#status,.score-prompt{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block}
       .score-area{display:block;padding:0}
@@ -163,6 +170,13 @@
   </div>
 
   <main class="app" id="app" aria-hidden="true" inert>
+    <nav class="mode-panel" aria-label="Työskentelytila">
+      <div class="mode-switch" role="group">
+        <button class="mode-button" id="writeModeButton" type="button" aria-pressed="true">KIRJOITA</button>
+        <button class="mode-button" id="editModeButton" type="button" aria-pressed="false" disabled>MUOKKAA</button>
+        <button class="mode-button" id="printModeButton" type="button" aria-pressed="false" disabled>TULOSTA</button>
+      </div>
+    </nav>
     <div class="workspace">
       <section class="score-area">
         <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
@@ -209,7 +223,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -226,7 +240,7 @@
       cello:{min:36,max:64,start:36,transpose:0},
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null;
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -353,7 +367,28 @@
       const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);
       scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
     }
+    function closeKeyboardForWorkMode(){
+      if(keyboardPanel.hidden)return;
+      clearModifier();setTieArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');
+    }
+    function syncWorkModeUI(){
+      if(!notes.length&&workMode!=='write')workMode='write';
+      const hasNotes=notes.length>0,modes=[[writeModeButton,'write'],[editModeButton,'edit'],[printModeButton,'print']];
+      editModeButton.disabled=!hasNotes;printModeButton.disabled=!hasNotes;
+      modes.forEach(([button,mode])=>button.setAttribute('aria-pressed',String(workMode===mode)));
+      app.dataset.workMode=workMode;
+      score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
+    }
+    function setWorkMode(mode){
+      const next=mode==='edit'?'edit':mode==='print'?'print':'write';
+      if(next!=='write'&&!notes.length)return;
+      workMode=next;
+      if(next!=='write')closeKeyboardForWorkMode();
+      syncWorkModeUI();
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
+    }
     async function renderScore(){
+      syncWorkModeUI();
       scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
       if(scoreRendering||!ensureScoreRenderer())return;
       scoreRendering=true;
@@ -679,18 +714,22 @@
       const singleTap=scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
       try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
       scorePointers.delete(e.pointerId);
-      if(singleTap)togglePiano(e);
+      if(singleTap&&workMode==='write')togglePiano(e);
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreMoved=false}
     }
     function scoreKey(e){
-      if(e.key!=='Enter'&&e.key!==' ')return;
+      if(workMode!=='write'||(e.key!=='Enter'&&e.key!==' '))return;
       e.preventDefault();togglePiano({pointerType:'keyboard',preventDefault(){}});
     }
 
     restoreInstrument();restoreModifierPosition();
     buildKeyboard();
     applyInstrumentProfile();
+    syncWorkModeUI();
     requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
+    writeModeButton.addEventListener('click',()=>setWorkMode('write'));
+    editModeButton.addEventListener('click',()=>setWorkMode('edit'));
+    printModeButton.addEventListener('click',()=>setWorkMode('print'));
     projectForm.addEventListener('submit',saveProject);
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
