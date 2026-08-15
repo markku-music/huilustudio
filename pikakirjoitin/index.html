@@ -4,11 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#eef1f5">
-  <title>iOS Äänitesti</title>
+  <title>Pikakirjoitin</title>
   <style>
     *{box-sizing:border-box}
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
-    body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px 16px;-webkit-user-select:none;user-select:none}
+    body{margin:0;min-height:100svh;display:grid;place-items:center;padding:16px;background:#eef1f5;-webkit-user-select:none;user-select:none}
+    button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
+    .setup{width:min(720px,100%);max-height:calc(100svh - 32px);overflow:auto;padding:clamp(20px,4vw,30px);border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 20px 55px #1c27352b}
+    .setup[hidden],main[hidden]{display:none}
+    .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .wide{grid-column:1/-1}
+    input,select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
+    .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
+    .instrument-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .instrument-button{min-height:46px;padding:7px 10px;border:1px solid #9ba6b4;border-radius:9px;background:#f6f8fb;color:#263342;font-size:13px;font-weight:750;touch-action:manipulation;cursor:pointer}
+    .instrument-button:active,.instrument-button[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83}
     main{width:min(760px,100%);text-align:center}
     h1{margin:0 0 8px;font-size:clamp(24px,5vw,40px)}
     p{margin:0 0 16px;color:#586474}
@@ -23,13 +33,43 @@
     .key.active{background:#62a7ff}
     .black.active{background:#2869b8}
     .b1{left:14.2857%}.b2{left:28.5714%}.b3{left:57.1429%}.b4{left:71.4286%}.b5{left:85.7143%}
-    #status{margin-top:18px;min-height:24px;font-weight:650;color:#2365aa}
+    #status{position:fixed;left:50%;bottom:10px;min-height:24px;transform:translateX(-50%);font-weight:650;color:#2365aa;white-space:nowrap}
+    @media(max-width:520px){.setup-grid,.instrument-grid{grid-template-columns:1fr}.wide{grid-column:auto}.setup{padding:18px}.instrument-button{min-height:42px}}
   </style>
 </head>
 <body>
-  <main>
-    <h1>iOS Äänitesti</h1>
-    <p>Napauta nuotti-ikkunaa. Koskettimisto avautuu ja ensimmäinen kosketin soi heti.</p>
+  <section class="setup" id="setup" aria-label="Kappaleen tiedot">
+    <div class="setup-grid">
+      <input class="wide" id="titleInput" type="text" placeholder="Nimi" aria-label="Nimi" autocomplete="off">
+      <input id="composerInput" type="text" placeholder="Säveltäjä" aria-label="Säveltäjä" autocomplete="off">
+      <input id="tempoInput" type="text" placeholder="Tempoteksti" aria-label="Tempoteksti" autocomplete="off">
+      <select id="keySignatureSelect" aria-label="Sävellaji">
+        <option>C-duuri / a-molli</option>
+        <option>G-duuri / e-molli</option><option>D-duuri / h-molli</option><option>A-duuri / fis-molli</option><option>E-duuri / cis-molli</option><option>H-duuri / gis-molli</option><option>Fis-duuri / dis-molli</option>
+        <option>F-duuri / d-molli</option><option>B♭-duuri / g-molli</option><option>E♭-duuri / c-molli</option><option>A♭-duuri / f-molli</option><option>D♭-duuri / b♭-molli</option><option>G♭-duuri / e♭-molli</option>
+      </select>
+      <select id="timeSignatureSelect" aria-label="Tahtilaji">
+        <option>2/4</option><option>3/4</option><option selected>4/4</option><option>2/2</option><option>3/8</option><option>6/8</option><option>9/8</option><option>12/8</option>
+      </select>
+    </div>
+    <p class="instrument-heading">VALITSE SOITIN JA ALOITA</p>
+    <div class="instrument-grid" id="instrumentGrid">
+      <button class="instrument-button" type="button" data-instrument="Huilu / oboe (C)" aria-pressed="false">Huilu / oboe (C)</button>
+      <button class="instrument-button" type="button" data-instrument="Klarinetti (B♭)" aria-pressed="false">Klarinetti (B♭)</button>
+      <button class="instrument-button" type="button" data-instrument="Alttosaksofoni (E♭)" aria-pressed="false">Alttosaksofoni (E♭)</button>
+      <button class="instrument-button" type="button" data-instrument="Trumpetti (B♭)" aria-pressed="false">Trumpetti (B♭)</button>
+      <button class="instrument-button" type="button" data-instrument="Käyrätorvi (F)" aria-pressed="false">Käyrätorvi (F)</button>
+      <button class="instrument-button" type="button" data-instrument="Pasuuna (C)" aria-pressed="false">Pasuuna (C)</button>
+      <button class="instrument-button" type="button" data-instrument="Viulu (C)" aria-pressed="false">Viulu (C)</button>
+      <button class="instrument-button" type="button" data-instrument="Alttoviulu (C)" aria-pressed="false">Alttoviulu (C)</button>
+      <button class="instrument-button" type="button" data-instrument="Sello (C)" aria-pressed="false">Sello (C)</button>
+      <button class="instrument-button" type="button" data-instrument="Kontrabasso (C · 8vb)" aria-pressed="false">Kontrabasso (C · 8vb)</button>
+    </div>
+  </section>
+
+  <main id="workspace" hidden>
+    <h1 id="pieceTitle">Nimetön kappale</h1>
+    <p id="pieceInfo"></p>
     <button class="score" id="score" type="button" aria-expanded="false">♩ ♪ ♫<small>NUOTTI-IKKUNA · NAPAUTA</small></button>
     <div class="piano" id="piano" aria-label="Yhden oktaavin pianokoskettimisto" hidden>
       <button class="key white" data-midi="60" aria-label="C">C</button>
@@ -45,11 +85,16 @@
       <button class="key black b4" data-midi="68" aria-label="Gis"></button>
       <button class="key black b5" data-midi="70" aria-label="Ais"></button>
     </div>
-    <div id="status">Audio: ei avattu</div>
   </main>
+  <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
   <script>
-    const piano=document.querySelector('#piano'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    let audio,osc,gain,started=false,activeId=null,activeKey=null;
+    const setup=document.querySelector('#setup'),workspace=document.querySelector('#workspace'),instrumentGrid=document.querySelector('#instrumentGrid'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pieceTitle=document.querySelector('#pieceTitle'),pieceInfo=document.querySelector('#pieceInfo'),piano=document.querySelector('#piano'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,selectedInstrument='';
+    function showWorkspace(){
+      pieceTitle.textContent=titleInput.value.trim()||'Nimetön kappale';
+      pieceInfo.textContent=[tempoInput.value.trim(),composerInput.value.trim(),keySignatureSelect.value,timeSignatureSelect.value,selectedInstrument].filter(Boolean).join(' · ');
+      setup.hidden=true;workspace.hidden=false;
+    }
     function build(){
       try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
       osc=audio.createOscillator();gain=audio.createGain();osc.type='triangle';gain.gain.value=.0001;osc.connect(gain).connect(audio.destination);started=false;
@@ -64,7 +109,7 @@
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        piano.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';
+        piano.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';showWorkspace();
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
@@ -84,6 +129,14 @@
       const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06);
       activeKey.classList.remove('active');activeId=null;activeKey=null;
     }
+    function chooseInstrument(e){
+      const button=e.target.closest('.instrument-button');
+      if(!button||(e.pointerType==='mouse'&&e.button!==0))return;
+      selectedInstrument=button.dataset.instrument;
+      instrumentGrid.querySelectorAll('.instrument-button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+      togglePiano(e);
+    }
+    instrumentGrid.addEventListener('pointerup',chooseInstrument);
     piano.addEventListener('pointerdown',start);
     piano.addEventListener('pointerup',stop);
     piano.addEventListener('pointercancel',stop);
