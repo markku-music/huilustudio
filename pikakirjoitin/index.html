@@ -13,20 +13,26 @@
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
     html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
     body{-webkit-user-select:none;user-select:none}
-    button{font:inherit;-webkit-tap-highlight-color:transparent}
+    button,select{font:inherit;-webkit-tap-highlight-color:transparent}
     .app{width:100%;height:100dvh;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));background:#eef1f5}
     .heading{flex:none;padding:0 16px 12px;text-align:center}
     h1{margin:0 0 4px;font-size:clamp(22px,5vw,34px)}
     p{margin:0;color:#586474;font-size:14px}
+    .instrument-picker{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;color:#354254;font-size:14px;font-weight:700}
+    .instrument-picker select{min-width:min(250px,70vw);min-height:42px;padding:7px 38px 7px 12px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-weight:650}
     .score-area{min-height:0;flex:1;display:flex;padding:0 16px 16px}
     .score{width:100%;min-height:120px;border:2px solid #9ba6b4;border-radius:12px;background:repeating-linear-gradient(#fff 0 25px,#c8ced6 26px,#fff 27px);color:#18202a;font:700 23px system-ui;box-shadow:0 10px 28px #1c273520;touch-action:manipulation;cursor:pointer}
     .score small{display:block;margin-top:34px;color:#586474;font:600 13px system-ui}
-    .keyboard-viewport{width:100vw;height:clamp(250px,42dvh,430px);flex:none;overflow-x:auto;overflow-y:hidden;background:#20242a;border-top:5px solid #20242a;border-bottom:5px solid #20242a;touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-    .keyboard-viewport[hidden]{display:none}
+    .keyboard-panel{width:100vw;height:clamp(290px,46dvh,474px);flex:none;background:#20242a}
+    .keyboard-panel[hidden]{display:none}
+    .keyboard-scroll-rail{height:44px;padding:7px 12px;background:#eef1f5;touch-action:none;cursor:ew-resize;outline-offset:-3px}
+    .keyboard-scroll-track{position:relative;width:100%;height:30px;overflow:hidden;border:1px solid #9ba6b4;border-radius:9px;background:#d7dde5;box-shadow:inset 0 1px 3px #1c273526}
+    .keyboard-scroll-thumb{position:absolute;inset:0 auto 0 0;width:40%;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#2365aa;color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;white-space:nowrap;will-change:transform}
+    .keyboard-viewport{width:100vw;height:calc(100% - 44px);overflow-x:hidden;overflow-y:hidden;background:#20242a;border-top:5px solid #20242a;border-bottom:5px solid #20242a;touch-action:none;scrollbar-width:none}
     .keyboard-viewport::-webkit-scrollbar{display:none}
-    .piano{position:relative;width:250vw;height:100%;touch-action:pan-x;-webkit-touch-callout:none}
+    .piano{position:relative;width:250vw;height:100%;touch-action:none;-webkit-touch-callout:none}
     .white-keys{display:flex;width:100%;height:100%}
-    .key{border:0;touch-action:pan-x;cursor:pointer}
+    .key{border:0;touch-action:none;cursor:pointer}
     .white{flex:0 0 calc(100% / 35);height:100%;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:650 clamp(12px,2vw,17px) system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
     .white:last-child{border-right:0}
     .black{position:absolute;z-index:2;top:0;height:62%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
@@ -54,23 +60,56 @@
     <header class="heading">
       <h1>Pikakirjoitin</h1>
       <p>Napauta nuotti-ikkunaa avataksesi koskettimiston.</p>
+      <label class="instrument-picker" for="instrumentSelect">
+        <span>Soitin</span>
+        <select id="instrumentSelect">
+          <option value="flute-oboe">Huilu / oboe</option>
+          <option value="clarinet">Klarinetti</option>
+          <option value="alto-saxophone">Alttosaksofoni</option>
+          <option value="trumpet">Trumpetti</option>
+          <option value="french-horn">Käyrätorvi</option>
+          <option value="trombone">Pasuuna</option>
+          <option value="violin">Viulu</option>
+          <option value="viola">Alttoviulu</option>
+          <option value="cello">Sello</option>
+          <option value="double-bass">Kontrabasso</option>
+        </select>
+      </label>
     </header>
     <section class="score-area">
-      <button class="score" id="score" type="button" aria-expanded="false" aria-controls="keyboardViewport">♩ ♪ ♫<small>NUOTTI-IKKUNA · NAPAUTA</small></button>
+      <button class="score" id="score" type="button" aria-expanded="false" aria-controls="keyboardPanel">♩ ♪ ♫<small>NUOTTI-IKKUNA · NAPAUTA</small></button>
     </section>
-    <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa vieritettävä koskettimisto" hidden>
-      <div class="piano" id="piano">
-        <div class="white-keys" id="whiteKeys"></div>
+    <div class="keyboard-panel" id="keyboardPanel" hidden>
+      <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="keyboard-scroll-track" id="keyboardScrollTrack">
+          <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
+        </div>
+      </div>
+      <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
+        <div class="piano" id="piano">
+          <div class="white-keys" id="whiteKeys"></div>
+        </div>
       </div>
     </div>
     <div id="status">Audio: ei avattu</div>
   </main>
 
   <script>
-    const MIN_MIDI=36,MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardViewport=document.querySelector('#keyboardViewport'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const MIN_MIDI=36,MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
-    let audio,osc,gain,started=false,activeId=null,activeKey=null;
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0;
+
+    function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
+    function restoreInstrument(){
+      try{
+        const saved=localStorage.getItem(INSTRUMENT_KEY);
+        if(saved&&[...instrumentSelect.options].some(option=>option.value===saved))instrumentSelect.value=saved;
+      }catch{}
+    }
+    function saveInstrument(){
+      try{localStorage.setItem(INSTRUMENT_KEY,instrumentSelect.value)}catch{}
+    }
 
     function octaveIndex(midi){return Math.floor((midi-MIN_MIDI)/12)}
     function visibleName(midi){
@@ -109,19 +148,19 @@
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!keyboardViewport.hidden){keyboardViewport.hidden=true;score.setAttribute('aria-expanded','false');return}
+      if(!keyboardPanel.hidden){keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');return}
       if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        keyboardViewport.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';
+        keyboardPanel.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(syncScrollThumb);
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
     function startNote(e){
       const key=e.target.closest('.key');
       if(!key||(e.pointerType==='mouse'&&e.button!==0))return;
-      if(e.pointerType==='mouse')e.preventDefault();
+      e.preventDefault();
       if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
       if(activeKey)activeKey.classList.remove('active');
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
@@ -133,10 +172,55 @@
       activeKey.classList.remove('active');activeId=null;activeKey=null;
     }
 
+    function syncScrollThumb(){
+      const maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth),travel=Math.max(0,keyboardScrollTrack.clientWidth-keyboardScrollThumb.offsetWidth),ratio=maxScroll?keyboardViewport.scrollLeft/maxScroll:0;
+      keyboardScrollThumb.style.transform=`translate3d(${ratio*travel}px,0,0)`;
+      keyboardScrollRail.setAttribute('aria-valuenow',String(Math.round(ratio*100)));
+    }
+    function setScrollFromPointer(clientX){
+      const trackRect=keyboardScrollTrack.getBoundingClientRect(),travel=Math.max(0,trackRect.width-keyboardScrollThumb.offsetWidth),left=clamp(clientX-trackRect.left-scrollGrabOffset,0,travel),maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth);
+      keyboardViewport.scrollLeft=travel?left/travel*maxScroll:0;
+      syncScrollThumb();
+    }
+    function startScroll(e){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      e.preventDefault();scrollPointerId=e.pointerId;
+      const thumbRect=keyboardScrollThumb.getBoundingClientRect();
+      scrollGrabOffset=keyboardScrollThumb.contains(e.target)?e.clientX-thumbRect.left:thumbRect.width/2;
+      keyboardScrollRail.setPointerCapture(e.pointerId);setScrollFromPointer(e.clientX);
+    }
+    function moveScroll(e){
+      if(e.pointerId!==scrollPointerId)return;
+      e.preventDefault();setScrollFromPointer(e.clientX);
+    }
+    function endScroll(e){
+      if(e.pointerId!==scrollPointerId)return;
+      if(keyboardScrollRail.hasPointerCapture(e.pointerId))keyboardScrollRail.releasePointerCapture(e.pointerId);
+      scrollPointerId=null;
+    }
+    function keyboardScrollKey(e){
+      const maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth),step=keyboardViewport.clientWidth/2;
+      if(e.key==='Home')keyboardViewport.scrollLeft=0;
+      else if(e.key==='End')keyboardViewport.scrollLeft=maxScroll;
+      else if(e.key==='ArrowLeft'||e.key==='PageUp')keyboardViewport.scrollLeft=clamp(keyboardViewport.scrollLeft-step,0,maxScroll);
+      else if(e.key==='ArrowRight'||e.key==='PageDown')keyboardViewport.scrollLeft=clamp(keyboardViewport.scrollLeft+step,0,maxScroll);
+      else return;
+      e.preventDefault();syncScrollThumb();
+    }
+
+    restoreInstrument();
     buildKeyboard();
+    instrumentSelect.addEventListener('change',saveInstrument);
     piano.addEventListener('pointerdown',startNote);
     window.addEventListener('pointerup',stopNote);
     window.addEventListener('pointercancel',stopNote);
+    keyboardScrollRail.addEventListener('pointerdown',startScroll);
+    keyboardScrollRail.addEventListener('pointermove',moveScroll);
+    keyboardScrollRail.addEventListener('pointerup',endScroll);
+    keyboardScrollRail.addEventListener('pointercancel',endScroll);
+    keyboardScrollRail.addEventListener('keydown',keyboardScrollKey);
+    keyboardViewport.addEventListener('scroll',syncScrollThumb,{passive:true});
+    window.addEventListener('resize',syncScrollThumb);
     score.addEventListener('pointerup',togglePiano);
   </script>
 </body>
