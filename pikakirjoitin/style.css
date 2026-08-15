@@ -2071,7 +2071,7 @@ input, select {
   color: #285eb6;
 }
 
-/* Muokkaa-työkalupalkin oletussijainti. Käyttäjän tallennettu sijainti asetetaan inline-tyylinä. */
+/* Selection-toolbar siirtyy hieman alemmas, jotta tilavalitsin ei peitä sitä. */
 .app-shell.work-mode-finish .selection-toolbar {
   top: 62px;
 }
@@ -2079,7 +2079,6 @@ input, select {
 /* KIRJOITA:
    rytmi-/syöttötyökalut näkyvät, viimeistelytyökalut sivupalkista piiloon. */
 .app-shell.work-mode-write #systemBreakBtn,
-.app-shell.work-mode-write #measureNumbersBtn,
 .app-shell.work-mode-write #stretchLastLineBtn,
 .app-shell.work-mode-write #selectNotesBtn {
   display: none !important;
@@ -3124,34 +3123,4 @@ input, select {
   .startup-begin-btn {
     width: 100% !important;
   }
-}
-
-
-/* 0.4.5.1 · Muokkaa-tilan liikuteltavat työkalut ja nuottitekstit */
-.selection-toolbar {
-  touch-action: none;
-}
-.selection-toolbar .selection-count {
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-.selection-toolbar.dragging .selection-count {
-  cursor: grabbing;
-}
-.app-shell.work-mode-finish #osmdContainer text[data-score-text-role] {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-.app-shell.work-mode-finish #osmdContainer text[data-score-text-role="title"] {
-  cursor: ns-resize;
-}
-.app-shell.work-mode-finish #osmdContainer text.score-text-dragging {
-  cursor: grabbing;
-}
-.measure-numbers-button {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
 }
