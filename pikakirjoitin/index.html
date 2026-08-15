@@ -16,23 +16,21 @@
     body{-webkit-user-select:none;user-select:none}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
     .app{width:100%;height:100dvh;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));background:#eef1f5}
-    .heading{flex:none;padding:0 16px 12px;text-align:center}
-    h1{margin:0 0 4px;font-size:clamp(22px,5vw,34px)}
     p{margin:0;color:#586474;font-size:14px}
-    .project-button{margin-top:8px;padding:7px 13px;border:1px solid #9ba6b4;border-radius:8px;background:#fff;color:#354254;font-size:13px;font-weight:700;cursor:pointer}
-    .score-area{min-height:0;flex:1;display:flex;padding:0 16px 16px}
+    .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
+    .score-area{min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
     .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:none;cursor:pointer}
     .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
-    .score-title{position:absolute;z-index:2;top:28px;left:30px;right:30px;display:block;text-align:center;font-size:25px;font-weight:750;line-height:1.15;pointer-events:none}
+    .score-title{position:absolute;z-index:2;top:28px;left:30px;right:30px;display:block;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
     .score-composer{position:absolute;z-index:2;top:59px;left:30px;right:40px;display:block;text-align:right;font-size:14px;font-weight:650;line-height:1.2;pointer-events:none}
     .score-meta{position:absolute;z-index:2;top:82px;left:30px;right:30px;display:block;color:#465568;text-align:center;font-size:14px;font-weight:650;line-height:1.25;pointer-events:none}
     #osmdContainer{width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
     .score-prompt{position:absolute;top:138px;left:50%;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
     .score-prompt[hidden]{display:none}
-    .keyboard-panel{width:100vw;height:clamp(290px,calc(41.43vw + 44px),474px);flex:none;background:#20242a}
+    .keyboard-panel{width:100vw;min-height:0;flex:3 1 30%;background:#20242a}
     .keyboard-panel[hidden]{display:none}
     .keyboard-scroll-rail{height:44px;padding:7px 12px;background:#eef1f5;touch-action:none;cursor:ew-resize;outline-offset:-3px}
     .keyboard-scroll-track{position:relative;width:100%;height:30px;overflow:hidden;border:1px solid #9ba6b4;border-radius:9px;background:#d7dde5;box-shadow:inset 0 1px 3px #1c273526}
@@ -44,7 +42,7 @@
     .key{position:relative;border:0;touch-action:none;cursor:pointer}
     .white{flex:0 0 calc(100% / 35);height:100%;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:650 clamp(12px,2vw,17px) system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
     .white:last-child{border-right:0}
-    .black{position:absolute;z-index:2;top:0;height:62%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .black{position:absolute;z-index:2;top:0;height:50%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
     .key.out-of-range::before{content:'';position:absolute;inset:0;z-index:3;border-radius:inherit;background:#aeb8c5a8;pointer-events:none}
     .key.out-of-range.active::before{background:#aeb8c548}
     .key.active{background:#62a7ff}
@@ -71,14 +69,15 @@
     .clef-copy{display:grid;gap:2px}
     .clef-copy small{color:#53677d;font-size:11px;font-weight:700}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
-    @media (max-width:700px){.heading{padding:0 10px 8px}.heading p{font-size:13px}.project-button{margin-top:6px;padding:6px 11px}.score-area{padding:0 10px 10px}.score{border-radius:10px}}
+    @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide,.clef-readout{grid-column:auto}.project-card{padding:20px}.project-intro{margin-bottom:14px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.heading,.keyboard-panel,#status,.score-prompt{display:none!important}
+      .orientation-blocker,.keyboard-panel,#status,.score-prompt{display:none!important}
       .app{display:block!important;width:210mm;height:auto;padding:0;background:#fff}
+      .workspace{display:block}
       .score-area{display:block;padding:0}
       .score{width:210mm;min-height:0;overflow:visible;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none}
       .score-page-shell{position:static;width:210mm!important;height:auto!important;margin:0}
@@ -98,7 +97,7 @@
   <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
     <form class="project-card" id="projectForm">
       <h2 id="projectModalTitle">Kappaleen tiedot</h2>
-      <p class="project-intro">Valitse soitin ja kirjoita uuden kappaleen perustiedot.</p>
+      <p class="project-intro">Valitse soitin ja kirjoita kappaleen tiedot. Aloita sitten napauttamalla nuottisivua. Tiedot avautuvat uudelleen kappaleen nimeä napauttamalla.</p>
       <div class="project-grid">
         <label class="field wide" for="instrumentSelect">
           <span>Soitin</span>
@@ -170,33 +169,30 @@
   </div>
 
   <main class="app" id="app" aria-hidden="true" inert>
-    <header class="heading">
-      <h1>Pikakirjoitin</h1>
-      <p>Napauta nuotti-ikkunaa avataksesi koskettimiston.</p>
-      <button class="project-button" id="openProjectModal" type="button">Kappaleen tiedot</button>
-    </header>
-    <section class="score-area">
-      <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Napauta avataksesi koskettimiston.">
-        <div class="score-page-shell" id="scorePageShell">
-          <div class="score-page" id="scorePage">
-            <span class="score-title" id="scoreTitle">Nimetön kappale</span>
-            <span class="score-composer" id="scoreComposer" hidden></span>
-            <span class="score-meta" id="scoreMeta">Huilu / oboe (C) · diskanttiavain · kirjoitettu sävellaji: C-duuri / a-molli · 4/4</span>
-            <div id="osmdContainer" aria-hidden="true"></div>
-            <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
+    <div class="workspace">
+      <section class="score-area">
+        <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Napauta avataksesi koskettimiston.">
+          <div class="score-page-shell" id="scorePageShell">
+            <div class="score-page" id="scorePage">
+              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen tietoja">Nimetön kappale</span>
+              <span class="score-composer" id="scoreComposer" hidden></span>
+              <span class="score-meta" id="scoreMeta">Huilu / oboe (C) · diskanttiavain · kirjoitettu sävellaji: C-duuri / a-molli · 4/4</span>
+              <div id="osmdContainer" aria-hidden="true"></div>
+              <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-    <div class="keyboard-panel" id="keyboardPanel" hidden>
-      <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="keyboard-scroll-track" id="keyboardScrollTrack">
-          <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
+      </section>
+      <div class="keyboard-panel" id="keyboardPanel" hidden>
+        <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="keyboard-scroll-track" id="keyboardScrollTrack">
+            <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
+          </div>
         </div>
-      </div>
-      <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
-        <div class="piano" id="piano">
-          <div class="white-keys" id="whiteKeys"></div>
+        <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
+          <div class="piano" id="piano">
+            <div class="white-keys" id="whiteKeys"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -205,7 +201,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),openProjectModal=document.querySelector('#openProjectModal'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreComposer=document.querySelector('#scoreComposer'),scoreMeta=document.querySelector('#scoreMeta'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreComposer=document.querySelector('#scoreComposer'),scoreMeta=document.querySelector('#scoreMeta'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
@@ -330,6 +326,11 @@
     function showProjectModal(){
       projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');updateClef();requestAnimationFrame(()=>instrumentSelect.focus());
     }
+    function editProjectFromTitle(e){
+      if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
+      if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
+      e.preventDefault();e.stopPropagation();showProjectModal();
+    }
     function saveProject(e){
       e.preventDefault();saveInstrument();
       const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
@@ -337,7 +338,7 @@
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
       scoreMeta.textContent=`${projectData.instrumentName} · ${projectData.clefName} · kirjoitettu sävellaji: ${projectData.keySignatureName} · ${projectData.timeSignature}`;
-      buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');openProjectModal.focus();
+      buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');score.focus();
       renderScore();
       requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForInstrument()});
     }
@@ -504,7 +505,8 @@
     requestAnimationFrame(updateScorePagePreview);
     instrumentSelect.addEventListener('change',updateClef);
     projectForm.addEventListener('submit',saveProject);
-    openProjectModal.addEventListener('click',showProjectModal);
+    scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
+    scoreTitle.addEventListener('keydown',editProjectFromTitle);
     piano.addEventListener('pointerdown',startNote);
     window.addEventListener('pointerup',stopNote);
     window.addEventListener('pointercancel',stopNote);
