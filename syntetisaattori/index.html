@@ -44,28 +44,41 @@
     <div id="status">Valmis testiin</div>
   </main>
   <script>
-    const piano=document.querySelector('#piano'),status=document.querySelector('#status'),voices=new Map();
-    let audio;
+    const piano=document.querySelector('#piano'),status=document.querySelector('#status'),presses=new Map();
+    let audio,primed=false;
     function context(){
       const AC=window.AudioContext||window.webkitAudioContext;
-      if(!audio||audio.state==='closed')try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
-      if(audio.state!=='running')audio.resume();
-      return audio;
+      if(!audio||audio.state==='closed'){
+        try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
+        primed=false;
+      }
+      if(!primed){
+        const s=audio.createBufferSource();s.buffer=audio.createBuffer(1,1,22050);s.connect(audio.destination);s.start();primed=true;
+      }
+      return audio.state==='running'?Promise.resolve(audio):audio.resume().then(()=>audio);
     }
     function start(e){
       const key=e.target.closest('.key');
-      if(!key||voices.has(e.pointerId)||(e.pointerType==='mouse'&&e.button!==0))return;
+      if(!key||presses.has(e.pointerId)||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();piano.setPointerCapture(e.pointerId);
-      const c=context(),o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
-      o.type='triangle';o.frequency.value=440*Math.pow(2,(+key.dataset.midi-69)/12);
-      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.16,t+.012);
-      o.connect(g).connect(c.destination);o.start(t);
-      voices.set(e.pointerId,{o,g,key});key.classList.add('active');status.textContent='Ääni toimii';
+      for(const [id,p] of presses)if(p.released)presses.delete(id);
+      const id=e.pointerId,press={key,released:false,voice:null};presses.set(id,press);key.classList.add('active');status.textContent='Avataan ääntä…';
+      context().then(c=>{
+        if(presses.get(id)!==press)return;
+        const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
+        o.type='triangle';o.frequency.value=440*Math.pow(2,(+key.dataset.midi-69)/12);
+        g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.16,t+.012);o.connect(g).connect(c.destination);o.start(t);
+        press.voice={o,g};status.textContent='Ääni toimii';
+        if(press.released){release(press.voice,.08);presses.delete(id)}
+      }).catch(()=>{if(presses.get(id)===press)presses.delete(id);key.classList.remove('active');status.textContent='Kosketa uudelleen'});
+    }
+    function release(v,delay=0){
+      const t=audio.currentTime+delay;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(.16,t);v.g.gain.exponentialRampToValueAtTime(.0001,t+.06);v.o.stop(t+.07);
     }
     function stop(e){
-      const v=voices.get(e.pointerId);if(!v)return;
-      const t=audio.currentTime;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(.16,t);v.g.gain.exponentialRampToValueAtTime(.0001,t+.06);v.o.stop(t+.07);
-      v.key.classList.remove('active');voices.delete(e.pointerId);
+      const press=presses.get(e.pointerId);if(!press)return;
+      press.released=true;press.key.classList.remove('active');
+      if(press.voice){release(press.voice);presses.delete(e.pointerId)}
     }
     piano.addEventListener('pointerdown',start);
     piano.addEventListener('pointerup',stop);
