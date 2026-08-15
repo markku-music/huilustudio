@@ -203,10 +203,11 @@
   </main>
 
   <script>
-    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
+    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
+    const noteDurations={eighth:4,quarter:8,half:16,whole:32};
     const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
     const instrumentClefs={'flute-oboe':'treble',clarinet:'treble','alto-saxophone':'treble',trumpet:'treble','french-horn':'treble',trombone:'bass',violin:'treble',viola:'alto',cello:'bass','double-bass':'bass'};
     const instrumentTunings={'flute-oboe':'C',clarinet:'B♭','alto-saxophone':'E♭',trumpet:'B♭','french-horn':'F',trombone:'C',violin:'C',viola:'C',cello:'C','double-bass':'C · soi oktaavia alempaa'};
@@ -222,7 +223,7 @@
       cello:{min:36,max:64,start:36,transpose:0},
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null;
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -248,8 +249,9 @@
       const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,groups=[[]];
       let used=0;
       for(const note of notes){
-        if(groups.at(-1).length&&used+8>capacity){groups.push([]);used=0}
-        groups.at(-1).push(note);used+=8;
+        const duration=noteDurations[note.duration]||noteDurations.quarter;
+        if(groups.at(-1).length&&used+duration>capacity){groups.push([]);used=0}
+        groups.at(-1).push(note);used+=duration;
       }
       return {beats,beatType,capacity,groups};
     }
@@ -257,7 +259,7 @@
       const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},useFlats=data.keySignature<0,{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2];
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
-        const entries=group.length?group.map(note=>`<note>${musicXmlPitch(note.midi,useFlats)}<duration>8</duration><voice>1</voice><type>quarter</type></note>`).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
+        const entries=group.length?group.map(note=>{const type=Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=noteDurations[type];return `<note>${musicXmlPitch(note.midi,useFlats)}<duration>${duration}</duration><voice>1</voice><type>${type}</type></note>`}).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
         return `<measure number="${index+1}">${attributes}${entries}</measure>`;
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
@@ -293,7 +295,18 @@
       editHistory.push(action);if(editHistory.length>250)editHistory.shift();
     }
     function addScoreNote(midi){
-      const note={midi,duration:'quarter'};notes.push(note);rememberAction({type:'add',note:{...note}});renderScore();
+      const note={midi,duration:'quarter'},action={type:'add',note:{...note}};
+      notes.push(note);rememberAction(action);renderScore();return {note,action};
+    }
+    function clearLongPress(){
+      if(longPressTimer===null)return;
+      clearTimeout(longPressTimer);longPressTimer=null;
+    }
+    function setActiveNoteDuration(duration){
+      if(!activeNote||activeNote.duration===duration)return;
+      activeNote.duration=duration;
+      if(activeNoteAction?.type==='add')activeNoteAction.note.duration=duration;
+      renderScore();
     }
     function undoLastChange(){
       const action=editHistory.pop();
@@ -426,16 +439,35 @@
       if(!key||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
       if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
-      if(activeKey)activeKey.classList.remove('active');
+      if(activeId!==null)return;
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
+      noteStartX=e.clientX;noteStartY=e.clientY;noteSwipeThreshold=clamp(keyboardViewport.clientHeight*.12,24,48);noteGestureLocked=false;
+      try{piano.setPointerCapture(e.pointerId)}catch{}
       const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime;
-      addScoreNote(writtenMidi);if(profile().transpose)showSoundingMarker(soundingMidi);else clearSoundingMarker();
+      const created=addScoreNote(writtenMidi);activeNote=created.note;activeNoteAction=created.action;
+      longPressTimer=setTimeout(()=>{
+        longPressTimer=null;
+        if(activeId!==e.pointerId||!activeNote||noteGestureLocked)return;
+        noteGestureLocked=true;setActiveNoteDuration('whole');
+      },LONG_PRESS_MS);
+      if(profile().transpose)showSoundingMarker(soundingMidi);else clearSoundingMarker();
       osc.frequency.setValueAtTime(440*Math.pow(2,(soundingMidi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
+    }
+    function moveNote(e){
+      if(e.pointerId!==activeId||!activeNote||noteGestureLocked)return;
+      e.preventDefault();
+      const dx=e.clientX-noteStartX,dy=e.clientY-noteStartY;
+      if(Math.hypot(dx,dy)>LONG_PRESS_MOVE)clearLongPress();
+      if(Math.abs(dy)<noteSwipeThreshold)return;
+      clearLongPress();noteGestureLocked=true;setActiveNoteDuration(dy>0?'eighth':'half');
     }
     function stopNote(e){
       if(e.pointerId!==activeId||!activeKey)return;
+      clearLongPress();
       const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06);
-      activeKey.classList.remove('active');if(soundingKey)soundingKey.classList.add('sounding-resting');activeId=null;activeKey=null;
+      activeKey.classList.remove('active');if(soundingKey)soundingKey.classList.add('sounding-resting');
+      try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
+      activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;noteGestureLocked=false;
     }
 
     function syncScrollThumb(){
@@ -511,6 +543,7 @@
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
     piano.addEventListener('pointerdown',startNote);
+    piano.addEventListener('pointermove',moveNote);
     window.addEventListener('pointerup',stopNote);
     window.addEventListener('pointercancel',stopNote);
     keyboardScrollRail.addEventListener('pointerdown',startScroll);
