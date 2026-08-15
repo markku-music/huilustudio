@@ -2711,12 +2711,37 @@ function applyNoteSpacing({ save = false } = {}) {
 function getScoreLayoutSignature() {
   return [
     layoutState.scoreZoom,
+    getResponsiveScoreScale().toFixed(3),
     layoutState.systemSpacing,
     layoutState.margins.left,
     layoutState.margins.right,
     layoutState.margins.top,
     layoutState.margins.bottom,
   ].join('|');
+}
+
+function getResponsiveScoreScale() {
+  if (!osmdContainer?.isConnected) return 1;
+  // Tulosta & tallenna käyttää aina käyttäjän varsinaista zoomia ilman näyttösovitusta.
+  if (state.workMode === 'output') return 1;
+
+  const rect = osmdContainer.getBoundingClientRect();
+  const style = getComputedStyle(osmdContainer);
+  const pixels = property => Number.parseFloat(style.getPropertyValue(property)) || 0;
+  const innerWidth = Math.max(1, rect.width
+    - pixels('padding-left') - pixels('padding-right')
+    - pixels('border-left-width') - pixels('border-right-width'));
+  const innerHeight = Math.max(1, rect.height
+    - pixels('padding-top') - pixels('padding-bottom')
+    - pixels('border-top-width') - pixels('border-bottom-width'));
+
+  // 804 × 520 px vastaa suuren iPad-näkymän normaalia nuottialuetta.
+  // Pienemmässä ikkunassa sama kaiverrus pienenee tasaisesti, mutta ei alle 70 %:n.
+  return clamp(Math.min(innerWidth / 804, innerHeight / 520, 1), 0.7, 1);
+}
+
+function getEffectiveScoreZoom() {
+  return (layoutState.scoreZoom / 100) * getResponsiveScoreScale();
 }
 
 function applyScoreLayout() {
@@ -4221,7 +4246,7 @@ async function renderScoreNow() {
       osmd.EngravingRules.StretchLastSystemLine = stretchLastLine;
       osmd.EngravingRules.LastSystemMaxScalingFactor = stretchLastLine ? 100 : 1.4;
     }
-    osmd.zoom = layoutState.scoreZoom / 100;
+    osmd.zoom = getEffectiveScoreZoom();
     await osmd.render();
     applyScoreTextLayout();
     alignDynamicsByStaffLine();
@@ -4361,14 +4386,15 @@ function scheduleOsmdResizeRender() {
   clearTimeout(window.__osmdResizeTimer);
   window.__osmdResizeTimer = setTimeout(async () => {
     try {
-      // OSMD laskee järjestelmäleveyden containerin nykyisestä leveydestä renderöinnissä.
-      // Zoom pidetään ennallaan, mutta koko partituuri kaiverretaan uudelleen.
+      // Yksi mukautuva kaiverrus seuraa sekä nuotti-ikkunan leveyttä että korkeutta.
+      state.osmd.zoom = getEffectiveScoreZoom();
       await state.osmd.render();
       applyScoreTextLayout();
       alignDynamicsByStaffLine();
       renderPitchNameOverlays();
       renderSystemBreakMarkers();
       refreshNoteSelectionGeometry();
+      state.appliedScoreLayoutSignature = getScoreLayoutSignature();
       noteScoreRenderCompleted();
     } catch (err) {
       console.warn('OSMD resize render failed', err);
@@ -4384,8 +4410,10 @@ if ('ResizeObserver' in window) {
     const entry = entries[0];
     if (!entry) return;
     const width = Math.round(entry.contentRect.width);
-    if (!width || width === window.__lastOsmdWidth) return;
-    window.__lastOsmdWidth = width;
+    const height = Math.round(entry.contentRect.height);
+    const size = `${width}x${height}`;
+    if (!width || !height || size === window.__lastOsmdSize) return;
+    window.__lastOsmdSize = size;
     scheduleOsmdResizeRender();
   });
   osmdResizeObserver.observe(osmdContainer);

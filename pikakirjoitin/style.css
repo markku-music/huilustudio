@@ -2992,7 +2992,7 @@ input, select {
 }
 
 
-/* 0.4.5.1 · iOS-äänen avaus nuotti-ikkunasta */
+/* 0.4.5.2 · iOS-ääni ja automaattisesti mukautuva nuottikuva */
 .startup-overlay {
   background: rgba(23, 31, 42, 0.24) !important;
   backdrop-filter: blur(9px) saturate(0.9) !important;
