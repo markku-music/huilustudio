@@ -12,16 +12,16 @@
     main{width:min(760px,100%);text-align:center}
     h1{margin:0 0 8px;font-size:clamp(24px,5vw,40px)}
     p{margin:0 0 16px;color:#586474}
-    .unlock{margin:0 0 20px;border:0;border-radius:999px;padding:13px 24px;background:#176fd1;color:#fff;font:750 16px system-ui;box-shadow:0 8px 20px #176fd140}
-    .unlock:disabled{background:#27824e;opacity:1}
+    .score{width:100%;height:138px;margin:0 0 20px;border:2px solid #9ba6b4;border-radius:12px;background:repeating-linear-gradient(#fff 0 25px,#c8ced6 26px,#fff 27px);color:#18202a;font:700 23px system-ui;box-shadow:0 10px 28px #1c273520;touch-action:manipulation;cursor:pointer}
+    .score small{display:block;margin-top:34px;color:#586474;font:600 14px system-ui}
     .piano{position:relative;display:flex;height:clamp(190px,42vw,320px);border:5px solid #20242a;border-radius:12px;overflow:hidden;background:#20242a;box-shadow:0 16px 40px #1c27352e;touch-action:none;-webkit-touch-callout:none}
+    .piano[hidden]{display:none}
     .key{border:0;touch-action:none;cursor:pointer}
     .white{flex:1;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:600 15px system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
     .white:last-of-type{border:0}
     .black{position:absolute;z-index:2;top:0;width:8%;height:62%;margin-left:-4%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
     .key.active{background:#62a7ff}
     .black.active{background:#2869b8}
-    .piano.locked{opacity:.48}
     .b1{left:14.2857%}.b2{left:28.5714%}.b3{left:57.1429%}.b4{left:71.4286%}.b5{left:85.7143%}
     #status{margin-top:18px;min-height:24px;font-weight:650;color:#2365aa}
   </style>
@@ -29,9 +29,9 @@
 <body>
   <main>
     <h1>iOS Äänitesti</h1>
-    <p>Avaa ääni kerran. Sen jälkeen koskettimet soivat heti.</p>
-    <button class="unlock" id="unlock" type="button">AVAA ÄÄNI</button>
-    <div class="piano locked" id="piano" aria-label="Yhden oktaavin pianokoskettimisto">
+    <p>Napauta nuotti-ikkunaa. Koskettimisto avautuu ja ensimmäinen kosketin soi heti.</p>
+    <button class="score" id="score" type="button" aria-expanded="false">♩ ♪ ♫<small>NUOTTI-IKKUNA · NAPAUTA</small></button>
+    <div class="piano" id="piano" aria-label="Yhden oktaavin pianokoskettimisto" hidden>
       <button class="key white" data-midi="60" aria-label="C">C</button>
       <button class="key white" data-midi="62" aria-label="D">D</button>
       <button class="key white" data-midi="64" aria-label="E">E</button>
@@ -48,7 +48,7 @@
     <div id="status">Audio: ei avattu</div>
   </main>
   <script>
-    const piano=document.querySelector('#piano'),status=document.querySelector('#status'),unlock=document.querySelector('#unlock'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     let audio,osc,gain,started=false,activeId=null,activeKey=null;
     function build(){
       try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
@@ -56,14 +56,15 @@
       audio.onstatechange=()=>status.textContent='Audio: '+audio.state;
       status.textContent='Audio: '+audio.state;
     }
-    function openAudio(){
+    function togglePiano(e){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      e.preventDefault();
+      if(!piano.hidden){piano.hidden=true;score.setAttribute('aria-expanded','false');return}
       if(!audio||audio.state==='closed')build();
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        piano.classList.remove('locked');unlock.disabled=true;unlock.textContent='ÄÄNI AVATTU';status.textContent='Audio: running';
-        const t=audio.currentTime;osc.frequency.setValueAtTime(261.63,t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.12,t+.01);
-        setTimeout(()=>{const n=audio.currentTime;gain.gain.cancelScheduledValues(n);gain.gain.setValueAtTime(.12,n);gain.gain.exponentialRampToValueAtTime(.0001,n+.06)},120);
+        piano.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
@@ -71,7 +72,7 @@
       const key=e.target.closest('.key');
       if(!key||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
-      if(!audio||audio.state!=='running'){status.textContent='Paina ensin AVAA ÄÄNI';return}
+      if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
       piano.setPointerCapture(e.pointerId);
       if(activeKey)activeKey.classList.remove('active');
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
@@ -87,7 +88,7 @@
     piano.addEventListener('pointerup',stop);
     piano.addEventListener('pointercancel',stop);
     piano.addEventListener('lostpointercapture',stop);
-    unlock.addEventListener('click',openAudio);
+    score.addEventListener('pointerup',togglePiano);
   </script>
 </body>
 </html>
