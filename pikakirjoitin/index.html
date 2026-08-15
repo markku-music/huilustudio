@@ -1,552 +1,143 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.5.2" />
-  <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
-  <script src="vendor/jspdf/jspdf.umd.min.js"></script>
-  <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#eef1f5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Pikakirjoitin</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+    body{-webkit-user-select:none;user-select:none}
+    button{font:inherit;-webkit-tap-highlight-color:transparent}
+    .app{width:100%;height:100dvh;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));background:#eef1f5}
+    .heading{flex:none;padding:0 16px 12px;text-align:center}
+    h1{margin:0 0 4px;font-size:clamp(22px,5vw,34px)}
+    p{margin:0;color:#586474;font-size:14px}
+    .score-area{min-height:0;flex:1;display:flex;padding:0 16px 16px}
+    .score{width:100%;min-height:120px;border:2px solid #9ba6b4;border-radius:12px;background:repeating-linear-gradient(#fff 0 25px,#c8ced6 26px,#fff 27px);color:#18202a;font:700 23px system-ui;box-shadow:0 10px 28px #1c273520;touch-action:manipulation;cursor:pointer}
+    .score small{display:block;margin-top:34px;color:#586474;font:600 13px system-ui}
+    .keyboard-viewport{width:100vw;height:clamp(250px,42dvh,430px);flex:none;overflow-x:auto;overflow-y:hidden;background:#20242a;border-top:5px solid #20242a;border-bottom:5px solid #20242a;touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .keyboard-viewport[hidden]{display:none}
+    .keyboard-viewport::-webkit-scrollbar{display:none}
+    .piano{position:relative;width:250vw;height:100%;touch-action:pan-x;-webkit-touch-callout:none}
+    .white-keys{display:flex;width:100%;height:100%}
+    .key{border:0;touch-action:pan-x;cursor:pointer}
+    .white{flex:0 0 calc(100% / 35);height:100%;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:650 clamp(12px,2vw,17px) system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
+    .white:last-child{border-right:0}
+    .black{position:absolute;z-index:2;top:0;height:62%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .key.active{background:#62a7ff}
+    .black.active{background:#2869b8}
+    #status{flex:none;min-height:30px;padding:6px 16px max(6px,env(safe-area-inset-bottom));text-align:center;font-weight:650;color:#2365aa;background:#eef1f5}
+    .orientation-blocker{display:none;position:fixed;inset:0;z-index:1000;padding:28px;place-items:center;background:#eef1f5;text-align:center}
+    .orientation-card{max-width:430px;padding:34px 28px;border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 16px 42px #1c273526}
+    .orientation-icon{display:block;margin-bottom:14px;font-size:52px;line-height:1}
+    .orientation-card h2{margin:0 0 8px;font-size:24px}
+    .orientation-card p{font-size:16px;line-height:1.45}
+    @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
+  </style>
 </head>
 <body>
-
-  <div id="startupOverlay" class="startup-overlay" role="dialog" aria-modal="true" aria-label="Kappaleen aloitus">
-    <div class="startup-card panel">
-      <div class="startup-header">
-        <h1 class="startup-product">Pikakirjoitin 1.0</h1>
-      </div>
-
-      <div class="startup-name-row">
-        <input
-          id="startupTitleInput"
-          type="text"
-          maxlength="80"
-          autocomplete="off"
-          enterkeyhint="done"
-          placeholder="Kappaleen nimi"
-          aria-label="Kappaleen nimi"
-        >
-        <button id="startupBeginBtn" class="startup-begin-btn" type="button">
-          Aloita
-        </button>
-      </div>
-
-      <div class="startup-info">
-        <div class="startup-author">
-          <strong>Markku Hirvonen</strong><br>
-          Huilunsoitonopettaja<br>
-          Riihimäen musiikkiopisto<br>
-          <a href="mailto:markku.hirvonen@riihimaki.fi">
-            markku.hirvonen@riihimaki.fi
-          </a>
-        </div>
-
-        <div class="startup-ai">
-          Suunniteltu ja kehitetty yhdessä Sanita-tekoälyn kanssa
-        </div>
-
-        <div class="startup-license">
-          © 2026 Markku Hirvonen · Avoin lähdekoodi ·
-          <a
-            href="https://opensource.org/license/mit"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            MIT License
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="appShell" class="app-shell">
-    <div class="side-column">
-      <button id="songPanelToggle" class="panel song-panel-toggle" type="button" aria-expanded="false">
-        <span class="song-panel-icon">🎼</span>
-        <span>Kappale</span>
-      </button>
-
-      <aside id="songPanel" class="panel left-panel" aria-hidden="true">
-        <div class="song-panel-head">
-          <div>
-            <div class="app-badge">🎼 Pikakirjoitin</div>
-            <h2>Kappaleen tiedot</h2>
-          </div>
-          <button id="songPanelClose" class="icon-button" type="button" aria-label="Sulje kappaleen tiedot">×</button>
-        </div>
-
-      <label>
-        <span>Nimi</span>
-        <input id="titleInput" type="text" value="Uusi kappale" />
-      </label>
-
-      <label>
-        <span>Säveltäjä</span>
-        <input id="composerInput" type="text" value="Markku" />
-      </label>
-
-      <label>
-        <span>Tempo-merkintä</span>
-        <input id="tempoTextInput" type="text" value="Andante" />
-      </label>
-
-      <label>
-        <span>Tempo (♩ =)</span>
-        <div class="stepper-row">
-          <button id="tempoDown" class="stepper-btn" type="button">−</button>
-          <input id="bpmInput" class="centered" type="number" min="30" max="240" value="100" />
-          <button id="tempoUp" class="stepper-btn" type="button">+</button>
-        </div>
-      </label>
-
-      <label>
-        <span>Tahtilaji</span>
-        <div class="inline-selects">
-          <select id="beatsSelect">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4" selected>4</option>
-            <option value="6">6</option>
-          </select>
-          <span class="slash">/</span>
-          <select id="beatTypeSelect">
-            <option value="4" selected>4</option>
-            <option value="8">8</option>
-          </select>
-        </div>
-      </label>
-
-      <label>
-        <span>Sävellaji</span>
-        <div class="inline-selects">
-          <select id="keySelect"></select>
-          <select id="modeSelect">
-            <option value="major" selected>duuri</option>
-            <option value="minor">molli</option>
-          </select>
-        </div>
-      </label>
-
-        <div class="project-actions" aria-label="Kappaleprojektin tallennus ja avaaminen">
-          <button id="projectSaveBtn" class="project-action-button project-action-primary" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 3h11l3 3v15H5zM8 3v6h8V3M8 16h8"/>
-            </svg>
-            <span>Tallenna projekti</span>
-          </button>
-          <button id="projectLoadBtn" class="project-action-button" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 7h7l2 2h9l-2 11H5zM3 7V4h7l2 2h7v3"/>
-            </svg>
-            <span>Avaa projekti</span>
-          </button>
-          <input id="projectFileInput" type="file" accept=".pikakirjoitin.json,.json,application/json" hidden>
-        </div>
-        <p id="projectActionStatus" class="project-action-status" role="status" aria-live="polite">Kappale tallennetaan automaattisesti tälle laitteelle.</p>
-        <section class="recent-projects" aria-labelledby="recentProjectsTitle">
-          <div class="recent-projects-head">
-            <strong id="recentProjectsTitle">Viimeisimmät projektit</strong>
-            <span>enintään 10</span>
-          </div>
-          <div id="recentProjectsList" class="recent-projects-list">
-            <p class="recent-projects-empty">Ei tallennettuja projekteja</p>
-          </div>
-        </section>
-        <div class="document-actions" aria-label="Tulostus ja PDF">
-          <button id="printScoreBtn" class="document-action-button" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/>
-            </svg>
-            <span>Tulosta</span>
-          </button>
-          <button id="pdfShareBtn" class="document-action-button document-action-primary" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>
-            </svg>
-            <span id="pdfShareBtnLabel">PDF / Jaa</span>
-          </button>
-        </div>
-        <p id="documentActionStatus" class="document-action-status" role="status" aria-live="polite">PDF:n voi tallentaa iPadin jakovalikosta Google Driveen.</p>
-        <button id="songPanelDone" class="song-panel-done" type="button">Valmis</button>
-      </aside>
-
-      <aside class="panel modifier-panel" aria-label="Nuotin muuntimet">
-        <div class="modifier-buttons">
-          <button id="dotShiftBtn" class="modifier-button" type="button" aria-label="Piste" aria-pressed="false">
-            <img class="modifier-icon modifier-icon-dotted" src="assets/Dotted_quarter_note.svg" alt="" aria-hidden="true">
-          </button>
-          <button id="sixteenthShiftBtn" class="modifier-button" type="button" aria-label="Alas 1/16" aria-pressed="false">
-            <img class="modifier-icon modifier-icon-sixteenth" src="assets/Doublecrochet.svg" alt="" aria-hidden="true">
-          </button>
-          <button id="restShiftBtn" class="modifier-button" type="button" aria-label="Tauko" aria-pressed="false">
-            <img class="modifier-icon modifier-icon-rest" src="assets/Rest.svg" alt="" aria-hidden="true">
-          </button>
-          <button id="tieShiftBtn" class="modifier-button" type="button" aria-label="Sidekaari seuraavaan samaan säveleen" aria-pressed="false">
-            <svg class="modifier-icon modifier-icon-tie" viewBox="0 0 48 48" aria-hidden="true">
-              <ellipse cx="14" cy="18" rx="7" ry="5" transform="rotate(-18 14 18)"/>
-              <path d="M20 18v-13"/>
-              <ellipse cx="34" cy="18" rx="7" ry="5" transform="rotate(-18 34 18)"/>
-              <path d="M40 18v-13"/>
-              <path d="M10 31C16 40 32 40 38 31"/>
-            </svg>
-          </button>
-          <button id="systemBreakBtn" class="modifier-button" type="button" aria-label="Seuraava tahti uudelle riville" aria-pressed="false">
-            <svg class="modifier-icon modifier-icon-system-break" viewBox="0 0 48 48" aria-hidden="true">
-              <path d="M8 12h32M8 21h24M8 30h20"/>
-              <path d="M38 21v9c0 4.4-3.6 8-8 8H18"/>
-              <path d="m23 33-5 5 5 5"/>
-            </svg>
-          </button>
-          <button id="stretchLastLineBtn" class="modifier-button modifier-button-text" type="button" aria-label="Venytä nykyinen viimeinen rivi kerran koko leveyteen">↔</button>
-          <button id="selectNotesBtn" class="modifier-button" type="button" aria-label="Valitse nuotteja" aria-pressed="false">
-            <svg class="modifier-icon modifier-icon-selection" viewBox="0 0 48 48" aria-hidden="true">
-              <rect x="7" y="8" width="28" height="24" rx="3"/>
-              <path d="m24 22 14 15-8-1-4 7z"/>
-            </svg>
-          </button>
-        </div>
-      </aside>
-
-      <button id="layoutToggle" class="panel layout-rail-button" type="button" aria-label="Avaa asettelu">⚙</button>
-    </div>
-
-    <main class="main-column keyboard-collapsed">
-
-      <div class="mode-panel" aria-label="Työskentelyvaiheet">
-        <div class="mode-switch" role="group" aria-label="Työskentelytila">
-          <button id="writeModeBtn" class="mode-switch-button active" type="button" aria-pressed="true">
-            KIRJOITA
-          </button>
-          <button id="finishModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
-            VIIMEISTELE
-          </button>
-          <button id="outputModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
-            TULOSTA &amp; TALLENNA
-          </button>
-        </div>
-      </div>
-
-      <div id="outputToolbar" class="output-toolbar" aria-hidden="true">
-        <button id="outputSaveProjectBtn" class="output-action-button" type="button">Tallenna projekti</button>
-        <button id="outputPrintBtn" class="output-action-button" type="button">Tulosta</button>
-        <button id="outputPdfBtn" class="output-action-button output-action-primary" type="button">PDF / Jaa</button>
-        <button id="outputXmlBtn" class="output-action-button" type="button">MusicXML</button>
-      </div>
-
-      <div id="scoreKeyboardSplit" class="score-keyboard-split">
-      <section class="panel paper-panel">
-        <span id="statusText" hidden>Valmis</span>
-<div id="selectionToolbar" class="selection-toolbar" aria-hidden="true">
-          <span id="selectionCount" class="selection-count" aria-live="polite">Vedä nuottien yli</span>
-          <button id="selectionSlurBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <path d="M7 33C13 13 35 13 41 33"/>
-            </svg>
-          </button>
-          <button id="selectionTieFlipBtn"
-                  class="selection-action-button selection-tie-flip-button"
-                  type="button"
-                  aria-label="Käännä sidekaari"
-                  aria-pressed="false"
-                  disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <path d="M8 29C15 15 33 15 40 29"/>
-              <path d="m18 37 6 6 6-6"/>
-              <path d="M24 43V31"/>
-            </svg>
-            <span class="selection-tie-flip-label">TIE ↕</span>
-          </button>
-          <button id="selectionStaccatoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <circle cx="24" cy="24" r="5"/>
-            </svg>
-          </button>
-          <button id="selectionPortatoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista portatoviivat" aria-pressed="false" disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <path d="M12 24h24"/>
-            </svg>
-          </button>
-          <button id="selectionAccentBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista aksentit" aria-pressed="false" disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <path d="m13 14 22 10-22 10"/>
-            </svg>
-          </button>
-          <label class="selection-dynamic-control">
-            <span class="selection-dynamic-label">dyn.</span>
-            <select id="selectionDynamicSelect" class="selection-dynamic-select" aria-label="Dynamiikka" disabled>
-              <option value="">—</option>
-              <option value="ppp">ppp</option>
-              <option value="pp">pp</option>
-              <option value="p">p</option>
-              <option value="mp">mp</option>
-              <option value="mf">mf</option>
-              <option value="f">f</option>
-              <option value="ff">ff</option>
-              <option value="fff">fff</option>
-            </select>
-          </label>
-          <button id="selectionCrescendoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista crescendo" aria-pressed="false" disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <path d="M7 24 41 10M7 24l34 14"/>
-            </svg>
-          </button>
-          <button id="selectionDiminuendoBtn" class="selection-action-button" type="button" aria-label="Lisää tai poista diminuendo" aria-pressed="false" disabled>
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-              <path d="m7 10 34 14M7 38l34-14"/>
-            </svg>
-          </button>
-          <button id="selectionClearBtn" class="selection-clear-button" type="button" aria-label="Poista valinta">×</button>
-        </div>
-<div id="osmdContainer"></div>
-      </section>
-
-      <div class="keyboard-toggle-strip">
-        <button id="keyboardToggleBtn" class="keyboard-toggle-button" type="button" aria-expanded="false" aria-controls="zoneKeyboard">
-          <svg viewBox="0 0 64 32" aria-hidden="true">
-            <rect x="3" y="4" width="58" height="24" rx="5"/>
-            <path d="M12 4v24M21 4v24M30 4v24M39 4v24M48 4v24M3 16h58"/>
-          </svg>
-          <span id="keyboardToggleLabel">Avaa koskettimisto</span>
-        </button>
-      </div>
-
-      <div id="scoreKeyboardDivider" class="score-keyboard-divider" role="separator" aria-label="Muuta nuotti-ikkunan ja koskettimiston suhdetta" aria-orientation="horizontal" tabindex="0">
-        <span class="divider-grip"></span>
-      </div>
-
-      <section class="panel zone-panel">
-        <div id="zoneKeyboard" class="zone-keyboard" aria-label="Flick-koskettimisto">
-          <div class="octave-navigator" aria-label="Koskettimiston oktaavialue">
-            <button id="octavePrevBtn" class="octave-nav-button" type="button" aria-label="Näytä ensimmäinen ja toinen oktaavi">‹</button>
-            <div id="octaveRail" class="octave-rail" role="slider" tabindex="0" aria-label="Näkyvät oktaavit" aria-valuemin="1" aria-valuemax="2" aria-valuenow="1" aria-valuetext="Oktaavit 1–2">
-              <strong id="octaveRangeLabel" class="octave-range-label">OKTAAVIT 1–2</strong>
-              <div class="octave-map" aria-hidden="true">
-                <span id="octaveWindowMarker" class="octave-window-marker"></span>
-                <span>1</span><span>2</span><span>3</span>
-              </div>
-            </div>
-            <button id="octaveNextBtn" class="octave-nav-button" type="button" aria-label="Näytä toinen ja kolmas oktaavi">›</button>
-          </div>
-          <div id="keyboardViewport" class="keyboard-viewport">
-            <div id="keyboardSurface" class="keyboard-surface"></div>
-          </div>
-        </div>
-      </section>
-      </div>
-    </main>
-  </div>
-
-  <div id="songPanelBackdrop" class="song-panel-backdrop" aria-hidden="true"></div>
-
-  <div id="flickHud" class="flick-hud" aria-hidden="true">
-    <div id="flickCursorShorter" class="flick-duration-option flick-duration-neighbor" aria-hidden="true">
-      <span class="flick-duration-symbol">𝅗𝅥</span>
-      <span class="flick-duration-label">1/2</span>
-    </div>
-    <div id="flickCursorCurrent" class="flick-duration-option flick-duration-current">
-      <span class="flick-duration-symbol">♩</span>
-      <span class="flick-duration-label">1/4</span>
-    </div>
-    <div id="flickCursorLonger" class="flick-duration-option flick-duration-neighbor" aria-hidden="true">
-      <span class="flick-duration-symbol">♪</span>
-      <span class="flick-duration-label">1/8</span>
+  <div class="orientation-blocker" role="status" aria-live="polite">
+    <div class="orientation-card">
+      <span class="orientation-icon" aria-hidden="true">↻</span>
+      <h2>Käännä tabletti pystyasentoon</h2>
+      <p>Pikakirjoitin on suunniteltu käytettäväksi portrait-asennossa.</p>
     </div>
   </div>
 
-  <aside id="layoutPanel" class="layout-panel" aria-hidden="true">
-    <div class="layout-panel-head">
-      <div>
-        <div class="layout-kicker">KEHITTÄJÄTYÖKALUT</div>
-        <h2>Koskettimisto & nuottikuva</h2>
-      </div>
-      <button id="layoutClose" class="icon-button" type="button" aria-label="Sulje">×</button>
-    </div>
-
-    <div class="layout-panel-scroll">
-
-    <div class="layout-section">
-      <h3>Kätisyys</h3>
-      <p class="layout-hint">Oikea käsi on oletus. Vasen käsi siirtää Kappaleen tiedot -ikkunan oikealle puolelle. Rytmipalaute näytetään aina sormen yläpuolella.</p>
-      <div class="handedness-toggle" role="group" aria-label="Kätisyys">
-        <button id="rightHandBtn" class="hand-button" type="button" data-hand="right">Oikea käsi</button>
-        <button id="leftHandBtn" class="hand-button" type="button" data-hand="left">Vasen käsi</button>
+  <main class="app">
+    <header class="heading">
+      <h1>Pikakirjoitin</h1>
+      <p>Napauta nuotti-ikkunaa avataksesi koskettimiston.</p>
+    </header>
+    <section class="score-area">
+      <button class="score" id="score" type="button" aria-expanded="false" aria-controls="keyboardViewport">♩ ♪ ♫<small>NUOTTI-IKKUNA · NAPAUTA</small></button>
+    </section>
+    <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa vieritettävä koskettimisto" hidden>
+      <div class="piano" id="piano">
+        <div class="white-keys" id="whiteKeys"></div>
       </div>
     </div>
+    <div id="status">Audio: ei avattu</div>
+  </main>
 
-    <div class="layout-section">
-      <h3>Ikkunoiden jakosuhde</h3>
-      <p class="layout-hint">Muuta arvoa vetämällä nuotti-ikkunan ja koskettimiston välissä olevaa kahvaa.</p>
-      <div class="split-value-row">
-        <span>Nuotti-ikkuna</span>
-        <output id="scoreShareOut">70 %</output>
-      </div>
-    </div>
+  <script>
+    const MIN_MIDI=36,MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardViewport=document.querySelector('#keyboardViewport'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
+    let audio,osc,gain,started=false,activeId=null,activeKey=null;
 
-    <div class="layout-section">
-      <h3>Nuottikuva</h3>
-      <button id="pitchNameToggle" class="setting-toggle-button active" type="button" aria-pressed="true">
-        <span class="setting-toggle-copy">
-          <strong>Sävelnimet nuottipalloissa</strong>
-          <small>Myös ♯, ♭ ja ♮ piirretään vektoreina</small>
-        </span>
-        <span id="pitchNameState" class="setting-toggle-state">Päällä</span>
-      </button>
-      <label class="slider-row">
-        <span>Zoom <output id="scoreZoomOut">100 %</output></span>
-        <input id="scoreZoomSlider" type="range" min="70" max="160" step="1" value="100">
-      </label>
-      <label class="slider-row">
-        <span>Riviväli <output id="systemSpacingOut">500 %</output></span>
-        <input id="systemSpacingSlider" type="range" min="500" max="1000" step="5" value="500">
-      </label>
-      <label class="slider-row">
-        <span>Vasen marginaali <output id="marginLeftOut">2 u</output></span>
-        <input id="marginLeftSlider" type="range" min="0" max="12" step="0.5" value="2">
-      </label>
-      <label class="slider-row">
-        <span>Oikea marginaali <output id="marginRightOut">2 u</output></span>
-        <input id="marginRightSlider" type="range" min="0" max="12" step="0.5" value="2">
-      </label>
-      <label class="slider-row">
-        <span>Ylämarginaali <output id="marginTopOut">5 u</output></span>
-        <input id="marginTopSlider" type="range" min="0" max="15" step="0.5" value="5">
-      </label>
-      <label class="slider-row">
-        <span>Alamarginaali <output id="marginBottomOut">0 u</output></span>
-        <input id="marginBottomSlider" type="range" min="0" max="15" step="0.5" value="0">
-      </label>
-    </div>
+    function octaveIndex(midi){return Math.floor((midi-MIN_MIDI)/12)}
+    function visibleName(midi){
+      const octave=octaveIndex(midi),name=whitePitchNames[midi%12];
+      if(octave===0)return name;
+      if(octave===1)return name.toLowerCase();
+      return name.toLowerCase()+(octave-1);
+    }
+    function spokenName(midi){
+      const octave=octaveIndex(midi),pitch=midi%12,name=whitePitchNames[pitch]||blackPitchNames[pitch];
+      if(octave===0)return 'suuri '+name;
+      if(octave===1)return 'pieni '+name.toLowerCase();
+      return name.toLowerCase()+(octave-1);
+    }
+    function buildKeyboard(){
+      let whiteIndex=0;
+      for(let midi=MIN_MIDI;midi<=MAX_MIDI;midi+=1){
+        const pitch=midi%12,isWhite=Object.hasOwn(whitePitchNames,pitch),key=document.createElement('button');
+        key.type='button';key.className='key '+(isWhite?'white':'black');key.dataset.midi=String(midi);key.setAttribute('aria-label',spokenName(midi));
+        if(isWhite){
+          key.textContent=visibleName(midi);whiteKeys.appendChild(key);whiteIndex+=1;
+        }else{
+          const whiteWidth=100/WHITE_COUNT;
+          key.style.left=`${whiteIndex*whiteWidth-whiteWidth*BLACK_WIDTH/2}%`;
+          key.style.width=`${whiteWidth*BLACK_WIDTH}%`;
+          piano.appendChild(key);
+        }
+      }
+    }
+    function buildAudio(){
+      try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
+      osc=audio.createOscillator();gain=audio.createGain();osc.type='triangle';gain.gain.value=.0001;osc.connect(gain).connect(audio.destination);started=false;
+      audio.onstatechange=()=>status.textContent='Audio: '+audio.state;
+      status.textContent='Audio: '+audio.state;
+    }
+    function togglePiano(e){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      e.preventDefault();
+      if(!keyboardViewport.hidden){keyboardViewport.hidden=true;score.setAttribute('aria-expanded','false');return}
+      if(!audio||audio.state==='closed')buildAudio();
+      if(!started){osc.start();started=true}
+      const done=()=>{
+        if(audio.state!=='running')return;
+        keyboardViewport.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';
+      };
+      if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
+    }
+    function startNote(e){
+      const key=e.target.closest('.key');
+      if(!key||(e.pointerType==='mouse'&&e.button!==0))return;
+      if(e.pointerType==='mouse')e.preventDefault();
+      if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
+      if(activeKey)activeKey.classList.remove('active');
+      activeId=e.pointerId;activeKey=key;key.classList.add('active');
+      const t=audio.currentTime;osc.frequency.setValueAtTime(440*Math.pow(2,(+key.dataset.midi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
+    }
+    function stopNote(e){
+      if(e.pointerId!==activeId||!activeKey)return;
+      const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06);
+      activeKey.classList.remove('active');activeId=null;activeKey=null;
+    }
 
-    <div class="layout-section">
-      <h3>Tekstien asettelu</h3>
-      <p class="layout-hint">Koko annetaan prosentteina. Positiivinen X siirtää oikealle ja positiivinen Y alaspäin.</p>
-
-      <div class="text-layout-block">
-        <h4>Otsikko</h4>
-        <label class="slider-row">
-          <span>Koko <output id="titleSizeOut">90 %</output></span>
-          <input id="titleSizeSlider" type="range" min="50" max="250" step="5" value="90">
-        </label>
-        <label class="slider-row">
-          <span>X <output id="titleXOut">0 u</output></span>
-          <input id="titleXSlider" type="range" min="-300" max="300" step="5" value="0">
-        </label>
-        <label class="slider-row">
-          <span>Y <output id="titleYOut">-30 u</output></span>
-          <input id="titleYSlider" type="range" min="-200" max="200" step="5" value="-30">
-        </label>
-      </div>
-
-      <div class="text-layout-block">
-        <h4>Säveltäjä</h4>
-        <label class="slider-row">
-          <span>Koko <output id="composerSizeOut">100 %</output></span>
-          <input id="composerSizeSlider" type="range" min="50" max="250" step="5" value="100">
-        </label>
-        <label class="slider-row">
-          <span>X <output id="composerXOut">0 u</output></span>
-          <input id="composerXSlider" type="range" min="-300" max="300" step="5" value="0">
-        </label>
-        <label class="slider-row">
-          <span>Y <output id="composerYOut">15 u</output></span>
-          <input id="composerYSlider" type="range" min="-200" max="200" step="5" value="15">
-        </label>
-      </div>
-
-      <div class="text-layout-block">
-        <h4>Tempoteksti</h4>
-        <label class="slider-row">
-          <span>Koko <output id="tempoSizeOut">100 %</output></span>
-          <input id="tempoSizeSlider" type="range" min="50" max="250" step="5" value="100">
-        </label>
-        <label class="slider-row">
-          <span>X <output id="tempoXOut">55 u</output></span>
-          <input id="tempoXSlider" type="range" min="-300" max="300" step="5" value="55">
-        </label>
-        <label class="slider-row">
-          <span>Y <output id="tempoYOut">0 u</output></span>
-          <input id="tempoYSlider" type="range" min="-200" max="200" step="5" value="0">
-        </label>
-      </div>
-    </div>
-
-    <div class="layout-section">
-      <h3>Valkoiset koskettimet</h3>
-      <label class="slider-row">
-        <span>Leveys <output id="whiteWidthOut">100 %</output></span>
-        <input id="whiteWidthSlider" type="range" min="75" max="135" step="1" value="100">
-      </label>
-      <label class="slider-row">
-        <span>Koskettimiston korkeus <output id="keyboardHeightOut">100 %</output></span>
-        <input id="keyboardHeightSlider" type="range" min="70" max="125" step="1" value="100">
-      </label>
-    </div>
-
-    <div class="layout-section">
-      <h3>Mustat koskettimet</h3>
-      <label class="slider-row">
-        <span>Leveys <output id="blackWidthOut">43 %</output></span>
-        <input id="blackWidthSlider" type="range" min="35" max="95" step="1" value="43">
-      </label>
-      <label class="slider-row">
-        <span>Korkeus <output id="blackHeightOut">46 %</output></span>
-        <input id="blackHeightSlider" type="range" min="30" max="85" step="1" value="46">
-      </label>
-    </div>
-
-    <div class="layout-section">
-      <h3>Eleasetukset</h3>
-      <p class="layout-hint">Tap = 1/4, ylös = 1/2, alas = 1/8. Pidä vasemman reunan 1/16-nappia pohjassa, niin alas = 1/16. Pitkä paikallaan painaminen = koko. Kahden sormen napautus = Kumoa.</p>
-      <label class="slider-row">
-        <span>Ylös → 1/2 <output id="flickHalfOut">26 px</output></span>
-        <input id="flickHalfSlider" type="range" min="10" max="70" step="1" value="26">
-      </label>
-      <label class="slider-row">
-        <span>Alas → 1/8 <output id="flickEighthOut">26 px</output></span>
-        <input id="flickEighthSlider" type="range" min="10" max="70" step="1" value="26">
-      </label>
-      <label class="slider-row">
-        <span>Pitkä painallus → koko <output id="longPressOut">550 ms</output></span>
-        <input id="longPressSlider" type="range" min="300" max="1200" step="25" value="550">
-      </label>
-    </div>
-
-    <div class="layout-section">
-      <h3>Tulostus ja PDF</h3>
-      <p class="layout-hint">Kolme kokeiluvesileimaa lisätään jokaisen A4-sivun nuottien päälle. Ne eivät näy nuottia kirjoitettaessa.</p>
-      <button id="printWatermarkToggle" class="setting-toggle-button active" type="button" aria-pressed="true">
-        <span class="setting-toggle-copy">
-          <strong>HUILUSTUDIO · KOKEILUVERSIO</strong>
-          <small>Vesileima tulosteeseen ja PDF:ään</small>
-        </span>
-        <span id="printWatermarkState" class="setting-toggle-state">Päällä</span>
-      </button>
-    </div>
-
-    <div class="layout-section">
-      <h3>Asettelu-JSON</h3>
-      <p class="layout-hint">Tallenna kaikki kehittäjätyökalujen arvot ja ikkunoiden jakosuhde JSON-tiedostoksi tai palauta ne aiemmasta tiedostosta.</p>
-      <div class="json-actions">
-        <button id="layoutJsonExport" type="button">Vie JSON</button>
-        <button id="layoutJsonImport" type="button">Tuo JSON</button>
-        <input id="layoutJsonFile" type="file" accept="application/json,.json" hidden>
-      </div>
-    </div>
-    </div>
-
-    <div class="layout-actions">
-      <button id="layoutReset" type="button">Palauta oletukset</button>
-      <button id="layoutCopy" type="button">Kopioi arvot</button>
-    </div>
-  </aside>
-
-  <template id="whiteKeyTemplate">
-    <div class="white-key key"><span class="key-label"></span></div>
-  </template>
-  <template id="blackKeyTemplate">
-    <div class="black-key key"></div>
-  </template>
-
-  <script src="app-0.4.5.2.js"></script>
+    buildKeyboard();
+    piano.addEventListener('pointerdown',startNote);
+    window.addEventListener('pointerup',stopNote);
+    window.addEventListener('pointercancel',stopNote);
+    score.addEventListener('pointerup',togglePiano);
+  </script>
 </body>
 </html>
