@@ -37,8 +37,15 @@
     .white{flex:0 0 calc(100% / 35);height:100%;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:650 clamp(12px,2vw,17px) system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
     .white:last-child{border-right:0}
     .black{position:absolute;z-index:2;top:0;height:62%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .key.out-of-range{opacity:.34;filter:saturate(.35)}
+    .key.out-of-range.active{opacity:.82}
     .key.active{background:#62a7ff}
     .black.active{background:#2869b8}
+    .note-feedback{position:fixed;z-index:80;min-width:132px;padding:8px 14px 7px;transform:translate(-50%,-100%);border:1px solid #8ca8c7;border-radius:11px;background:#fff;color:#173b63;box-shadow:0 8px 24px #16253638;text-align:center;pointer-events:none;transition:opacity .16s ease}
+    .note-feedback[hidden]{display:none}
+    .note-feedback strong{display:block;font-size:22px;line-height:1.08}
+    .note-feedback small{display:block;margin-top:3px;color:#5b6878;font-size:10px;font-weight:700;line-height:1.15}
+    .note-feedback.resting{opacity:.52}
     #status{flex:none;min-height:30px;padding:6px 16px max(6px,env(safe-area-inset-bottom));text-align:center;font-weight:650;color:#2365aa;background:#eef1f5}
     .orientation-blocker{display:none;position:fixed;inset:0;z-index:1000;padding:28px;place-items:center;background:#eef1f5;text-align:center}
     .orientation-card{max-width:430px;padding:34px 28px;border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 16px 42px #1c273526}
@@ -153,6 +160,7 @@
     <section class="score-area">
       <button class="score" id="score" type="button" aria-expanded="false" aria-controls="keyboardPanel"><span class="score-title" id="scoreTitle">Nimetön kappale</span><span class="score-meta" id="scoreMeta">Huilu / oboe · diskanttiavain · C-duuri / a-molli · 4/4</span><small>NUOTTI-IKKUNA · NAPAUTA</small></button>
     </section>
+    <div class="note-feedback" id="noteFeedback" hidden><strong id="writtenPitch"></strong><small>soiva: <span id="soundingPitch"></span></small></div>
     <div class="keyboard-panel" id="keyboardPanel" hidden>
       <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="keyboard-scroll-track" id="keyboardScrollTrack">
@@ -170,13 +178,42 @@
 
   <script>
     const MIN_MIDI=36,MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),openProjectModal=document.querySelector('#openProjectModal'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),scoreTitle=document.querySelector('#scoreTitle'),scoreMeta=document.querySelector('#scoreMeta'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),openProjectModal=document.querySelector('#openProjectModal'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),scoreTitle=document.querySelector('#scoreTitle'),scoreMeta=document.querySelector('#scoreMeta'),noteFeedback=document.querySelector('#noteFeedback'),writtenPitch=document.querySelector('#writtenPitch'),soundingPitch=document.querySelector('#soundingPitch'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
+    const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
     const instrumentClefs={'flute-oboe':'treble',clarinet:'treble','alto-saxophone':'treble',trumpet:'treble','french-horn':'treble',trombone:'bass',violin:'treble',viola:'alto',cello:'bass','double-bass':'bass'};
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null;
+    const instrumentProfiles={
+      'flute-oboe':{min:60,max:84,start:60,transpose:0},
+      clarinet:{min:52,max:84,start:52,transpose:-2},
+      'alto-saxophone':{min:60,max:86,start:60,transpose:-9},
+      trumpet:{min:55,max:84,start:55,transpose:-2},
+      'french-horn':{min:55,max:79,start:55,transpose:-7},
+      trombone:{min:40,max:70,start:41,transpose:0},
+      violin:{min:55,max:83,start:55,transpose:0},
+      viola:{min:48,max:76,start:48,transpose:0},
+      cello:{min:36,max:64,start:36,transpose:0},
+      'double-bass':{min:40,max:60,start:36,transpose:-12}
+    };
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true;
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
+    function mod(value,divisor){return((value%divisor)+divisor)%divisor}
+    function profile(){return instrumentProfiles[instrumentSelect.value]||instrumentProfiles['flute-oboe']}
+    function capitalize(value){return value.charAt(0).toUpperCase()+value.slice(1)}
+    function pitchDisplay(midi,useFlats=false){
+      const name=(useFlats?flatPitchNames:sharpPitchNames)[mod(midi,12)],octave=Math.floor(midi/12)-1;
+      if(octave<=0)return 'subkontra-'+capitalize(name);
+      if(octave===1)return 'kontra-'+capitalize(name);
+      if(octave===2)return 'suuri '+capitalize(name);
+      if(octave===3)return 'pieni '+name;
+      return name+(octave-3);
+    }
+    function concertKeySignature(){
+      const written=+(projectData?.keySignature??keySignatureSelect.value),target=mod(7*written+profile().transpose,12),candidates=[];
+      for(let fifths=-7;fifths<=7;fifths+=1)if(mod(7*fifths,12)===target)candidates.push(fifths);
+      return candidates.sort((a,b)=>Math.abs(a-written)-Math.abs(b-written))[0]??0;
+    }
     function restoreInstrument(){
       try{
         const saved=localStorage.getItem(INSTRUMENT_KEY);
@@ -192,15 +229,16 @@
       clefName.textContent=clef.name;clefSymbol.textContent=clef.symbol;
     }
     function showProjectModal(){
-      projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');updateClef();requestAnimationFrame(()=>instrumentSelect.focus());
+      noteFeedback.hidden=true;projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');updateClef();requestAnimationFrame(()=>instrumentSelect.focus());
     }
     function saveProject(e){
       e.preventDefault();saveInstrument();
       const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
-      projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',clefName:clef.name};
+      projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',clefName:clef.name,transpose:profile().transpose};
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreMeta.textContent=`${projectData.instrumentName} · ${projectData.clefName} · ${projectData.keySignatureName} · ${projectData.timeSignature}`;
-      projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');openProjectModal.focus();
+      applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');openProjectModal.focus();
+      if(!keyboardPanel.hidden)requestAnimationFrame(positionKeyboardForInstrument);
     }
 
     function octaveIndex(midi){return Math.floor((midi-MIN_MIDI)/12)}
@@ -211,10 +249,7 @@
       return name.toLowerCase()+(octave-1);
     }
     function spokenName(midi){
-      const octave=octaveIndex(midi),pitch=midi%12,name=whitePitchNames[pitch]||blackPitchNames[pitch];
-      if(octave===0)return 'suuri '+name;
-      if(octave===1)return 'pieni '+name.toLowerCase();
-      return name.toLowerCase()+(octave-1);
+      return pitchDisplay(midi,false);
     }
     function buildKeyboard(){
       let whiteIndex=0;
@@ -231,6 +266,21 @@
         }
       }
     }
+    function applyInstrumentProfile(){
+      const current=profile(),useFlats=+(projectData?.keySignature??keySignatureSelect.value)<0;
+      piano.querySelectorAll('.key').forEach(key=>{
+        const midi=+key.dataset.midi,outside=midi<current.min||midi>current.max;
+        key.classList.toggle('out-of-range',outside);
+        key.setAttribute('aria-label',pitchDisplay(midi,useFlats)+(outside?', alkeisäänialan ulkopuolella':''));
+      });
+      noteFeedback.hidden=true;needsInstrumentPosition=true;
+    }
+    function positionKeyboardForInstrument(){
+      if(keyboardPanel.hidden||!keyboardViewport.clientWidth)return;
+      const startMidi=profile().start,whites=[...whiteKeys.children],startIndex=whites.findIndex(key=>+key.dataset.midi===startMidi),maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth);
+      keyboardViewport.scrollLeft=clamp(Math.max(0,startIndex)*(piano.scrollWidth/WHITE_COUNT),0,maxScroll);
+      needsInstrumentPosition=false;syncScrollThumb();
+    }
     function buildAudio(){
       try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
       osc=audio.createOscillator();gain=audio.createGain();osc.type='triangle';gain.gain.value=.0001;osc.connect(gain).connect(audio.destination);started=false;
@@ -240,12 +290,12 @@
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!keyboardPanel.hidden){keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');return}
+      if(!keyboardPanel.hidden){keyboardPanel.hidden=true;noteFeedback.hidden=true;score.setAttribute('aria-expanded','false');return}
       if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        keyboardPanel.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(syncScrollThumb);
+        keyboardPanel.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(()=>needsInstrumentPosition?positionKeyboardForInstrument():syncScrollThumb());
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
@@ -256,12 +306,20 @@
       if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
       if(activeKey)activeKey.classList.remove('active');
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
-      const t=audio.currentTime;osc.frequency.setValueAtTime(440*Math.pow(2,(+key.dataset.midi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
+      const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime;
+      showNoteFeedback(key,writtenMidi,soundingMidi);
+      osc.frequency.setValueAtTime(440*Math.pow(2,(soundingMidi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
     }
     function stopNote(e){
       if(e.pointerId!==activeId||!activeKey)return;
       const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06);
-      activeKey.classList.remove('active');activeId=null;activeKey=null;
+      activeKey.classList.remove('active');noteFeedback.classList.add('resting');activeId=null;activeKey=null;
+    }
+    function showNoteFeedback(key,writtenMidi,soundingMidi){
+      const keyRect=key.getBoundingClientRect(),panelTop=keyboardPanel.getBoundingClientRect().top,writtenFlats=+(projectData?.keySignature??keySignatureSelect.value)<0,concertFifths=concertKeySignature(),soundingFlats=concertFifths<0||(concertFifths===0&&writtenFlats);
+      writtenPitch.textContent=pitchDisplay(writtenMidi,writtenFlats);soundingPitch.textContent=pitchDisplay(soundingMidi,soundingFlats);
+      noteFeedback.style.left=clamp(keyRect.left+keyRect.width/2,76,window.innerWidth-76)+'px';
+      noteFeedback.style.top=Math.max(72,panelTop-8)+'px';noteFeedback.classList.remove('resting');noteFeedback.hidden=false;
     }
 
     function syncScrollThumb(){
@@ -276,7 +334,7 @@
     }
     function startScroll(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
-      e.preventDefault();scrollPointerId=e.pointerId;
+      e.preventDefault();noteFeedback.hidden=true;scrollPointerId=e.pointerId;
       const thumbRect=keyboardScrollThumb.getBoundingClientRect();
       scrollGrabOffset=keyboardScrollThumb.contains(e.target)?e.clientX-thumbRect.left:thumbRect.width/2;
       keyboardScrollRail.setPointerCapture(e.pointerId);setScrollFromPointer(e.clientX);
@@ -302,6 +360,7 @@
 
     restoreInstrument();updateClef();
     buildKeyboard();
+    applyInstrumentProfile();
     instrumentSelect.addEventListener('change',updateClef);
     projectForm.addEventListener('submit',saveProject);
     openProjectModal.addEventListener('click',showProjectModal);
