@@ -4,144 +4,810 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#eef1f5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
   <title>Pikakirjoitin</title>
   <style>
     *{box-sizing:border-box}
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
-    body{margin:0;min-height:100svh;display:grid;place-items:center;padding:16px;background:#eef1f5;-webkit-user-select:none;user-select:none}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+    body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
-    .setup{width:min(720px,100%);max-height:calc(100svh - 32px);overflow:auto;padding:clamp(20px,4vw,30px);border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 20px 55px #1c27352b}
-    .setup[hidden],main[hidden]{display:none}
-    .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .wide{grid-column:1/-1}
-    input,select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
-    .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
-    .instrument-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-    .instrument-button{min-height:46px;padding:7px 10px;border:1px solid #9ba6b4;border-radius:9px;background:#f6f8fb;color:#263342;font-size:13px;font-weight:750;touch-action:manipulation;cursor:pointer}
-    .instrument-button:active,.instrument-button[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83}
-    main{width:min(760px,100%);text-align:center}
-    h1{margin:0 0 8px;font-size:clamp(24px,5vw,40px)}
-    p{margin:0 0 16px;color:#586474}
-    .score{width:100%;height:138px;margin:0 0 20px;border:2px solid #9ba6b4;border-radius:12px;background:repeating-linear-gradient(#fff 0 25px,#c8ced6 26px,#fff 27px);color:#18202a;font:700 23px system-ui;box-shadow:0 10px 28px #1c273520;touch-action:manipulation;cursor:pointer}
-    .score small{display:block;margin-top:34px;color:#586474;font:600 14px system-ui}
-    .piano{position:relative;display:flex;height:clamp(190px,42vw,320px);border:5px solid #20242a;border-radius:12px;overflow:hidden;background:#20242a;box-shadow:0 16px 40px #1c27352e;touch-action:none;-webkit-touch-callout:none}
-    .piano[hidden]{display:none}
-    .key{border:0;touch-action:none;cursor:pointer}
-    .white{flex:1;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:600 15px system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
-    .white:last-of-type{border:0}
-    .black{position:absolute;z-index:2;top:0;width:8%;height:62%;margin-left:-4%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .app{position:fixed;inset:0;width:100%;height:auto;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
+    p{margin:0;color:#586474;font-size:14px}
+    .mode-dock{position:absolute;z-index:30;top:0;left:50%;width:min(400px,calc(100% - 44px));transform:translate(-50%,calc(-100% + 30px));transition:transform .16s ease-out;pointer-events:auto}
+    .mode-dock[data-open="true"]{transform:translate(-50%,0)}
+    .mode-panel{width:100%;padding:4px;border:1px solid #becad8;border-top:0;border-radius:0 0 13px 13px;background:#fafcfffa;box-shadow:0 4px 14px #2032461f;pointer-events:none}
+    .mode-dock[data-open="true"] .mode-panel{pointer-events:auto}
+    .mode-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+    .mode-button{min-height:30px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:#667486;font-size:9px;font-weight:800;letter-spacing:.045em;white-space:nowrap;cursor:pointer}
+    .mode-button+.mode-button{border-left:1px solid #d2dbe5b8}
+    .mode-button[aria-pressed="true"]{background:#e7eef7;color:#294c6d;box-shadow:inset 0 0 0 1px #506c8814}
+    .mode-button:disabled{opacity:.35;cursor:default}
+    .mode-button:focus-visible{outline:3px solid #62a7ff;outline-offset:1px}
+    .mode-handle{min-width:120px;height:30px;display:flex;align-items:center;justify-content:center;gap:7px;margin:-1px auto 0;padding:0 14px;border:1px solid #174d83;border-top:0;border-radius:0 0 10px 10px;background:#2365aa;color:#fff;box-shadow:0 4px 10px #1c273532;font-size:10px;font-weight:850;letter-spacing:.055em;touch-action:manipulation;cursor:pointer}
+    .mode-handle-chevron{width:10px;height:6px;transition:transform .16s ease-out;pointer-events:none}
+    .mode-dock[data-open="true"] .mode-handle-chevron{transform:rotate(180deg)}
+    .mode-handle:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
+    .score-area{position:relative;min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
+    .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
+    .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .score-page-shell{position:relative;margin:0 auto;flex:none}
+    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
+    .score-title{position:absolute;z-index:2;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
+    .score-info-row{position:absolute;z-index:2;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
+    .score-tempo{min-width:0;text-align:left;overflow-wrap:anywhere}
+    .score-composer{min-width:0;text-align:right;overflow-wrap:anywhere}
+    #osmdContainer{width:100%;min-height:1123px;pointer-events:none}
+    #osmdContainer svg{display:block;max-width:100%}
+    .score-prompt{display:none!important}
+    .modifier-rail{position:absolute;z-index:12;top:8px;left:0;width:58px;display:grid;gap:6px;padding:7px 5px 7px 6px;border:1px solid #677281;border-left:0;border-radius:0 13px 13px 0;background:#20242af2;box-shadow:5px 7px 18px #10182045;transform:translateX(-105%);opacity:0;visibility:hidden;pointer-events:none;touch-action:none;-webkit-touch-callout:none;transition:transform .16s ease-out,opacity .16s ease-out,visibility 0s linear .16s}
+    .app.keyboard-open .modifier-rail{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+    .modifier-button{width:46px;height:50px;display:grid;place-items:center;align-content:center;gap:1px;padding:2px;border:1px solid #778493;border-radius:9px;background:#f6f8fb;color:#1b2735;box-shadow:0 2px 5px #0004;font-weight:850;line-height:1;touch-action:none;cursor:pointer}
+    .modifier-button[aria-pressed="true"]{border-color:#9dcbff;background:#2873c5;color:#fff;box-shadow:inset 0 2px 5px #0b3c7355,0 0 0 2px #73b4fa}
+    .modifier-drag-handle{width:46px;height:24px;display:grid;place-items:center;padding:0;border:1px solid #687685;border-radius:8px;background:#343b45;color:#cbd5e0;touch-action:none;cursor:ns-resize}
+    .modifier-drag-handle:active{background:#465260;color:#fff}
+    .modifier-drag-handle svg{display:block;width:22px;height:12px;pointer-events:none}
+    .modifier-icon{display:block;width:29px;height:38px;object-fit:contain;pointer-events:none}
+    .modifier-button[aria-pressed="true"] .modifier-icon{filter:brightness(0) invert(1)}
+    .modifier-divider{height:1px;margin:1px 5px;background:#697686}
+    .tie-button svg{display:block;width:34px;height:26px;pointer-events:none}
+    .keyboard-panel{width:100vw;min-height:0;flex:3 1 30%;background:#20242a}
+    .keyboard-panel[hidden]{display:none}
+    .keyboard-scroll-rail{height:44px;padding:7px 12px;background:#eef1f5;touch-action:none;cursor:ew-resize;outline-offset:-3px}
+    .keyboard-scroll-track{position:relative;width:100%;height:30px;overflow:hidden;border:1px solid #9ba6b4;border-radius:9px;background:#d7dde5;box-shadow:inset 0 1px 3px #1c273526}
+    .keyboard-scroll-thumb{position:absolute;inset:0 auto 0 0;width:40%;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#2365aa;color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;white-space:nowrap;will-change:transform}
+    .keyboard-viewport{width:100vw;height:calc(100% - 44px);overflow-x:hidden;overflow-y:hidden;background:#20242a;border-top:5px solid #20242a;border-bottom:5px solid #20242a;touch-action:none;scrollbar-width:none}
+    .keyboard-viewport::-webkit-scrollbar{display:none}
+    .piano{position:relative;width:250vw;height:100%;touch-action:none;-webkit-touch-callout:none}
+    .white-keys{display:flex;width:100%;height:100%}
+    .key{position:relative;border:0;touch-action:none;cursor:pointer}
+    .white{flex:0 0 calc(100% / 35);height:100%;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:650 clamp(12px,2vw,17px) system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
+    .white:last-child{border-right:0}
+    .black{position:absolute;z-index:2;top:0;height:50%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .key.out-of-range::before{content:'';position:absolute;inset:0;z-index:3;border-radius:inherit;background:#aeb8c5a8;pointer-events:none}
+    .key.out-of-range.active::before{background:#aeb8c548}
     .key.active{background:#62a7ff}
     .black.active{background:#2869b8}
-    .b1{left:14.2857%}.b2{left:28.5714%}.b3{left:57.1429%}.b4{left:71.4286%}.b5{left:85.7143%}
-    #status{position:fixed;left:50%;bottom:10px;min-height:24px;transform:translateX(-50%);font-weight:650;color:#2365aa;white-space:nowrap}
-    @media(max-width:520px){.setup-grid,.instrument-grid{grid-template-columns:1fr}.wide{grid-column:auto}.setup{padding:18px}.instrument-button{min-height:42px}}
+    .key.sounding-note::after{content:'';position:absolute;z-index:5;top:14px;left:50%;width:12px;height:12px;transform:translateX(-50%);border:2px solid #fff;border-radius:50%;background:#e2212d;box-shadow:0 1px 5px #0008;pointer-events:none;transition:opacity .16s ease}
+    .key.sounding-resting::after{opacity:.48}
+    #status{position:fixed;left:0;bottom:0;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0;pointer-events:none}
+    .orientation-blocker{display:none;position:fixed;inset:0;z-index:1000;padding:28px;place-items:center;background:#eef1f5;text-align:center}
+    .orientation-card{max-width:430px;padding:34px 28px;border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 16px 42px #1c273526}
+    .orientation-icon{display:block;margin-bottom:14px;font-size:52px;line-height:1}
+    .orientation-card h2{margin:0 0 8px;font-size:24px}
+    .orientation-card p{font-size:16px;line-height:1.45}
+    .project-modal{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));background:#17202bd9;overflow:auto}
+    .project-modal[hidden]{display:none}
+    .project-card{width:min(660px,100%);max-height:100%;overflow:auto;padding:clamp(20px,4vw,32px);border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
+    .project-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .field{display:grid}
+    .field.wide{grid-column:1/-1}
+    .field input,.field select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
+    .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
+    .instrument-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .instrument-choice{min-height:46px;padding:7px 10px;border:1px solid #9ba6b4;border-radius:9px;background:#f6f8fb;color:#263342;font-size:13px;font-weight:750;touch-action:manipulation;cursor:pointer}
+    .instrument-choice:active,.instrument-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83}
+    .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
+    .start-button[hidden]{display:none}
+    @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
+    @media (max-width:520px){.project-grid,.instrument-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-dock{width:calc(100% - 34px)}.mode-button{padding:0 5px;font-size:8px}}
+    @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
+    @page{size:A4 portrait;margin:0}
+    @media print{
+      html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
+      .orientation-blocker,.mode-dock,.keyboard-panel,.modifier-rail,#status,.score-prompt{display:none!important}
+      .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
+      .workspace{display:block}
+      .score-area{display:block;padding:0}
+      .score{width:210mm;min-height:0;overflow:visible;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none}
+      .score-page-shell{position:static;width:210mm!important;height:auto!important;margin:0}
+      .score-page{position:relative;width:210mm;min-height:297mm;transform:none!important;box-shadow:none}
+    }
   </style>
 </head>
 <body>
-  <section class="setup" id="setup" aria-label="Kappaleen tiedot">
-    <div class="setup-grid">
-      <input class="wide" id="titleInput" type="text" placeholder="Nimi" aria-label="Nimi" autocomplete="off">
-      <input id="composerInput" type="text" placeholder="Säveltäjä" aria-label="Säveltäjä" autocomplete="off">
-      <input id="tempoInput" type="text" placeholder="Tempoteksti" aria-label="Tempoteksti" autocomplete="off">
-      <select id="keySignatureSelect" aria-label="Sävellaji">
-        <option>C-duuri / a-molli</option>
-        <option>G-duuri / e-molli</option><option>D-duuri / h-molli</option><option>A-duuri / fis-molli</option><option>E-duuri / cis-molli</option><option>H-duuri / gis-molli</option><option>Fis-duuri / dis-molli</option>
-        <option>F-duuri / d-molli</option><option>B♭-duuri / g-molli</option><option>E♭-duuri / c-molli</option><option>A♭-duuri / f-molli</option><option>D♭-duuri / b♭-molli</option><option>G♭-duuri / e♭-molli</option>
-      </select>
-      <select id="timeSignatureSelect" aria-label="Tahtilaji">
-        <option>2/4</option><option>3/4</option><option selected>4/4</option><option>2/2</option><option>3/8</option><option>6/8</option><option>9/8</option><option>12/8</option>
-      </select>
+  <div class="orientation-blocker" role="status" aria-live="polite">
+    <div class="orientation-card">
+      <span class="orientation-icon" aria-hidden="true">↻</span>
+      <h2>Käännä tabletti pystyasentoon</h2>
+      <p>Pikakirjoitin on suunniteltu käytettäväksi portrait-asennossa.</p>
     </div>
-    <p class="instrument-heading">VALITSE SOITIN JA ALOITA</p>
-    <div class="instrument-grid" id="instrumentGrid">
-      <button class="instrument-button" type="button" data-instrument="Huilu / oboe (C)" aria-pressed="false">Huilu / oboe (C)</button>
-      <button class="instrument-button" type="button" data-instrument="Klarinetti (B♭)" aria-pressed="false">Klarinetti (B♭)</button>
-      <button class="instrument-button" type="button" data-instrument="Alttosaksofoni (E♭)" aria-pressed="false">Alttosaksofoni (E♭)</button>
-      <button class="instrument-button" type="button" data-instrument="Trumpetti (B♭)" aria-pressed="false">Trumpetti (B♭)</button>
-      <button class="instrument-button" type="button" data-instrument="Käyrätorvi (F)" aria-pressed="false">Käyrätorvi (F)</button>
-      <button class="instrument-button" type="button" data-instrument="Pasuuna (C)" aria-pressed="false">Pasuuna (C)</button>
-      <button class="instrument-button" type="button" data-instrument="Viulu (C)" aria-pressed="false">Viulu (C)</button>
-      <button class="instrument-button" type="button" data-instrument="Alttoviulu (C)" aria-pressed="false">Alttoviulu (C)</button>
-      <button class="instrument-button" type="button" data-instrument="Sello (C)" aria-pressed="false">Sello (C)</button>
-      <button class="instrument-button" type="button" data-instrument="Kontrabasso (C · 8vb)" aria-pressed="false">Kontrabasso (C · 8vb)</button>
-    </div>
-  </section>
+  </div>
 
-  <main id="workspace" hidden>
-    <h1 id="pieceTitle">Nimetön kappale</h1>
-    <p id="pieceInfo"></p>
-    <button class="score" id="score" type="button" aria-expanded="false">♩ ♪ ♫<small>NUOTTI-IKKUNA · NAPAUTA</small></button>
-    <div class="piano" id="piano" aria-label="Yhden oktaavin pianokoskettimisto" hidden>
-      <button class="key white" data-midi="60" aria-label="C">C</button>
-      <button class="key white" data-midi="62" aria-label="D">D</button>
-      <button class="key white" data-midi="64" aria-label="E">E</button>
-      <button class="key white" data-midi="65" aria-label="F">F</button>
-      <button class="key white" data-midi="67" aria-label="G">G</button>
-      <button class="key white" data-midi="69" aria-label="A">A</button>
-      <button class="key white" data-midi="71" aria-label="H">H</button>
-      <button class="key black b1" data-midi="61" aria-label="Cis"></button>
-      <button class="key black b2" data-midi="63" aria-label="Dis"></button>
-      <button class="key black b3" data-midi="66" aria-label="Fis"></button>
-      <button class="key black b4" data-midi="68" aria-label="Gis"></button>
-      <button class="key black b5" data-midi="70" aria-label="Ais"></button>
+  <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
+    <form class="project-card" id="projectForm">
+      <select id="instrumentSelect" aria-label="Soitin" hidden>
+        <option value="flute-oboe">Huilu / oboe (C)</option>
+        <option value="clarinet">Klarinetti (B♭)</option>
+        <option value="alto-saxophone">Alttosaksofoni (E♭)</option>
+        <option value="trumpet">Trumpetti (B♭)</option>
+        <option value="french-horn">Käyrätorvi (F)</option>
+        <option value="trombone">Pasuuna (C)</option>
+        <option value="violin">Viulu (C)</option>
+        <option value="viola">Alttoviulu (C)</option>
+        <option value="cello">Sello (C)</option>
+        <option value="double-bass">Kontrabasso (C · 8vb)</option>
+      </select>
+      <div class="project-grid">
+        <label class="field wide" for="titleInput">
+          <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
+        </label>
+        <label class="field" for="composerInput">
+          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
+        </label>
+        <label class="field" for="tempoInput">
+          <input id="tempoInput" type="text" autocomplete="off" placeholder="Tempoteksti" aria-label="Tempoteksti">
+        </label>
+        <label class="field" for="keySignatureSelect">
+          <select id="keySignatureSelect" aria-label="Sävellaji">
+            <option value="0">C-duuri / a-molli</option>
+            <option value="1">G-duuri / e-molli</option>
+            <option value="2">D-duuri / h-molli</option>
+            <option value="3">A-duuri / fis-molli</option>
+            <option value="4">E-duuri / cis-molli</option>
+            <option value="5">H-duuri / gis-molli</option>
+            <option value="6">Fis-duuri / dis-molli</option>
+            <option value="7">Cis-duuri / ais-molli</option>
+            <option value="-1">F-duuri / d-molli</option>
+            <option value="-2">B-duuri / g-molli</option>
+            <option value="-3">Es-duuri / c-molli</option>
+            <option value="-4">As-duuri / f-molli</option>
+            <option value="-5">Des-duuri / b-molli</option>
+            <option value="-6">Ges-duuri / es-molli</option>
+            <option value="-7">Ces-duuri / as-molli</option>
+          </select>
+        </label>
+        <label class="field" for="timeSignatureSelect">
+          <select id="timeSignatureSelect" aria-label="Tahtilaji">
+            <option value="2/4">2/4</option>
+            <option value="3/4">3/4</option>
+            <option value="4/4" selected>4/4</option>
+            <option value="2/2">2/2</option>
+            <option value="3/8">3/8</option>
+            <option value="6/8">6/8</option>
+            <option value="9/8">9/8</option>
+            <option value="12/8">12/8</option>
+          </select>
+        </label>
+      </div>
+      <p class="instrument-heading" id="instrumentHeading">VALITSE SOITIN JA ALOITA</p>
+      <div class="instrument-grid" id="instrumentGrid">
+        <button class="instrument-choice" type="button" data-instrument="flute-oboe" aria-pressed="false">Huilu / oboe (C)</button>
+        <button class="instrument-choice" type="button" data-instrument="clarinet" aria-pressed="false">Klarinetti (B♭)</button>
+        <button class="instrument-choice" type="button" data-instrument="alto-saxophone" aria-pressed="false">Alttosaksofoni (E♭)</button>
+        <button class="instrument-choice" type="button" data-instrument="trumpet" aria-pressed="false">Trumpetti (B♭)</button>
+        <button class="instrument-choice" type="button" data-instrument="french-horn" aria-pressed="false">Käyrätorvi (F)</button>
+        <button class="instrument-choice" type="button" data-instrument="trombone" aria-pressed="false">Pasuuna (C)</button>
+        <button class="instrument-choice" type="button" data-instrument="violin" aria-pressed="false">Viulu (C)</button>
+        <button class="instrument-choice" type="button" data-instrument="viola" aria-pressed="false">Alttoviulu (C)</button>
+        <button class="instrument-choice" type="button" data-instrument="cello" aria-pressed="false">Sello (C)</button>
+        <button class="instrument-choice" type="button" data-instrument="double-bass" aria-pressed="false">Kontrabasso (C · 8vb)</button>
+      </div>
+      <button class="start-button" id="projectSaveButton" type="submit" hidden>Tallenna</button>
+    </form>
+  </div>
+
+  <main class="app" id="app" aria-hidden="true" inert>
+    <div class="workspace">
+      <section class="score-area">
+        <div class="mode-dock" id="modeDock" data-open="false">
+          <nav class="mode-panel" id="modePanel" aria-label="Työskentelytila">
+            <div class="mode-switch" role="group">
+              <button class="mode-button" id="writeModeButton" type="button" aria-pressed="true">KIRJOITA</button>
+              <button class="mode-button" id="editModeButton" type="button" aria-pressed="false" disabled>MUOKKAA</button>
+              <button class="mode-button" id="printModeButton" type="button" aria-pressed="false" disabled>TULOSTA</button>
+            </div>
+          </nav>
+          <button class="mode-handle" id="modeHandle" type="button" aria-controls="modePanel" aria-expanded="false" aria-label="Avaa työtilavalikko">
+            <span id="modeHandleLabel">KIRJOITA</span>
+            <svg class="mode-handle-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
+          <div class="score-page-shell" id="scorePageShell">
+            <div class="score-page" id="scorePage">
+              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen tietoja">Nimetön kappale</span>
+              <div class="score-info-row" aria-label="Kappaleen tempo ja säveltäjä">
+                <span class="score-tempo" id="scoreTempo" hidden></span>
+                <span class="score-composer" id="scoreComposer" hidden></span>
+              </div>
+              <div id="osmdContainer" aria-hidden="true"></div>
+              <span class="score-prompt" id="scorePrompt" hidden></span>
+            </div>
+          </div>
+        </div>
+        <div class="modifier-rail" id="modifierRail" role="toolbar" aria-label="Nuotin muuntimet" aria-hidden="true">
+          <button class="modifier-drag-handle" id="modifierDragHandle" type="button" aria-label="Siirrä muunninpalkkia pystysuunnassa">
+            <svg viewBox="0 0 22 12" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="16" cy="3" r="1.5"/><circle cx="6" cy="9" r="1.5"/><circle cx="11" cy="9" r="1.5"/><circle cx="16" cy="9" r="1.5"/></g></svg>
+          </button>
+          <button class="modifier-button" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen nuotti" aria-pressed="false"><img class="modifier-icon" src="assets/dotted-quarter-note.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti" aria-pressed="false"><img class="modifier-icon" src="assets/double-crochet.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false"><img class="modifier-icon" src="assets/rest.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <div class="modifier-divider" aria-hidden="true"></div>
+          <button class="modifier-button tie-button" id="tieButton" type="button" aria-label="Yhdyskaari seuraavaan saman sävelen nuottiin" aria-pressed="false">
+            <svg viewBox="0 0 36 20" aria-hidden="true"><path d="M3 6c7 10 23 10 30 0-8 7-22 7-30 0Z" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </section>
+      <div class="keyboard-panel" id="keyboardPanel" hidden>
+        <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="keyboard-scroll-track" id="keyboardScrollTrack">
+            <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
+          </div>
+        </div>
+        <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
+          <div class="piano" id="piano">
+            <div class="white-keys" id="whiteKeys"></div>
+          </div>
+        </div>
+      </div>
     </div>
+    <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
   </main>
-  <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
+
   <script>
-    const setup=document.querySelector('#setup'),workspace=document.querySelector('#workspace'),instrumentGrid=document.querySelector('#instrumentGrid'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pieceTitle=document.querySelector('#pieceTitle'),pieceInfo=document.querySelector('#pieceInfo'),piano=document.querySelector('#piano'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,selectedInstrument='';
-    function showWorkspace(){
-      pieceTitle.textContent=titleInput.value.trim()||'Nimetön kappale';
-      pieceInfo.textContent=[tempoInput.value.trim(),composerInput.value.trim(),keySignatureSelect.value,timeSignatureSelect.value,selectedInstrument].filter(Boolean).join(' · ');
-      setup.hidden=true;workspace.hidden=false;
+    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeDock=document.querySelector('#modeDock'),modeHandle=document.querySelector('#modeHandle'),modeHandleLabel=document.querySelector('#modeHandleLabel'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentGrid=document.querySelector('#instrumentGrid'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
+    const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
+    const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
+    const instrumentClefs={'flute-oboe':'treble',clarinet:'treble','alto-saxophone':'treble',trumpet:'treble','french-horn':'treble',trombone:'bass',violin:'treble',viola:'alto',cello:'bass','double-bass':'bass'};
+    const instrumentProfiles={
+      'flute-oboe':{min:60,max:84,start:60,transpose:0},
+      clarinet:{min:52,max:84,start:52,transpose:-2},
+      'alto-saxophone':{min:60,max:86,start:60,transpose:-9},
+      trumpet:{min:55,max:84,start:55,transpose:-2},
+      'french-horn':{min:55,max:79,start:55,transpose:-7},
+      trombone:{min:40,max:70,start:41,transpose:0},
+      violin:{min:55,max:83,start:55,transpose:0},
+      viola:{min:48,max:76,start:48,transpose:0},
+      cello:{min:36,max:64,start:36,transpose:0},
+      'double-bass':{min:40,max:60,start:24,transpose:-12}
+    };
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
+    const scorePointers=new Set();
+
+    function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
+    function mod(value,divisor){return((value%divisor)+divisor)%divisor}
+    function profile(){return instrumentProfiles[instrumentSelect.value]||instrumentProfiles['flute-oboe']}
+    function capitalize(value){return value.charAt(0).toUpperCase()+value.slice(1)}
+    function pitchDisplay(midi,useFlats=false){
+      const name=(useFlats?flatPitchNames:sharpPitchNames)[mod(midi,12)],octave=Math.floor(midi/12)-1;
+      if(octave<=0)return 'subkontra-'+capitalize(name);
+      if(octave===1)return 'kontra-'+capitalize(name);
+      if(octave===2)return 'suuri '+capitalize(name);
+      if(octave===3)return 'pieni '+name;
+      return name+(octave-3);
     }
-    function build(){
+    function escapeXml(value=''){
+      return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;');
+    }
+    function musicXmlPitch(midi,useFlats){
+      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]],pitch=(useFlats?flats:sharps)[mod(midi,12)];
+      return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${Math.floor(midi/12)-1}</octave></pitch>`;
+    }
+    function musicXmlRest(note,clefName){
+      if(note.duration!=='whole')return '<rest/>';
+      const [step,octave]={treble:['D',5],alto:['E',4],bass:['F',3]}[clefName]||['D',5];
+      return `<rest${note.measureRest?' measure="yes"':''}><display-step>${step}</display-step><display-octave>${octave}</display-octave></rest>`;
+    }
+    function noteDurationValue(note){
+      const base=noteDurations[note.duration]||noteDurations.quarter;
+      return note.dotted?base*1.5:base;
+    }
+    function beamUnit(beats,beatType){
+      return beatType===8&&beats%3===0?12:32/beatType;
+    }
+    function measureBeamTags(group,beats,beatType){
+      const tags=group.map(()=>[]),starts=[];
+      let offset=0,run=[],bucket=-1;
+      for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
+      const flushRun=()=>{
+        if(run.length>1){
+          run.forEach((index,position)=>tags[index].push([1,position===0?'begin':position===run.length-1?'end':'continue']));
+          let secondary=[];
+          const flushSecondary=()=>{
+            if(secondary.length===1){
+              const index=secondary[0];
+              tags[index].push([2,starts[index]%4===0?'forward hook':'backward hook']);
+            }else secondary.forEach((index,position)=>tags[index].push([2,position===0?'begin':position===secondary.length-1?'end':'continue']));
+            secondary=[];
+          };
+          for(const index of run){
+            if(group[index].duration==='sixteenth')secondary.push(index);else flushSecondary();
+          }
+          flushSecondary();
+        }
+        run=[];
+      };
+      const unit=beamUnit(beats,beatType);
+      group.forEach((note,index)=>{
+        const duration=noteDurationValue(note),currentBucket=Math.floor(starts[index]/unit),insideBeat=starts[index]+duration<=(currentBucket+1)*unit,beamable=!note.rest&&insideBeat&&(note.duration==='eighth'||note.duration==='sixteenth');
+        if(!beamable||currentBucket!==bucket)flushRun();
+        if(beamable){if(!run.length)bucket=currentBucket;run.push(index)}
+      });
+      flushRun();
+      return tags.map(beams=>beams.map(([number,value])=>`<beam number="${number}">${value}</beam>`).join(''));
+    }
+    function measureData(){
+      const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,groups=[[]];
+      let used=0;
+      for(const note of notes){
+        if(note.measureRest){
+          if(groups.at(-1).length)groups.push([]);
+          groups.at(-1).push(note);groups.push([]);used=0;continue;
+        }
+        const duration=noteDurationValue(note);
+        if(groups.at(-1).length&&used+duration>capacity){groups.push([]);used=0}
+        groups.at(-1).push(note);used+=duration;
+      }
+      if(groups.length>1&&!groups.at(-1).length)groups.pop();
+      return {beats,beatType,capacity,groups};
+    }
+    function buildMusicXml(){
+      const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},useFlats=data.keySignature<0,{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2];
+      const tieStates=new Map(notes.map((note,index)=>[note,{stop:Boolean(note.tieFromPrevious),start:Boolean(notes[index+1]?.tieFromPrevious)}]));
+      const measures=groups.map((group,index)=>{
+        const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
+        const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{const measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note.midi,useFlats),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'',tieState=tieStates.get(note)||{},tieXml=`${tieState.stop?'<tie type="stop"/>':''}${tieState.start?'<tie type="start"/>':''}`,tiedXml=`${tieState.stop?'<tied type="stop"/>':''}${tieState.start?'<tied type="start"/>':''}`,notations=tiedXml?`<notations>${tiedXml}</notations>`:'';return `<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${beamTags[noteIndex]}${notations}</note>`}).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
+        return `<measure number="${index+1}">${attributes}${entries}</measure>`;
+      }).join('');
+      return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
+    }
+    function centerMeasureRests(){
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList;
+      if(!measureList)return;
+      measureData().groups.forEach((group,measureIndex)=>{
+        if(!group.some(note=>note.measureRest))return;
+        for(const graphicalMeasure of measureList[measureIndex]||[]){
+          const stave=graphicalMeasure?.getVFStave?.(),start=stave?.getNoteStartX?.(),end=stave?.getNoteEndX?.();
+          if(!Number.isFinite(start)||!Number.isFinite(end))continue;
+          const handled=new Set();
+          for(const staffEntry of graphicalMeasure.staffEntries||[])for(const voiceEntry of staffEntry.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry.notes||[]){
+            if(graphicalNote.sourceNote?.PrintObject===false||!graphicalNote.sourceNote?.isRest?.())continue;
+            const element=graphicalNote.getSVGGElement?.();
+            if(!element||handled.has(element)||element.hasAttribute('data-pikakirjoitin-measure-rest-centered'))continue;
+            handled.add(element);
+            try{
+              const box=element.getBBox(),shift=(start+end)/2-(box.x+box.width/2),base=element.getAttribute('transform')||'';
+              element.setAttribute('data-pikakirjoitin-measure-rest-centered','');
+              if(Math.abs(shift)>.01)element.setAttribute('transform',`${base?base+' ':''}translate(${shift.toFixed(3)} 0)`);
+              element.querySelectorAll('.vf-dot,circle').forEach(dot=>dot.remove());
+            }catch{}
+          }
+        }
+      });
+    }
+    function ensureScoreRenderer(){
+      if(scoreRenderer)return true;
+      if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
+      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,stretchLastSystemLine:false});
+      scoreRenderer.setPageFormat('A4_P');
+      scoreRenderer.EngravingRules.PageTopMargin=17;
+      scoreRenderer.EngravingRules.PageTopMarginNarrow=17;
+      return true;
+    }
+    function updateScorePagePreview(){
+      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);
+      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
+    }
+    function closeKeyboardForWorkMode(){
+      if(keyboardPanel.hidden)return;
+      clearModifier();setTieArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');
+    }
+    function setModeDockOpen(open){
+      const value=Boolean(open),label=modeHandleLabel.textContent.toLowerCase();
+      modeDock.dataset.open=String(value);modeHandle.setAttribute('aria-expanded',String(value));modeHandle.setAttribute('aria-label',`${value?'Sulje':'Avaa'} työtilavalikko. Nykyinen tila ${label}.`);
+    }
+    function syncWorkModeUI(){
+      if(!notes.length&&workMode!=='write')workMode='write';
+      const hasNotes=notes.length>0,labels={write:'KIRJOITA',edit:'MUOKKAA',print:'TULOSTA'},modes=[[writeModeButton,'write'],[editModeButton,'edit'],[printModeButton,'print']];
+      editModeButton.disabled=!hasNotes;printModeButton.disabled=!hasNotes;
+      modes.forEach(([button,mode])=>button.setAttribute('aria-pressed',String(workMode===mode)));
+      app.dataset.workMode=workMode;modeHandleLabel.textContent=labels[workMode];setModeDockOpen(modeDock.dataset.open==='true');
+      score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
+    }
+    function setWorkMode(mode){
+      const next=mode==='edit'?'edit':mode==='print'?'print':'write';
+      if(next!=='write'&&!notes.length)return;
+      workMode=next;setModeDockOpen(false);
+      if(next!=='write')closeKeyboardForWorkMode();
+      syncWorkModeUI();
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
+    }
+    async function renderScore(){
+      syncWorkModeUI();
+      scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
+      if(scoreRendering||!ensureScoreRenderer())return;
+      scoreRendering=true;
+      try{
+        while(scoreRenderPending){
+          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
+        }
+      }catch(error){
+        console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
+      }finally{
+        scoreRendering=false;if(scoreRenderPending)renderScore();
+      }
+    }
+    function rememberAction(action){
+      editHistory.push(action);if(editHistory.length>250)editHistory.shift();
+    }
+    function setTieArmed(value){
+      tieArmed=Boolean(value);tieButton.setAttribute('aria-pressed',String(tieArmed));
+    }
+    function consumeTie(midi,rest){
+      if(!tieArmed)return false;
+      const previous=notes.at(-1),tieFromPrevious=Boolean(!rest&&previous&&!previous.rest&&!previous.measureRest&&previous.midi===midi);
+      setTieArmed(false);return tieFromPrevious;
+    }
+    function addScoreNote(midi,{duration='quarter',dotted=false,rest=false}={}){
+      const note={midi,duration,dotted,rest,measureRest:false,tieFromPrevious:consumeTie(midi,rest)},action={type:'add',note:{...note}};
+      notes.push(note);rememberAction(action);renderScore();return {note,action};
+    }
+    function clearLongPress(){
+      if(longPressTimer===null)return;
+      clearTimeout(longPressTimer);longPressTimer=null;
+    }
+    function setActiveNoteDuration(duration){
+      if(!activeNote)return;
+      const measureRest=duration==='whole'&&activeNote.rest;
+      if(activeNote.duration===duration&&activeNote.measureRest===measureRest)return;
+      activeNote.duration=duration;activeNote.measureRest=measureRest;
+      if(activeNoteAction?.type==='add'){activeNoteAction.note.duration=duration;activeNoteAction.note.measureRest=measureRest}
+      renderScore();
+    }
+    function undoLastChange(){
+      const action=editHistory.pop();
+      if(!action)return null;
+      if(action.type==='add')notes.pop();
+      else if(action.type==='clear')notes=action.notes.map(note=>({...note}));
+      renderScore();return action;
+    }
+    function redoChange(action){
+      if(!action)return;
+      if(action.type==='add')notes.push({...action.note});
+      else if(action.type==='clear')notes=[];
+      rememberAction(action);
+    }
+    function clearScore(){
+      setTieArmed(false);
+      if(!notes.length)return;
+      rememberAction({type:'clear',notes:notes.map(note=>({...note}))});notes=[];renderScore();
+    }
+    function restoreInstrument(){
+      try{
+        const saved=localStorage.getItem(INSTRUMENT_KEY);
+        if(saved&&[...instrumentSelect.options].some(option=>option.value===saved))instrumentSelect.value=saved;
+      }catch{}
+    }
+    function saveInstrument(){
+      try{localStorage.setItem(INSTRUMENT_KEY,instrumentSelect.value)}catch{}
+    }
+    function selectedText(select){return select.options[select.selectedIndex].textContent}
+    function syncInstrumentChoices(){
+      instrumentGrid.querySelectorAll('.instrument-choice').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.instrument===instrumentSelect.value)));
+    }
+    function showProjectModal(){
+      syncInstrumentChoices();instrumentHeading.textContent='VALITSE SOITIN';projectSaveButton.hidden=false;projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
+    }
+    function editProjectFromTitle(e){
+      if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
+      if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
+      e.preventDefault();e.stopPropagation();showProjectModal();
+    }
+    function applyProjectData(){
+      saveInstrument();
+      projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
+      scoreTitle.textContent=projectData.title||'Nimetön kappale';
+      scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
+      scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
+      buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');score.focus();
+      renderScore();
+      requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForInstrument()});
+    }
+    function saveProject(e){
+      e.preventDefault();if(!projectData)return;applyProjectData();
+    }
+    function chooseInstrument(e){
+      const button=e.target.closest('.instrument-choice');
+      if(!button||(e.pointerType==='mouse'&&e.button!==0))return;
+      e.preventDefault();instrumentSelect.value=button.dataset.instrument;syncInstrumentChoices();
+      if(projectData)return;
+      togglePiano(e);applyProjectData();
+    }
+
+    function visibleName(midi){
+      const octave=Math.floor(midi/12)-1,name=whitePitchNames[mod(midi,12)];
+      if(octave<=0)return 'SK-'+name;
+      if(octave===1)return 'K-'+name;
+      if(octave===2)return name;
+      if(octave===3)return name.toLowerCase();
+      return name.toLowerCase()+(octave-3);
+    }
+    function spokenName(midi){
+      return pitchDisplay(midi,false);
+    }
+    function keyboardRange(){
+      return instrumentSelect.value==='double-bass'?{min:DOUBLE_BASS_MIN_MIDI,max:DOUBLE_BASS_MAX_MIDI}:{min:DEFAULT_MIN_MIDI,max:DEFAULT_MAX_MIDI};
+    }
+    function clearSoundingMarker(){
+      if(!soundingKey)return;
+      soundingKey.classList.remove('sounding-note','sounding-resting');soundingKey=null;
+    }
+    function showSoundingMarker(midi){
+      clearSoundingMarker();soundingKey=piano.querySelector(`.key[data-midi="${midi}"]`);
+      if(soundingKey)soundingKey.classList.add('sounding-note');
+    }
+    function buildKeyboard(){
+      const range=keyboardRange();
+      if(whiteKeys.children.length&&range.min===keyboardMinMidi&&range.max===keyboardMaxMidi)return;
+      clearSoundingMarker();whiteKeys.replaceChildren();piano.querySelectorAll('.black').forEach(key=>key.remove());
+      keyboardMinMidi=range.min;keyboardMaxMidi=range.max;
+      let whiteIndex=0;
+      for(let midi=keyboardMinMidi;midi<=keyboardMaxMidi;midi+=1){
+        const pitch=midi%12,isWhite=Object.hasOwn(whitePitchNames,pitch),key=document.createElement('button');
+        key.type='button';key.className='key '+(isWhite?'white':'black');key.dataset.midi=String(midi);key.setAttribute('aria-label',spokenName(midi));
+        if(isWhite){
+          key.textContent=visibleName(midi);whiteKeys.appendChild(key);whiteIndex+=1;
+        }else{
+          const whiteWidth=100/WHITE_COUNT;
+          key.style.left=`${whiteIndex*whiteWidth-whiteWidth*BLACK_WIDTH/2}%`;
+          key.style.width=`${whiteWidth*BLACK_WIDTH}%`;
+          piano.appendChild(key);
+        }
+      }
+    }
+    function applyInstrumentProfile(){
+      const current=profile(),useFlats=+(projectData?.keySignature??keySignatureSelect.value)<0;
+      clearSoundingMarker();
+      piano.querySelectorAll('.key').forEach(key=>{
+        const midi=+key.dataset.midi,outside=midi<current.min||midi>current.max;
+        key.classList.toggle('out-of-range',outside);
+        key.setAttribute('aria-label',pitchDisplay(midi,useFlats)+(outside?', alkeisäänialan ulkopuolella':''));
+      });
+      needsInstrumentPosition=true;
+    }
+    function positionKeyboardForInstrument(){
+      if(keyboardPanel.hidden||!keyboardViewport.clientWidth)return;
+      const startMidi=profile().start,whites=[...whiteKeys.children],startIndex=whites.findIndex(key=>+key.dataset.midi===startMidi),maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth);
+      keyboardViewport.scrollLeft=clamp(Math.max(0,startIndex)*(piano.scrollWidth/WHITE_COUNT),0,maxScroll);
+      needsInstrumentPosition=false;syncScrollThumb();
+    }
+    function buildAudio(){
       try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
       osc=audio.createOscillator();gain=audio.createGain();osc.type='triangle';gain.gain.value=.0001;osc.connect(gain).connect(audio.destination);started=false;
       audio.onstatechange=()=>status.textContent='Audio: '+audio.state;
       status.textContent='Audio: '+audio.state;
     }
+    function clearModifier(){
+      const button=activeModifierButton,pointerId=modifierPointerId;
+      if(button){button.classList.remove('active');button.setAttribute('aria-pressed','false');try{if(pointerId!==null&&button.hasPointerCapture(pointerId))button.releasePointerCapture(pointerId)}catch{}}
+      modifierPointerId=null;activeModifier=null;activeModifierButton=null;
+    }
+    function startModifier(e){
+      const button=e.target.closest('.modifier-button');
+      if(!button||(e.pointerType==='mouse'&&e.button!==0)||modifierDragPointerId!==null)return;
+      if(button===tieButton){
+        if(modifierPointerId!==null)return;
+        e.preventDefault();e.stopPropagation();setTieArmed(!tieArmed);return;
+      }
+      if(modifierPointerId!==null)return;
+      e.preventDefault();e.stopPropagation();
+      modifierPointerId=e.pointerId;activeModifier=button.dataset.modifier;activeModifierButton=button;button.setAttribute('aria-pressed','true');
+      try{button.setPointerCapture(e.pointerId)}catch{}
+    }
+    function endModifier(e){
+      if(e.pointerId!==modifierPointerId)return;
+      clearModifier();
+    }
+    function modifierBounds(){
+      const minTop=8,maxTop=Math.max(minTop,scoreArea.clientHeight-modifierRail.offsetHeight-18);
+      return {minTop,maxTop};
+    }
+    function positionModifierRail(){
+      const {minTop,maxTop}=modifierBounds();
+      modifierRail.style.top=minTop+(maxTop-minTop)*modifierYRatio+'px';
+    }
+    function restoreModifierPosition(){
+      try{const saved=Number.parseFloat(localStorage.getItem(MODIFIER_Y_KEY));if(Number.isFinite(saved))modifierYRatio=clamp(saved,0,1)}catch{}
+    }
+    function saveModifierPosition(){
+      try{localStorage.setItem(MODIFIER_Y_KEY,modifierYRatio.toFixed(4))}catch{}
+    }
+    function startModifierDrag(e){
+      if((e.pointerType==='mouse'&&e.button!==0)||modifierDragPointerId!==null||modifierPointerId!==null)return;
+      e.preventDefault();e.stopPropagation();modifierDragPointerId=e.pointerId;modifierDragStartY=e.clientY;modifierDragStartTop=modifierRail.offsetTop;
+      try{modifierDragHandle.setPointerCapture(e.pointerId)}catch{}
+    }
+    function moveModifierDrag(e){
+      if(e.pointerId!==modifierDragPointerId)return;
+      e.preventDefault();e.stopPropagation();
+      const {minTop,maxTop}=modifierBounds(),top=clamp(modifierDragStartTop+e.clientY-modifierDragStartY,minTop,maxTop);
+      modifierRail.style.top=top+'px';modifierYRatio=maxTop>minTop?(top-minTop)/(maxTop-minTop):0;
+    }
+    function finishModifierDrag(pointerId){
+      if(pointerId!==modifierDragPointerId)return;
+      modifierDragPointerId=null;try{if(modifierDragHandle.hasPointerCapture(pointerId))modifierDragHandle.releasePointerCapture(pointerId)}catch{}saveModifierPosition();
+    }
+    function endModifierDrag(e){
+      e.preventDefault();e.stopPropagation();finishModifierDrag(e.pointerId);
+    }
+    function cancelModifierDrag(){
+      if(modifierDragPointerId!==null)finishModifierDrag(modifierDragPointerId);
+    }
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!piano.hidden){piano.hidden=true;score.setAttribute('aria-expanded','false');return}
-      if(!audio||audio.state==='closed')build();
+      if(!keyboardPanel.hidden){clearModifier();setTieArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
+      if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        piano.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';showWorkspace();
+        keyboardPanel.hidden=false;app.classList.add('keyboard-open');modifierRail.setAttribute('aria-hidden','false');score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();needsInstrumentPosition?positionKeyboardForInstrument():syncScrollThumb()});
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
-    function start(e){
+    function startNote(e){
       const key=e.target.closest('.key');
       if(!key||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
       if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
-      piano.setPointerCapture(e.pointerId);
-      if(activeKey)activeKey.classList.remove('active');
+      if(activeId!==null)return;
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
-      const t=audio.currentTime;osc.frequency.setValueAtTime(440*Math.pow(2,(+key.dataset.midi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
-      status.textContent='Audio: '+audio.state;
+      const modifier=activeModifier,duration=modifier==='sixteenth'?'sixteenth':'quarter',dotted=modifier==='dot',rest=modifier==='rest';
+      noteStartX=e.clientX;noteStartY=e.clientY;noteSwipeThreshold=clamp(keyboardViewport.clientHeight*.12,24,48);noteGestureLocked=duration==='sixteenth';
+      try{piano.setPointerCapture(e.pointerId)}catch{}
+      const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime;
+      const created=addScoreNote(writtenMidi,{duration,dotted,rest});activeNote=created.note;activeNoteAction=created.action;
+      if(!noteGestureLocked)longPressTimer=setTimeout(()=>{
+        longPressTimer=null;
+        if(activeId!==e.pointerId||!activeNote||noteGestureLocked)return;
+        noteGestureLocked=true;setActiveNoteDuration('whole');
+      },LONG_PRESS_MS);
+      activeNoteSounds=!rest;
+      if(activeNoteSounds){
+        if(profile().transpose)showSoundingMarker(soundingMidi);else clearSoundingMarker();
+        osc.frequency.setValueAtTime(440*Math.pow(2,(soundingMidi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
+      }else clearSoundingMarker();
     }
-    function stop(e){
-      if(e.pointerId!==activeId)return;
-      const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06);
-      activeKey.classList.remove('active');activeId=null;activeKey=null;
+    function moveNote(e){
+      if(e.pointerId!==activeId||!activeNote||noteGestureLocked)return;
+      e.preventDefault();
+      const dx=e.clientX-noteStartX,dy=e.clientY-noteStartY;
+      if(Math.hypot(dx,dy)>LONG_PRESS_MOVE)clearLongPress();
+      if(Math.abs(dy)<noteSwipeThreshold)return;
+      clearLongPress();noteGestureLocked=true;setActiveNoteDuration(dy>0?'eighth':'half');
     }
-    function chooseInstrument(e){
-      const button=e.target.closest('.instrument-button');
-      if(!button||(e.pointerType==='mouse'&&e.button!==0))return;
-      selectedInstrument=button.dataset.instrument;
-      instrumentGrid.querySelectorAll('.instrument-button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
-      togglePiano(e);
+    function stopNote(e){
+      if(e.pointerId!==activeId||!activeKey)return;
+      clearLongPress();
+      if(activeNoteSounds){const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06)}
+      activeKey.classList.remove('active');if(activeNoteSounds&&soundingKey)soundingKey.classList.add('sounding-resting');
+      try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
+      activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;
     }
+
+    function syncScrollThumb(){
+      const maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth),travel=Math.max(0,keyboardScrollTrack.clientWidth-keyboardScrollThumb.offsetWidth),ratio=maxScroll?keyboardViewport.scrollLeft/maxScroll:0;
+      keyboardScrollThumb.style.transform=`translate3d(${ratio*travel}px,0,0)`;
+      keyboardScrollRail.setAttribute('aria-valuenow',String(Math.round(ratio*100)));
+    }
+    function setScrollFromPointer(clientX){
+      const trackRect=keyboardScrollTrack.getBoundingClientRect(),travel=Math.max(0,trackRect.width-keyboardScrollThumb.offsetWidth),left=clamp(clientX-trackRect.left-scrollGrabOffset,0,travel),maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth);
+      keyboardViewport.scrollLeft=travel?left/travel*maxScroll:0;
+      syncScrollThumb();
+    }
+    function startScroll(e){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      e.preventDefault();scrollPointerId=e.pointerId;
+      const thumbRect=keyboardScrollThumb.getBoundingClientRect();
+      scrollGrabOffset=keyboardScrollThumb.contains(e.target)?e.clientX-thumbRect.left:thumbRect.width/2;
+      keyboardScrollRail.setPointerCapture(e.pointerId);setScrollFromPointer(e.clientX);
+    }
+    function moveScroll(e){
+      if(e.pointerId!==scrollPointerId)return;
+      e.preventDefault();setScrollFromPointer(e.clientX);
+    }
+    function endScroll(e){
+      if(e.pointerId!==scrollPointerId)return;
+      if(keyboardScrollRail.hasPointerCapture(e.pointerId))keyboardScrollRail.releasePointerCapture(e.pointerId);
+      scrollPointerId=null;
+    }
+    function keyboardScrollKey(e){
+      const maxScroll=Math.max(0,keyboardViewport.scrollWidth-keyboardViewport.clientWidth),step=keyboardViewport.clientWidth/2;
+      if(e.key==='Home')keyboardViewport.scrollLeft=0;
+      else if(e.key==='End')keyboardViewport.scrollLeft=maxScroll;
+      else if(e.key==='ArrowLeft'||e.key==='PageUp')keyboardViewport.scrollLeft=clamp(keyboardViewport.scrollLeft-step,0,maxScroll);
+      else if(e.key==='ArrowRight'||e.key==='PageDown')keyboardViewport.scrollLeft=clamp(keyboardViewport.scrollLeft+step,0,maxScroll);
+      else return;
+      e.preventDefault();syncScrollThumb();
+    }
+    function resizeLayout(){
+      syncScrollThumb();positionModifierRail();updateScorePagePreview();
+    }
+    function keepOuterViewportFixed(){
+      if(window.scrollX||window.scrollY)window.scrollTo(0,0);
+    }
+    function preventOuterTouchScroll(e){
+      if(e.target.closest('.score,.project-modal'))return;
+      if(e.cancelable)e.preventDefault();
+      keepOuterViewportFixed();
+    }
+    function startScoreGesture(e){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreStartX=e.clientX;scoreStartY=e.clientY;scoreMoved=false}
+      scorePointers.add(e.pointerId);
+      try{score.setPointerCapture(e.pointerId)}catch{}
+      if(scorePointers.size>=3&&scoreGesture!==3){
+        if(scoreGesture===2&&scoreUndoneAction)redoChange(scoreUndoneAction);
+        scoreGesture=3;scoreUndoneAction=null;clearScore();
+      }else if(scorePointers.size===2&&scoreGesture===0){
+        scoreGesture=2;scoreUndoneAction=undoLastChange();
+      }
+    }
+    function moveScoreGesture(e){
+      if(!scorePointers.has(e.pointerId)||scoreGesture!==0||scorePointers.size!==1||scoreMoved)return;
+      if(Math.hypot(e.clientX-scoreStartX,e.clientY-scoreStartY)>=SCORE_SCROLL_SLOP)scoreMoved=true;
+    }
+    function endScoreGesture(e,cancelled=false){
+      if(!scorePointers.has(e.pointerId))return;
+      const singleTap=scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
+      try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
+      scorePointers.delete(e.pointerId);
+      if(singleTap&&workMode==='write')togglePiano(e);
+      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreMoved=false}
+    }
+    function scoreKey(e){
+      if(workMode!=='write'||(e.key!=='Enter'&&e.key!==' '))return;
+      e.preventDefault();togglePiano({pointerType:'keyboard',preventDefault(){}});
+    }
+
+    restoreInstrument();restoreModifierPosition();syncInstrumentChoices();
+    buildKeyboard();
+    applyInstrumentProfile();
+    syncWorkModeUI();
+    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
+    modeHandle.addEventListener('click',()=>setModeDockOpen(modeDock.dataset.open!=='true'));
+    writeModeButton.addEventListener('click',()=>setWorkMode('write'));
+    editModeButton.addEventListener('click',()=>setWorkMode('edit'));
+    printModeButton.addEventListener('click',()=>setWorkMode('print'));
+    document.addEventListener('pointerdown',e=>{if(modeDock.dataset.open==='true'&&!modeDock.contains(e.target))setModeDockOpen(false)},{capture:true});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')setModeDockOpen(false)});
     instrumentGrid.addEventListener('pointerup',chooseInstrument);
-    piano.addEventListener('pointerdown',start);
-    piano.addEventListener('pointerup',stop);
-    piano.addEventListener('pointercancel',stop);
-    piano.addEventListener('lostpointercapture',stop);
-    score.addEventListener('pointerup',togglePiano);
+    projectForm.addEventListener('submit',saveProject);
+    scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
+    scoreTitle.addEventListener('keydown',editProjectFromTitle);
+    modifierRail.addEventListener('pointerdown',startModifier);
+    modifierDragHandle.addEventListener('pointerdown',startModifierDrag);
+    modifierDragHandle.addEventListener('pointermove',moveModifierDrag);
+    modifierDragHandle.addEventListener('pointerup',endModifierDrag);
+    modifierDragHandle.addEventListener('pointercancel',endModifierDrag);
+    piano.addEventListener('pointerdown',startNote);
+    piano.addEventListener('pointermove',moveNote);
+    window.addEventListener('pointerup',stopNote);
+    window.addEventListener('pointercancel',stopNote);
+    window.addEventListener('pointerup',endModifier);
+    window.addEventListener('pointercancel',endModifier);
+    keyboardScrollRail.addEventListener('pointerdown',startScroll);
+    keyboardScrollRail.addEventListener('pointermove',moveScroll);
+    keyboardScrollRail.addEventListener('pointerup',endScroll);
+    keyboardScrollRail.addEventListener('pointercancel',endScroll);
+    keyboardScrollRail.addEventListener('keydown',keyboardScrollKey);
+    keyboardViewport.addEventListener('scroll',syncScrollThumb,{passive:true});
+    document.addEventListener('touchmove',preventOuterTouchScroll,{passive:false,capture:true});
+    window.addEventListener('scroll',keepOuterViewportFixed,{passive:true});
+    window.addEventListener('resize',resizeLayout);
+    window.addEventListener('osmd-ready',renderScore);
+    score.addEventListener('pointerdown',startScoreGesture);
+    score.addEventListener('pointermove',moveScoreGesture,{passive:true});
+    score.addEventListener('pointerup',e=>endScoreGesture(e));
+    score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
+    score.addEventListener('keydown',scoreKey);
   </script>
 </body>
 </html>
