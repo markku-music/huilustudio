@@ -359,6 +359,7 @@
     }
     function applyInstrumentProfile(){
       const current=profile(),useFlats=+(projectData?.keySignature??keySignatureSelect.value)<0;
+      clearSoundingMarker();
       piano.querySelectorAll('.key').forEach(key=>{
         const midi=+key.dataset.midi,outside=midi<current.min||midi>current.max;
         key.classList.toggle('out-of-range',outside);
@@ -398,7 +399,7 @@
       if(activeKey)activeKey.classList.remove('active');
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
       const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime;
-      addScoreNote(writtenMidi);showSoundingMarker(soundingMidi);
+      addScoreNote(writtenMidi);if(profile().transpose)showSoundingMarker(soundingMidi);else clearSoundingMarker();
       osc.frequency.setValueAtTime(440*Math.pow(2,(soundingMidi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
     }
     function stopNote(e){
