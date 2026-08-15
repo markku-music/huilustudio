@@ -1,315 +1,76 @@
 <!doctype html>
 <html lang="fi">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Simppeli Syntetisaattori 0.1</title>
-<style>
-  :root{
-    --bg:#17181c;
-    --panel:#24262c;
-    --text:#f4f4f2;
-    --muted:#aeb2bb;
-    --accent:#7dd3fc;
-    --keywhite:#fafafa;
-    --keyblack:#202126;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    min-height:100vh;
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
-    touch-action:none;
-  }
-  .app{
-    width:min(900px,100%);
-    background:var(--panel);
-    border-radius:24px;
-    padding:24px;
-    box-shadow:0 18px 60px rgba(0,0,0,.35);
-  }
-  h1{
-    margin:0 0 6px;
-    font-size:clamp(24px,4vw,40px);
-  }
-  .sub{
-    color:var(--muted);
-    margin-bottom:24px;
-  }
-  .controls{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:16px;
-    margin-bottom:24px;
-  }
-  .control{
-    background:#1d1f24;
-    border-radius:16px;
-    padding:14px;
-  }
-  label{
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    font-size:14px;
-    color:var(--muted);
-    margin-bottom:8px;
-  }
-  input[type=range]{width:100%}
-  select{
-    width:100%;
-    padding:10px 12px;
-    border-radius:10px;
-    border:0;
-    background:#30333b;
-    color:var(--text);
-    font-size:16px;
-  }
-  .status{
-    margin-bottom:14px;
-    min-height:24px;
-    color:var(--accent);
-    font-weight:700;
-  }
-  .keyboard{
-    position:relative;
-    height:260px;
-    display:flex;
-    gap:3px;
-    user-select:none;
-    -webkit-user-select:none;
-  }
-  .key{
-    border:0;
-    cursor:pointer;
-    font-weight:700;
-    touch-action:none;
-  }
-  .white{
-    flex:1;
-    background:var(--keywhite);
-    color:#222;
-    border-radius:0 0 12px 12px;
-    display:flex;
-    align-items:flex-end;
-    justify-content:center;
-    padding-bottom:16px;
-  }
-  .white.active{
-    background:#bae6fd;
-  }
-  .hint{
-    margin-top:18px;
-    color:var(--muted);
-    font-size:14px;
-  }
-  @media (max-width:600px){
-    body{padding:10px}
-    .app{padding:16px;border-radius:18px}
-    .keyboard{height:210px}
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#eef1f5">
+  <title>iOS Äänitesti</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
+    body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px 16px;-webkit-user-select:none;user-select:none}
+    main{width:min(760px,100%);text-align:center}
+    h1{margin:0 0 8px;font-size:clamp(24px,5vw,40px)}
+    p{margin:0 0 24px;color:#586474}
+    .piano{position:relative;display:flex;height:clamp(190px,42vw,320px);border:5px solid #20242a;border-radius:12px;overflow:hidden;background:#20242a;box-shadow:0 16px 40px #1c27352e;touch-action:none;-webkit-touch-callout:none}
+    .key{border:0;touch-action:none;cursor:pointer}
+    .white{flex:1;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:600 15px system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
+    .white:last-of-type{border:0}
+    .black{position:absolute;z-index:2;top:0;width:8%;height:62%;margin-left:-4%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .key.active{background:#62a7ff}
+    .black.active{background:#2869b8}
+    .b1{left:14.2857%}.b2{left:28.5714%}.b3{left:57.1429%}.b4{left:71.4286%}.b5{left:85.7143%}
+    #status{margin-top:18px;min-height:24px;font-weight:650;color:#2365aa}
+  </style>
 </head>
 <body>
-<div class="app">
-  <h1>Simppeli syntetisaattori</h1>
-  <div class="sub">Yksi oskillaattori. Ei turhaa sälää.</div>
-
-  <div class="controls">
-    <div class="control">
-      <label><span>Aaltomuoto</span></label>
-      <select id="wave">
-        <option value="sine">Sini</option>
-        <option value="triangle">Kolmio</option>
-        <option value="square">Kantti</option>
-        <option value="sawtooth">Saha</option>
-      </select>
+  <main>
+    <h1>iOS Äänitesti</h1>
+    <p>Kosketa kosketinta. Ensimmäinen kosketus avaa äänen.</p>
+    <div class="piano" id="piano" aria-label="Yhden oktaavin pianokoskettimisto">
+      <button class="key white" data-midi="60" aria-label="C">C</button>
+      <button class="key white" data-midi="62" aria-label="D">D</button>
+      <button class="key white" data-midi="64" aria-label="E">E</button>
+      <button class="key white" data-midi="65" aria-label="F">F</button>
+      <button class="key white" data-midi="67" aria-label="G">G</button>
+      <button class="key white" data-midi="69" aria-label="A">A</button>
+      <button class="key white" data-midi="71" aria-label="H">H</button>
+      <button class="key black b1" data-midi="61" aria-label="Cis"></button>
+      <button class="key black b2" data-midi="63" aria-label="Dis"></button>
+      <button class="key black b3" data-midi="66" aria-label="Fis"></button>
+      <button class="key black b4" data-midi="68" aria-label="Gis"></button>
+      <button class="key black b5" data-midi="70" aria-label="Ais"></button>
     </div>
-
-    <div class="control">
-      <label><span>Voimakkuus</span><span id="volumeValue">35 %</span></label>
-      <input id="volume" type="range" min="0" max="100" value="35">
-    </div>
-
-    <div class="control">
-      <label><span>Attack</span><span id="attackValue">20 ms</span></label>
-      <input id="attack" type="range" min="0" max="1000" value="20">
-    </div>
-
-    <div class="control">
-      <label><span>Release</span><span id="releaseValue">180 ms</span></label>
-      <input id="release" type="range" min="10" max="2000" value="180">
-    </div>
-  </div>
-
-  <div id="status" class="status">Paina kosketinta</div>
-
-  <div class="keyboard" id="keyboard">
-    <button class="key white" data-note="C4" data-freq="261.6256">C</button>
-    <button class="key white" data-note="D4" data-freq="293.6648">D</button>
-    <button class="key white" data-note="E4" data-freq="329.6276">E</button>
-    <button class="key white" data-note="F4" data-freq="349.2282">F</button>
-    <button class="key white" data-note="G4" data-freq="391.9954">G</button>
-    <button class="key white" data-note="A4" data-freq="440.0000">A</button>
-    <button class="key white" data-note="H4" data-freq="493.8833">H</button>
-    <button class="key white" data-note="C5" data-freq="523.2511">C</button>
-  </div>
-
-  <div class="hint">
-    Toimii hiirellä ja kosketuksella. Ensimmäinen painallus käynnistää Web Audion myös iPadissa.
-  </div>
-</div>
-
-<script>
-let audioCtx = null;
-let masterGain = null;
-const activeVoices = new Map();
-
-const wave = document.getElementById('wave');
-const volume = document.getElementById('volume');
-const attack = document.getElementById('attack');
-const release = document.getElementById('release');
-const statusEl = document.getElementById('status');
-
-const volumeValue = document.getElementById('volumeValue');
-const attackValue = document.getElementById('attackValue');
-const releaseValue = document.getElementById('releaseValue');
-
-function initAudio(){
-  if(!audioCtx){
-    const AC = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AC();
-
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = Number(volume.value)/100;
-    masterGain.connect(audioCtx.destination);
-  }
-
-  if(audioCtx.state === 'suspended'){
-    audioCtx.resume();
-  }
-}
-
-function startNote(key, pointerId){
-  initAudio();
-
-  const id = pointerId ?? 'mouse';
-  const voiceKey = `${key.dataset.note}-${id}`;
-  if(activeVoices.has(voiceKey)) return;
-
-  const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = wave.value;
-  osc.frequency.value = Number(key.dataset.freq);
-
-  const attackTime = Number(attack.value)/1000;
-  const target = 1.0;
-
-  gain.gain.cancelScheduledValues(now);
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.linearRampToValueAtTime(target, now + Math.max(0.001, attackTime));
-
-  osc.connect(gain);
-  gain.connect(masterGain);
-
-  osc.start();
-
-  activeVoices.set(voiceKey, {osc, gain, key});
-  key.classList.add('active');
-  statusEl.textContent = `${key.dataset.note} · ${Number(key.dataset.freq).toFixed(1)} Hz`;
-}
-
-function stopNote(key, pointerId){
-  if(!audioCtx) return;
-
-  const id = pointerId ?? 'mouse';
-  const voiceKey = `${key.dataset.note}-${id}`;
-  const voice = activeVoices.get(voiceKey);
-  if(!voice) return;
-
-  const now = audioCtx.currentTime;
-  const releaseTime = Number(release.value)/1000;
-
-  voice.gain.gain.cancelScheduledValues(now);
-  voice.gain.gain.setValueAtTime(
-    Math.max(0.0001, voice.gain.gain.value),
-    now
-  );
-  voice.gain.gain.exponentialRampToValueAtTime(
-    0.0001,
-    now + Math.max(0.01, releaseTime)
-  );
-
-  voice.osc.stop(now + Math.max(0.01, releaseTime) + 0.03);
-
-  activeVoices.delete(voiceKey);
-
-  const stillActive = [...activeVoices.values()].some(v => v.key === key);
-  if(!stillActive) key.classList.remove('active');
-
-  if(activeVoices.size === 0){
-    statusEl.textContent = 'Paina kosketinta';
-  }
-}
-
-document.querySelectorAll('.key').forEach(key => {
-  key.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    key.setPointerCapture?.(e.pointerId);
-    startNote(key, e.pointerId);
-  });
-
-  key.addEventListener('pointerup', e => {
-    e.preventDefault();
-    stopNote(key, e.pointerId);
-  });
-
-  key.addEventListener('pointercancel', e => {
-    stopNote(key, e.pointerId);
-  });
-
-  key.addEventListener('lostpointercapture', e => {
-    stopNote(key, e.pointerId);
-  });
-});
-
-volume.addEventListener('input', () => {
-  volumeValue.textContent = `${volume.value} %`;
-  if(masterGain && audioCtx){
-    masterGain.gain.setTargetAtTime(Number(volume.value)/100, audioCtx.currentTime, 0.01);
-  }
-});
-
-attack.addEventListener('input', () => {
-  attackValue.textContent = `${attack.value} ms`;
-});
-
-release.addEventListener('input', () => {
-  releaseValue.textContent = `${release.value} ms`;
-});
-
-document.addEventListener('visibilitychange', () => {
-  if(document.hidden && audioCtx){
-    const now = audioCtx.currentTime;
-    for(const [id, voice] of activeVoices){
-      try{
-        voice.gain.gain.cancelScheduledValues(now);
-        voice.gain.gain.setTargetAtTime(0.0001, now, 0.01);
-        voice.osc.stop(now + 0.05);
-      }catch(e){}
-      voice.key.classList.remove('active');
+    <div id="status">Valmis testiin</div>
+  </main>
+  <script>
+    const piano=document.querySelector('#piano'),status=document.querySelector('#status'),voices=new Map();
+    let audio;
+    function context(){
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!audio||audio.state==='closed')try{audio=new AC({latencyHint:'interactive'})}catch{audio=new AC()}
+      if(audio.state!=='running')audio.resume();
+      return audio;
     }
-    activeVoices.clear();
-  }
-});
-</script>
+    function start(e){
+      const key=e.target.closest('.key');
+      if(!key||voices.has(e.pointerId)||(e.pointerType==='mouse'&&e.button!==0))return;
+      e.preventDefault();piano.setPointerCapture(e.pointerId);
+      const c=context(),o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
+      o.type='triangle';o.frequency.value=440*Math.pow(2,(+key.dataset.midi-69)/12);
+      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.16,t+.012);
+      o.connect(g).connect(c.destination);o.start(t);
+      voices.set(e.pointerId,{o,g,key});key.classList.add('active');status.textContent='Ääni toimii';
+    }
+    function stop(e){
+      const v=voices.get(e.pointerId);if(!v)return;
+      const t=audio.currentTime;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(.16,t);v.g.gain.exponentialRampToValueAtTime(.0001,t+.06);v.o.stop(t+.07);
+      v.key.classList.remove('active');voices.delete(e.pointerId);
+    }
+    piano.addEventListener('pointerdown',start);
+    piano.addEventListener('pointerup',stop);
+    piano.addEventListener('pointercancel',stop);
+    piano.addEventListener('lostpointercapture',stop);
+  </script>
 </body>
 </html>
