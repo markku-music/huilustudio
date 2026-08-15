@@ -330,6 +330,29 @@
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
     }
+    function centerMeasureRests(){
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList;
+      if(!measureList)return;
+      measureData().groups.forEach((group,measureIndex)=>{
+        if(!group.some(note=>note.measureRest))return;
+        for(const graphicalMeasure of measureList[measureIndex]||[]){
+          const stave=graphicalMeasure?.getVFStave?.(),start=stave?.getNoteStartX?.(),end=stave?.getNoteEndX?.();
+          if(!Number.isFinite(start)||!Number.isFinite(end))continue;
+          const handled=new Set();
+          for(const staffEntry of graphicalMeasure.staffEntries||[])for(const voiceEntry of staffEntry.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry.notes||[]){
+            if(graphicalNote.sourceNote?.PrintObject===false||!graphicalNote.sourceNote?.isRest?.())continue;
+            const element=graphicalNote.getSVGGElement?.();
+            if(!element||handled.has(element)||element.hasAttribute('data-pikakirjoitin-measure-rest-centered'))continue;
+            handled.add(element);
+            try{
+              const box=element.getBBox(),shift=(start+end)/2-(box.x+box.width/2),base=element.getAttribute('transform')||'';
+              element.setAttribute('data-pikakirjoitin-measure-rest-centered','');
+              if(Math.abs(shift)>.01)element.setAttribute('transform',`${base?base+' ':''}translate(${shift.toFixed(3)} 0)`);
+            }catch{}
+          }
+        }
+      });
+    }
     function ensureScoreRenderer(){
       if(scoreRenderer)return true;
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
@@ -349,7 +372,7 @@
       scoreRendering=true;
       try{
         while(scoreRenderPending){
-          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=1;await scoreRenderer.render();updateScorePagePreview();
+          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
