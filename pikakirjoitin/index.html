@@ -23,12 +23,13 @@
     .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
-    .score-title{position:absolute;z-index:2;top:28px;left:30px;right:30px;display:block;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
-    .score-composer{position:absolute;z-index:2;top:59px;left:30px;right:40px;display:block;text-align:right;font-size:14px;font-weight:650;line-height:1.2;pointer-events:none}
-    .score-meta{position:absolute;z-index:2;top:82px;left:30px;right:30px;display:block;color:#465568;text-align:center;font-size:14px;font-weight:650;line-height:1.25;pointer-events:none}
+    .score-title{position:absolute;z-index:2;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
+    .score-info-row{position:absolute;z-index:2;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
+    .score-tempo{min-width:0;text-align:left;overflow-wrap:anywhere}
+    .score-composer{min-width:0;text-align:right;overflow-wrap:anywhere}
     #osmdContainer{width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
-    .score-prompt{position:absolute;top:138px;left:50%;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
+    .score-prompt{position:absolute;top:190px;left:50%;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
     .score-prompt[hidden]{display:none}
     .keyboard-panel{width:100vw;min-height:0;flex:3 1 30%;background:#20242a}
     .keyboard-panel[hidden]{display:none}
@@ -175,8 +176,10 @@
           <div class="score-page-shell" id="scorePageShell">
             <div class="score-page" id="scorePage">
               <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen tietoja">Nimetön kappale</span>
-              <span class="score-composer" id="scoreComposer" hidden></span>
-              <span class="score-meta" id="scoreMeta">Huilu / oboe (C) · diskanttiavain · kirjoitettu sävellaji: C-duuri / a-molli · 4/4</span>
+              <div class="score-info-row" aria-label="Kappaleen tempo ja säveltäjä">
+                <span class="score-tempo" id="scoreTempo" hidden></span>
+                <span class="score-composer" id="scoreComposer" hidden></span>
+              </div>
               <div id="osmdContainer" aria-hidden="true"></div>
               <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
             </div>
@@ -201,7 +204,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreComposer=document.querySelector('#scoreComposer'),scoreMeta=document.querySelector('#scoreMeta'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
@@ -254,9 +257,8 @@
       const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},useFlats=data.keySignature<0,{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2];
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
-        const tempo=index===0&&data.tempoText?`<direction placement="above"><direction-type><words>${escapeXml(data.tempoText)}</words></direction-type></direction>`:'';
         const entries=group.length?group.map(note=>`<note>${musicXmlPitch(note.midi,useFlats)}<duration>8</duration><voice>1</voice><type>quarter</type></note>`).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
-        return `<measure number="${index+1}">${attributes}${tempo}${entries}</measure>`;
+        return `<measure number="${index+1}">${attributes}${entries}</measure>`;
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
     }
@@ -265,7 +267,8 @@
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
       scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,stretchLastSystemLine:false});
       scoreRenderer.setPageFormat('A4_P');
-      scoreRenderer.EngravingRules.PageTopMargin=12;
+      scoreRenderer.EngravingRules.PageTopMargin=17;
+      scoreRenderer.EngravingRules.PageTopMarginNarrow=17;
       return true;
     }
     function updateScorePagePreview(){
@@ -336,8 +339,8 @@
       const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
       projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',clefName:clef.name,transpose:profile().transpose};
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
+      scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
       scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
-      scoreMeta.textContent=`${projectData.instrumentName} · ${projectData.clefName} · kirjoitettu sävellaji: ${projectData.keySignatureName} · ${projectData.timeSignature}`;
       buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');score.focus();
       renderScore();
       requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForInstrument()});
