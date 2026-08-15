@@ -392,6 +392,8 @@ const state = {
   },
   tieOneShotArmed: false,
   audioContext: null,
+  audioPrimerOscillator: null,
+  audioPrimerGain: null,
   osmd: null,
   appliedScoreLayoutSignature: null,
   gesture: null,
@@ -943,22 +945,17 @@ function initScoreTouchGestures() {
         const keyboardIsClosed = mainColumn.classList.contains('keyboard-collapsed');
 
         if (keyboardIsClosed) {
-          // 0.3.9.6:
-          // Pidä toimivaksi todettu iPad-audioherätys täsmälleen tässä avauspolussa.
-          try {
-            ensureAudio();
-            const ctx = state.audioContext;
-            if (ctx && ctx.state === 'suspended') {
-              const resumePromise = ctx.resume();
-              if (resumePromise && typeof resumePromise.catch === 'function') {
-                resumePromise.catch(() => {});
-              }
-            }
-          } catch (error) {
+          // iOS hyväksyy kosketuksen käyttäjäeleeksi sormen irrotuksessa.
+          // Näytä koskettimisto vasta, kun AudioContext on varmasti käynnissä.
+          statusText.textContent = 'Avataan ääntä…';
+          openAudioFromScoreGesture().then((ctx) => {
+            if (ctx.state !== 'running') return;
+            setKeyboardOpen(true);
+            statusText.textContent = 'Valmis';
+          }).catch((error) => {
             console.warn('Paper tap audio wake failed', error);
-          }
-
-          setKeyboardOpen(true);
+            statusText.textContent = 'Ääntä ei voitu avata';
+          });
         } else {
           // Sama yksi paperin napautus sulkee koskettimiston.
           setKeyboardOpen(false);
@@ -2762,16 +2759,27 @@ function setOsmdScoreLayoutRules(osmd) {
   rules.PageBottomMargin = layoutState.margins.bottom;
 }
 
-function primeAudioFromKeyboardToggle() {
+function openAudioFromScoreGesture() {
   try {
-    ensureAudio();
-    const ctx = state.audioContext;
-    if (ctx && ctx.state === 'suspended') {
-      const promise = ctx.resume();
-      if (promise && typeof promise.catch === 'function') promise.catch(() => {});
+    const ctx = ensureAudio();
+
+    // Sama kevyt, jatkuva äänigraafi kuin toimivassa iOS-testissä.
+    // Se ei soita avausääntä, mutta pitää Web Audion valmiina ensimmäiselle nuotille.
+    if (!state.audioPrimerOscillator) {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'triangle';
+      gain.gain.value = 0.0001;
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start();
+      state.audioPrimerOscillator = oscillator;
+      state.audioPrimerGain = gain;
     }
+
+    const ready = ctx.state === 'running' ? Promise.resolve() : ctx.resume();
+    return Promise.resolve(ready).then(() => ctx);
   } catch (error) {
-    console.warn('Keyboard toggle audio prime failed', error);
+    return Promise.reject(error);
   }
 }
 
@@ -3495,43 +3503,17 @@ function flashKey(keyEl) {
 }
 
 function ensureAudio() {
-  if (!state.audioContext) {
+  if (!state.audioContext || state.audioContext.state === 'closed') {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     try {
       state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
     } catch {
       state.audioContext = new AudioContextClass();
     }
+    state.audioPrimerOscillator = null;
+    state.audioPrimerGain = null;
   }
-  if (state.audioContext.state === 'suspended') state.audioContext.resume();
-}
-
-function unlockAudioFromStartupGesture() {
-  try {
-    ensureAudio();
-    const ctx = state.audioContext;
-    if (!ctx) return;
-
-    // Äänetön yhden näytteen lähde käynnistetään samassa käyttäjäeleessä.
-    // Tämä ei kuulu käyttäjälle, mutta auttaa iPad/Safaria avaamaan Web Audion.
-    const buffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    const silentGain = ctx.createGain();
-    silentGain.gain.value = 0.000001;
-    source.buffer = buffer;
-    source.connect(silentGain);
-    silentGain.connect(ctx.destination);
-    source.start(0);
-
-    if (ctx.state === 'suspended') {
-      const resumePromise = ctx.resume();
-      if (resumePromise && typeof resumePromise.catch === 'function') {
-        resumePromise.catch(() => {});
-      }
-    }
-  } catch (error) {
-    console.warn('Startup audio unlock failed', error);
-  }
+  return state.audioContext;
 }
 
 function finishStartupGate() {
@@ -3560,8 +3542,6 @@ function initStartupGate() {
   const restoredTitle = String(titleInput.value || '').trim();
   startupTitleInput.value = restoredTitle && restoredTitle !== 'Uusi kappale' ? restoredTitle : '';
 
-  // Pointerdown on varsinainen iPadin käyttäjäele, jolla Web Audio herätetään.
-  startupBeginBtn.addEventListener('pointerdown', unlockAudioFromStartupGesture, { passive: true });
   startupBeginBtn.addEventListener('click', finishStartupGate);
 
   startupTitleInput.addEventListener('input', () => {
@@ -3571,7 +3551,6 @@ function initStartupGate() {
   startupTitleInput.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    unlockAudioFromStartupGesture();
     finishStartupGate();
   });
 
@@ -3582,8 +3561,8 @@ function initStartupGate() {
 }
 
 function playMidi(midi, seconds = 0.45) {
-  ensureAudio();
-  const ctx = state.audioContext;
+  const ctx = ensureAudio();
+  if (ctx.state !== 'running') return;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   const freq = 440 * Math.pow(2, (midi - 69) / 12);
