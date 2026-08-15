@@ -266,7 +266,7 @@
     function musicXmlRest(note,clefName){
       if(note.duration!=='whole')return '<rest/>';
       const [step,octave]={treble:['D',5],alto:['E',4],bass:['F',3]}[clefName]||['D',5];
-      return `<rest><display-step>${step}</display-step><display-octave>${octave}</display-octave></rest>`;
+      return `<rest${note.measureRest?' measure="yes"':''}><display-step>${step}</display-step><display-octave>${octave}</display-octave></rest>`;
     }
     function noteDurationValue(note){
       const base=noteDurations[note.duration]||noteDurations.quarter;
@@ -310,17 +310,22 @@
       const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,groups=[[]];
       let used=0;
       for(const note of notes){
+        if(note.measureRest){
+          if(groups.at(-1).length)groups.push([]);
+          groups.at(-1).push(note);groups.push([]);used=0;continue;
+        }
         const duration=noteDurationValue(note);
         if(groups.at(-1).length&&used+duration>capacity){groups.push([]);used=0}
         groups.at(-1).push(note);used+=duration;
       }
+      if(groups.length>1&&!groups.at(-1).length)groups.pop();
       return {beats,beatType,capacity,groups};
     }
     function buildMusicXml(){
       const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},useFlats=data.keySignature<0,{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2];
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
-        const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{const type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note.midi,useFlats),dot=note.dotted?'<dot/>':'';return `<note>${content}<duration>${duration}</duration><voice>1</voice><type>${type}</type>${dot}${beamTags[noteIndex]}</note>`}).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
+        const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{const measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note.midi,useFlats),typeXml=measureRest?'':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';return `<note>${content}<duration>${duration}</duration><voice>1</voice>${typeXml}${dot}${beamTags[noteIndex]}</note>`}).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
         return `<measure number="${index+1}">${attributes}${entries}</measure>`;
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
@@ -356,7 +361,7 @@
       editHistory.push(action);if(editHistory.length>250)editHistory.shift();
     }
     function addScoreNote(midi,{duration='quarter',dotted=false,rest=false}={}){
-      const note={midi,duration,dotted,rest},action={type:'add',note:{...note}};
+      const note={midi,duration,dotted,rest,measureRest:false},action={type:'add',note:{...note}};
       notes.push(note);rememberAction(action);renderScore();return {note,action};
     }
     function clearLongPress(){
@@ -364,9 +369,11 @@
       clearTimeout(longPressTimer);longPressTimer=null;
     }
     function setActiveNoteDuration(duration){
-      if(!activeNote||activeNote.duration===duration)return;
-      activeNote.duration=duration;
-      if(activeNoteAction?.type==='add')activeNoteAction.note.duration=duration;
+      if(!activeNote)return;
+      const measureRest=duration==='whole'&&activeNote.rest;
+      if(activeNote.duration===duration&&activeNote.measureRest===measureRest)return;
+      activeNote.duration=duration;activeNote.measureRest=measureRest;
+      if(activeNoteAction?.type==='add'){activeNoteAction.note.duration=duration;activeNoteAction.note.measureRest=measureRest}
       renderScore();
     }
     function undoLastChange(){
