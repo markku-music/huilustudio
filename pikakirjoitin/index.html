@@ -70,19 +70,13 @@
     .project-modal{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));background:#17202bd9;overflow:auto}
     .project-modal[hidden]{display:none}
     .project-card{width:min(660px,100%);max-height:100%;overflow:auto;padding:clamp(20px,4vw,32px);border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
-    .project-card h2{margin:0 0 5px;text-align:center;font-size:clamp(23px,5vw,32px)}
-    .project-intro{margin:0 0 20px;text-align:center;font-size:14px}
     .project-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .field{display:grid;gap:6px;color:#354254;font-size:13px;font-weight:750}
+    .field{display:grid}
     .field.wide{grid-column:1/-1}
     .field input,.field select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
-    .clef-readout{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:12px;min-height:56px;padding:8px 14px;border-radius:10px;background:#eef4fb;color:#184f89;font-weight:800}
-    .clef-symbol{font-family:'Apple Symbols','Noto Music',serif;font-size:36px;line-height:1}
-    .clef-copy{display:grid;gap:2px}
-    .clef-copy small{color:#53677d;font-size:11px;font-weight:700}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
-    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide,.clef-readout{grid-column:auto}.project-card{padding:20px}.project-intro{margin-bottom:14px}}
+    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
@@ -106,14 +100,11 @@
     </div>
   </div>
 
-  <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+  <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
     <form class="project-card" id="projectForm">
-      <h2 id="projectModalTitle">Kappaleen tiedot</h2>
-      <p class="project-intro">Valitse soitin ja kirjoita kappaleen tiedot. Aloita sitten napauttamalla nuottisivua. Tiedot avautuvat uudelleen kappaleen nimeä napauttamalla.</p>
       <div class="project-grid">
         <label class="field wide" for="instrumentSelect">
-          <span>Soitin</span>
-          <select id="instrumentSelect">
+          <select id="instrumentSelect" aria-label="Soitin">
             <option value="flute-oboe">Huilu / oboe (C)</option>
             <option value="clarinet">Klarinetti (B♭)</option>
             <option value="alto-saxophone">Alttosaksofoni (E♭)</option>
@@ -127,20 +118,16 @@
           </select>
         </label>
         <label class="field wide" for="titleInput">
-          <span>Kappaleen nimi</span>
-          <input id="titleInput" type="text" autocomplete="off" placeholder="Nimetön kappale">
+          <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
         </label>
         <label class="field" for="composerInput">
-          <span>Säveltäjä</span>
-          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjän nimi">
+          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
         </label>
         <label class="field" for="tempoInput">
-          <span>Tempoteksti</span>
-          <input id="tempoInput" type="text" autocomplete="off" placeholder="Esim. Andante">
+          <input id="tempoInput" type="text" autocomplete="off" placeholder="Tempoteksti" aria-label="Tempoteksti">
         </label>
         <label class="field" for="keySignatureSelect">
-          <span>Sävellaji</span>
-          <select id="keySignatureSelect">
+          <select id="keySignatureSelect" aria-label="Sävellaji">
             <option value="0">C-duuri / a-molli</option>
             <option value="1">G-duuri / e-molli</option>
             <option value="2">D-duuri / h-molli</option>
@@ -159,8 +146,7 @@
           </select>
         </label>
         <label class="field" for="timeSignatureSelect">
-          <span>Tahtilaji</span>
-          <select id="timeSignatureSelect">
+          <select id="timeSignatureSelect" aria-label="Tahtilaji">
             <option value="2/4">2/4</option>
             <option value="3/4">3/4</option>
             <option value="4/4" selected>4/4</option>
@@ -171,10 +157,6 @@
             <option value="12/8">12/8</option>
           </select>
         </label>
-        <div class="clef-readout" aria-live="polite">
-          <span class="clef-symbol" id="clefSymbol" aria-hidden="true">𝄞</span>
-          <span class="clef-copy"><span>Nuottiavain: <span id="clefName">diskanttiavain</span></span><small>Soittimen vire: <span id="tuningName">C</span></small></span>
-        </div>
       </div>
       <button class="start-button" type="submit">Aloita</button>
     </form>
@@ -227,13 +209,11 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
-    const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
     const instrumentClefs={'flute-oboe':'treble',clarinet:'treble','alto-saxophone':'treble',trumpet:'treble','french-horn':'treble',trombone:'bass',violin:'treble',viola:'alto',cello:'bass','double-bass':'bass'};
-    const instrumentTunings={'flute-oboe':'C',clarinet:'B♭','alto-saxophone':'E♭',trumpet:'B♭','french-horn':'F',trombone:'C',violin:'C',viola:'C',cello:'C','double-bass':'C · soi oktaavia alempaa'};
     const instrumentProfiles={
       'flute-oboe':{min:60,max:84,start:60,transpose:0},
       clarinet:{min:52,max:84,start:52,transpose:-2},
@@ -442,12 +422,8 @@
       try{localStorage.setItem(INSTRUMENT_KEY,instrumentSelect.value)}catch{}
     }
     function selectedText(select){return select.options[select.selectedIndex].textContent}
-    function updateClef(){
-      const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
-      clefName.textContent=clef.name;clefSymbol.textContent=clef.symbol;tuningName.textContent=instrumentTunings[instrumentSelect.value]||'C';
-    }
     function showProjectModal(){
-      projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');updateClef();requestAnimationFrame(()=>instrumentSelect.focus());
+      projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>instrumentSelect.focus());
     }
     function editProjectFromTitle(e){
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
@@ -456,8 +432,7 @@
     }
     function saveProject(e){
       e.preventDefault();saveInstrument();
-      const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
-      projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',clefName:clef.name,transpose:profile().transpose};
+      projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
       scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
@@ -712,11 +687,10 @@
       e.preventDefault();togglePiano({pointerType:'keyboard',preventDefault(){}});
     }
 
-    restoreInstrument();restoreModifierPosition();updateClef();
+    restoreInstrument();restoreModifierPosition();
     buildKeyboard();
     applyInstrumentProfile();
     requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
-    instrumentSelect.addEventListener('change',updateClef);
     projectForm.addEventListener('submit',saveProject);
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
