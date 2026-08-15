@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pikakirjoitin Flick</title>
-  <link rel="stylesheet" href="style.css?v=0.4.5.0" />
+  <link rel="stylesheet" href="style.css?v=0.4.5.1" />
   <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="vendor/svg2pdf/svg2pdf.umd.min.js"></script>
@@ -197,6 +197,7 @@
               <path d="m23 33-5 5 5 5"/>
             </svg>
           </button>
+          <button id="measureNumbersBtn" class="modifier-button modifier-button-text measure-numbers-button" type="button" aria-label="Näytä tahtinumerot" aria-pressed="false">123</button>
           <button id="stretchLastLineBtn" class="modifier-button modifier-button-text" type="button" aria-label="Venytä nykyinen viimeinen rivi kerran koko leveyteen">↔</button>
           <button id="selectNotesBtn" class="modifier-button" type="button" aria-label="Valitse nuotteja" aria-pressed="false">
             <svg class="modifier-icon modifier-icon-selection" viewBox="0 0 48 48" aria-hidden="true">
@@ -218,7 +219,7 @@
             KIRJOITA
           </button>
           <button id="finishModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
-            VIIMEISTELE
+            MUOKKAA
           </button>
           <button id="outputModeBtn" class="mode-switch-button" type="button" aria-pressed="false">
             TULOSTA &amp; TALLENNA
@@ -295,7 +296,6 @@
               <path d="m7 10 34 14M7 38l34-14"/>
             </svg>
           </button>
-          <button id="selectionClearBtn" class="selection-clear-button" type="button" aria-label="Poista valinta">×</button>
         </div>
 <div id="osmdContainer"></div>
       </section>
@@ -547,6 +547,6 @@
     <div class="black-key key"></div>
   </template>
 
-  <script src="app-0.4.5.0.js"></script>
+  <script src="app-0.4.5.1.js"></script>
 </body>
 </html>

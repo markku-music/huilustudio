@@ -24,6 +24,7 @@ const sixteenthShiftBtn = document.getElementById('sixteenthShiftBtn');
 const restShiftBtn = document.getElementById('restShiftBtn');
 const tieButton = document.getElementById('tieShiftBtn');
 const systemBreakBtn = document.getElementById('systemBreakBtn');
+const measureNumbersBtn = document.getElementById('measureNumbersBtn');
 const stretchLastLineBtn = document.getElementById('stretchLastLineBtn');
 const selectNotesBtn = document.getElementById('selectNotesBtn');
 const selectionToolbar = document.getElementById('selectionToolbar');
@@ -44,7 +45,6 @@ const selectionAccentBtn = document.getElementById('selectionAccentBtn');
 const selectionDynamicSelect = document.getElementById('selectionDynamicSelect');
 const selectionCrescendoBtn = document.getElementById('selectionCrescendoBtn');
 const selectionDiminuendoBtn = document.getElementById('selectionDiminuendoBtn');
-const selectionClearBtn = document.getElementById('selectionClearBtn');
 const songPanel = document.getElementById('songPanel');
 const songPanelToggle = document.getElementById('songPanelToggle');
 const songPanelClose = document.getElementById('songPanelClose');
@@ -162,6 +162,8 @@ const defaultLayout = {
   systemSpacing: 500,
   pitchNames: true,
   printWatermark: true,
+  measureNumbers: false,
+  selectionToolbar: { x: 50, y: 62 },
   scoreText: {
     title: { size: 90, x: 75, y: 0 },
     composer: { size: 100, x: 0, y: 15 },
@@ -1765,11 +1767,127 @@ function toggleHairpinForSelection(type) {
   renderScore();
 }
 
+
+function initSelectionToolbarDragging() {
+  if (!selectionToolbar) return;
+  let drag = null;
+
+  selectionToolbar.addEventListener('pointerdown', ev => {
+    if (ev.target.closest('button, select, label')) return;
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    const paper = selectionToolbar.closest('.paper-panel');
+    if (!paper) return;
+    ev.preventDefault();
+    drag = {
+      pointerId: ev.pointerId,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      startXPct: layoutState.selectionToolbar.x,
+      startY: layoutState.selectionToolbar.y,
+      paperWidth: Math.max(1, paper.getBoundingClientRect().width),
+      paperHeight: Math.max(1, paper.getBoundingClientRect().height),
+    };
+    selectionToolbar.setPointerCapture?.(ev.pointerId);
+    selectionToolbar.classList.add('dragging');
+  }, { passive: false });
+
+  selectionToolbar.addEventListener('pointermove', ev => {
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    ev.preventDefault();
+    const dxPct = (ev.clientX - drag.startX) / drag.paperWidth * 100;
+    const dy = ev.clientY - drag.startY;
+    layoutState.selectionToolbar.x = clamp(drag.startXPct + dxPct, 8, 92);
+    layoutState.selectionToolbar.y = clamp(drag.startY + dy, 8, Math.max(8, drag.paperHeight - 56));
+    selectionToolbar.style.left = `${layoutState.selectionToolbar.x}%`;
+    selectionToolbar.style.top = `${layoutState.selectionToolbar.y}px`;
+  }, { passive: false });
+
+  const endDrag = ev => {
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    selectionToolbar.releasePointerCapture?.(ev.pointerId);
+    selectionToolbar.classList.remove('dragging');
+    drag = null;
+    saveLayoutState();
+  };
+  selectionToolbar.addEventListener('pointerup', endDrag);
+  selectionToolbar.addEventListener('pointercancel', endDrag);
+}
+
+function initScoreTextDragging() {
+  let drag = null;
+
+  osmdContainer.addEventListener('pointerdown', ev => {
+    if (state.workMode !== 'finish') return;
+    const element = ev.target.closest?.('text[data-score-text-role]');
+    if (!element) return;
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    const role = element.getAttribute('data-score-text-role');
+    if (!SCORE_TEXT_ROLES.includes(role)) return;
+    const svg = element.ownerSVGElement;
+    const rect = svg?.getBoundingClientRect();
+    const viewBox = svg?.viewBox?.baseVal;
+    if (!rect || !rect.width || !rect.height || !viewBox) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+    drag = {
+      pointerId: ev.pointerId,
+      role,
+      startClientX: ev.clientX,
+      startClientY: ev.clientY,
+      startX: layoutState.scoreText[role].x,
+      startY: layoutState.scoreText[role].y,
+      svg,
+      scaleX: viewBox.width / rect.width,
+      scaleY: viewBox.height / rect.height,
+    };
+    osmdContainer.setPointerCapture?.(ev.pointerId);
+    element.classList.add('score-text-dragging');
+  }, { capture: true, passive: false });
+
+  osmdContainer.addEventListener('pointermove', ev => {
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const dx = (ev.clientX - drag.startClientX) * drag.scaleX;
+    const dy = (ev.clientY - drag.startClientY) * drag.scaleY;
+    if (drag.role !== 'title') {
+      layoutState.scoreText[drag.role].x = clamp(drag.startX + dx, -300, 300);
+    }
+    layoutState.scoreText[drag.role].y = clamp(drag.startY + dy, -200, 200);
+    syncLayoutControls();
+    applyScoreTextLayout();
+  }, { capture: true, passive: false });
+
+  const finish = ev => {
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    osmdContainer.releasePointerCapture?.(ev.pointerId);
+    drag.svg?.querySelectorAll('.score-text-dragging').forEach(el => el.classList.remove('score-text-dragging'));
+    drag = null;
+    saveLayoutState();
+    invalidateCachedPdf();
+  };
+  osmdContainer.addEventListener('pointerup', finish, { capture: true, passive: false });
+  osmdContainer.addEventListener('pointercancel', finish, { capture: true, passive: false });
+}
+
+async function toggleMeasureNumbers() {
+  layoutState.measureNumbers = !layoutState.measureNumbers;
+  measureNumbersBtn?.classList.toggle('active', layoutState.measureNumbers);
+  measureNumbersBtn?.setAttribute('aria-pressed', String(layoutState.measureNumbers));
+  saveLayoutState();
+  if (state.osmd) {
+    state.osmd.setOptions({ drawMeasureNumbers: layoutState.measureNumbers });
+  }
+  await renderScore();
+}
+
 function initNoteSelection() {
   selectNotesBtn.addEventListener('click', () => {
     setWorkMode(state.workMode === 'finish' ? 'write' : 'finish');
   });
-  selectionClearBtn.addEventListener('click', clearNoteSelection);
   selectionStaccatoBtn.addEventListener('click', toggleStaccatoForSelection);
   selectionPortatoBtn.addEventListener('click', togglePortatoForSelection);
   selectionAccentBtn.addEventListener('click', toggleAccentForSelection);
@@ -1972,6 +2090,11 @@ function loadLayoutState() {
         : savedSystemSpacing,
       pitchNames: saved.pitchNames !== false,
       printWatermark: saved.printWatermark !== false,
+      measureNumbers: saved.measureNumbers === true,
+      selectionToolbar: {
+        x: finiteLayoutNumber(saved.selectionToolbar?.x, defaultLayout.selectionToolbar.x),
+        y: finiteLayoutNumber(saved.selectionToolbar?.y, defaultLayout.selectionToolbar.y),
+      },
       scoreText: {
         title: {
           size: migrateEarlierDefault(saved.scoreText?.title?.size, 100, defaultLayout.scoreText.title.size, usesEarlierDefaults),
@@ -2025,6 +2148,10 @@ function normalizeFlickThresholds() {
   layoutState.systemSpacing = clamp(finiteLayoutNumber(layoutState.systemSpacing, defaultLayout.systemSpacing), 500, 1000);
   layoutState.pitchNames = layoutState.pitchNames !== false;
   layoutState.printWatermark = layoutState.printWatermark !== false;
+  layoutState.measureNumbers = layoutState.measureNumbers === true;
+  layoutState.selectionToolbar ||= structuredClone(defaultLayout.selectionToolbar);
+  layoutState.selectionToolbar.x = clamp(finiteLayoutNumber(layoutState.selectionToolbar.x, 50), 8, 92);
+  layoutState.selectionToolbar.y = clamp(finiteLayoutNumber(layoutState.selectionToolbar.y, 62), 8, 500);
   layoutState.scoreText ||= structuredClone(defaultLayout.scoreText);
   SCORE_TEXT_ROLES.forEach(role => {
     layoutState.scoreText[role] ||= structuredClone(defaultLayout.scoreText[role]);
@@ -2079,6 +2206,12 @@ function applyLayoutState({ save = true } = {}) {
   applyScoreTextLayout();
   renderPitchNameOverlays();
   renderMarginGuides();
+  if (selectionToolbar) {
+    selectionToolbar.style.left = `${layoutState.selectionToolbar.x}%`;
+    selectionToolbar.style.top = `${layoutState.selectionToolbar.y}px`;
+  }
+  measureNumbersBtn?.classList.toggle('active', layoutState.measureNumbers);
+  measureNumbersBtn?.setAttribute('aria-pressed', String(layoutState.measureNumbers));
   if (save) saveLayoutState();
 }
 
@@ -4222,6 +4355,7 @@ async function renderScoreNow() {
         drawTitle: true,
         drawComposer: true,
         drawPartNames: false,
+        drawMeasureNumbers: layoutState.measureNumbers,
         newSystemFromXML: true,
         stretchLastSystemLine: stretchLastLine,
         pageFormat: 'A4_P',
@@ -4229,7 +4363,7 @@ async function renderScoreNow() {
       });
     }
     const osmd = state.osmd;
-    osmd.setOptions({ stretchLastSystemLine: stretchLastLine });
+    osmd.setOptions({ stretchLastSystemLine: stretchLastLine, drawMeasureNumbers: layoutState.measureNumbers });
     setOsmdNoteSpacingRules(osmd, layoutState.noteSpacing);
     setOsmdScoreLayoutRules(osmd);
     if (osmd.EngravingRules) {
@@ -4368,6 +4502,7 @@ document.addEventListener('focusin', (ev) => {
 window.addEventListener('blur', clearKeyboardModifiers);
 
 systemBreakBtn.addEventListener('click', togglePendingSystemBreak);
+measureNumbersBtn?.addEventListener('click', toggleMeasureNumbers);
 stretchLastLineBtn.addEventListener('click', toggleStretchLastLine);
 
 [titleInput, composerInput, tempoTextInput, bpmInput, beatsSelect, beatTypeSelect, keySelect, modeSelect].forEach(el => {
@@ -4453,6 +4588,8 @@ document.getElementById('layoutCopy').addEventListener('click', async () => {
     `Riviväli: ${layoutState.systemSpacing}%`,
     `Sävelnimet nuottipalloissa: ${layoutState.pitchNames ? 'Päällä' : 'Pois'}`,
     `Kokeiluvesileima: ${layoutState.printWatermark ? 'Päällä' : 'Pois'}`,
+    `Tahtinumerot: ${layoutState.measureNumbers ? 'Päällä' : 'Pois'}`,
+    `Muokkaa-työkalupalkki (X/Y): ${layoutState.selectionToolbar.x.toFixed(1)}% / ${Math.round(layoutState.selectionToolbar.y)}px`,
     `Otsikko (koko/X/Y): ${layoutState.scoreText.title.size}% / ${layoutState.scoreText.title.x} / ${layoutState.scoreText.title.y} u`,
     `Säveltäjä (koko/X/Y): ${layoutState.scoreText.composer.size}% / ${layoutState.scoreText.composer.x} / ${layoutState.scoreText.composer.y} u`,
     `Tempoteksti (koko/X/Y): ${layoutState.scoreText.tempo.size}% / ${layoutState.scoreText.tempo.x} / ${layoutState.scoreText.tempo.y} u`,
@@ -4482,6 +4619,8 @@ bindWorkModeSwitch();
 bindVisualViewportLock();
 bindHardViewportScrollLock();
 initNoteSelection();
+initSelectionToolbarDragging();
+initScoreTextDragging();
 initScoreTouchGestures();
 applyLayoutState({ save: false });
 setScoreShare(layoutState.scoreShare);
