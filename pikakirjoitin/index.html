@@ -38,11 +38,10 @@
     .modifier-drag-handle{width:46px;height:24px;display:grid;place-items:center;padding:0;border:1px solid #687685;border-radius:8px;background:#343b45;color:#cbd5e0;touch-action:none;cursor:ns-resize}
     .modifier-drag-handle:active{background:#465260;color:#fff}
     .modifier-drag-handle svg{display:block;width:22px;height:12px;pointer-events:none}
-    .modifier-symbol{font-family:'Apple Symbols','Noto Music',serif;font-size:23px;line-height:.9}
-    .modifier-fraction{font-size:15px;letter-spacing:-.04em}
-    .modifier-button small{font-size:7px;letter-spacing:.04em;line-height:1}
+    .modifier-icon{display:block;width:29px;height:38px;object-fit:contain;pointer-events:none}
+    .modifier-button[aria-pressed="true"] .modifier-icon{filter:brightness(0) invert(1)}
     .modifier-divider{height:1px;margin:1px 5px;background:#697686}
-    .tie-button svg{display:block;width:34px;height:19px;pointer-events:none}
+    .tie-button svg{display:block;width:34px;height:26px;pointer-events:none}
     .keyboard-panel{width:100vw;min-height:0;flex:3 1 30%;background:#20242a}
     .keyboard-panel[hidden]{display:none}
     .keyboard-scroll-rail{height:44px;padding:7px 12px;background:#eef1f5;touch-action:none;cursor:ew-resize;outline-offset:-3px}
@@ -201,13 +200,12 @@
           <button class="modifier-drag-handle" id="modifierDragHandle" type="button" aria-label="Siirrä muunninpalkkia pystysuunnassa">
             <svg viewBox="0 0 22 12" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="16" cy="3" r="1.5"/><circle cx="6" cy="9" r="1.5"/><circle cx="11" cy="9" r="1.5"/><circle cx="16" cy="9" r="1.5"/></g></svg>
           </button>
-          <button class="modifier-button" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen nuotti" aria-pressed="false"><span class="modifier-symbol" aria-hidden="true">•</span><small>PISTE</small></button>
-          <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti" aria-pressed="false"><span class="modifier-fraction" aria-hidden="true">1/16</span></button>
-          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false"><span class="modifier-symbol" aria-hidden="true">𝄽</span><small>TAUKO</small></button>
+          <button class="modifier-button" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen nuotti" aria-pressed="false"><img class="modifier-icon" src="assets/dotted-quarter-note.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti" aria-pressed="false"><img class="modifier-icon" src="assets/double-crochet.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false"><img class="modifier-icon" src="assets/rest.svg" alt="" aria-hidden="true" draggable="false"></button>
           <div class="modifier-divider" aria-hidden="true"></div>
           <button class="modifier-button tie-button" id="tieButton" type="button" aria-label="Yhdyskaari seuraavaan saman sävelen nuottiin" aria-pressed="false">
             <svg viewBox="0 0 36 20" aria-hidden="true"><g fill="currentColor"><ellipse cx="7" cy="7" rx="4.5" ry="3" transform="rotate(-18 7 7)"/><ellipse cx="29" cy="7" rx="4.5" ry="3" transform="rotate(-18 29 7)"/></g><path d="M7 11c5 7 17 7 22 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <small>TIE</small>
           </button>
         </div>
       </section>
