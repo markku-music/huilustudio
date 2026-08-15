@@ -950,12 +950,7 @@ function initScoreTouchGestures() {
           try {
             ensureAudio();
             const ctx = state.audioContext;
-            if (ctx && ctx.state === 'suspended') {
-              const resumePromise = ctx.resume();
-              if (resumePromise && typeof resumePromise.catch === 'function') {
-                resumePromise.catch(() => {});
-              }
-            }
+            resumeAudioContext(ctx);
           } catch (error) {
             console.warn('Paper tap audio wake failed', error);
           }
@@ -2899,10 +2894,7 @@ function primeAudioFromKeyboardToggle() {
   try {
     ensureAudio();
     const ctx = state.audioContext;
-    if (ctx && ctx.state === 'suspended') {
-      const promise = ctx.resume();
-      if (promise && typeof promise.catch === 'function') promise.catch(() => {});
-    }
+    resumeAudioContext(ctx);
   } catch (error) {
     console.warn('Keyboard toggle audio prime failed', error);
   }
@@ -3627,16 +3619,34 @@ function flashKey(keyEl) {
   setTimeout(() => keyEl.classList.remove('active'), 130);
 }
 
-function ensureAudio() {
-  if (!state.audioContext) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+function resumeAudioContext(ctx) {
+  if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return null;
+  try {
+    const resumePromise = ctx.resume();
+    if (resumePromise && typeof resumePromise.catch === 'function') {
+      resumePromise.catch(() => {});
+    }
+    return resumePromise;
+  } catch {
+    return null;
+  }
+}
+
+function ensureAudio({ resume = true } = {}) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  // iPad/Safari voi sulkea tai keskeyttää Web Audion taustalla käynnin jälkeen.
+  // Suljettu konteksti luodaan uudelleen ja myös "interrupted" palautetaan.
+  if (!state.audioContext || state.audioContext.state === 'closed') {
     try {
       state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
     } catch {
       state.audioContext = new AudioContextClass();
     }
   }
-  if (state.audioContext.state === 'suspended') state.audioContext.resume();
+  if (resume) resumeAudioContext(state.audioContext);
+  return state.audioContext;
 }
 
 function unlockAudioFromStartupGesture() {
@@ -3656,12 +3666,7 @@ function unlockAudioFromStartupGesture() {
     silentGain.connect(ctx.destination);
     source.start(0);
 
-    if (ctx.state === 'suspended') {
-      const resumePromise = ctx.resume();
-      if (resumePromise && typeof resumePromise.catch === 'function') {
-        resumePromise.catch(() => {});
-      }
-    }
+    resumeAudioContext(ctx);
   } catch (error) {
     console.warn('Startup audio unlock failed', error);
   }
@@ -3715,19 +3720,42 @@ function initStartupGate() {
 }
 
 function playMidi(midi, seconds = 0.45) {
-  ensureAudio();
-  const ctx = state.audioContext;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const freq = 440 * Math.pow(2, (midi - 69) / 12);
-  osc.type = 'triangle';
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + Math.max(0.18, Math.min(seconds, 1.2)));
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + Math.max(0.22, Math.min(seconds + 0.08, 1.4)));
+  const ctx = ensureAudio({ resume: false });
+  if (!ctx) return;
+
+  const startTone = () => {
+    if (ctx.state === 'closed' || state.audioContext !== ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const now = ctx.currentTime;
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.18, Math.min(seconds, 1.2)));
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + Math.max(0.22, Math.min(seconds + 0.08, 1.4)));
+  };
+
+  if (ctx.state === 'running') {
+    startTone();
+    return;
+  }
+
+  // Jos Safari palauttaa kontekstin vasta lupauksen valmistuttua, ääni
+  // käynnistetään heti sen jälkeen eikä jää hiljaiseksi ensimmäisellä painalluksella.
+  try {
+    const resumePromise = ctx.resume();
+    if (resumePromise && typeof resumePromise.then === 'function') {
+      resumePromise.then(startTone).catch(() => {});
+    } else {
+      startTone();
+    }
+  } catch {
+    startTone();
+  }
 }
 
 function adjustTempo(delta) {
