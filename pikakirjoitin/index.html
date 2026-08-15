@@ -21,13 +21,16 @@
     p{margin:0;color:#586474;font-size:14px}
     .project-button{margin-top:8px;padding:7px 13px;border:1px solid #9ba6b4;border-radius:8px;background:#fff;color:#354254;font-size:13px;font-weight:700;cursor:pointer}
     .score-area{min-height:0;flex:1;display:flex;padding:0 16px 16px}
-    .score{position:relative;width:100%;min-height:120px;overflow:auto;border:2px solid #9ba6b4;border-radius:12px;background:#fff;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:none;cursor:pointer}
+    .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:none;cursor:pointer}
     .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
-    .score-title{display:block;padding:9px 12px 0;text-align:center;font-size:clamp(18px,4vw,25px);font-weight:750;pointer-events:none}
-    .score-meta{display:block;margin-top:4px;padding:0 12px;color:#465568;text-align:center;font-size:clamp(11px,2.5vw,14px);font-weight:650;pointer-events:none}
-    #osmdContainer{width:100%;min-height:92px;padding:0 6px 8px;pointer-events:none}
+    .score-page-shell{position:relative;margin:0 auto;flex:none}
+    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
+    .score-title{position:absolute;z-index:2;top:28px;left:30px;right:30px;display:block;text-align:center;font-size:25px;font-weight:750;line-height:1.15;pointer-events:none}
+    .score-composer{position:absolute;z-index:2;top:59px;left:30px;right:40px;display:block;text-align:right;font-size:14px;font-weight:650;line-height:1.2;pointer-events:none}
+    .score-meta{position:absolute;z-index:2;top:82px;left:30px;right:30px;display:block;color:#465568;text-align:center;font-size:14px;font-weight:650;line-height:1.25;pointer-events:none}
+    #osmdContainer{width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
-    .score-prompt{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
+    .score-prompt{position:absolute;top:138px;left:50%;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
     .score-prompt[hidden]{display:none}
     .keyboard-panel{width:100vw;height:clamp(290px,calc(56vw + 44px),474px);flex:none;background:#20242a}
     .keyboard-panel[hidden]{display:none}
@@ -68,9 +71,19 @@
     .clef-copy{display:grid;gap:2px}
     .clef-copy small{color:#53677d;font-size:11px;font-weight:700}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
-    @media (max-width:700px){.heading{padding:0 10px 8px}.heading p{font-size:13px}.project-button{margin-top:6px;padding:6px 11px}.score-area{padding:0 10px 10px}.score{border-radius:10px}.score-title{padding-top:7px}.score-meta{padding-inline:7px;font-size:clamp(10px,2.2vw,13px)}#osmdContainer{padding:0 2px 6px}}
+    @media (max-width:700px){.heading{padding:0 10px 8px}.heading p{font-size:13px}.project-button{margin-top:6px;padding:6px 11px}.score-area{padding:0 10px 10px}.score{border-radius:10px}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide,.clef-readout{grid-column:auto}.project-card{padding:20px}.project-intro{margin-bottom:14px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
+    @page{size:A4 portrait;margin:0}
+    @media print{
+      html,body{width:210mm;height:auto;overflow:visible;background:#fff}
+      .orientation-blocker,.heading,.keyboard-panel,#status,.score-prompt{display:none!important}
+      .app{display:block!important;width:210mm;height:auto;padding:0;background:#fff}
+      .score-area{display:block;padding:0}
+      .score{width:210mm;min-height:0;overflow:visible;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none}
+      .score-page-shell{position:static;width:210mm!important;height:auto!important;margin:0}
+      .score-page{position:relative;width:210mm;min-height:297mm;transform:none!important;box-shadow:none}
+    }
   </style>
 </head>
 <body>
@@ -164,10 +177,15 @@
     </header>
     <section class="score-area">
       <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Napauta avataksesi koskettimiston.">
-        <span class="score-title" id="scoreTitle">Nimetön kappale</span>
-        <span class="score-meta" id="scoreMeta">Huilu / oboe (C) · diskanttiavain · kirjoitettu sävellaji: C-duuri / a-molli · 4/4</span>
-        <div id="osmdContainer" aria-hidden="true"></div>
-        <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
+        <div class="score-page-shell" id="scorePageShell">
+          <div class="score-page" id="scorePage">
+            <span class="score-title" id="scoreTitle">Nimetön kappale</span>
+            <span class="score-composer" id="scoreComposer" hidden></span>
+            <span class="score-meta" id="scoreMeta">Huilu / oboe (C) · diskanttiavain · kirjoitettu sävellaji: C-duuri / a-molli · 4/4</span>
+            <div id="osmdContainer" aria-hidden="true"></div>
+            <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
+          </div>
+        </div>
       </div>
     </section>
     <div class="keyboard-panel" id="keyboardPanel" hidden>
@@ -186,8 +204,8 @@
   </main>
 
   <script>
-    const DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),openProjectModal=document.querySelector('#openProjectModal'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreMeta=document.querySelector('#scoreMeta'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),openProjectModal=document.querySelector('#openProjectModal'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreComposer=document.querySelector('#scoreComposer'),scoreMeta=document.querySelector('#scoreMeta'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
@@ -205,7 +223,7 @@
       cello:{min:36,max:64,start:36,transpose:0},
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,scoreLayoutWidth=0,scoreResizeTimer=null;
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -249,12 +267,14 @@
     function ensureScoreRenderer(){
       if(scoreRenderer)return true;
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
-      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,stretchLastSystemLine:false});
+      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,stretchLastSystemLine:false});
+      scoreRenderer.setPageFormat('A4_P');
+      scoreRenderer.EngravingRules.PageTopMargin=12;
       return true;
     }
-    function responsiveScoreZoom(){
-      const width=osmdContainer.clientWidth||window.innerWidth;scoreLayoutWidth=Math.round(width);
-      return clamp(width*.9/980,.62,.9);
+    function updateScorePagePreview(){
+      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);
+      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
     }
     async function renderScore(){
       scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
@@ -262,7 +282,7 @@
       scoreRendering=true;
       try{
         while(scoreRenderPending){
-          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=responsiveScoreZoom();await scoreRenderer.render();
+          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=1;await scoreRenderer.render();updateScorePagePreview();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -315,10 +335,11 @@
       const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
       projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',clefName:clef.name,transpose:profile().transpose};
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
+      scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
       scoreMeta.textContent=`${projectData.instrumentName} · ${projectData.clefName} · kirjoitettu sävellaji: ${projectData.keySignatureName} · ${projectData.timeSignature}`;
       buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');openProjectModal.focus();
       renderScore();
-      if(!keyboardPanel.hidden)requestAnimationFrame(positionKeyboardForInstrument);
+      requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForInstrument()});
     }
 
     function visibleName(midi){
@@ -387,12 +408,12 @@
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!keyboardPanel.hidden){keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');return}
+      if(!keyboardPanel.hidden){keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
       if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        keyboardPanel.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(()=>needsInstrumentPosition?positionKeyboardForInstrument():syncScrollThumb());
+        keyboardPanel.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(()=>{updateScorePagePreview();needsInstrumentPosition?positionKeyboardForInstrument():syncScrollThumb()});
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
@@ -449,10 +470,7 @@
       e.preventDefault();syncScrollThumb();
     }
     function resizeLayout(){
-      syncScrollThumb();
-      const width=Math.round(osmdContainer.clientWidth);
-      if(!width||width===scoreLayoutWidth)return;
-      clearTimeout(scoreResizeTimer);scoreResizeTimer=setTimeout(renderScore,120);
+      syncScrollThumb();updateScorePagePreview();
     }
     function startScoreGesture(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -483,6 +501,7 @@
     restoreInstrument();updateClef();
     buildKeyboard();
     applyInstrumentProfile();
+    requestAnimationFrame(updateScorePagePreview);
     instrumentSelect.addEventListener('change',updateClef);
     projectForm.addEventListener('submit',saveProject);
     openProjectModal.addEventListener('click',showProjectModal);
