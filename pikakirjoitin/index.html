@@ -675,6 +675,14 @@
     function resizeLayout(){
       syncScrollThumb();positionModifierRail();updateScorePagePreview();
     }
+    function keepOuterViewportFixed(){
+      if(window.scrollX||window.scrollY)window.scrollTo(0,0);
+    }
+    function preventOuterTouchScroll(e){
+      if(e.target.closest('.score,.project-modal'))return;
+      if(e.cancelable)e.preventDefault();
+      keepOuterViewportFixed();
+    }
     function startScoreGesture(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreStartX=e.clientX;scoreStartY=e.clientY;scoreMoved=false}
@@ -729,6 +737,8 @@
     keyboardScrollRail.addEventListener('pointercancel',endScroll);
     keyboardScrollRail.addEventListener('keydown',keyboardScrollKey);
     keyboardViewport.addEventListener('scroll',syncScrollThumb,{passive:true});
+    document.addEventListener('touchmove',preventOuterTouchScroll,{passive:false,capture:true});
+    window.addEventListener('scroll',keepOuterViewportFixed,{passive:true});
     window.addEventListener('resize',resizeLayout);
     window.addEventListener('osmd-ready',renderScore);
     score.addEventListener('pointerdown',startScoreGesture);
