@@ -15,33 +15,21 @@
     html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
     body{-webkit-user-select:none;user-select:none}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
-    .app{width:100%;height:100dvh;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
+    .app{width:100%;height:100dvh;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));background:#eef1f5}
+    .heading{flex:none;padding:0 16px 12px;text-align:center}
+    h1{margin:0 0 4px;font-size:clamp(22px,5vw,34px)}
     p{margin:0;color:#586474;font-size:14px}
-    .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
-    .score-area{position:relative;min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
-    .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
+    .project-button{margin-top:8px;padding:7px 13px;border:1px solid #9ba6b4;border-radius:8px;background:#fff;color:#354254;font-size:13px;font-weight:700;cursor:pointer}
+    .score-area{min-height:0;flex:1;display:flex;padding:0 16px 16px}
+    .score{position:relative;width:100%;min-height:120px;overflow:auto;border:2px solid #9ba6b4;border-radius:12px;background:#fff;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:none;cursor:pointer}
     .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
-    .score-page-shell{position:relative;margin:0 auto;flex:none}
-    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
-    .score-title{position:absolute;z-index:2;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
-    .score-info-row{position:absolute;z-index:2;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
-    .score-tempo{min-width:0;text-align:left;overflow-wrap:anywhere}
-    .score-composer{min-width:0;text-align:right;overflow-wrap:anywhere}
-    #osmdContainer{width:100%;min-height:1123px;pointer-events:none}
+    .score-title{display:block;padding:9px 12px 0;text-align:center;font-size:clamp(18px,4vw,25px);font-weight:750;pointer-events:none}
+    .score-meta{display:block;margin-top:4px;padding:0 12px;color:#465568;text-align:center;font-size:clamp(11px,2.5vw,14px);font-weight:650;pointer-events:none}
+    #osmdContainer{width:100%;min-height:92px;padding:0 6px 8px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
-    .score-prompt{position:absolute;top:190px;left:50%;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
+    .score-prompt{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);color:#687586;font-size:11px;font-weight:750;white-space:nowrap;pointer-events:none}
     .score-prompt[hidden]{display:none}
-    .modifier-rail{position:absolute;z-index:12;top:calc(100% - 228px);left:0;width:58px;display:grid;gap:6px;padding:7px 5px 7px 6px;border:1px solid #677281;border-left:0;border-radius:0 13px 13px 0;background:#20242af2;box-shadow:5px 7px 18px #10182045;transform:translateX(-105%);opacity:0;visibility:hidden;pointer-events:none;touch-action:none;-webkit-touch-callout:none;transition:transform .16s ease-out,opacity .16s ease-out,visibility 0s linear .16s}
-    .app.keyboard-open .modifier-rail{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
-    .modifier-button{width:46px;height:50px;display:grid;place-items:center;align-content:center;gap:1px;padding:2px;border:1px solid #778493;border-radius:9px;background:#f6f8fb;color:#1b2735;box-shadow:0 2px 5px #0004;font-weight:850;line-height:1;touch-action:none;cursor:pointer}
-    .modifier-button[aria-pressed="true"]{border-color:#9dcbff;background:#2873c5;color:#fff;box-shadow:inset 0 2px 5px #0b3c7355,0 0 0 2px #73b4fa}
-    .modifier-drag-handle{width:46px;height:24px;display:grid;place-items:center;padding:0;border:1px solid #687685;border-radius:8px;background:#343b45;color:#cbd5e0;touch-action:none;cursor:ns-resize}
-    .modifier-drag-handle:active{background:#465260;color:#fff}
-    .modifier-drag-handle svg{display:block;width:22px;height:12px;pointer-events:none}
-    .modifier-symbol{font-family:'Apple Symbols','Noto Music',serif;font-size:23px;line-height:.9}
-    .modifier-fraction{font-size:15px;letter-spacing:-.04em}
-    .modifier-button small{font-size:7px;letter-spacing:.04em;line-height:1}
-    .keyboard-panel{width:100vw;min-height:0;flex:3 1 30%;background:#20242a}
+    .keyboard-panel{width:100vw;height:clamp(290px,46dvh,474px);flex:none;background:#20242a}
     .keyboard-panel[hidden]{display:none}
     .keyboard-scroll-rail{height:44px;padding:7px 12px;background:#eef1f5;touch-action:none;cursor:ew-resize;outline-offset:-3px}
     .keyboard-scroll-track{position:relative;width:100%;height:30px;overflow:hidden;border:1px solid #9ba6b4;border-radius:9px;background:#d7dde5;box-shadow:inset 0 1px 3px #1c273526}
@@ -53,14 +41,14 @@
     .key{position:relative;border:0;touch-action:none;cursor:pointer}
     .white{flex:0 0 calc(100% / 35);height:100%;background:linear-gradient(#fff 82%,#e7e7e7);border-right:1px solid #aeb4bc;color:#303844;font:650 clamp(12px,2vw,17px) system-ui;padding:0 0 14px;display:flex;align-items:end;justify-content:center}
     .white:last-child{border-right:0}
-    .black{position:absolute;z-index:2;top:0;height:50%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
+    .black{position:absolute;z-index:2;top:0;height:62%;background:linear-gradient(90deg,#101216,#30343a 45%,#090a0c);border-radius:0 0 7px 7px;box-shadow:0 5px 7px #0008}
     .key.out-of-range::before{content:'';position:absolute;inset:0;z-index:3;border-radius:inherit;background:#aeb8c5a8;pointer-events:none}
     .key.out-of-range.active::before{background:#aeb8c548}
     .key.active{background:#62a7ff}
     .black.active{background:#2869b8}
     .key.sounding-note::after{content:'';position:absolute;z-index:5;top:14px;left:50%;width:12px;height:12px;transform:translateX(-50%);border:2px solid #fff;border-radius:50%;background:#e2212d;box-shadow:0 1px 5px #0008;pointer-events:none;transition:opacity .16s ease}
     .key.sounding-resting::after{opacity:.48}
-    #status{position:fixed;left:0;bottom:0;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0;pointer-events:none}
+    #status{flex:none;min-height:30px;padding:6px 16px max(6px,env(safe-area-inset-bottom));text-align:center;font-weight:650;color:#2365aa;background:#eef1f5}
     .orientation-blocker{display:none;position:fixed;inset:0;z-index:1000;padding:28px;place-items:center;background:#eef1f5;text-align:center}
     .orientation-card{max-width:430px;padding:34px 28px;border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 16px 42px #1c273526}
     .orientation-icon{display:block;margin-bottom:14px;font-size:52px;line-height:1}
@@ -80,20 +68,8 @@
     .clef-copy{display:grid;gap:2px}
     .clef-copy small{color:#53677d;font-size:11px;font-weight:700}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
-    @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide,.clef-readout{grid-column:auto}.project-card{padding:20px}.project-intro{margin-bottom:14px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
-    @page{size:A4 portrait;margin:0}
-    @media print{
-      html,body{width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.keyboard-panel,.modifier-rail,#status,.score-prompt{display:none!important}
-      .app{display:block!important;width:210mm;height:auto;padding:0;background:#fff}
-      .workspace{display:block}
-      .score-area{display:block;padding:0}
-      .score{width:210mm;min-height:0;overflow:visible;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none}
-      .score-page-shell{position:static;width:210mm!important;height:auto!important;margin:0}
-      .score-page{position:relative;width:210mm;min-height:297mm;transform:none!important;box-shadow:none}
-    }
   </style>
 </head>
 <body>
@@ -108,7 +84,7 @@
   <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
     <form class="project-card" id="projectForm">
       <h2 id="projectModalTitle">Kappaleen tiedot</h2>
-      <p class="project-intro">Valitse soitin ja kirjoita kappaleen tiedot. Aloita sitten napauttamalla nuottisivua. Tiedot avautuvat uudelleen kappaleen nimeä napauttamalla.</p>
+      <p class="project-intro">Valitse soitin ja kirjoita uuden kappaleen perustiedot.</p>
       <div class="project-grid">
         <label class="field wide" for="instrumentSelect">
           <span>Soitin</span>
@@ -180,52 +156,39 @@
   </div>
 
   <main class="app" id="app" aria-hidden="true" inert>
-    <div class="workspace">
-      <section class="score-area">
-        <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
-          <div class="score-page-shell" id="scorePageShell">
-            <div class="score-page" id="scorePage">
-              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen tietoja">Nimetön kappale</span>
-              <div class="score-info-row" aria-label="Kappaleen tempo ja säveltäjä">
-                <span class="score-tempo" id="scoreTempo" hidden></span>
-                <span class="score-composer" id="scoreComposer" hidden></span>
-              </div>
-              <div id="osmdContainer" aria-hidden="true"></div>
-              <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
-            </div>
-          </div>
+    <header class="heading">
+      <h1>Pikakirjoitin</h1>
+      <p>Napauta nuotti-ikkunaa avataksesi koskettimiston.</p>
+      <button class="project-button" id="openProjectModal" type="button">Kappaleen tiedot</button>
+    </header>
+    <section class="score-area">
+      <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Napauta avataksesi koskettimiston.">
+        <span class="score-title" id="scoreTitle">Nimetön kappale</span>
+        <span class="score-meta" id="scoreMeta">Huilu / oboe (C) · diskanttiavain · kirjoitettu sävellaji: C-duuri / a-molli · 4/4</span>
+        <div id="osmdContainer" aria-hidden="true"></div>
+        <span class="score-prompt" id="scorePrompt">NUOTTI-IKKUNA · NAPAUTA</span>
+      </div>
+    </section>
+    <div class="keyboard-panel" id="keyboardPanel" hidden>
+      <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="keyboard-scroll-track" id="keyboardScrollTrack">
+          <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
         </div>
-        <div class="modifier-rail" id="modifierRail" role="toolbar" aria-label="Nuotin muuntimet" aria-hidden="true">
-          <button class="modifier-drag-handle" id="modifierDragHandle" type="button" aria-label="Siirrä muunninpalkkia pystysuunnassa">
-            <svg viewBox="0 0 22 12" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="16" cy="3" r="1.5"/><circle cx="6" cy="9" r="1.5"/><circle cx="11" cy="9" r="1.5"/><circle cx="16" cy="9" r="1.5"/></g></svg>
-          </button>
-          <button class="modifier-button" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen nuotti" aria-pressed="false"><span class="modifier-symbol" aria-hidden="true">•</span><small>PISTE</small></button>
-          <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti" aria-pressed="false"><span class="modifier-fraction" aria-hidden="true">1/16</span></button>
-          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false"><span class="modifier-symbol" aria-hidden="true">𝄽</span><small>TAUKO</small></button>
-        </div>
-      </section>
-      <div class="keyboard-panel" id="keyboardPanel" hidden>
-        <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <div class="keyboard-scroll-track" id="keyboardScrollTrack">
-            <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
-          </div>
-        </div>
-        <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
-          <div class="piano" id="piano">
-            <div class="white-keys" id="whiteKeys"></div>
-          </div>
+      </div>
+      <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
+        <div class="piano" id="piano">
+          <div class="white-keys" id="whiteKeys"></div>
         </div>
       </div>
     </div>
-    <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
+    <div id="status">Audio: ei avattu</div>
   </main>
 
   <script>
-    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument';
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),instrumentSelect=document.querySelector('#instrumentSelect'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),openProjectModal=document.querySelector('#openProjectModal'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),clefSymbol=document.querySelector('#clefSymbol'),clefName=document.querySelector('#clefName'),tuningName=document.querySelector('#tuningName'),scoreTitle=document.querySelector('#scoreTitle'),scoreMeta=document.querySelector('#scoreMeta'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
-    const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
     const clefs={treble:{name:'diskanttiavain',symbol:'𝄞'},alto:{name:'altoavain',symbol:'𝄡'},bass:{name:'bassoavain',symbol:'𝄢'}};
     const instrumentClefs={'flute-oboe':'treble',clarinet:'treble','alto-saxophone':'treble',trumpet:'treble','french-horn':'treble',trombone:'bass',violin:'treble',viola:'alto',cello:'bass','double-bass':'bass'};
     const instrumentTunings={'flute-oboe':'C',clarinet:'B♭','alto-saxophone':'E♭',trumpet:'B♭','french-horn':'F',trombone:'C',violin:'C',viola:'C',cello:'C','double-bass':'C · soi oktaavia alempaa'};
@@ -241,7 +204,7 @@
       cello:{min:36,max:64,start:36,transpose:0},
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null;
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -263,17 +226,12 @@
       const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]],pitch=(useFlats?flats:sharps)[mod(midi,12)];
       return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${Math.floor(midi/12)-1}</octave></pitch>`;
     }
-    function noteDurationValue(note){
-      const base=noteDurations[note.duration]||noteDurations.quarter;
-      return note.dotted?base*1.5:base;
-    }
     function measureData(){
       const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,groups=[[]];
       let used=0;
       for(const note of notes){
-        const duration=noteDurationValue(note);
-        if(groups.at(-1).length&&used+duration>capacity){groups.push([]);used=0}
-        groups.at(-1).push(note);used+=duration;
+        if(groups.at(-1).length&&used+8>capacity){groups.push([]);used=0}
+        groups.at(-1).push(note);used+=8;
       }
       return {beats,beatType,capacity,groups};
     }
@@ -281,23 +239,17 @@
       const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},useFlats=data.keySignature<0,{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2];
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
-        const entries=group.length?group.map(note=>{const type=Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=noteDurationValue(note),content=note.rest?'<rest/>':musicXmlPitch(note.midi,useFlats),dot=note.dotted?'<dot/>':'';return `<note>${content}<duration>${duration}</duration><voice>1</voice><type>${type}</type>${dot}</note>`}).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
-        return `<measure number="${index+1}">${attributes}${entries}</measure>`;
+        const tempo=index===0&&data.tempoText?`<direction placement="above"><direction-type><words>${escapeXml(data.tempoText)}</words></direction-type></direction>`:'';
+        const entries=group.length?group.map(note=>`<note>${musicXmlPitch(note.midi,useFlats)}<duration>8</duration><voice>1</voice><type>quarter</type></note>`).join(''):`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`;
+        return `<measure number="${index+1}">${attributes}${tempo}${entries}</measure>`;
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
     }
     function ensureScoreRenderer(){
       if(scoreRenderer)return true;
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
-      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,stretchLastSystemLine:false});
-      scoreRenderer.setPageFormat('A4_P');
-      scoreRenderer.EngravingRules.PageTopMargin=17;
-      scoreRenderer.EngravingRules.PageTopMarginNarrow=17;
+      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,stretchLastSystemLine:false});
       return true;
-    }
-    function updateScorePagePreview(){
-      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);
-      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
     }
     async function renderScore(){
       scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
@@ -305,7 +257,7 @@
       scoreRendering=true;
       try{
         while(scoreRenderPending){
-          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=1;await scoreRenderer.render();updateScorePagePreview();
+          scoreRenderPending=false;await scoreRenderer.load(buildMusicXml());scoreRenderer.zoom=.9;await scoreRenderer.render();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -316,19 +268,8 @@
     function rememberAction(action){
       editHistory.push(action);if(editHistory.length>250)editHistory.shift();
     }
-    function addScoreNote(midi,{duration='quarter',dotted=false,rest=false}={}){
-      const note={midi,duration,dotted,rest},action={type:'add',note:{...note}};
-      notes.push(note);rememberAction(action);renderScore();return {note,action};
-    }
-    function clearLongPress(){
-      if(longPressTimer===null)return;
-      clearTimeout(longPressTimer);longPressTimer=null;
-    }
-    function setActiveNoteDuration(duration){
-      if(!activeNote||activeNote.duration===duration)return;
-      activeNote.duration=duration;
-      if(activeNoteAction?.type==='add')activeNoteAction.note.duration=duration;
-      renderScore();
+    function addScoreNote(midi){
+      const note={midi,duration:'quarter'};notes.push(note);rememberAction({type:'add',note:{...note}});renderScore();
     }
     function undoLastChange(){
       const action=editHistory.pop();
@@ -364,21 +305,15 @@
     function showProjectModal(){
       projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');updateClef();requestAnimationFrame(()=>instrumentSelect.focus());
     }
-    function editProjectFromTitle(e){
-      if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
-      if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
-      e.preventDefault();e.stopPropagation();showProjectModal();
-    }
     function saveProject(e){
       e.preventDefault();saveInstrument();
       const clef=clefs[instrumentClefs[instrumentSelect.value]||'treble'];
       projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',clefName:clef.name,transpose:profile().transpose};
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
-      scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
-      scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
-      buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');score.focus();
+      scoreMeta.textContent=`${projectData.instrumentName} · ${projectData.clefName} · kirjoitettu sävellaji: ${projectData.keySignatureName} · ${projectData.timeSignature}`;
+      buildKeyboard();applyInstrumentProfile();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');openProjectModal.focus();
       renderScore();
-      requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForInstrument()});
+      if(!keyboardPanel.hidden)requestAnimationFrame(positionKeyboardForInstrument);
     }
 
     function visibleName(midi){
@@ -444,66 +379,15 @@
       audio.onstatechange=()=>status.textContent='Audio: '+audio.state;
       status.textContent='Audio: '+audio.state;
     }
-    function clearModifier(){
-      const button=activeModifierButton,pointerId=modifierPointerId;
-      if(button){button.classList.remove('active');button.setAttribute('aria-pressed','false');try{if(pointerId!==null&&button.hasPointerCapture(pointerId))button.releasePointerCapture(pointerId)}catch{}}
-      modifierPointerId=null;activeModifier=null;activeModifierButton=null;
-    }
-    function startModifier(e){
-      const button=e.target.closest('.modifier-button');
-      if(!button||(e.pointerType==='mouse'&&e.button!==0)||modifierPointerId!==null||modifierDragPointerId!==null)return;
-      e.preventDefault();e.stopPropagation();
-      modifierPointerId=e.pointerId;activeModifier=button.dataset.modifier;activeModifierButton=button;button.setAttribute('aria-pressed','true');
-      try{button.setPointerCapture(e.pointerId)}catch{}
-    }
-    function endModifier(e){
-      if(e.pointerId!==modifierPointerId)return;
-      clearModifier();
-    }
-    function modifierBounds(){
-      const minTop=8,maxTop=Math.max(minTop,scoreArea.clientHeight-modifierRail.offsetHeight-18);
-      return {minTop,maxTop};
-    }
-    function positionModifierRail(){
-      const {minTop,maxTop}=modifierBounds();
-      modifierRail.style.top=minTop+(maxTop-minTop)*modifierYRatio+'px';
-    }
-    function restoreModifierPosition(){
-      try{const saved=Number.parseFloat(localStorage.getItem(MODIFIER_Y_KEY));if(Number.isFinite(saved))modifierYRatio=clamp(saved,0,1)}catch{}
-    }
-    function saveModifierPosition(){
-      try{localStorage.setItem(MODIFIER_Y_KEY,modifierYRatio.toFixed(4))}catch{}
-    }
-    function startModifierDrag(e){
-      if((e.pointerType==='mouse'&&e.button!==0)||modifierDragPointerId!==null||modifierPointerId!==null)return;
-      e.preventDefault();e.stopPropagation();modifierDragPointerId=e.pointerId;modifierDragStartY=e.clientY;modifierDragStartTop=modifierRail.offsetTop;
-      try{modifierDragHandle.setPointerCapture(e.pointerId)}catch{}
-    }
-    function moveModifierDrag(e){
-      if(e.pointerId!==modifierDragPointerId)return;
-      e.preventDefault();e.stopPropagation();
-      const {minTop,maxTop}=modifierBounds(),top=clamp(modifierDragStartTop+e.clientY-modifierDragStartY,minTop,maxTop);
-      modifierRail.style.top=top+'px';modifierYRatio=maxTop>minTop?(top-minTop)/(maxTop-minTop):0;
-    }
-    function finishModifierDrag(pointerId){
-      if(pointerId!==modifierDragPointerId)return;
-      modifierDragPointerId=null;try{if(modifierDragHandle.hasPointerCapture(pointerId))modifierDragHandle.releasePointerCapture(pointerId)}catch{}saveModifierPosition();
-    }
-    function endModifierDrag(e){
-      e.preventDefault();e.stopPropagation();finishModifierDrag(e.pointerId);
-    }
-    function cancelModifierDrag(){
-      if(modifierDragPointerId!==null)finishModifierDrag(modifierDragPointerId);
-    }
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!keyboardPanel.hidden){clearModifier();cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
+      if(!keyboardPanel.hidden){keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');return}
       if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
         if(audio.state!=='running')return;
-        keyboardPanel.hidden=false;app.classList.add('keyboard-open');modifierRail.setAttribute('aria-hidden','false');score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();needsInstrumentPosition?positionKeyboardForInstrument():syncScrollThumb()});
+        keyboardPanel.hidden=false;score.setAttribute('aria-expanded','true');status.textContent='Audio: running';requestAnimationFrame(()=>needsInstrumentPosition?positionKeyboardForInstrument():syncScrollThumb());
       };
       if(audio.state==='running')done();else audio.resume().then(done).catch(()=>status.textContent='Audio: avaaminen epäonnistui');
     }
@@ -512,39 +396,16 @@
       if(!key||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
       if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
-      if(activeId!==null)return;
+      if(activeKey)activeKey.classList.remove('active');
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
-      const modifier=activeModifier,duration=modifier==='sixteenth'?'sixteenth':'quarter',dotted=modifier==='dot',rest=modifier==='rest';
-      noteStartX=e.clientX;noteStartY=e.clientY;noteSwipeThreshold=clamp(keyboardViewport.clientHeight*.12,24,48);noteGestureLocked=duration==='sixteenth';
-      try{piano.setPointerCapture(e.pointerId)}catch{}
       const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime;
-      const created=addScoreNote(writtenMidi,{duration,dotted,rest});activeNote=created.note;activeNoteAction=created.action;
-      if(!noteGestureLocked)longPressTimer=setTimeout(()=>{
-        longPressTimer=null;
-        if(activeId!==e.pointerId||!activeNote||noteGestureLocked)return;
-        noteGestureLocked=true;setActiveNoteDuration('whole');
-      },LONG_PRESS_MS);
-      activeNoteSounds=!rest;
-      if(activeNoteSounds){
-        if(profile().transpose)showSoundingMarker(soundingMidi);else clearSoundingMarker();
-        osc.frequency.setValueAtTime(440*Math.pow(2,(soundingMidi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
-      }else clearSoundingMarker();
-    }
-    function moveNote(e){
-      if(e.pointerId!==activeId||!activeNote||noteGestureLocked)return;
-      e.preventDefault();
-      const dx=e.clientX-noteStartX,dy=e.clientY-noteStartY;
-      if(Math.hypot(dx,dy)>LONG_PRESS_MOVE)clearLongPress();
-      if(Math.abs(dy)<noteSwipeThreshold)return;
-      clearLongPress();noteGestureLocked=true;setActiveNoteDuration(dy>0?'eighth':'half');
+      addScoreNote(writtenMidi);if(profile().transpose)showSoundingMarker(soundingMidi);else clearSoundingMarker();
+      osc.frequency.setValueAtTime(440*Math.pow(2,(soundingMidi-69)/12),t);gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(.16,t+.012);
     }
     function stopNote(e){
       if(e.pointerId!==activeId||!activeKey)return;
-      clearLongPress();
-      if(activeNoteSounds){const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06)}
-      activeKey.classList.remove('active');if(activeNoteSounds&&soundingKey)soundingKey.classList.add('sounding-resting');
-      try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
-      activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;
+      const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06);
+      activeKey.classList.remove('active');if(soundingKey)soundingKey.classList.add('sounding-resting');activeId=null;activeKey=null;
     }
 
     function syncScrollThumb(){
@@ -582,12 +443,10 @@
       else return;
       e.preventDefault();syncScrollThumb();
     }
-    function resizeLayout(){
-      syncScrollThumb();positionModifierRail();updateScorePagePreview();
-    }
     function startScoreGesture(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
-      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreStartX=e.clientX;scoreStartY=e.clientY;scoreMoved=false}
+      e.preventDefault();
+      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null}
       scorePointers.add(e.pointerId);
       try{score.setPointerCapture(e.pointerId)}catch{}
       if(scorePointers.size>=3&&scoreGesture!==3){
@@ -597,52 +456,37 @@
         scoreGesture=2;scoreUndoneAction=undoLastChange();
       }
     }
-    function moveScoreGesture(e){
-      if(!scorePointers.has(e.pointerId)||scoreGesture!==0||scorePointers.size!==1||scoreMoved)return;
-      if(Math.hypot(e.clientX-scoreStartX,e.clientY-scoreStartY)>=SCORE_SCROLL_SLOP)scoreMoved=true;
-    }
     function endScoreGesture(e,cancelled=false){
       if(!scorePointers.has(e.pointerId))return;
-      const singleTap=scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
+      const singleTap=scorePointers.size===1&&scoreGesture===0&&!cancelled;
       try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
       scorePointers.delete(e.pointerId);
       if(singleTap)togglePiano(e);
-      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreMoved=false}
+      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null}
     }
     function scoreKey(e){
       if(e.key!=='Enter'&&e.key!==' ')return;
       e.preventDefault();togglePiano({pointerType:'keyboard',preventDefault(){}});
     }
 
-    restoreInstrument();restoreModifierPosition();updateClef();
+    restoreInstrument();updateClef();
     buildKeyboard();
     applyInstrumentProfile();
-    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
     instrumentSelect.addEventListener('change',updateClef);
     projectForm.addEventListener('submit',saveProject);
-    scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
-    scoreTitle.addEventListener('keydown',editProjectFromTitle);
-    modifierRail.addEventListener('pointerdown',startModifier);
-    modifierDragHandle.addEventListener('pointerdown',startModifierDrag);
-    modifierDragHandle.addEventListener('pointermove',moveModifierDrag);
-    modifierDragHandle.addEventListener('pointerup',endModifierDrag);
-    modifierDragHandle.addEventListener('pointercancel',endModifierDrag);
+    openProjectModal.addEventListener('click',showProjectModal);
     piano.addEventListener('pointerdown',startNote);
-    piano.addEventListener('pointermove',moveNote);
     window.addEventListener('pointerup',stopNote);
     window.addEventListener('pointercancel',stopNote);
-    window.addEventListener('pointerup',endModifier);
-    window.addEventListener('pointercancel',endModifier);
     keyboardScrollRail.addEventListener('pointerdown',startScroll);
     keyboardScrollRail.addEventListener('pointermove',moveScroll);
     keyboardScrollRail.addEventListener('pointerup',endScroll);
     keyboardScrollRail.addEventListener('pointercancel',endScroll);
     keyboardScrollRail.addEventListener('keydown',keyboardScrollKey);
     keyboardViewport.addEventListener('scroll',syncScrollThumb,{passive:true});
-    window.addEventListener('resize',resizeLayout);
+    window.addEventListener('resize',syncScrollThumb);
     window.addEventListener('osmd-ready',renderScore);
     score.addEventListener('pointerdown',startScoreGesture);
-    score.addEventListener('pointermove',moveScoreGesture,{passive:true});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
     score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
     score.addEventListener('keydown',scoreKey);
