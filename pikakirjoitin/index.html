@@ -68,20 +68,19 @@
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
-    .selection-toolbar{position:absolute;z-index:30;top:16px;left:50%;min-height:50px;max-width:calc(100% - 90px);display:none;align-items:center;gap:6px;padding:5px 7px 5px 13px;border:1px solid #b8a1f3;border-radius:16px;background:#fffffff5;box-shadow:0 8px 24px #482d892e;transform:translateX(-50%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:manipulation}
-    .selection-count{min-width:108px;color:#4e2ca8;font-size:13px;font-weight:750;white-space:nowrap}
-    .selection-action-button,.selection-clear-button{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;padding:0;border:1px solid #d3c5f7;border-radius:11px;background:#fff;color:#5633ad;touch-action:manipulation;cursor:pointer}
+    .selection-toolbar{position:absolute;z-index:30;top:16px;left:50%;display:none;flex-direction:column;align-items:stretch;gap:5px;padding:6px;border:1px solid #b8a1f3;border-radius:16px;background:#fffffff5;box-shadow:0 8px 24px #482d892e;transform:translateX(-50%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none;-webkit-user-select:none;user-select:none}
+    .selection-toolbar-row{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
+    .selection-toolbar-drag-handle{width:28px;height:38px;flex:0 0 28px;display:grid;place-items:center;padding:0;border:0;border-radius:9px;background:transparent;color:#8a73bc;touch-action:none;cursor:grab}
+    .selection-toolbar-drag-handle:active{cursor:grabbing}
+    .selection-toolbar-drag-handle svg{width:18px;height:26px;fill:currentColor;pointer-events:none}
+    .selection-action-button{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;padding:0;border:1px solid #d3c5f7;border-radius:11px;background:#fff;color:#5633ad;touch-action:manipulation;cursor:pointer}
     .selection-action-button svg{width:30px;height:30px;overflow:visible;fill:currentColor;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .selection-action-button svg path:first-child{fill:none}
     .selection-action-button[aria-pressed="true"]{border-color:#8653f6;background:#eee7ff;box-shadow:inset 0 0 0 1px #8653f633}
     .selection-action-button:disabled{opacity:.38;cursor:default}
-    .selection-tie-flip-button{position:relative}
-    .selection-tie-flip-label{position:absolute;right:2px;bottom:2px;padding:1px 2px;border-radius:3px;background:#fff;color:#5633ad;font-size:7px;font-weight:900;line-height:1;pointer-events:none}
-    .selection-dynamic-control{height:38px;flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:3px;padding-left:8px;border:1px solid #d3c5f7;border-radius:11px;background:#fff}
-    .selection-dynamic-label{color:#6a50a8;font-size:12px;font-weight:750;line-height:1;white-space:nowrap}
-    .selection-dynamic-select{width:58px;height:36px;flex:0 0 58px;padding:0 20px 0 5px;border:0;border-left:1px solid #e6ddfa;border-radius:0 10px 10px 0;background:transparent;color:#5633ad;font:italic 800 17px/1 Georgia,"Times New Roman",serif;text-align:center}
-    .selection-dynamic-select:disabled{opacity:.38}
-    .selection-clear-button{border-color:transparent;background:transparent;font-size:25px;line-height:1}
+    .selection-dynamic-button{min-width:44px;width:44px;height:36px;flex:0 0 44px;display:grid;place-items:center;padding:0;border:1px solid #d3c5f7;border-radius:10px;background:#fff;color:#5633ad;font:italic 800 18px/1 Georgia,"Times New Roman",serif;touch-action:manipulation;cursor:pointer}
+    .selection-dynamic-button[aria-pressed="true"]{border-color:#8653f6;background:#eee7ff;box-shadow:inset 0 0 0 1px #8653f633}
+    .selection-dynamic-button:disabled{opacity:.38;cursor:default}
     .note-selection-layer{position:absolute;z-index:7;left:0;top:0;pointer-events:none;overflow:visible}
     .note-selection-highlight{position:absolute;border:2px solid #6841d6e0;border-radius:9px;background:#8653f629;box-shadow:0 0 0 2px #ffffff8c}
     .note-selection-marquee{position:absolute;border:2px dashed #7045d0;border-radius:8px;background:#8653f61a}
@@ -294,16 +293,24 @@
           <button class="edit-rail-button" id="stretchLastLineButton" type="button" aria-label="Venytä viimeinen rivi koko leveyteen" aria-pressed="false">↔</button>
         </div>
         <div class="selection-toolbar" id="selectionToolbar" role="toolbar" aria-label="Valittujen nuottien muokkaus" aria-hidden="true">
-          <span class="selection-count" id="selectionCount" aria-live="polite">Vedä nuottien yli</span>
-          <button class="selection-action-button" id="selectionSlurButton" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 33C13 13 35 13 41 33"/></svg></button>
-          <button class="selection-action-button selection-tie-flip-button" id="selectionTieFlipButton" type="button" aria-label="Käännä sidekaari" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 29C15 15 33 15 40 29"/><path d="m18 37 6 6 6-6"/><path d="M24 43V31"/></svg><span class="selection-tie-flip-label">TIE ↕</span></button>
-          <button class="selection-action-button" id="selectionStaccatoButton" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="5"/></svg></button>
-          <button class="selection-action-button" id="selectionPortatoButton" type="button" aria-label="Lisää tai poista portatoviivat" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 24h24"/></svg></button>
-          <button class="selection-action-button" id="selectionAccentButton" type="button" aria-label="Lisää tai poista aksentit" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m13 14 22 10-22 10"/></svg></button>
-          <label class="selection-dynamic-control"><span class="selection-dynamic-label">dyn.</span><select class="selection-dynamic-select" id="selectionDynamicSelect" aria-label="Dynamiikka" disabled><option value="">—</option><option value="ppp">ppp</option><option value="pp">pp</option><option value="p">p</option><option value="mp">mp</option><option value="mf">mf</option><option value="f">f</option><option value="ff">ff</option><option value="fff">fff</option></select></label>
-          <button class="selection-action-button" id="selectionCrescendoButton" type="button" aria-label="Lisää tai poista crescendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 24 41 10M7 24l34 14"/></svg></button>
-          <button class="selection-action-button" id="selectionDiminuendoButton" type="button" aria-label="Lisää tai poista diminuendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m7 10 34 14M7 38l34-14"/></svg></button>
-          <button class="selection-clear-button" id="selectionClearButton" type="button" aria-label="Poista valinta">×</button>
+          <div class="selection-toolbar-row selection-toolbar-main-row">
+            <button class="selection-toolbar-drag-handle" id="selectionToolbarDragHandle" type="button" aria-label="Siirrä työkalupalkkia"><svg viewBox="0 0 18 30" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="13" cy="6" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="13" cy="15" r="2"/><circle cx="5" cy="24" r="2"/><circle cx="13" cy="24" r="2"/></svg></button>
+            <button class="selection-action-button" id="selectionSlurButton" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 33C13 13 35 13 41 33"/></svg></button>
+            <button class="selection-action-button" id="selectionTieFlipButton" type="button" aria-label="Käännä sidekaari" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 27C15 14 33 14 40 27"/><path d="M17 35h14"/><path d="m20 31-4 4 4 4M28 31l4 4-4 4"/></svg></button>
+            <button class="selection-action-button" id="selectionStaccatoButton" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="5"/></svg></button>
+            <button class="selection-action-button" id="selectionPortatoButton" type="button" aria-label="Lisää tai poista portatoviivat" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 24h24"/></svg></button>
+            <button class="selection-action-button" id="selectionAccentButton" type="button" aria-label="Lisää tai poista aksentit" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m13 14 22 10-22 10"/></svg></button>
+            <button class="selection-action-button" id="selectionCrescendoButton" type="button" aria-label="Lisää tai poista crescendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 24 41 10M7 24l34 14"/></svg></button>
+            <button class="selection-action-button" id="selectionDiminuendoButton" type="button" aria-label="Lisää tai poista diminuendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m7 10 34 14M7 38l34-14"/></svg></button>
+          </div>
+          <div class="selection-toolbar-row selection-toolbar-dynamics-row" aria-label="Dynamiikka">
+            <button class="selection-dynamic-button" type="button" data-dynamic="pp" aria-label="Pianissimo" aria-pressed="false" disabled>pp</button>
+            <button class="selection-dynamic-button" type="button" data-dynamic="p" aria-label="Piano" aria-pressed="false" disabled>p</button>
+            <button class="selection-dynamic-button" type="button" data-dynamic="mp" aria-label="Mezzopiano" aria-pressed="false" disabled>mp</button>
+            <button class="selection-dynamic-button" type="button" data-dynamic="mf" aria-label="Mezzoforte" aria-pressed="false" disabled>mf</button>
+            <button class="selection-dynamic-button" type="button" data-dynamic="f" aria-label="Forte" aria-pressed="false" disabled>f</button>
+            <button class="selection-dynamic-button" type="button" data-dynamic="ff" aria-label="Fortissimo" aria-pressed="false" disabled>ff</button>
+          </div>
         </div>
       </section>
       <div class="keyboard-panel" id="keyboardPanel" hidden>
@@ -325,7 +332,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
+    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -343,7 +350,7 @@
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
@@ -581,12 +588,31 @@
     function captureAutomaticTiePlacements(){notes.forEach((note,index)=>{if(notes[index+1]?.tieFromPrevious&&note.tiePlacement!=='above'&&note.tiePlacement!=='below')note.tiePlacement=renderedTiePlacement(index)})}
     function syncSelectionToolbar(){
       pruneEditRanges();const indices=getSelectedNoteIndices(),range=getSelectionRange(),tieIndex=getSelectedTieStartIndex(),slur=findSelectionSlur(range),crescendo=findSelectionHairpin('crescendo',range),diminuendo=findSelectionHairpin('diminuendo',range),allStaccato=indices.length>0&&indices.every(index=>notes[index].staccato),allPortato=indices.length>0&&indices.every(index=>notes[index].portato),allAccent=indices.length>0&&indices.every(index=>notes[index].accent);
-      selectionCount.textContent=indices.length?`${indices.length} ${indices.length===1?'nuotti':'nuottia'}`:'Vedä nuottien yli';
       const setButton=(button,enabled,active=false)=>{button.disabled=!enabled;button.setAttribute('aria-pressed',String(Boolean(active)))};
       setButton(selectionSlurButton,Boolean(range),Boolean(slur));setButton(selectionTieFlipButton,Number.isInteger(tieIndex),Number.isInteger(tieIndex));setButton(selectionStaccatoButton,indices.length>0,allStaccato);setButton(selectionPortatoButton,indices.length>0,allPortato);setButton(selectionAccentButton,indices.length>0,allAccent);setButton(selectionCrescendoButton,Boolean(range),Boolean(crescendo));setButton(selectionDiminuendoButton,Boolean(range),Boolean(diminuendo));
-      selectionDynamicSelect.disabled=!indices.length;selectionDynamicSelect.value=indices.length?(notes[indices[0]].dynamic||''):'';
+      const activeDynamic=indices.length?(notes[indices[0]].dynamic||''):'';selectionDynamicButtons.forEach(button=>{button.disabled=!indices.length;button.setAttribute('aria-pressed',String(Boolean(indices.length&&button.dataset.dynamic===activeDynamic))) });
       systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));stretchLastLineButton.setAttribute('aria-pressed',String(stretchLastLine));stretchLastLineButton.setAttribute('aria-busy',String(stretchCommandRunning));
     }
+    const SELECTION_TOOLBAR_POSITION_KEY='pikakirjoitin-selection-toolbar-position-v1';
+    function clampSelectionToolbarPosition(left,top){
+      const areaRect=scoreArea.getBoundingClientRect(),toolbarRect=selectionToolbar.getBoundingClientRect(),pad=8,maxLeft=Math.max(pad,areaRect.width-toolbarRect.width-pad),maxTop=Math.max(pad,areaRect.height-toolbarRect.height-pad);return {left:clamp(left,pad,maxLeft),top:clamp(top,pad,maxTop)};
+    }
+    function setSelectionToolbarPosition(left,top,save=false){
+      const pos=clampSelectionToolbarPosition(left,top);selectionToolbar.style.left=`${pos.left}px`;selectionToolbar.style.top=`${pos.top}px`;selectionToolbar.style.transform='none';if(save)try{localStorage.setItem(SELECTION_TOOLBAR_POSITION_KEY,JSON.stringify(pos))}catch{}
+    }
+    function restoreSelectionToolbarPosition(){
+      let saved=null;try{saved=JSON.parse(localStorage.getItem(SELECTION_TOOLBAR_POSITION_KEY)||'null')}catch{}if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top)){setSelectionToolbarPosition(saved.left,saved.top);return}selectionToolbar.style.left='50%';selectionToolbar.style.top='16px';selectionToolbar.style.transform='translateX(-50%)';
+    }
+    function beginSelectionToolbarDrag(e){
+      if(workMode!=='edit'||e.button>0)return;e.preventDefault();e.stopPropagation();const areaRect=scoreArea.getBoundingClientRect(),rect=selectionToolbar.getBoundingClientRect();selectionToolbarDrag={pointerId:e.pointerId,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};selectionToolbar.style.left=`${rect.left-areaRect.left}px`;selectionToolbar.style.top=`${rect.top-areaRect.top}px`;selectionToolbar.style.transform='none';try{selectionToolbarDragHandle.setPointerCapture(e.pointerId)}catch{}
+    }
+    function moveSelectionToolbarDrag(e){
+      if(!selectionToolbarDrag||selectionToolbarDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();const areaRect=scoreArea.getBoundingClientRect();setSelectionToolbarPosition(e.clientX-areaRect.left-selectionToolbarDrag.offsetX,e.clientY-areaRect.top-selectionToolbarDrag.offsetY);
+    }
+    function endSelectionToolbarDrag(e){
+      if(!selectionToolbarDrag||selectionToolbarDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionToolbarDrag=null;const left=parseFloat(selectionToolbar.style.left)||0,top=parseFloat(selectionToolbar.style.top)||0;setSelectionToolbarPosition(left,top,true);try{selectionToolbarDragHandle.releasePointerCapture(e.pointerId)}catch{}
+    }
+    function toggleDynamicForSelection(value){const indices=getSelectedNoteIndices();if(!indices.length)return;const current=notes[indices[0]]?.dynamic||'';applyDynamicForSelection(current===value?'':value)}
     function clearSelection(){selectedNoteIndices.clear();selectionDrag=null;renderSelectionOverlay()}
     function rectanglesIntersect(a,b){return a.left<=b.right&&a.right>=b.left&&a.top<=b.bottom&&a.bottom>=b.top}
     function normalizedRectangle(start,end){return {left:Math.min(start.x,end.x),right:Math.max(start.x,end.x),top:Math.min(start.y,end.y),bottom:Math.max(start.y,end.y)}}
@@ -1305,18 +1331,22 @@
     window.addEventListener('scroll',keepOuterViewportFixed,{passive:true});
     window.addEventListener('resize',resizeLayout);
     window.addEventListener('osmd-ready',renderScore);
+    restoreSelectionToolbarPosition();
     score.addEventListener('pointerdown',startScoreGesture);
     score.addEventListener('pointermove',moveScoreGesture,{passive:true});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
     score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
     score.addEventListener('keydown',scoreKey);
-    selectionClearButton.addEventListener('click',clearSelection);
     selectionSlurButton.addEventListener('click',toggleSlurForSelection);
     selectionTieFlipButton.addEventListener('click',toggleTiePlacement);
     selectionStaccatoButton.addEventListener('click',()=>toggleBooleanForSelection('staccato','Staccato'));
     selectionPortatoButton.addEventListener('click',()=>toggleBooleanForSelection('portato','Portato'));
     selectionAccentButton.addEventListener('click',()=>toggleBooleanForSelection('accent','Aksentti'));
-    selectionDynamicSelect.addEventListener('change',e=>applyDynamicForSelection(e.target.value));
+    selectionDynamicButtons.forEach(button=>button.addEventListener('click',()=>toggleDynamicForSelection(button.dataset.dynamic)));
+    selectionToolbarDragHandle.addEventListener('pointerdown',beginSelectionToolbarDrag,{passive:false});
+    selectionToolbarDragHandle.addEventListener('pointermove',moveSelectionToolbarDrag,{passive:false});
+    selectionToolbarDragHandle.addEventListener('pointerup',endSelectionToolbarDrag,{passive:false});
+    selectionToolbarDragHandle.addEventListener('pointercancel',endSelectionToolbarDrag,{passive:false});
     selectionCrescendoButton.addEventListener('click',()=>toggleHairpinForSelection('crescendo'));
     selectionDiminuendoButton.addEventListener('click',()=>toggleHairpinForSelection('diminuendo'));
     staffTopSlider.addEventListener('pointerdown',beginStaffTopDrag,{passive:false});
