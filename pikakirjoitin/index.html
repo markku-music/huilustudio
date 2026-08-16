@@ -24,7 +24,7 @@
     .mode-tab:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
     .score-area{position:relative;min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
-    .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:none;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
+    .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:none;border-radius:0;background:transparent;color:#18202a;box-shadow:none;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
     .score:focus-visible{outline:none}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538;outline:none;border:none}
@@ -156,7 +156,7 @@
     .instrument-choice:active,.instrument-choice[aria-selected="true"]{background:#dcecff;color:#174d83}
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     .start-button[hidden]{display:none}
-    @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
+    @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
