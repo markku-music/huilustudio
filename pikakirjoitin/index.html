@@ -84,6 +84,13 @@
     .note-selection-layer{position:absolute;z-index:7;left:0;top:0;pointer-events:none;overflow:visible}
     .note-selection-highlight{position:absolute;border:2px solid #6841d6e0;border-radius:9px;background:#8653f629;box-shadow:0 0 0 2px #ffffff8c}
     .note-selection-marquee{position:absolute;border:2px dashed #7045d0;border-radius:8px;background:#8653f61a}
+    .write-note-highlight{position:absolute;z-index:9;border:2px solid #2f73c9;border-radius:9px;background:#4d93e41f;box-shadow:0 0 0 2px #ffffff9c;pointer-events:none}
+    .write-note-context{position:absolute;z-index:24;display:flex;align-items:center;gap:6px;padding:5px;border:1px solid #a9bfd9;border-radius:13px;background:#fffffff5;box-shadow:0 7px 20px #1e47772e;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none;-webkit-user-select:none;user-select:none}
+    .write-note-context[hidden]{display:none}
+    .write-note-context-button{width:42px;height:42px;display:grid;place-items:center;padding:0;border:1px solid #b9cbe0;border-radius:10px;background:#fff;color:#285f9f;font:800 18px/1 system-ui,sans-serif;touch-action:manipulation;cursor:pointer}
+    .write-note-context-button:active{background:#eaf3ff}
+    .write-note-context-button:disabled{display:none}
+    .write-note-context-button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .system-break-markers{position:absolute;z-index:8;inset:0 auto auto 0;pointer-events:none}
     .system-break-marker{position:absolute;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #aa8cff;border-radius:50%;background:#f1ebff;color:#5d35b5;box-shadow:0 2px 7px #52309c2e;font-size:20px;font-weight:800;line-height:1;pointer-events:auto;touch-action:manipulation;cursor:pointer}
     .system-break-candidate-marker{position:absolute;width:36px;height:36px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#ffffffc9;color:#765da9;box-shadow:0 1px 5px #52309c26;font:700 23px/1 system-ui,sans-serif;opacity:.88;pointer-events:auto;touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none}
@@ -147,7 +154,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.note-selection-layer,#status,.score-prompt{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.note-selection-layer,#status,.score-prompt{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block}
       .score-area{display:block;padding:0}
@@ -265,6 +272,12 @@
               <span class="score-prompt" id="scorePrompt" hidden></span>
             </div>
           </div>
+          <div class="write-note-context" id="writeNoteContext" role="toolbar" aria-label="Valitun nuotin pikakorjaus" hidden>
+            <button class="write-note-context-button" id="writeNoteAccidentalButton" type="button" aria-label="Vaihda enharmoninen kirjoitusasu">♯/♭</button>
+            <button class="write-note-context-button" id="writeNoteDeleteButton" type="button" aria-label="Poista nuotti">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
+            </button>
+          </div>
         </div>
         <div class="modifier-rail" id="modifierRail" role="toolbar" aria-label="Nuotin muuntimet" aria-hidden="true">
           <button class="modifier-drag-handle" id="modifierDragHandle" type="button" aria-label="Siirrä muunninpalkkia pystysuunnassa">
@@ -332,7 +345,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -350,7 +363,7 @@
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
@@ -373,9 +386,18 @@
     function escapeXml(value=''){
       return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;');
     }
-    function musicXmlPitch(midi,useFlats){
-      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]],pitch=(useFlats?flats:sharps)[mod(midi,12)];
-      return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${Math.floor(midi/12)-1}</octave></pitch>`;
+    function automaticUseFlats(note,index,keySignature){
+      if(note?.accidentalStyle==='flat')return true;
+      if(note?.accidentalStyle==='sharp')return false;
+      if(keySignature<0)return true;
+      if(keySignature>0)return false;
+      if(!note||![1,3,6,8,10].includes(mod(note.midi,12)))return false;
+      for(let i=index-1;i>=0;i-=1){const previous=notes[i];if(previous?.rest||previous?.measureRest)continue;if(previous.midi>note.midi)return true;if(previous.midi<note.midi)return false;break}
+      return false;
+    }
+    function musicXmlPitch(note,index,keySignature){
+      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]],pitch=(automaticUseFlats(note,index,keySignature)?flats:sharps)[mod(note.midi,12)];
+      return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${Math.floor(note.midi/12)-1}</octave></pitch>`;
     }
     function musicXmlRest(note,clefName){
       if(note.duration!=='whole')return '<rest/>';
@@ -458,12 +480,12 @@
     }
     function buildMusicXml(){
       ensureEntryIds();pruneEditRanges();renderedNoteObjectMap=new Map();
-      const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},useFlats=data.keySignature<0,{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
+      const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
       let renderedNoteObjectId=0;
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
         const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{
-          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note.midi,useFlats),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
+          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,data.keySignature),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
           const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(number=>`<slur type="start" number="${number}"/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations?`<notations>${tiedXml}${slurXml}${articulations}</notations>`:'';
@@ -510,7 +532,7 @@
     }
     function updateScorePagePreview(){
       const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);scorePageScale=scale;
-      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
+      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';if(writeEditNoteId)requestAnimationFrame(positionWriteNoteContext);
     }
     function closeKeyboardForWorkMode(){
       if(keyboardPanel.hidden)return;
@@ -534,8 +556,9 @@
       if(next!=='edit'){
         systemBreakModeActive=false;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
       }
+      if(next!=='write')clearWriteNoteEdit();
       syncWorkModeUI();
-      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}});
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}else if(workMode==='write')refreshWriteGeometry()});
     }
 
     async function renderScore(){
@@ -554,7 +577,7 @@
           await scoreRenderer.load(buildMusicXml());
           applyStaffTopRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();queueLineSpacingRasterCache();
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -845,6 +868,45 @@
       e.preventDefault();lineSpacingValue=clamp(next,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();applyLineSpacingRules();renderScore();
     }
     function refreshEditGeometry(){if(workMode!=='edit')return;buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers()}
+    function buildWriteNoteHitboxes(){
+      writeNoteHitboxes=[];if(!scoreRenderer)return;
+      const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,visited=new Set();
+      measureList.forEach(group=>(group||[]).forEach(measure=>(measure?.staffEntries||[]).forEach(staffEntry=>(staffEntry?.graphicalVoiceEntries||[]).forEach(voiceEntry=>(voiceEntry?.notes||[]).forEach(graphicalNote=>{
+        const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId,index=renderedNoteObjectMap.get(objectId),note=notes[index];if(!Number.isInteger(index)||!note||note.rest||note.measureRest)return;
+        const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el;if(!element||visited.has(element))return;visited.add(element);
+        const rect=element.getBoundingClientRect?.();if(!rect||!rect.width||!rect.height)return;
+        const paddingX=11,paddingY=9,left=(rect.left-containerRect.left)/scale-paddingX,top=(rect.top-containerRect.top)/scale-paddingY,width=Math.max(36,rect.width/scale+paddingX*2),height=Math.max(38,rect.height/scale+paddingY*2);
+        writeNoteHitboxes.push({entryIndex:index,id:note.id,left,top,right:left+width,bottom:top+height,width,height});
+      })))))
+    }
+    function writeNoteIndex(){return writeEditNoteId?notes.findIndex(note=>note.id===writeEditNoteId):-1}
+    function writeNoteHitAtClient(clientX,clientY){
+      const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,point={x:(clientX-rect.left)/scale,y:(clientY-rect.top)/scale};
+      return writeNoteHitboxes.filter(box=>point.x>=box.left&&point.x<=box.right&&point.y>=box.top&&point.y<=box.bottom).sort((a,b)=>a.width*a.height-b.width*b.height)[0]||null;
+    }
+    function clearWriteNoteEdit(){writeEditNoteId=null;writeEditHighlight?.remove();writeEditHighlight=null;writeNoteContext.hidden=true}
+    function positionWriteNoteContext(){
+      const index=writeNoteIndex(),hit=writeNoteHitboxes.find(box=>box.entryIndex===index);if(workMode!=='write'||index<0||!hit){clearWriteNoteEdit();return}
+      writeEditHighlight?.remove();const highlight=document.createElement('div');highlight.className='write-note-highlight';highlight.style.left=`${hit.left}px`;highlight.style.top=`${hit.top}px`;highlight.style.width=`${hit.width}px`;highlight.style.height=`${hit.height}px`;scorePage.appendChild(highlight);writeEditHighlight=highlight;
+      const note=notes[index],isChromatic=[1,3,6,8,10].includes(mod(note.midi,12));writeNoteAccidentalButton.disabled=!isChromatic;writeNoteAccidentalButton.setAttribute('aria-label',automaticUseFlats(note,index,projectData?.keySignature??+keySignatureSelect.value)?'Kirjoita sama sävel ylennettynä':'Kirjoita sama sävel alennettuna');
+      writeNoteContext.hidden=false;const scale=scorePageScale||1,shellLeft=scorePageShell.offsetLeft,shellTop=scorePageShell.offsetTop,toolbarWidth=writeNoteContext.offsetWidth||96,toolbarHeight=writeNoteContext.offsetHeight||52,scoreHeight=Math.max(score.clientHeight,score.scrollHeight);
+      let left=shellLeft+(hit.left+hit.width/2)*scale-toolbarWidth/2,top=shellTop+hit.top*scale-toolbarHeight-7;
+      if(top<score.scrollTop+6)top=shellTop+hit.bottom*scale+7;left=clamp(left,score.scrollLeft+6,score.scrollLeft+score.clientWidth-toolbarWidth-6);top=clamp(top,score.scrollTop+6,Math.max(score.scrollTop+6,scoreHeight-toolbarHeight-6));writeNoteContext.style.left=`${left}px`;writeNoteContext.style.top=`${top}px`;
+    }
+    function selectWriteNote(index){
+      const note=notes[index];if(workMode!=='write'||!note||note.rest||note.measureRest)return false;writeEditNoteId=note.id;positionWriteNoteContext();return true;
+    }
+    function refreshWriteGeometry(){buildWriteNoteHitboxes();if(writeEditNoteId)positionWriteNoteContext()}
+    function toggleWriteNoteAccidental(){
+      const index=writeNoteIndex(),note=notes[index];if(index<0||!note||![1,3,6,8,10].includes(mod(note.midi,12)))return;
+      const before={...note},currentFlat=automaticUseFlats(note,index,projectData?.keySignature??+keySignatureSelect.value);note.accidentalStyle=currentFlat?'sharp':'flat';rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
+    }
+    function repairTiesAround(index){
+      const note=notes[index],previous=notes[index-1],next=notes[index+1];if(note?.tieFromPrevious&&(!previous||previous.rest||note.rest||previous.midi!==note.midi))note.tieFromPrevious=false;if(next?.tieFromPrevious&&(!note||note.rest||next.rest||note.midi!==next.midi))next.tieFromPrevious=false;
+    }
+    function deleteWriteNote(){
+      const index=writeNoteIndex();if(index<0)return;const note=notes[index];rememberAction({type:'delete',index,note:{...note},slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item}))});clearWriteNoteEdit();notes.splice(index,1);repairTiesAround(Math.max(0,index-1));pruneEditRanges();renderScore();
+    }
     function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());syncSelectionToolbar()}
     function selectInRectangle(rect){selectedNoteIndices.clear();selectionHitboxes.forEach(hitbox=>{if(rectanglesIntersect(rect,hitbox))selectedNoteIndices.add(hitbox.entryIndex)})}
     function selectAtPoint(point){const hits=selectionHitboxes.filter(hitbox=>rectanglesIntersect({left:point.x,right:point.x,top:point.y,bottom:point.y},hitbox)).sort((a,b)=>a.width*a.height-b.width*b.height);selectedNoteIndices.clear();if(hits[0])selectedNoteIndices.add(hits[0].entryIndex)}
@@ -976,12 +1038,15 @@
       if(activeNote.duration===duration&&activeNote.measureRest===measureRest)return;
       activeNote.duration=duration;activeNote.measureRest=measureRest;
       if(activeNoteAction?.type==='add'){activeNoteAction.note.duration=duration;activeNoteAction.note.measureRest=measureRest}
+      else if(activeNoteAction?.type==='update-note')activeNoteAction.after={...activeNote};
       renderScore();
     }
     function undoLastChange(){
       const action=editHistory.pop();
       if(!action)return null;
       if(action.type==='add')notes.pop();
+      else if(action.type==='delete'){notes.splice(clamp(action.index,0,notes.length),0,{...action.note});slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}))}
+      else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.before}}
       else if(action.type==='clear'){notes=action.notes.map(note=>({...note}));slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}));systemBreaks=new Set(action.systemBreaks||[])}
       pruneEditRanges();
       renderScore();return action;
@@ -989,6 +1054,8 @@
     function redoChange(action){
       if(!action)return;
       if(action.type==='add')notes.push({...action.note});
+      else if(action.type==='delete'){const index=notes.findIndex(note=>note.id===action.note.id);if(index>=0)notes.splice(index,1);pruneEditRanges()}
+      else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.after}}
       else if(action.type==='clear'){notes=[];slurs=[];hairpins=[];systemBreaks.clear();selectedNoteIndices.clear()}
       rememberAction(action);
     }
@@ -1185,8 +1252,11 @@
       const modifier=activeModifier,duration=modifier==='sixteenth'?'sixteenth':'quarter',dotted=modifier==='dot',rest=modifier==='rest';
       noteStartX=e.clientX;noteStartY=e.clientY;noteSwipeThreshold=clamp(keyboardViewport.clientHeight*.12,24,48);noteGestureLocked=duration==='sixteenth';
       try{piano.setPointerCapture(e.pointerId)}catch{}
-      const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime;
-      const created=addScoreNote(writtenMidi,{duration,dotted,rest});activeNote=created.note;activeNoteAction=created.action;
+      const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+profile().transpose,t=audio.currentTime,editIndex=writeNoteIndex();
+      activeReplacingExisting=editIndex>=0;
+      if(activeReplacingExisting){
+        const existing=notes[editIndex],before={...existing};existing.midi=writtenMidi;existing.duration=duration;existing.dotted=dotted;existing.rest=rest;existing.measureRest=false;delete existing.accidentalStyle;repairTiesAround(editIndex);const action={type:'update-note',id:existing.id,before,after:{...existing}};rememberAction(action);activeNote=existing;activeNoteAction=action;renderScore();
+      }else{const created=addScoreNote(writtenMidi,{duration,dotted,rest});activeNote=created.note;activeNoteAction=created.action}
       if(!noteGestureLocked)longPressTimer=setTimeout(()=>{
         longPressTimer=null;
         if(activeId!==e.pointerId||!activeNote||noteGestureLocked)return;
@@ -1212,7 +1282,7 @@
       if(activeNoteSounds){const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06)}
       activeKey.classList.remove('active');if(activeNoteSounds&&soundingKey)soundingKey.classList.add('sounding-resting');
       try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
-      activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;
+      const replaced=activeReplacingExisting;activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
     }
 
     function syncScrollThumb(){
@@ -1251,7 +1321,7 @@
       e.preventDefault();syncScrollThumb();
     }
     function resizeLayout(){
-      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry()});
+      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry();else if(workMode==='write')refreshWriteGeometry()});
     }
     function keepOuterViewportFixed(){
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -1321,7 +1391,7 @@
       const singleTap=scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
       try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
       scorePointers.delete(e.pointerId);
-      if(singleTap&&workMode==='write')togglePiano(e);
+      if(singleTap&&workMode==='write'){const hit=writeNoteHitAtClient(e.clientX,e.clientY);if(hit)selectWriteNote(hit.entryIndex);else if(writeEditNoteId&&keyboardPanel.hidden)togglePiano(e);else{clearWriteNoteEdit();togglePiano(e)}}
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreMoved=false}
     }
     function scoreKey(e){
@@ -1373,6 +1443,11 @@
     window.addEventListener('resize',resizeLayout);
     window.addEventListener('osmd-ready',renderScore);
     restoreSelectionToolbarPosition();
+    writeNoteContext.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()},{passive:false});
+    writeNoteContext.addEventListener('pointerup',e=>e.stopPropagation());
+    writeNoteAccidentalButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleWriteNoteAccidental()});
+    writeNoteDeleteButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();deleteWriteNote()});
+    score.addEventListener('scroll',()=>{if(writeEditNoteId)positionWriteNoteContext()},{passive:true});
     score.addEventListener('touchstart',startScoreTouchLock,{passive:false,capture:true});
     score.addEventListener('touchmove',moveScoreTouchLock,{passive:false,capture:true});
     score.addEventListener('touchend',endScoreTouchLock,{passive:false,capture:true});
