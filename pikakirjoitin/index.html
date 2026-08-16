@@ -243,6 +243,11 @@
             <option value="12/8">12/8</option>
           </select>
         </label>
+        <label class="field" for="pickupSelect">
+          <select id="pickupSelect" aria-label="Kohotahti">
+            <option value="0">Kohotahti: ei</option>
+          </select>
+        </label>
       </div>
       <p class="instrument-heading" id="instrumentHeading">VALITSE SOITIN JA ALOITA</p>
       <div class="instrument-picker" id="instrumentPicker">
@@ -359,7 +364,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -404,6 +409,20 @@
     function selectedKeyInfo(){
       const option=keySignatureSelect.selectedOptions[0];
       return {fifths:+(option?.value||0),mode:option?.dataset.mode||'major',tonic:option?.dataset.tonic||'C'};
+    }
+    function timeSignatureCapacity(value=timeSignatureSelect.value){
+      const [beats,beatType]=String(value||'4/4').split('/').map(Number);
+      return beats*32/beatType;
+    }
+    function gcd(a,b){while(b){[a,b]=[b,a%b]}return Math.abs(a)||1}
+    function pickupFraction(units){
+      const divisor=gcd(units,32);return `${units/divisor}/${32/divisor}`;
+    }
+    function syncPickupOptions(){
+      const capacity=timeSignatureCapacity(),previous=Number(pickupSelect.value)||0,values=[];
+      for(let units=2;units<capacity;units+=2)values.push(units);
+      pickupSelect.innerHTML='<option value="0">Kohotahti: ei</option>'+values.map(units=>`<option value="${units}">${pickupFraction(units)}</option>`).join('');
+      pickupSelect.value=String(values.includes(previous)?previous:0);
     }
     const minorLeadingSpellings={
       'A':['G',1],'E':['D',1],'B':['A',1],'F#':['E',1],'C#':['B',1],'G#':['F',2],'D#':['C',2],'A#':['G',2],
@@ -480,19 +499,20 @@
       return tags.map(beams=>beams.map(([number,value])=>`<beam number="${number}">${value}</beam>`).join(''));
     }
     function measureData(){
-      const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,groups=[[]];
+      const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,rawPickup=Number(projectData?.pickupDuration??pickupSelect.value)||0,pickupCapacity=rawPickup>0&&rawPickup<capacity?rawPickup:0,groups=[[]],groupCapacities=[pickupCapacity||capacity];
       let used=0;
+      const pushGroup=()=>{groups.push([]);groupCapacities.push(capacity);used=0};
       for(const note of notes){
         if(note.measureRest){
-          if(groups.at(-1).length)groups.push([]);
-          groups.at(-1).push(note);groups.push([]);used=0;continue;
+          if(groups.at(-1).length)pushGroup();
+          groups.at(-1).push(note);pushGroup();continue;
         }
-        const duration=noteDurationValue(note);
-        if(groups.at(-1).length&&used+duration>capacity){groups.push([]);used=0}
+        const duration=noteDurationValue(note),currentCapacity=groupCapacities.at(-1)||capacity;
+        if(groups.at(-1).length&&used+duration>currentCapacity)pushGroup();
         groups.at(-1).push(note);used+=duration;
       }
-      if(groups.length>1&&!groups.at(-1).length)groups.pop();
-      return {beats,beatType,capacity,groups};
+      if(groups.length>1&&!groups.at(-1).length){groups.pop();groupCapacities.pop()}
+      return {beats,beatType,capacity,groups,groupCapacities,pickupCapacity};
     }
     function createEntryId(){return `entry-${nextEntryId++}`}
     function ensureEntryIds(){notes.forEach(note=>{if(!note.id)note.id=createEntryId()})}
@@ -517,20 +537,20 @@
     }
     function buildMusicXml(){
       ensureEntryIds();pruneEditRanges();renderedNoteObjectMap=new Map();
-      const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
+      const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:instrumentClefs[instrumentSelect.value]||'treble'},{beats,beatType,capacity,groups,groupCapacities,pickupCapacity}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
       let renderedNoteObjectId=0;
       const measures=groups.map((group,index)=>{
-        const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
+        const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
         const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{
-          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
+          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?measureCapacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
           const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(number=>`<slur type="start" number="${number}"/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations?`<notations>${tiedXml}${slurXml}${articulations}</notations>`:'';
           const before=`${wedgeDirectionsXml(decorations.hairpinStarts)}${dynamicDirectionXml(note.dynamic)}`,after=wedgeDirectionsXml(decorations.hairpinStops,true);
           return `${before}<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${beamTags[noteIndex]}${notations}</note>${after}`;
-        }).join(''):(renderedNoteObjectId+=1,`<note print-object="no"><rest measure="yes"/><duration>${capacity}</duration><voice>1</voice></note>`);
-        const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'';
-        return `<measure number="${index+1}">${systemBreak}${attributes}${entries}</measure>`;
+        }).join(''):(renderedNoteObjectId+=1,`<note print-object="no"><rest${pickupCapacity&&index===0?'':' measure="yes"'}/><duration>${measureCapacity}</duration><voice>1</voice></note>`);
+        const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'',measureNumber=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'';
+        return `<measure number="${measureNumber}"${implicit}>${systemBreak}${attributes}${entries}</measure>`;
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
     }
@@ -1025,7 +1045,7 @@
         marker.type='button';
         marker.textContent=candidate?'+':'↵';
         marker.className=candidate?'system-break-candidate-marker':'system-break-marker';
-        const actionLabel=candidate?`Tee rivinvaihto tahdin ${measureIndex} jälkeen`:`Poista rivinvaihto tahdin ${measureIndex} jälkeen`;
+        const pickup=Number(projectData?.pickupDuration)||0,displayMeasureIndex=pickup?Math.max(0,measureIndex-1):measureIndex,actionLabel=candidate?`Tee rivinvaihto tahdin ${displayMeasureIndex} jälkeen`:`Poista rivinvaihto tahdin ${displayMeasureIndex} jälkeen`;
         marker.setAttribute('aria-label',actionLabel);
         marker.title=actionLabel;
         const markerOffset=candidate?18:40;
@@ -1128,7 +1148,7 @@
     }
     function applyProjectData(){
       saveInstrument();
-      const keyInfo=selectedKeyInfo();projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
+      const keyInfo=selectedKeyInfo();projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
       syncInstrumentChoices(true);setInstrumentMenuOpen(false);
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
@@ -1443,7 +1463,7 @@
       e.preventDefault();setWorkMode(button.dataset.workMode,e);
     }
 
-    restoreInstrument();restoreModifierPosition();syncInstrumentChoices();
+    restoreInstrument();restoreModifierPosition();syncInstrumentChoices();syncPickupOptions();
     buildKeyboard();
     applyInstrumentProfile();
     syncWorkModeUI();
@@ -1455,6 +1475,7 @@
     document.addEventListener('pointerdown',e=>{if(!instrumentMenu.hidden&&!instrumentPicker.contains(e.target))setInstrumentMenuOpen(false)},{capture:true});
     document.addEventListener('keydown',e=>{if(e.key==='Escape')setInstrumentMenuOpen(false)});
     instrumentMenu.addEventListener('pointerup',chooseInstrument);
+    timeSignatureSelect.addEventListener('change',syncPickupOptions);
     projectForm.addEventListener('submit',saveProject);
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
