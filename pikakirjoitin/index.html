@@ -59,8 +59,12 @@
     .line-spacing-thumb{position:absolute;z-index:2;top:0;left:3px;width:36px;height:26px;display:grid;place-items:center;border:1px solid #9c84de;border-radius:10px;background:#fff;color:#6841c4;box-shadow:0 2px 7px #2e1f5930;transform:translate3d(0,0,0);will-change:transform;pointer-events:none}
     .line-spacing-thumb::before{content:'';width:18px;height:8px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.8}
     .line-spacing-slider:focus-visible{border-radius:12px;box-shadow:0 0 0 3px #8d6ae755}
-    .line-spacing-preview{position:absolute;z-index:5;inset:0;pointer-events:none;overflow:visible}
+    .line-spacing-preview{position:absolute;z-index:5;inset:0;pointer-events:none;overflow:visible;background:#fff}
     .line-spacing-preview-canvas{position:absolute;left:0;top:0;display:block;pointer-events:none;contain:strict}
+    .line-spacing-preview-strip{position:absolute;left:0;width:100%;overflow:hidden;will-change:transform;pointer-events:none}
+    .line-spacing-preview-source{position:absolute;left:0;top:0;width:100%;min-height:1123px;pointer-events:none;will-change:transform}
+    .line-spacing-preview-source svg{display:block;max-width:100%}
+    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg{visibility:hidden!important}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
@@ -342,7 +346,7 @@
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -721,15 +725,18 @@
     function queueLineSpacingRasterCache(){
       const generation=lineSpacingRasterGeneration,run=()=>{if(generation!==lineSpacingRasterGeneration||workMode!=='edit'||scoreRendering)return;ensureLineSpacingRasterCache().catch(()=>{})};if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:450});else setTimeout(run,80);
     }
-    async function buildStaffTopPreview(){
-      destroyStaffTopPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||staffTopPointerId===null)return null;
-      const maxDown=Math.max(0,(STAFF_TOP_MAX-staffTopDragStartValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT),extraPx=Math.ceil(maxDown*cache.pixelScale),preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight+extraPx;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight+maxDown}px`;preview.appendChild(canvas);scorePage.appendChild(preview);staffTopPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:staffTopDragStartValue};osmdContainer.style.visibility='hidden';updateStaffTopPreview(staffTopValue);return staffTopPreview;
+    function makeVectorPreviewSource(){
+      const source=osmdContainer.cloneNode(true);source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());return source;
+    }
+    function buildStaffTopPreview(){
+      destroyStaffTopPreview(false);if(staffTopPointerId===null)return null;
+      const preview=document.createElement('div'),source=makeVectorPreviewSource();preview.className='line-spacing-preview';preview.appendChild(source);staffTopPreview={element:preview,source,startValue:staffTopDragStartValue,mode:'vector'};scorePage.appendChild(preview);osmdContainer.style.visibility='hidden';return staffTopPreview;
     }
     function updateStaffTopPreview(value){
-      if(!staffTopPreview?.ctx)return;const {ctx,canvas,cache}=staffTopPreview,delta=(value-staffTopPreview.startValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT,dy=Math.round(delta*cache.pixelScale);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(cache.source,0,dy);
+      if(!staffTopPreview?.source)return;const delta=(value-staffTopPreview.startValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT;staffTopPreview.source.style.transform=`translate3d(0,${delta}px,0)`;
     }
     function scheduleStaffTopPreview(value){staffTopPreviewPendingValue=value;if(staffTopPreviewFrame)return;staffTopPreviewFrame=requestAnimationFrame(()=>{staffTopPreviewFrame=0;updateStaffTopPreview(staffTopPreviewPendingValue)})}
-    function destroyStaffTopPreview(showOriginal=true){if(staffTopPreviewFrame){cancelAnimationFrame(staffTopPreviewFrame);staffTopPreviewFrame=0}staffTopPreview?.element?.remove();staffTopPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
+    function destroyStaffTopPreview(showOriginal=true){if(staffTopPreviewFrame){cancelAnimationFrame(staffTopPreviewFrame);staffTopPreviewFrame=0}staffTopPreview?.element?.remove();staffTopPreview=null;if(showOriginal)osmdContainer.style.visibility='';if(!lineSpacingPreview)scorePage.classList.remove('slider-preview-active')}
     function pointerHitsSliderThumb(e,thumb){
       const rect=thumb.getBoundingClientRect();
       return e.clientY>=rect.top-SLIDER_GRAB_PAD_Y&&e.clientY<=rect.bottom+SLIDER_GRAB_PAD_Y&&e.clientX>=rect.left-SLIDER_GRAB_PAD_Y&&e.clientX<=rect.right+SLIDER_GRAB_PAD_Y;
@@ -745,7 +752,7 @@
     function setStaffTopPreviewValue(value){staffTopValue=clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();scheduleStaffTopPreview(staffTopValue)}
     function moveStaffTopDrag(e){
       if(e.pointerId!==staffTopPointerId)return;e.preventDefault();e.stopPropagation();const delta=e.clientY-staffTopDragStartClientY;if(!staffTopDragMoved&&Math.abs(delta)<SLIDER_DRAG_EPSILON_PX)return;
-      if(!staffTopDragMoved){staffTopDragMoved=true;buildStaffTopPreview().then(()=>{if(staffTopPointerId===e.pointerId)scheduleStaffTopPreview(staffTopValue)}).catch(error=>console.warn('Viivastojen aloituskorkeuden live-esikatselu ei käynnistynyt',error))}
+      if(!staffTopDragMoved){staffTopDragMoved=true;buildStaffTopPreview()}
       setStaffTopPreviewValue(sliderValueFromDragDelta(e.clientY,staffTopDragStartClientY,staffTopDragStartValue,staffTopSlider,staffTopThumb,STAFF_TOP_MIN,STAFF_TOP_MAX));
     }
     async function finishStaffTopDrag(e,cancelled=false){
@@ -758,16 +765,32 @@
       let next=staffTopValue,step=.5;if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=STAFF_TOP_MIN;else if(e.key==='End')next=STAFF_TOP_MAX;else return;
       e.preventDefault();staffTopValue=clamp(next,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();applyStaffTopRules();renderScore();
     }
-    async function buildLineSpacingPreview(){
+    function buildLineSpacingVectorPreview(systems=renderedSystemGeometry()){
+      destroyLineSpacingPreview(false);if(lineSpacingPointerId===null)return null;
+      const rows=systems.map(item=>item.rowY),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';const strips=[];
+      if(rows.length>=2){
+        const separators=lineSpacingSeparators(systems,totalHeight);
+        rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],strip=document.createElement('div'),source=makeVectorPreviewSource();strip.className='line-spacing-preview-strip';strip.style.top=`${top}px`;strip.style.height=`${Math.max(1,bottom-top)}px`;source.style.top=`${-top}px`;strip.appendChild(source);preview.appendChild(strip);strips.push(strip)});
+        lineSpacingPreview={element:preview,strips,startValue:lineSpacingDragStartValue,mode:'vector-strips'};
+      }else{
+        const source=makeVectorPreviewSource();source.style.transformOrigin='50% 0';preview.appendChild(source);lineSpacingPreview={element:preview,source,startValue:lineSpacingDragStartValue,mode:'vector-scale'};
+      }
+      scorePage.appendChild(preview);osmdContainer.style.visibility='hidden';return lineSpacingPreview;
+    }
+    async function buildLineSpacingCanvasPreview(){
       destroyLineSpacingPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||lineSpacingPointerId===null)return null;
-      const preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight}px`;preview.appendChild(canvas);scorePage.appendChild(preview);lineSpacingPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:lineSpacingDragStartValue};osmdContainer.style.visibility='hidden';updateLineSpacingPreview(lineSpacingValue);return lineSpacingPreview;
+      const preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight}px`;preview.appendChild(canvas);lineSpacingPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:lineSpacingDragStartValue,mode:'canvas'};updateLineSpacingPreview(lineSpacingValue);scorePage.classList.add('slider-preview-active');scorePage.appendChild(preview);return lineSpacingPreview;
     }
     function updateLineSpacingPreview(value){
-      if(!lineSpacingPreview?.ctx)return;const {ctx,cache}=lineSpacingPreview,{source,rows,separators,pixelScale,pixelWidth,pixelHeight,totalHeight}=cache,unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;ctx.clearRect(0,0,pixelWidth,pixelHeight);if(rows.length<2){ctx.drawImage(source,0,0);return}
+      if(!lineSpacingPreview)return;const unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;
+      if(lineSpacingPreview.mode==='vector-strips'){lineSpacingPreview.strips.forEach((strip,index)=>{strip.style.transform=`translate3d(0,${index*unitDelta}px,0)`});return}
+      if(lineSpacingPreview.mode==='vector-scale'){const scaleY=clamp(1+unitDelta/520,.88,1.22);lineSpacingPreview.source.style.transform=`scaleY(${scaleY})`;return}
+      if(lineSpacingPreview.mode!=='canvas'||!lineSpacingPreview.ctx)return;
+      const {ctx,cache}=lineSpacingPreview,{source,rows,separators,pixelScale,pixelWidth,pixelHeight,totalHeight}=cache;ctx.clearRect(0,0,pixelWidth,pixelHeight);if(rows.length<2){ctx.drawImage(source,0,0);return}
       rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],sy=Math.max(0,Math.round(top*pixelScale)),ey=Math.min(pixelHeight,Math.round(bottom*pixelScale)),sh=Math.max(1,ey-sy),dy=Math.round((top+index*unitDelta)*pixelScale);ctx.drawImage(source,0,sy,pixelWidth,sh,0,dy,pixelWidth,sh)});
     }
     function scheduleLineSpacingPreview(value){lineSpacingPreviewPendingValue=value;if(lineSpacingPreviewFrame)return;lineSpacingPreviewFrame=requestAnimationFrame(()=>{lineSpacingPreviewFrame=0;updateLineSpacingPreview(lineSpacingPreviewPendingValue)})}
-    function destroyLineSpacingPreview(showOriginal=true){if(lineSpacingPreviewFrame){cancelAnimationFrame(lineSpacingPreviewFrame);lineSpacingPreviewFrame=0}lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
+    function destroyLineSpacingPreview(showOriginal=true){if(lineSpacingPreviewFrame){cancelAnimationFrame(lineSpacingPreviewFrame);lineSpacingPreviewFrame=0}const wasVector=Boolean(lineSpacingPreview?.mode?.startsWith('vector'));lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal||wasVector)osmdContainer.style.visibility='';if(!staffTopPreview)scorePage.classList.remove('slider-preview-active')}
     function beginLineSpacingDrag(e){
       if(workMode!=='edit'||lineSpacingCommitRunning||staffTopCommitRunning||staffTopPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,lineSpacingThumb))return;
       e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;lineSpacingDragStartClientY=e.clientY;lineSpacingDragMoved=false;lineSpacingPreviewPendingValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}
@@ -775,7 +798,11 @@
     function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();scheduleLineSpacingPreview(lineSpacingValue)}
     function moveLineSpacingDrag(e){
       if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();const delta=e.clientY-lineSpacingDragStartClientY;if(!lineSpacingDragMoved&&Math.abs(delta)<SLIDER_DRAG_EPSILON_PX)return;
-      if(!lineSpacingDragMoved){lineSpacingDragMoved=true;buildLineSpacingPreview().then(()=>{if(lineSpacingPointerId===e.pointerId)scheduleLineSpacingPreview(lineSpacingValue)}).catch(error=>console.warn('Rivivälin live-esikatselu ei käynnistynyt',error))}
+      if(!lineSpacingDragMoved){
+        lineSpacingDragMoved=true;const systems=renderedSystemGeometry();
+        if(systems.length<=LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS){buildLineSpacingVectorPreview(systems)}
+        else{buildLineSpacingCanvasPreview().then(()=>{if(lineSpacingPointerId===e.pointerId)scheduleLineSpacingPreview(lineSpacingValue)}).catch(error=>console.warn('Rivivälin canvas-esikatselu ei käynnistynyt',error))}
+      }
       setLineSpacingPreviewValue(sliderValueFromDragDelta(e.clientY,lineSpacingDragStartClientY,lineSpacingDragStartValue,lineSpacingSlider,lineSpacingThumb,LINE_SPACING_MIN,LINE_SPACING_MAX));
     }
     async function finishLineSpacingDrag(e,cancelled=false){
