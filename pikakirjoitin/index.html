@@ -136,6 +136,13 @@
     .field{display:grid}
     .field.wide{grid-column:1/-1}
     .field input,.field select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
+    .pickup-control{grid-column:1/-1;min-height:48px;display:flex;align-items:center;gap:10px;min-width:0}
+    .pickup-label{flex:0 0 auto;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
+    .pickup-choices{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
+    .pickup-choice{min-width:42px;height:42px;display:grid;place-items:center;padding:0 7px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font:750 20px/1 Georgia,"Times New Roman",serif;touch-action:manipulation;cursor:pointer}
+    .pickup-choice[data-units="0"]{font:750 13px/1 system-ui,-apple-system,sans-serif}
+    .pickup-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
+    .pickup-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
     .instrument-picker{position:relative}
     .instrument-trigger{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#263342;font-size:15px;font-weight:700;text-align:left;touch-action:manipulation;cursor:pointer}
@@ -149,7 +156,7 @@
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
-    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
+    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
@@ -243,11 +250,11 @@
             <option value="12/8">12/8</option>
           </select>
         </label>
-        <label class="field" for="pickupSelect">
-          <select id="pickupSelect" aria-label="Kohotahti">
-            <option value="0">Kohotahti: ei</option>
-          </select>
-        </label>
+        <div class="pickup-control" role="group" aria-label="Kohotahti">
+          <span class="pickup-label">Kohotahti</span>
+          <input id="pickupSelect" type="hidden" value="0">
+          <div class="pickup-choices" id="pickupChoices"></div>
+        </div>
       </div>
       <p class="instrument-heading" id="instrumentHeading">VALITSE SOITIN JA ALOITA</p>
       <div class="instrument-picker" id="instrumentPicker">
@@ -364,7 +371,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -418,11 +425,35 @@
     function pickupFraction(units){
       const divisor=gcd(units,32);return `${units/divisor}/${32/divisor}`;
     }
+    const pickupPresets={
+      '2/4':[4,8],
+      '3/4':[4,8,16],
+      '4/4':[4,8,16,24],
+      '2/2':[8,16,24],
+      '3/8':[4,8],
+      '6/8':[4,8,12],
+      '9/8':[4,8,12,24],
+      '12/8':[4,8,12,24]
+    };
+    const pickupSymbols={4:'♪',8:'♩',12:'♩.',16:'𝅗𝅥',24:'𝅗𝅥.'};
+    function syncPickupButtons(){
+      const selected=Number(pickupSelect.value)||0;
+      pickupChoices.querySelectorAll('.pickup-choice').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.units)===selected)));
+    }
     function syncPickupOptions(){
-      const capacity=timeSignatureCapacity(),previous=Number(pickupSelect.value)||0,values=[];
-      for(let units=2;units<capacity;units+=2)values.push(units);
-      pickupSelect.innerHTML='<option value="0">Kohotahti: ei</option>'+values.map(units=>`<option value="${units}">${pickupFraction(units)}</option>`).join('');
+      const capacity=timeSignatureCapacity(),previous=Number(pickupSelect.value)||0;
+      const values=(pickupPresets[timeSignatureSelect.value]||[]).filter(units=>units>0&&units<capacity);
       pickupSelect.value=String(values.includes(previous)?previous:0);
+      pickupChoices.innerHTML=[0,...values].map(units=>{
+        const label=units===0?'Ei':pickupFraction(units);
+        const symbol=units===0?'Ei':(pickupSymbols[units]||label);
+        return `<button class="pickup-choice" type="button" data-units="${units}" aria-label="${units===0?'Ei kohotahtia':'Kohotahti '+label}" aria-pressed="false">${symbol}</button>`;
+      }).join('');
+      syncPickupButtons();
+    }
+    function choosePickup(e){
+      const button=e.target.closest('.pickup-choice');if(!button)return;
+      pickupSelect.value=button.dataset.units||'0';syncPickupButtons();
     }
     const minorLeadingSpellings={
       'A':['G',1],'E':['D',1],'B':['A',1],'F#':['E',1],'C#':['B',1],'G#':['F',2],'D#':['C',2],'A#':['G',2],
@@ -1476,6 +1507,7 @@
     document.addEventListener('keydown',e=>{if(e.key==='Escape')setInstrumentMenuOpen(false)});
     instrumentMenu.addEventListener('pointerup',chooseInstrument);
     timeSignatureSelect.addEventListener('change',syncPickupOptions);
+    pickupChoices.addEventListener('click',choosePickup);
     projectForm.addEventListener('submit',saveProject);
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
