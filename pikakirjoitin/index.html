@@ -15,7 +15,7 @@
     html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
     body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
-    .app{position:fixed;inset:0;width:100%;height:auto;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
+    .app{position:fixed;inset:0;width:100%;height:100dvh;max-height:100dvh;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
     p{margin:0;color:#586474;font-size:14px}
     .mode-tabs{position:fixed;z-index:40;top:0;left:50%;width:min(380px,calc(100% - 24px));height:34px;display:flex;align-items:flex-start;gap:4px;transform:translateX(-50%);pointer-events:auto}
     .mode-tab{min-width:0;height:30px;flex:1;padding:0 8px;border:1px solid #536b82;border-top:0;border-radius:0 0 10px 10px;background:#71879c;color:#fff;box-shadow:0 3px 8px #1c27352b;font-size:9px;font-weight:850;letter-spacing:.055em;white-space:nowrap;touch-action:manipulation;-webkit-touch-callout:none;cursor:pointer}
@@ -46,7 +46,7 @@
     .modifier-button[aria-pressed="true"] .modifier-icon{filter:brightness(0) invert(1)}
     .modifier-divider{height:1px;margin:1px 5px;background:#697686}
     .tie-button svg{display:block;width:34px;height:26px;pointer-events:none}
-    .edit-rail{position:absolute;z-index:26;left:8px;bottom:20px;width:58px;display:none;flex-direction:column;gap:10px;padding:8px;border:1px solid #d0d9e6;border-radius:20px;background:#ffffffed;box-shadow:0 8px 24px #1c273526;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+    .edit-rail{position:fixed;z-index:26;left:max(8px,env(safe-area-inset-left));bottom:max(20px,calc(env(safe-area-inset-bottom) + 20px));width:58px;display:none;flex-direction:column;gap:10px;padding:8px;border:1px solid #d0d9e6;border-radius:20px;background:#ffffffed;box-shadow:0 8px 24px #1c273526;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);contain:layout paint}
     .staff-top-slider{position:relative;width:42px;height:200px;flex:0 0 200px;touch-action:none;cursor:ns-resize;outline:none}
     .staff-top-track{position:absolute;top:10px;bottom:10px;left:18px;width:6px;border-radius:999px;background:#d8e1ed;box-shadow:inset 0 1px 3px #1c27352e;pointer-events:none}
     .staff-top-fill{position:absolute;top:0;left:0;width:100%;height:0;border-radius:999px;background:#3679bd;pointer-events:none}
