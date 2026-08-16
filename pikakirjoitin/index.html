@@ -94,6 +94,7 @@
     .app[data-work-mode="edit"] .score-area{padding-left:78px}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
     .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:none}
+    .app[data-work-mode="edit"] .score-page{will-change:transform}
     .app[data-work-mode="edit"] .score-title{top:76px;pointer-events:none}
     .app[data-work-mode="edit"] .score-info-row{top:130px}
     .app[data-work-mode="edit"] .score{cursor:default;touch-action:none}
@@ -355,8 +356,9 @@
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75,EDIT_VIEW_ZOOM_MIN=1,EDIT_VIEW_ZOOM_MAX=2.5;
     const scorePointers=new Set();
-    let editPinch=null,editPinchSelectionSnapshot=null,editPinchConsumed=false,editPinchSuppressClickUntil=0;
+    let editPinch=null,editPinchSelectionSnapshot=null,editPinchConsumed=false,editPinchSuppressClickUntil=0,editPinchFrame=0,editPinchPendingCenter=null;
     const editZoomPointers=new Map();
+    const IS_ANDROID_TOUCH=(navigator.userAgentData?.platform==='Android')||/Android/i.test(navigator.userAgent);
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
     function mod(value,divisor){return((value%divisor)+divisor)%divisor}
@@ -1281,19 +1283,45 @@
       const center=editPointerCenter();if(!center)return;
       cancelSelectionForPinch();
       const pageRect=scorePage.getBoundingClientRect(),displayScale=scoreDisplayScale()||1;
-      editPinch={lastDistance:center.distance,anchorX:(center.x-pageRect.left)/displayScale,anchorY:(center.y-pageRect.top)/displayScale};
+      editPinch={lastDistance:center.distance,lastCenterX:center.x,lastCenterY:center.y,anchorX:(center.x-pageRect.left)/displayScale,anchorY:(center.y-pageRect.top)/displayScale};
       editPinchConsumed=true;
     }
     function applyEditPinch(center){
       if(!editPinch||workMode!=='edit')return;
       const previousDistance=Math.max(1,editPinch.lastDistance||center.distance);
       const distanceRatio=center.distance/previousDistance;
-      editPinch.lastDistance=center.distance;
-      editViewZoom=clamp(editViewZoom*distanceRatio,EDIT_VIEW_ZOOM_MIN,EDIT_VIEW_ZOOM_MAX);
-      applyScorePageDisplayScale();
+      if(!IS_ANDROID_TOUCH){
+        editPinch.lastDistance=center.distance;
+        editViewZoom=clamp(editViewZoom*distanceRatio,EDIT_VIEW_ZOOM_MIN,EDIT_VIEW_ZOOM_MAX);
+        applyScorePageDisplayScale();
+        const pageRect=scorePage.getBoundingClientRect(),displayScale=scoreDisplayScale()||1;
+        const actualX=pageRect.left+editPinch.anchorX*displayScale,actualY=pageRect.top+editPinch.anchorY*displayScale;
+        score.scrollLeft+=actualX-center.x;score.scrollTop+=actualY-center.y;
+        editPinch.lastCenterX=center.x;editPinch.lastCenterY=center.y;
+        return;
+      }
+      const previousZoom=editViewZoom,nextZoom=clamp(previousZoom*distanceRatio,EDIT_VIEW_ZOOM_MIN,EDIT_VIEW_ZOOM_MAX);
+      const deltaX=center.x-editPinch.lastCenterX,deltaY=center.y-editPinch.lastCenterY;
+      editPinch.lastDistance=center.distance;editPinch.lastCenterX=center.x;editPinch.lastCenterY=center.y;
+      if(Math.abs(nextZoom-previousZoom)<.0005){
+        if(Math.abs(deltaX)>.01)score.scrollLeft-=deltaX;
+        if(Math.abs(deltaY)>.01)score.scrollTop-=deltaY;
+        return;
+      }
+      editViewZoom=nextZoom;applyScorePageDisplayScale();
       const pageRect=scorePage.getBoundingClientRect(),displayScale=scoreDisplayScale()||1;
       const actualX=pageRect.left+editPinch.anchorX*displayScale,actualY=pageRect.top+editPinch.anchorY*displayScale;
       score.scrollLeft+=actualX-center.x;score.scrollTop+=actualY-center.y;
+    }
+    function flushEditPinchFrame(){
+      editPinchFrame=0;const center=editPinchPendingCenter;editPinchPendingCenter=null;if(center)applyEditPinch(center);
+    }
+    function scheduleEditPinch(center){
+      editPinchPendingCenter=center;if(editPinchFrame)return;editPinchFrame=requestAnimationFrame(flushEditPinchFrame);
+    }
+    function flushEditPinchNow(){
+      if(editPinchFrame){cancelAnimationFrame(editPinchFrame);editPinchFrame=0}
+      const center=editPinchPendingCenter;editPinchPendingCenter=null;if(center)applyEditPinch(center);
     }
     function startEditZoomPointer(e){
       if(workMode!=='edit'||e.pointerType!=='touch')return;
@@ -1310,10 +1338,11 @@
       if(editZoomPointers.size<2)return;
       if(e.cancelable)e.preventDefault();e.stopPropagation();
       if(!editPinch)beginEditPinchFromPointers();
-      const center=editPointerCenter();if(center)applyEditPinch(center);
+      const center=editPointerCenter();if(center){if(IS_ANDROID_TOUCH)scheduleEditPinch(center);else applyEditPinch(center)}
     }
     function finishEditZoomPointer(e,cancelled=false){
       if(e.pointerType!=='touch'||!editZoomPointers.has(e.pointerId))return;
+      if(IS_ANDROID_TOUCH&&editZoomPointers.size>=2)flushEditPinchNow();
       const wasPinching=!!editPinch||editPinchConsumed;
       editZoomPointers.delete(e.pointerId);
       if(wasPinching){
@@ -1328,6 +1357,7 @@
       if(cancelled&&editZoomPointers.size===0){selectionDrag=null;renderSelectionOverlay()}
     }
     function cancelEditPinch(){
+      if(editPinchFrame){cancelAnimationFrame(editPinchFrame);editPinchFrame=0}editPinchPendingCenter=null;
       if(editPinchConsumed){editPinchSuppressClickUntil=performance.now()+450;refreshEditGeometry()}
       editZoomPointers.clear();editPinch=null;editPinchSelectionSnapshot=null;editPinchConsumed=false;
     }
@@ -1412,6 +1442,8 @@
     window.addEventListener('pointermove',moveEditZoomPointer,{capture:true,passive:false});
     window.addEventListener('pointerup',e=>finishEditZoomPointer(e,false),{capture:true,passive:false});
     window.addEventListener('pointercancel',e=>finishEditZoomPointer(e,true),{capture:true,passive:false});
+    window.addEventListener('blur',cancelEditPinch);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelEditPinch()});
     score.addEventListener('click',suppressClickAfterPinch,{capture:true});
     window.addEventListener('blur',cancelEditPinch);
     document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelEditPinch()});
