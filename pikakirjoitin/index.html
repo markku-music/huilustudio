@@ -529,6 +529,9 @@
       editModeButton.disabled=!hasNotes;printModeButton.disabled=!hasNotes;
       modes.forEach(([button,mode])=>button.setAttribute('aria-pressed',String(workMode===mode)));
       app.dataset.workMode=workMode;
+      // Android/Chrome: custom two-finger edit gesture must own the touch stream.
+      // Leaving pan-y enabled lets the browser start native panning and cancel our pointers.
+      score.style.touchAction=(workMode==='edit'&&IS_ANDROID_TOUCH)?'none':'pan-y';
       score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':workMode==='edit'?'Nuotti-ikkuna. Levitä kahdella sormella suurentaaksesi ja nipistä palauttaaksesi kohti normaalia kokoa.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
       selectionToolbar.setAttribute('aria-hidden',String(workMode!=='edit'));
       if(workMode==='edit')syncSelectionToolbar();
