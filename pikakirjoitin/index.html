@@ -27,7 +27,7 @@
     .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
     .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
-    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538;will-change:transform}
+    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
     .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
     .score-info-row{position:absolute;z-index:6;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
     .score-tempo{min-width:0;text-align:left;overflow-wrap:anywhere}
@@ -350,11 +350,13 @@
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1,editViewZoom=1,editViewTargetZoom=1,editViewFocus=null,editViewFrame=0;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75,EDIT_SELECTION_ZOOM=1.30,EDIT_SELECTION_ZOOM_START_PX=12,EDIT_ZOOM_IN_EASE=.065,EDIT_ZOOM_OUT_EASE=.18,EDIT_FOCUS_EASE=.12;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
     const scorePointers=new Set();
+    const scoreTouchIds=new Set();
+    let scoreMultiTouchLocked=false,scoreMultiTouchScrollTop=0,scoreMultiTouchScrollLeft=0;
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
     function mod(value,divisor){return((value%divisor)+divisor)%divisor}
@@ -506,40 +508,9 @@
       applyLineSpacingRules();
       return true;
     }
-    function scoreDisplayScale(){return (scorePageScale||1)*(editViewZoom||1)}
-    function scoreContentHeight(){return Math.max(A4_HEIGHT,scorePage.scrollHeight)}
-    function applyScorePageView(){
-      const scale=scoreDisplayScale(),contentHeight=scoreContentHeight();
-      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
-    }
     function updateScorePagePreview(){
-      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale;scorePageScale=clamp(Math.min(widthScale,heightScale),.42,1.28);applyScorePageView();
-    }
-    function editSelectionCenter(start,current){const rect=normalizedRectangle(start,current);return{x:(rect.left+rect.right)/2,y:(rect.top+rect.bottom)/2}}
-    function selectionZoomForDragDistance(screenDistance){
-      const d=Math.max(0,screenDistance-EDIT_SELECTION_ZOOM_START_PX),stops=[[0,1],[25,1.01],[50,1.04],[100,1.10],[150,1.17],[200,1.23],[300,EDIT_SELECTION_ZOOM]];
-      for(let i=1;i<stops.length;i++){
-        if(d<=stops[i][0]){const [x0,z0]=stops[i-1],[x1,z1]=stops[i],t=(d-x0)/(x1-x0);return z0+(z1-z0)*clamp(t,0,1)}
-      }
-      return EDIT_SELECTION_ZOOM;
-    }
-    function scheduleEditView(){if(!editViewFrame)editViewFrame=requestAnimationFrame(stepEditView)}
-    function targetEditView(focus,zoom=EDIT_SELECTION_ZOOM){
-      if(workMode!=='edit')return;editViewTargetZoom=clamp(zoom,1,EDIT_SELECTION_ZOOM);if(focus)editViewFocus={x:focus.x,y:focus.y};scheduleEditView();
-    }
-    function stepEditView(){
-      editViewFrame=0;if(workMode!=='edit')return;
-      const zoomDelta=editViewTargetZoom-editViewZoom,zoomEase=zoomDelta<0?EDIT_ZOOM_OUT_EASE:EDIT_ZOOM_IN_EASE;editViewZoom=Math.abs(zoomDelta)<.002?editViewTargetZoom:editViewZoom+zoomDelta*zoomEase;applyScorePageView();
-      let viewMoved=false;
-      if(editViewFocus){
-        const pageRect=scorePage.getBoundingClientRect(),scoreRect=score.getBoundingClientRect(),scale=scoreDisplayScale(),targetX=scoreRect.left+score.clientWidth/2,targetY=scoreRect.top+score.clientHeight/2,focusX=pageRect.left+editViewFocus.x*scale,focusY=pageRect.top+editViewFocus.y*scale,dx=focusX-targetX,dy=focusY-targetY,maxLeft=Math.max(0,score.scrollWidth-score.clientWidth),maxTop=Math.max(0,score.scrollHeight-score.clientHeight),oldLeft=score.scrollLeft,oldTop=score.scrollTop,nextLeft=clamp(oldLeft+dx*EDIT_FOCUS_EASE,0,maxLeft),nextTop=clamp(oldTop+dy*EDIT_FOCUS_EASE,0,maxTop);
-        if(Math.abs(nextLeft-oldLeft)>.15){score.scrollLeft=nextLeft;viewMoved=true}if(Math.abs(nextTop-oldTop)>.15){score.scrollTop=nextTop;viewMoved=true}
-      }
-      if(Math.abs(editViewTargetZoom-editViewZoom)>.002||viewMoved)scheduleEditView();
-    }
-    function resetEditView(immediate=true){
-      if(editViewFrame){cancelAnimationFrame(editViewFrame);editViewFrame=0}editViewTargetZoom=1;editViewFocus=null;
-      if(immediate){editViewZoom=1;applyScorePageView()}else scheduleEditView();
+      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);scorePageScale=scale;
+      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';
     }
     function closeKeyboardForWorkMode(){
       if(keyboardPanel.hidden)return;
@@ -558,8 +529,7 @@
     function setWorkMode(mode,e){
       const next=mode==='edit'?'edit':mode==='print'?'print':'write';
       if(next!=='write'&&!notes.length)return;
-      const previousMode=workMode;workMode=next;
-      if(previousMode!=='edit'&&next==='edit')resetEditView(true);else if(previousMode==='edit'&&next!=='edit')resetEditView(true);
+      workMode=next;
       if(next==='write'&&keyboardPanel.hidden&&e)togglePiano(e);else if(next!=='write')closeKeyboardForWorkMode();
       if(next!=='edit'){
         systemBreakModeActive=false;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
@@ -648,10 +618,10 @@
     function clearSelection(){selectedNoteIndices.clear();selectionDrag=null;renderSelectionOverlay()}
     function rectanglesIntersect(a,b){return a.left<=b.right&&a.right>=b.left&&a.top<=b.bottom&&a.bottom>=b.top}
     function normalizedRectangle(start,end){return {left:Math.min(start.x,end.x),right:Math.max(start.x,end.x),top:Math.min(start.y,end.y),bottom:Math.max(start.y,end.y)}}
-    function contentPointFromPointer(e){const rect=osmdContainer.getBoundingClientRect(),scale=scoreDisplayScale();return {x:(e.clientX-rect.left)/scale,y:(e.clientY-rect.top)/scale}}
+    function contentPointFromPointer(e){const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;return {x:(e.clientX-rect.left)/scale,y:(e.clientY-rect.top)/scale}}
     function buildSelectionHitboxes(){
       selectionHitboxes=[];if(workMode!=='edit'||!scoreRenderer)return;
-      const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scoreDisplayScale(),visited=new Set();
+      const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,visited=new Set();
       measureList.forEach(group=>(group||[]).forEach(measure=>(measure?.staffEntries||[]).forEach(staffEntry=>(staffEntry?.graphicalVoiceEntries||[]).forEach(voiceEntry=>(voiceEntry?.notes||[]).forEach(graphicalNote=>{
         const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId,index=renderedNoteObjectMap.get(objectId);if(!Number.isInteger(index)||!isEditableNote(index))return;
         const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el;if(!element||visited.has(element))return;visited.add(element);
@@ -708,7 +678,7 @@
       if(!fallbackSvg||!measureList.length)return[];
       const svgByPage=new Map();
       musicPages.forEach((page,pageIndex)=>{const pageElement=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`),svg=pageElement?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
-      const containerRect=osmdContainer.getBoundingClientRect(),scale=scoreDisplayScale(),seen=new WeakSet(),systems=[];
+      const containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,seen=new WeakSet(),systems=[];
       const toContainerY=(value,svgRect,viewBox,viewHeight)=>
         (svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(value-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
       measureList.forEach(row=>row?.forEach(measure=>{
@@ -769,7 +739,7 @@
     async function createLineSpacingRasterCache(generation=lineSpacingRasterGeneration){
       const systems=renderedSystemGeometry(),rows=systems.map(item=>item.rowY),width=Math.max(1,Math.ceil(osmdContainer.clientWidth||A4_WIDTH)),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),pixelScale=Math.min(1,Math.sqrt(LINE_SPACING_PREVIEW_MAX_PIXELS/Math.max(1,width*totalHeight))),pixelWidth=Math.max(1,Math.round(width*pixelScale)),pixelHeight=Math.max(1,Math.round(totalHeight*pixelScale)),source=document.createElement('canvas');
       source.width=pixelWidth;source.height=pixelHeight;const ctx=source.getContext('2d',{alpha:true,desynchronized:true});if(!ctx)throw new Error('Canvas-esikatselua ei voitu avata');
-      const containerRect=osmdContainer.getBoundingClientRect(),pageScale=scoreDisplayScale(),pages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')],pageSources=pages.length?pages:[...osmdContainer.querySelectorAll('svg')];
+      const containerRect=osmdContainer.getBoundingClientRect(),pageScale=scorePageScale||1,pages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')],pageSources=pages.length?pages:[...osmdContainer.querySelectorAll('svg')];
       for(const page of pageSources){
         if(generation!==lineSpacingRasterGeneration)return null;const svg=page.matches?.('svg')?page:page.querySelector('svg');if(!svg)continue;const rect=svg.getBoundingClientRect(),left=(rect.left-containerRect.left)/pageScale+osmdContainer.scrollLeft,top=(rect.top-containerRect.top)/pageScale+osmdContainer.scrollTop,w=rect.width/pageScale,h=rect.height/pageScale;if(!(w>0&&h>0))continue;
         try{const image=await svgSnapshotImage(svg);if(generation!==lineSpacingRasterGeneration)return null;ctx.drawImage(image,Math.round(left*pixelScale),Math.round(top*pixelScale),Math.max(1,Math.round(w*pixelScale)),Math.max(1,Math.round(h*pixelScale)))}catch(error){console.warn('Rivivälin canvas-esikatselu: SVG-snapshot epäonnistui',error)}
@@ -947,7 +917,7 @@
         const viewBox=svg.viewBox?.baseVal;
         const viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width;
         const viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;
-        const scale=scoreDisplayScale();
+        const scale=scorePageScale||1;
         if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
         const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*(svgRect.width/viewWidth)/scale;
         const top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(rowY-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
@@ -1291,6 +1261,45 @@
       if(e.cancelable)e.preventDefault();
       keepOuterViewportFixed();
     }
+    function startScoreTouchLock(e){
+      if(workMode!=='write')return;
+      for(const touch of e.changedTouches||[])scoreTouchIds.add(touch.identifier);
+      if(scoreTouchIds.size>=2&&!scoreMultiTouchLocked){
+        scoreMultiTouchLocked=true;
+        scoreMultiTouchScrollTop=score.scrollTop;
+        scoreMultiTouchScrollLeft=score.scrollLeft;
+      }
+      if(scoreMultiTouchLocked){
+        if(e.cancelable)e.preventDefault();
+        score.scrollTop=scoreMultiTouchScrollTop;
+        score.scrollLeft=scoreMultiTouchScrollLeft;
+        keepOuterViewportFixed();
+      }
+    }
+    function moveScoreTouchLock(e){
+      if(!scoreMultiTouchLocked||workMode!=='write')return;
+      if(e.cancelable)e.preventDefault();
+      score.scrollTop=scoreMultiTouchScrollTop;
+      score.scrollLeft=scoreMultiTouchScrollLeft;
+      keepOuterViewportFixed();
+    }
+    function endScoreTouchLock(e){
+      for(const touch of e.changedTouches||[])scoreTouchIds.delete(touch.identifier);
+      if(scoreMultiTouchLocked){
+        if(e.cancelable)e.preventDefault();
+        score.scrollTop=scoreMultiTouchScrollTop;
+        score.scrollLeft=scoreMultiTouchScrollLeft;
+        keepOuterViewportFixed();
+      }
+      if(!scoreTouchIds.size){
+        scoreMultiTouchLocked=false;
+        scoreMultiTouchScrollTop=0;
+        scoreMultiTouchScrollLeft=0;
+      }
+    }
+    function preventScoreNativeGesture(e){
+      if(workMode==='write'&&scoreMultiTouchLocked&&e.cancelable)e.preventDefault();
+    }
     function startScoreGesture(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreStartX=e.clientX;scoreStartY=e.clientY;scoreMoved=false}
@@ -1364,12 +1373,17 @@
     window.addEventListener('resize',resizeLayout);
     window.addEventListener('osmd-ready',renderScore);
     restoreSelectionToolbarPosition();
+    score.addEventListener('touchstart',startScoreTouchLock,{passive:false,capture:true});
+    score.addEventListener('touchmove',moveScoreTouchLock,{passive:false,capture:true});
+    score.addEventListener('touchend',endScoreTouchLock,{passive:false,capture:true});
+    score.addEventListener('touchcancel',endScoreTouchLock,{passive:false,capture:true});
+    score.addEventListener('gesturestart',preventScoreNativeGesture,{passive:false,capture:true});
+    score.addEventListener('gesturechange',preventScoreNativeGesture,{passive:false,capture:true});
     score.addEventListener('pointerdown',startScoreGesture);
     score.addEventListener('pointermove',moveScoreGesture,{passive:true});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
     score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
     score.addEventListener('keydown',scoreKey);
-    selectionToolbar.addEventListener('click',e=>{const button=e.target.closest?.('button');if(workMode==='edit'&&button&&button!==selectionToolbarDragHandle)resetEditView(false)},{capture:true});
     selectionSlurButton.addEventListener('click',toggleSlurForSelection);
     selectionTieFlipButton.addEventListener('click',toggleTiePlacement);
     selectionStaccatoButton.addEventListener('click',()=>toggleBooleanForSelection('staccato','Staccato'));
@@ -1396,16 +1410,13 @@
     stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg'))return;
-      e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false,zoomStarted:false,startClientX:e.clientX,startClientY:e.clientY,zoom:1};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
+      e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
     osmdContainer.addEventListener('pointermove',e=>{
-      if(workMode!=='edit'||!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);const screenDistance=Math.hypot(e.clientX-selectionDrag.startClientX,e.clientY-selectionDrag.startClientY);selectionDrag.moved=selectionDrag.moved||screenDistance>4;if(!selectionDrag.zoomStarted&&screenDistance>=EDIT_SELECTION_ZOOM_START_PX)selectionDrag.zoomStarted=true;
-      if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));if(selectionDrag.zoomStarted){selectionDrag.zoom=selectionZoomForDragDistance(screenDistance);targetEditView(editSelectionCenter(selectionDrag.start,selectionDrag.current),selectionDrag.zoom)}renderSelectionOverlay();
+      if(workMode!=='edit'||!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||Math.hypot(selectionDrag.current.x-selectionDrag.start.x,selectionDrag.current.y-selectionDrag.start.y)>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));renderSelectionOverlay();
     },{passive:false});
     const finishSelectionGesture=(e,cancelled=false)=>{
-      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();let finalFocus=null;
-      let finalZoom=1;if(cancelled)selectedNoteIndices.clear();else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved){selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));if(selectionDrag.zoomStarted){finalFocus=editSelectionCenter(selectionDrag.start,selectionDrag.current);finalZoom=selectionDrag.zoom||1}}else{selectAtPoint(selectionDrag.current);resetEditView(false)}}
-      selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();if(finalFocus)targetEditView(finalFocus,finalZoom);
+      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();if(cancelled)selectedNoteIndices.clear();else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));else selectAtPoint(selectionDrag.current)}selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     };
     osmdContainer.addEventListener('pointerup',e=>finishSelectionGesture(e));
     osmdContainer.addEventListener('pointercancel',e=>finishSelectionGesture(e,true));
