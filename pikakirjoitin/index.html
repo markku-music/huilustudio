@@ -272,7 +272,7 @@
           </button>
         </div>
         <div class="edit-rail" id="editRail" role="toolbar" aria-label="Rivien muokkaus">
-          <div class="line-spacing-slider" id="lineSpacingSlider" role="slider" tabindex="0" aria-label="Riviväli" aria-orientation="vertical" aria-valuemin="1" aria-valuemax="10" aria-valuenow="1" aria-valuetext="Nykyinen riviväli">
+          <div class="line-spacing-slider" id="lineSpacingSlider" role="slider" tabindex="0" aria-label="Riviväli" aria-orientation="vertical" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5" aria-valuetext="300 %">
             <div class="line-spacing-track" aria-hidden="true"><div class="line-spacing-fill" id="lineSpacingFill"></div></div>
             <div class="line-spacing-thumb" id="lineSpacingThumb" aria-hidden="true"></div>
           </div>
@@ -332,7 +332,7 @@
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
-    let lineSpacingValue=1,lineSpacingPointerId=null,lineSpacingDragStartValue=1,lineSpacingPreview=null,lineSpacingCommitRunning=false;
+    let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingPreview=null,lineSpacingCommitRunning=false;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10;
     const scorePointers=new Set();
 
