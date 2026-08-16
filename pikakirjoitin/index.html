@@ -47,12 +47,6 @@
     .modifier-divider{height:1px;margin:1px 5px;background:#697686}
     .tie-button svg{display:block;width:34px;height:26px;pointer-events:none}
     .edit-rail{position:absolute;z-index:26;left:8px;bottom:20px;width:58px;display:none;flex-direction:column;gap:10px;padding:8px;border:1px solid #d0d9e6;border-radius:20px;background:#ffffffed;box-shadow:0 8px 24px #1c273526;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-    .staff-top-slider{position:relative;width:42px;height:200px;flex:0 0 200px;touch-action:none;cursor:ns-resize;outline:none}
-    .staff-top-track{position:absolute;top:10px;bottom:10px;left:18px;width:6px;border-radius:999px;background:#d8e1ed;box-shadow:inset 0 1px 3px #1c27352e;pointer-events:none}
-    .staff-top-fill{position:absolute;top:0;left:0;width:100%;height:0;border-radius:999px;background:#3679bd;pointer-events:none}
-    .staff-top-thumb{position:absolute;z-index:2;top:0;left:3px;width:36px;height:26px;display:grid;place-items:center;border:1px solid #7faada;border-radius:10px;background:#fff;color:#2365aa;box-shadow:0 2px 7px #1d477530;transform:translate3d(0,0,0);will-change:transform;pointer-events:none}
-    .staff-top-thumb::before{content:'';width:19px;height:10px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;box-shadow:0 -3px 0 -1px currentColor;opacity:.82}
-    .staff-top-slider:focus-visible{border-radius:12px;box-shadow:0 0 0 3px #62a7ff55}
     .line-spacing-slider{position:relative;width:42px;height:300px;flex:0 0 300px;touch-action:none;cursor:ns-resize;outline:none}
     .line-spacing-track{position:absolute;top:10px;bottom:10px;left:18px;width:6px;border-radius:999px;background:#d8e1ed;box-shadow:inset 0 1px 3px #1c27352e;pointer-events:none}
     .line-spacing-fill{position:absolute;top:0;left:0;width:100%;height:0;border-radius:999px;background:#7654ce;pointer-events:none}
@@ -60,7 +54,9 @@
     .line-spacing-thumb::before{content:'';width:18px;height:8px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.8}
     .line-spacing-slider:focus-visible{border-radius:12px;box-shadow:0 0 0 3px #8d6ae755}
     .line-spacing-preview{position:absolute;z-index:5;inset:0;pointer-events:none;overflow:visible}
-    .line-spacing-preview-canvas{position:absolute;left:0;top:0;display:block;pointer-events:none;contain:strict}
+    .line-spacing-preview-strip{position:absolute;left:0;width:100%;overflow:hidden;will-change:transform;pointer-events:none}
+    .line-spacing-preview-source{position:absolute;left:0;width:100%;min-height:1123px;pointer-events:none}
+    .line-spacing-preview-source svg{display:block;max-width:100%}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
@@ -276,10 +272,6 @@
           </button>
         </div>
         <div class="edit-rail" id="editRail" role="toolbar" aria-label="Rivien muokkaus">
-          <div class="staff-top-slider" id="staffTopSlider" role="slider" tabindex="0" aria-label="Viivastojen aloituskorkeus" aria-orientation="vertical" aria-valuemin="8" aria-valuemax="30" aria-valuenow="17" aria-valuetext="Nykyinen aloituskorkeus" title="Viivastojen aloituskorkeus">
-            <div class="staff-top-track" aria-hidden="true"><div class="staff-top-fill" id="staffTopFill"></div></div>
-            <div class="staff-top-thumb" id="staffTopThumb" aria-hidden="true"></div>
-          </div>
           <div class="line-spacing-slider" id="lineSpacingSlider" role="slider" tabindex="0" aria-label="Riviväli" aria-orientation="vertical" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5" aria-valuetext="300 %">
             <div class="line-spacing-track" aria-hidden="true"><div class="line-spacing-fill" id="lineSpacingFill"></div></div>
             <div class="line-spacing-thumb" id="lineSpacingThumb" aria-hidden="true"></div>
@@ -321,7 +313,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
+    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -340,9 +332,8 @@
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
-    let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
-    let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
+    let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingPreview=null,lineSpacingCommitRunning=false;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -491,7 +482,8 @@
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
       scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
       scoreRenderer.setPageFormat('A4_P');
-      applyStaffTopRules();
+      scoreRenderer.EngravingRules.PageTopMargin=17;
+      scoreRenderer.EngravingRules.PageTopMarginNarrow=17;
       applyLineSpacingRules();
       return true;
     }
@@ -522,9 +514,8 @@
         systemBreakModeActive=false;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
       }
       syncWorkModeUI();
-      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}});
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry()});
     }
-
     async function renderScore(){
       syncWorkModeUI();
       scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
@@ -533,15 +524,12 @@
       try{
         while(scoreRenderPending){
           scoreRenderPending=false;
-          invalidateLineSpacingRasterCache();
           scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
-          applyStaffTopRules();
           applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
           await scoreRenderer.load(buildMusicXml());
-          applyStaffTopRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();queueLineSpacingRasterCache();
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -605,24 +593,6 @@
       if(selectionDrag){const rect=normalizedRectangle(selectionDrag.start,selectionDrag.current),marquee=document.createElement('div');marquee.className='note-selection-marquee';marquee.style.left=`${rect.left}px`;marquee.style.top=`${rect.top}px`;marquee.style.width=`${Math.max(1,rect.right-rect.left)}px`;marquee.style.height=`${Math.max(1,rect.bottom-rect.top)}px`;layer.appendChild(marquee)}
       osmdContainer.appendChild(layer);
     }
-    function applyStaffTopRules(){
-      if(!scoreRenderer?.EngravingRules)return;
-      scoreRenderer.EngravingRules.PageTopMargin=staffTopValue;
-      scoreRenderer.EngravingRules.PageTopMarginNarrow=staffTopValue;
-    }
-    function staffTopRatio(value=staffTopValue){return (clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX)-STAFF_TOP_MIN)/(STAFF_TOP_MAX-STAFF_TOP_MIN)}
-    function syncStaffTopSlider(value=staffTopValue){
-      const ratio=staffTopRatio(value),travel=Math.max(0,staffTopSlider.clientHeight-staffTopThumb.offsetHeight-20),y=10+ratio*travel;
-      staffTopThumb.style.transform=`translate3d(0,${y}px,0)`;
-      staffTopFill.style.height=`${ratio*100}%`;
-      staffTopSlider.setAttribute('aria-valuenow',String(Number(value.toFixed(2))));
-      const delta=value-STAFF_TOP_DEFAULT;
-      staffTopSlider.setAttribute('aria-valuetext',Math.abs(delta)<.01?'Nykyinen aloituskorkeus':delta>0?`Viivastot ${Math.round(delta*10)} px alempana`:`Viivastot ${Math.round(-delta*10)} px ylempänä`);
-    }
-    function staffTopValueFromClientY(clientY){
-      const rect=staffTopSlider.getBoundingClientRect(),thumbHeight=staffTopThumb.offsetHeight,top=rect.top+10+thumbHeight/2,bottom=rect.bottom-10-thumbHeight/2,ratio=clamp((clientY-top)/Math.max(1,bottom-top),0,1);
-      return STAFF_TOP_MIN+ratio*(STAFF_TOP_MAX-STAFF_TOP_MIN);
-    }
     function applyLineSpacingRules(){
       if(!scoreRenderer?.EngravingRules)return;
       scoreRenderer.EngravingRules.MinimumDistanceBetweenSystems=lineSpacingValue;
@@ -683,106 +653,53 @@
       return systems.filter((item,index,array)=>index===0||Math.abs(item.rowY-array[index-1].rowY)>2);
     }
     function renderedSystemRowYs(){return renderedSystemGeometry().map(item=>item.rowY)}
-    function lineSpacingSeparators(systems,totalHeight){
-      const separators=[];
-      for(let i=0;i<systems.length-1;i++){
-        const upper=systems[i],lower=systems[i+1],mid=(upper.rowY+lower.rowY)/2;
-        const upperBottom=Number.isFinite(upper.bottom)?upper.bottom:null,lowerTop=Number.isFinite(lower.top)?lower.top:null;
-        let separator=mid;
-        if(upperBottom!==null&&lowerTop!==null&&lowerTop>upperBottom+2)separator=(upperBottom+lowerTop)/2;
-        else if(upperBottom!==null&&upperBottom<lower.rowY-2)separator=Math.max(mid,upperBottom+2);
-        else if(lowerTop!==null&&lowerTop>upper.rowY+2)separator=Math.min(mid,lowerTop-2);
-        separators.push(clamp(separator,upper.rowY+2,lower.rowY-2));
+    function buildLineSpacingPreview(){
+      destroyLineSpacingPreview(false);
+      const systems=renderedSystemGeometry(),rows=systems.map(item=>item.rowY),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';
+      const strips=[];
+      if(rows.length>=2){
+        const separators=[];
+        for(let i=0;i<systems.length-1;i++){
+          const upper=systems[i],lower=systems[i+1],mid=(upper.rowY+lower.rowY)/2;
+          // Prefer the actual whitespace between OSMD system bounding boxes. This
+          // prevents a low slur/dynamic from the upper system being clipped into
+          // (and then moving with) the next preview strip.
+          const upperBottom=Number.isFinite(upper.bottom)?upper.bottom:null,lowerTop=Number.isFinite(lower.top)?lower.top:null;
+          let separator=mid;
+          if(upperBottom!==null&&lowerTop!==null&&lowerTop>upperBottom+2)separator=(upperBottom+lowerTop)/2;
+          else if(upperBottom!==null&&upperBottom<lower.rowY-2)separator=Math.max(mid,upperBottom+2);
+          else if(lowerTop!==null&&lowerTop>upper.rowY+2)separator=Math.min(mid,lowerTop-2);
+          separators.push(clamp(separator,upper.rowY+2,lower.rowY-2));
+        }
+        rows.forEach((rowY,index)=>{
+          const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],strip=document.createElement('div'),source=osmdContainer.cloneNode(true);
+          strip.className='line-spacing-preview-strip';strip.style.top=`${top}px`;strip.style.height=`${Math.max(1,bottom-top)}px`;source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());source.style.top=`${-top}px`;strip.appendChild(source);preview.appendChild(strip);strips.push(strip);
+        });
+        lineSpacingPreview={element:preview,strips,startValue:lineSpacingDragStartValue,mode:'strips'};
+      }else{
+        const source=osmdContainer.cloneNode(true);source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());source.style.top='0';source.style.transformOrigin='50% 0';source.style.willChange='transform';preview.appendChild(source);lineSpacingPreview={element:preview,source,startValue:lineSpacingDragStartValue,mode:'scale'};
       }
-      return separators;
-    }
-    function invalidateLineSpacingRasterCache(){lineSpacingRasterGeneration+=1;lineSpacingRasterCache=null;lineSpacingRasterCachePromise=null}
-    function svgSnapshotImage(svg){
-      return new Promise((resolve,reject)=>{
-        const clone=svg.cloneNode(true);clone.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
-        const blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),image=new Image();
-        image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};image.onerror=error=>{URL.revokeObjectURL(url);reject(error)};image.src=url;
-      });
-    }
-    async function createLineSpacingRasterCache(generation=lineSpacingRasterGeneration){
-      const systems=renderedSystemGeometry(),rows=systems.map(item=>item.rowY),width=Math.max(1,Math.ceil(osmdContainer.clientWidth||A4_WIDTH)),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),pixelScale=Math.min(1,Math.sqrt(LINE_SPACING_PREVIEW_MAX_PIXELS/Math.max(1,width*totalHeight))),pixelWidth=Math.max(1,Math.round(width*pixelScale)),pixelHeight=Math.max(1,Math.round(totalHeight*pixelScale)),source=document.createElement('canvas');
-      source.width=pixelWidth;source.height=pixelHeight;const ctx=source.getContext('2d',{alpha:true,desynchronized:true});if(!ctx)throw new Error('Canvas-esikatselua ei voitu avata');
-      const containerRect=osmdContainer.getBoundingClientRect(),pageScale=scorePageScale||1,pages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')],pageSources=pages.length?pages:[...osmdContainer.querySelectorAll('svg')];
-      for(const page of pageSources){
-        if(generation!==lineSpacingRasterGeneration)return null;const svg=page.matches?.('svg')?page:page.querySelector('svg');if(!svg)continue;const rect=svg.getBoundingClientRect(),left=(rect.left-containerRect.left)/pageScale+osmdContainer.scrollLeft,top=(rect.top-containerRect.top)/pageScale+osmdContainer.scrollTop,w=rect.width/pageScale,h=rect.height/pageScale;if(!(w>0&&h>0))continue;
-        try{const image=await svgSnapshotImage(svg);if(generation!==lineSpacingRasterGeneration)return null;ctx.drawImage(image,Math.round(left*pixelScale),Math.round(top*pixelScale),Math.max(1,Math.round(w*pixelScale)),Math.max(1,Math.round(h*pixelScale)))}catch(error){console.warn('Rivivälin canvas-esikatselu: SVG-snapshot epäonnistui',error)}
-      }
-      if(generation!==lineSpacingRasterGeneration)return null;return {source,systems,rows,separators:lineSpacingSeparators(systems,totalHeight),width,totalHeight,pixelScale,pixelWidth,pixelHeight,generation};
-    }
-    function ensureLineSpacingRasterCache(){
-      if(lineSpacingRasterCache?.generation===lineSpacingRasterGeneration)return Promise.resolve(lineSpacingRasterCache);if(lineSpacingRasterCachePromise)return lineSpacingRasterCachePromise;const generation=lineSpacingRasterGeneration;
-      lineSpacingRasterCachePromise=createLineSpacingRasterCache(generation).then(cache=>{if(cache&&generation===lineSpacingRasterGeneration)lineSpacingRasterCache=cache;return cache}).finally(()=>{if(generation===lineSpacingRasterGeneration)lineSpacingRasterCachePromise=null});return lineSpacingRasterCachePromise;
-    }
-    function queueLineSpacingRasterCache(){
-      const generation=lineSpacingRasterGeneration,run=()=>{if(generation!==lineSpacingRasterGeneration||workMode!=='edit'||scoreRendering)return;ensureLineSpacingRasterCache().catch(()=>{})};if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:450});else setTimeout(run,80);
-    }
-    async function buildStaffTopPreview(){
-      destroyStaffTopPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||staffTopPointerId===null)return null;
-      const maxDown=Math.max(0,(STAFF_TOP_MAX-staffTopDragStartValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT),extraPx=Math.ceil(maxDown*cache.pixelScale),preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight+extraPx;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight+maxDown}px`;preview.appendChild(canvas);scorePage.appendChild(preview);staffTopPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:staffTopDragStartValue};osmdContainer.style.visibility='hidden';updateStaffTopPreview(staffTopValue);return staffTopPreview;
-    }
-    function updateStaffTopPreview(value){
-      if(!staffTopPreview?.ctx)return;const {ctx,canvas,cache}=staffTopPreview,delta=(value-staffTopPreview.startValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT,dy=Math.round(delta*cache.pixelScale);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(cache.source,0,dy);
-    }
-    function scheduleStaffTopPreview(value){staffTopPreviewPendingValue=value;if(staffTopPreviewFrame)return;staffTopPreviewFrame=requestAnimationFrame(()=>{staffTopPreviewFrame=0;updateStaffTopPreview(staffTopPreviewPendingValue)})}
-    function destroyStaffTopPreview(showOriginal=true){if(staffTopPreviewFrame){cancelAnimationFrame(staffTopPreviewFrame);staffTopPreviewFrame=0}staffTopPreview?.element?.remove();staffTopPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
-    function pointerHitsSliderThumb(e,thumb){
-      const rect=thumb.getBoundingClientRect();
-      return e.clientY>=rect.top-SLIDER_GRAB_PAD_Y&&e.clientY<=rect.bottom+SLIDER_GRAB_PAD_Y&&e.clientX>=rect.left-SLIDER_GRAB_PAD_Y&&e.clientX<=rect.right+SLIDER_GRAB_PAD_Y;
-    }
-    function sliderValueFromDragDelta(clientY,startClientY,startValue,slider,thumb,min,max){
-      const travel=Math.max(1,slider.clientHeight-thumb.offsetHeight-20),deltaRatio=(clientY-startClientY)/travel;
-      return clamp(startValue+deltaRatio*(max-min),min,max);
-    }
-    function beginStaffTopDrag(e){
-      if(workMode!=='edit'||staffTopCommitRunning||lineSpacingCommitRunning||lineSpacingPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,staffTopThumb))return;
-      e.preventDefault();e.stopPropagation();staffTopPointerId=e.pointerId;staffTopDragStartValue=staffTopValue;staffTopDragStartClientY=e.clientY;staffTopDragMoved=false;staffTopPreviewPendingValue=staffTopValue;try{staffTopSlider.setPointerCapture(e.pointerId)}catch{}
-    }
-    function setStaffTopPreviewValue(value){staffTopValue=clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();scheduleStaffTopPreview(staffTopValue)}
-    function moveStaffTopDrag(e){
-      if(e.pointerId!==staffTopPointerId)return;e.preventDefault();e.stopPropagation();const delta=e.clientY-staffTopDragStartClientY;if(!staffTopDragMoved&&Math.abs(delta)<SLIDER_DRAG_EPSILON_PX)return;
-      if(!staffTopDragMoved){staffTopDragMoved=true;buildStaffTopPreview().then(()=>{if(staffTopPointerId===e.pointerId)scheduleStaffTopPreview(staffTopValue)}).catch(error=>console.warn('Viivastojen aloituskorkeuden live-esikatselu ei käynnistynyt',error))}
-      setStaffTopPreviewValue(sliderValueFromDragDelta(e.clientY,staffTopDragStartClientY,staffTopDragStartValue,staffTopSlider,staffTopThumb,STAFF_TOP_MIN,STAFF_TOP_MAX));
-    }
-    async function finishStaffTopDrag(e,cancelled=false){
-      if(e.pointerId!==staffTopPointerId)return;e.preventDefault();e.stopPropagation();try{if(staffTopSlider.hasPointerCapture(e.pointerId))staffTopSlider.releasePointerCapture(e.pointerId)}catch{}staffTopPointerId=null;
-      const changed=staffTopDragMoved&&Math.abs(staffTopValue-staffTopDragStartValue)>.0001;if(cancelled)staffTopValue=staffTopDragStartValue;syncStaffTopSlider();
-      if(cancelled||!changed){destroyStaffTopPreview(true);staffTopDragMoved=false;return}
-      updateStaffTopPreview(staffTopValue);staffTopCommitRunning=true;applyStaffTopRules();try{await renderScore()}finally{destroyStaffTopPreview(true);staffTopCommitRunning=false;staffTopDragMoved=false;if(workMode==='edit')refreshEditGeometry()}
-    }
-    function staffTopKey(e){
-      let next=staffTopValue,step=.5;if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=STAFF_TOP_MIN;else if(e.key==='End')next=STAFF_TOP_MAX;else return;
-      e.preventDefault();staffTopValue=clamp(next,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();applyStaffTopRules();renderScore();
-    }
-    async function buildLineSpacingPreview(){
-      destroyLineSpacingPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||lineSpacingPointerId===null)return null;
-      const preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight}px`;preview.appendChild(canvas);scorePage.appendChild(preview);lineSpacingPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:lineSpacingDragStartValue};osmdContainer.style.visibility='hidden';updateLineSpacingPreview(lineSpacingValue);return lineSpacingPreview;
+      scorePage.appendChild(preview);osmdContainer.style.visibility='hidden';return lineSpacingPreview;
     }
     function updateLineSpacingPreview(value){
-      if(!lineSpacingPreview?.ctx)return;const {ctx,cache}=lineSpacingPreview,{source,rows,separators,pixelScale,pixelWidth,pixelHeight,totalHeight}=cache,unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;ctx.clearRect(0,0,pixelWidth,pixelHeight);if(rows.length<2){ctx.drawImage(source,0,0);return}
-      rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],sy=Math.max(0,Math.round(top*pixelScale)),ey=Math.min(pixelHeight,Math.round(bottom*pixelScale)),sh=Math.max(1,ey-sy),dy=Math.round((top+index*unitDelta)*pixelScale);ctx.drawImage(source,0,sy,pixelWidth,sh,0,dy,pixelWidth,sh)});
+      if(!lineSpacingPreview)return;
+      const unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;
+      if(lineSpacingPreview.mode==='strips')lineSpacingPreview.strips.forEach((strip,index)=>{strip.style.transform=`translate3d(0,${index*unitDelta}px,0)`});
+      else if(lineSpacingPreview.source){const scaleY=clamp(1+unitDelta/520,.88,1.22);lineSpacingPreview.source.style.transform=`scaleY(${scaleY})`}
     }
-    function scheduleLineSpacingPreview(value){lineSpacingPreviewPendingValue=value;if(lineSpacingPreviewFrame)return;lineSpacingPreviewFrame=requestAnimationFrame(()=>{lineSpacingPreviewFrame=0;updateLineSpacingPreview(lineSpacingPreviewPendingValue)})}
-    function destroyLineSpacingPreview(showOriginal=true){if(lineSpacingPreviewFrame){cancelAnimationFrame(lineSpacingPreviewFrame);lineSpacingPreviewFrame=0}lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
+    function destroyLineSpacingPreview(showOriginal=true){
+      lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal)osmdContainer.style.visibility='';
+    }
     function beginLineSpacingDrag(e){
-      if(workMode!=='edit'||lineSpacingCommitRunning||staffTopCommitRunning||staffTopPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,lineSpacingThumb))return;
-      e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;lineSpacingDragStartClientY=e.clientY;lineSpacingDragMoved=false;lineSpacingPreviewPendingValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}
+      if(workMode!=='edit'||lineSpacingCommitRunning||scoreRendering||(e.pointerType==='mouse'&&e.button!==0))return;
+      e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}buildLineSpacingPreview();setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY));
     }
-    function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();scheduleLineSpacingPreview(lineSpacingValue)}
-    function moveLineSpacingDrag(e){
-      if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();const delta=e.clientY-lineSpacingDragStartClientY;if(!lineSpacingDragMoved&&Math.abs(delta)<SLIDER_DRAG_EPSILON_PX)return;
-      if(!lineSpacingDragMoved){lineSpacingDragMoved=true;buildLineSpacingPreview().then(()=>{if(lineSpacingPointerId===e.pointerId)scheduleLineSpacingPreview(lineSpacingValue)}).catch(error=>console.warn('Rivivälin live-esikatselu ei käynnistynyt',error))}
-      setLineSpacingPreviewValue(sliderValueFromDragDelta(e.clientY,lineSpacingDragStartClientY,lineSpacingDragStartValue,lineSpacingSlider,lineSpacingThumb,LINE_SPACING_MIN,LINE_SPACING_MAX));
-    }
+    function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();updateLineSpacingPreview(lineSpacingValue)}
+    function moveLineSpacingDrag(e){if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY))}
     async function finishLineSpacingDrag(e,cancelled=false){
       if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();try{if(lineSpacingSlider.hasPointerCapture(e.pointerId))lineSpacingSlider.releasePointerCapture(e.pointerId)}catch{}lineSpacingPointerId=null;
-      const changed=lineSpacingDragMoved&&Math.abs(lineSpacingValue-lineSpacingDragStartValue)>.0001;if(cancelled)lineSpacingValue=lineSpacingDragStartValue;syncLineSpacingSlider();
-      if(cancelled||!changed){destroyLineSpacingPreview(true);lineSpacingDragMoved=false;return}
-      updateLineSpacingPreview(lineSpacingValue);lineSpacingCommitRunning=true;applyLineSpacingRules();try{await renderScore()}finally{destroyLineSpacingPreview(true);lineSpacingCommitRunning=false;lineSpacingDragMoved=false;if(workMode==='edit')refreshEditGeometry()}
+      if(cancelled)lineSpacingValue=lineSpacingDragStartValue;syncLineSpacingSlider();updateLineSpacingPreview(lineSpacingValue);lineSpacingCommitRunning=true;applyLineSpacingRules();
+      try{await renderScore()}finally{destroyLineSpacingPreview(true);lineSpacingCommitRunning=false;if(workMode==='edit')refreshEditGeometry()}
     }
     function lineSpacingKey(e){
       let next=lineSpacingValue,step=.5;
@@ -1196,7 +1113,7 @@
       e.preventDefault();syncScrollThumb();
     }
     function resizeLayout(){
-      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry()});
+      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{if(workMode==='edit')refreshEditGeometry()});
     }
     function keepOuterViewportFixed(){
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -1247,7 +1164,7 @@
     applyInstrumentProfile();
     syncWorkModeUI();
     syncSelectionToolbar();
-    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider()});
+    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
     modeTabs.addEventListener('pointerup',activateWorkMode);
     modeTabs.addEventListener('keydown',activateWorkMode);
     instrumentTrigger.addEventListener('click',()=>setInstrumentMenuOpen(instrumentMenu.hidden));
@@ -1292,11 +1209,6 @@
     selectionDynamicSelect.addEventListener('change',e=>applyDynamicForSelection(e.target.value));
     selectionCrescendoButton.addEventListener('click',()=>toggleHairpinForSelection('crescendo'));
     selectionDiminuendoButton.addEventListener('click',()=>toggleHairpinForSelection('diminuendo'));
-    staffTopSlider.addEventListener('pointerdown',beginStaffTopDrag,{passive:false});
-    staffTopSlider.addEventListener('pointermove',moveStaffTopDrag,{passive:false});
-    staffTopSlider.addEventListener('pointerup',e=>finishStaffTopDrag(e),{passive:false});
-    staffTopSlider.addEventListener('pointercancel',e=>finishStaffTopDrag(e,true),{passive:false});
-    staffTopSlider.addEventListener('keydown',staffTopKey);
     lineSpacingSlider.addEventListener('pointerdown',beginLineSpacingDrag,{passive:false});
     lineSpacingSlider.addEventListener('pointermove',moveLineSpacingDrag,{passive:false});
     lineSpacingSlider.addEventListener('pointerup',e=>finishLineSpacingDrag(e),{passive:false});
