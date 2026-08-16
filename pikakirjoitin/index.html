@@ -137,6 +137,13 @@
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
+
+    /* SIVUTUSTESTI: vain tämän erillisen laboratorioversion diagnostiikka */
+    .pagination-test-button{min-height:38px;padding:0 14px;border:0;border-left:1px solid #ffffff2b;background:#5b6572;color:#fff;font:750 12px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.04em;cursor:pointer}
+    .pagination-test-button:active{background:#414a55}
+    .pagination-test-readout{position:absolute;z-index:40;top:48px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:7px 12px;border-radius:999px;background:#18202ae8;color:#fff;font:700 12px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 4px 14px #0003}
+    #osmdContainer .pagination-probe-page{outline:3px dashed #d84b4b;outline-offset:-3px}
+    @media print{.pagination-test-button,.pagination-test-readout{display:none!important}#osmdContainer .pagination-probe-page{outline:0!important}}
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
@@ -243,7 +250,9 @@
       <button class="mode-tab" id="writeModeButton" type="button" data-work-mode="write" aria-pressed="true">KIRJOITA</button>
       <button class="mode-tab" id="editModeButton" type="button" data-work-mode="edit" aria-pressed="false" disabled>MUOKKAA</button>
       <button class="mode-tab" id="printModeButton" type="button" data-work-mode="print" aria-pressed="false" disabled>TULOSTA</button>
+      <button class="pagination-test-button" id="paginationTestButton" type="button">TÄYTÄ SIVUTUSTESTI</button>
     </nav>
+    <div class="pagination-test-readout" id="paginationTestReadout">SIVUTUSTESTI · valitse soitin ja paina TÄYTÄ SIVUTUSTESTI</div>
     <div class="workspace">
       <section class="score-area">
         <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
@@ -313,7 +322,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
+    const paginationTestButton=document.querySelector('#paginationTestButton'),paginationTestReadout=document.querySelector('#paginationTestReadout'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -333,6 +342,7 @@
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingPreview=null,lineSpacingCommitRunning=false;
+    let paginationTestActive=false,paginationTestMeasureCount=48;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10;
     const scorePointers=new Set();
 
@@ -516,6 +526,41 @@
       syncWorkModeUI();
       requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry()});
     }
+    function updatePaginationTestDiagnostics(){
+      if(!paginationTestReadout)return;
+      const graphicSheet=scoreRenderer?.GraphicSheet;
+      const musicPages=graphicSheet?.MusicPages||[];
+      const domPages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')];
+      osmdContainer.querySelectorAll('.pagination-probe-page').forEach(element=>element.classList.remove('pagination-probe-page'));
+      if(paginationTestActive)domPages.forEach(element=>element.classList.add('pagination-probe-page'));
+      const systemCount=scoreRenderer?renderedSystemGeometry().length:0;
+      const measureCount=measureData().groups.length;
+      const height=Math.round(osmdContainer.scrollHeight||0);
+      paginationTestReadout.textContent=paginationTestActive
+        ?`SIVUTUSTESTI · ${measureCount} tahtia · ${systemCount} nuottiriviä · OSMD-sivuja ${musicPages.length} · DOM-sivuja ${domPages.length} · sisältö ${height}px`
+        :'SIVUTUSTESTI · valitse soitin ja paina TÄYTÄ SIVUTUSTESTI';
+    }
+    function makePaginationTestNotes(measureCount){
+      const pattern=[72,74,76,77,79,77,76,74];
+      notes=[];slurs=[];hairpins=[];selectedNoteIndices.clear();editHistory=[];nextEntryId=1;
+      for(let measure=0;measure<measureCount;measure+=1){
+        for(let beat=0;beat<4;beat+=1){
+          notes.push({id:createEntryId(),midi:pattern[(measure+beat)%pattern.length],duration:'quarter',dotted:false,rest:false,tieFromPrevious:false});
+        }
+      }
+      systemBreaks=new Set();
+      for(let measureIndex=2;measureIndex<measureCount;measureIndex+=2)systemBreaks.add(measureIndex);
+    }
+    async function runPaginationTest(){
+      if(!projectData){paginationTestReadout.textContent='SIVUTUSTESTI · valitse ensin soitin';return}
+      paginationTestActive=true;paginationTestMeasureCount=48;lineSpacingValue=5;lineSpacingDragStartValue=5;syncLineSpacingSlider();applyLineSpacingRules();
+      makePaginationTestNotes(paginationTestMeasureCount);
+      score.scrollTop=0;
+      await renderScore();
+      updatePaginationTestDiagnostics();
+      status.textContent='Sivutustesti: 48 tahtia, rivinvaihto joka 2. tahdin jälkeen';
+    }
+
     async function renderScore(){
       syncWorkModeUI();
       scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
@@ -529,7 +574,7 @@
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
           await scoreRenderer.load(buildMusicXml());
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();updatePaginationTestDiagnostics();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -1165,6 +1210,7 @@
     syncWorkModeUI();
     syncSelectionToolbar();
     requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
+    paginationTestButton.addEventListener('click',runPaginationTest);
     modeTabs.addEventListener('pointerup',activateWorkMode);
     modeTabs.addEventListener('keydown',activateWorkMode);
     instrumentTrigger.addEventListener('click',()=>setInstrumentMenuOpen(instrumentMenu.hidden));
