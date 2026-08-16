@@ -141,6 +141,7 @@
     .pickup-choices{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
     .pickup-choice{min-width:42px;height:42px;display:grid;place-items:center;padding:0 7px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font:750 20px/1 Georgia,"Times New Roman",serif;touch-action:manipulation;cursor:pointer}
     .pickup-choice[data-units="0"]{font:750 13px/1 system-ui,-apple-system,sans-serif}
+    .pickup-choice img{display:block;width:15px;height:26px;pointer-events:none}
     .pickup-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
     .pickup-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
@@ -435,7 +436,13 @@
       '9/8':[4,8,12,24],
       '12/8':[4,8,12,24]
     };
-    const pickupSymbols={4:'♪',8:'♩',12:'♩.',16:'𝅗𝅥',24:'𝅗𝅥.'};
+    const pickupIcons={
+      4:'assets/pickup-eighth.svg',
+      8:'assets/pickup-quarter.svg',
+      12:'assets/pickup-dotted-quarter.svg',
+      16:'assets/pickup-half.svg',
+      24:'assets/pickup-dotted-half.svg'
+    };
     function syncPickupButtons(){
       const selected=Number(pickupSelect.value)||0;
       pickupChoices.querySelectorAll('.pickup-choice').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.units)===selected)));
@@ -446,8 +453,9 @@
       pickupSelect.value=String(values.includes(previous)?previous:0);
       pickupChoices.innerHTML=[0,...values].map(units=>{
         const label=units===0?'Ei':pickupFraction(units);
-        const symbol=units===0?'Ei':(pickupSymbols[units]||label);
-        return `<button class="pickup-choice" type="button" data-units="${units}" aria-label="${units===0?'Ei kohotahtia':'Kohotahti '+label}" aria-pressed="false">${symbol}</button>`;
+        const icon=pickupIcons[units];
+        const content=units===0?'Ei':(icon?`<img src="${icon}" alt="">`:label);
+        return `<button class="pickup-choice" type="button" data-units="${units}" aria-label="${units===0?'Ei kohotahtia':'Kohotahti '+label}" aria-pressed="false">${content}</button>`;
       }).join('');
       syncPickupButtons();
     }
