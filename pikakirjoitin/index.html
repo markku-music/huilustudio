@@ -199,21 +199,36 @@
         </label>
         <label class="field" for="keySignatureSelect">
           <select id="keySignatureSelect" aria-label="Sävellaji">
-            <option value="0">C-duuri / a-molli</option>
-            <option value="1">G-duuri / e-molli</option>
-            <option value="2">D-duuri / h-molli</option>
-            <option value="3">A-duuri / fis-molli</option>
-            <option value="4">E-duuri / cis-molli</option>
-            <option value="5">H-duuri / gis-molli</option>
-            <option value="6">Fis-duuri / dis-molli</option>
-            <option value="7">Cis-duuri / ais-molli</option>
-            <option value="-1">F-duuri / d-molli</option>
-            <option value="-2">B-duuri / g-molli</option>
-            <option value="-3">Es-duuri / c-molli</option>
-            <option value="-4">As-duuri / f-molli</option>
-            <option value="-5">Des-duuri / b-molli</option>
-            <option value="-6">Ges-duuri / es-molli</option>
-            <option value="-7">Ces-duuri / as-molli</option>
+            <option value="0" data-mode="major" data-tonic="C">C-duuri</option>
+            <option value="0" data-mode="minor" data-tonic="A">a-molli</option>
+            <option value="1" data-mode="major" data-tonic="G">G-duuri</option>
+            <option value="1" data-mode="minor" data-tonic="E">e-molli</option>
+            <option value="2" data-mode="major" data-tonic="D">D-duuri</option>
+            <option value="2" data-mode="minor" data-tonic="B">h-molli</option>
+            <option value="3" data-mode="major" data-tonic="A">A-duuri</option>
+            <option value="3" data-mode="minor" data-tonic="F#">fis-molli</option>
+            <option value="4" data-mode="major" data-tonic="E">E-duuri</option>
+            <option value="4" data-mode="minor" data-tonic="C#">cis-molli</option>
+            <option value="5" data-mode="major" data-tonic="B">H-duuri</option>
+            <option value="5" data-mode="minor" data-tonic="G#">gis-molli</option>
+            <option value="6" data-mode="major" data-tonic="F#">Fis-duuri</option>
+            <option value="6" data-mode="minor" data-tonic="D#">dis-molli</option>
+            <option value="7" data-mode="major" data-tonic="C#">Cis-duuri</option>
+            <option value="7" data-mode="minor" data-tonic="A#">ais-molli</option>
+            <option value="-1" data-mode="major" data-tonic="F">F-duuri</option>
+            <option value="-1" data-mode="minor" data-tonic="D">d-molli</option>
+            <option value="-2" data-mode="major" data-tonic="Bb">B-duuri</option>
+            <option value="-2" data-mode="minor" data-tonic="G">g-molli</option>
+            <option value="-3" data-mode="major" data-tonic="Eb">Es-duuri</option>
+            <option value="-3" data-mode="minor" data-tonic="C">c-molli</option>
+            <option value="-4" data-mode="major" data-tonic="Ab">As-duuri</option>
+            <option value="-4" data-mode="minor" data-tonic="F">f-molli</option>
+            <option value="-5" data-mode="major" data-tonic="Db">Des-duuri</option>
+            <option value="-5" data-mode="minor" data-tonic="Bb">b-molli</option>
+            <option value="-6" data-mode="major" data-tonic="Gb">Ges-duuri</option>
+            <option value="-6" data-mode="minor" data-tonic="Eb">es-molli</option>
+            <option value="-7" data-mode="major" data-tonic="Cb">Ces-duuri</option>
+            <option value="-7" data-mode="minor" data-tonic="Ab">as-molli</option>
           </select>
         </label>
         <label class="field" for="timeSignatureSelect">
@@ -386,18 +401,40 @@
     function escapeXml(value=''){
       return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;');
     }
-    function automaticUseFlats(note,index,keySignature){
+    function selectedKeyInfo(){
+      const option=keySignatureSelect.selectedOptions[0];
+      return {fifths:+(option?.value||0),mode:option?.dataset.mode||'major',tonic:option?.dataset.tonic||'C'};
+    }
+    const minorLeadingSpellings={
+      'A':['G',1],'E':['D',1],'B':['A',1],'F#':['E',1],'C#':['B',1],'G#':['F',2],'D#':['C',2],'A#':['G',2],
+      'D':['C',1],'G':['F',1],'C':['B',0],'F':['E',0],'Bb':['A',0],'Eb':['D',0],'Ab':['G',0]
+    };
+    const naturalPitchClass={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+    function leadingToneSpelling(note,keyInfo){
+      if(!note||keyInfo?.mode!=='minor')return null;
+      const spelling=minorLeadingSpellings[keyInfo.tonic];
+      if(!spelling)return null;
+      const pc=mod(naturalPitchClass[spelling[0]]+spelling[1],12);
+      return mod(note.midi,12)===pc?spelling:null;
+    }
+    function automaticUseFlats(note,index,keySignature,keyMode=projectData?.keyMode,keyTonic=projectData?.keyTonic){
       if(note?.accidentalStyle==='flat')return true;
       if(note?.accidentalStyle==='sharp')return false;
+      const leading=leadingToneSpelling(note,{mode:keyMode,tonic:keyTonic});
+      if(leading)return leading[1]<0;
       if(keySignature<0)return true;
       if(keySignature>0)return false;
       if(!note||![1,3,6,8,10].includes(mod(note.midi,12)))return false;
       for(let i=index-1;i>=0;i-=1){const previous=notes[i];if(previous?.rest||previous?.measureRest)continue;if(previous.midi>note.midi)return true;if(previous.midi<note.midi)return false;break}
       return false;
     }
-    function musicXmlPitch(note,index,keySignature){
-      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]],pitch=(automaticUseFlats(note,index,keySignature)?flats:sharps)[mod(note.midi,12)];
-      return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${Math.floor(note.midi/12)-1}</octave></pitch>`;
+    function musicXmlPitch(note,index,keyInfo){
+      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]];
+      let pitch;
+      if(!note?.accidentalStyle)pitch=leadingToneSpelling(note,keyInfo);
+      if(!pitch)pitch=(automaticUseFlats(note,index,keyInfo.fifths,keyInfo.mode,keyInfo.tonic)?flats:sharps)[mod(note.midi,12)];
+      const octave=(note.midi-naturalPitchClass[pitch[0]]-pitch[1])/12-1;
+      return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${octave}</octave></pitch>`;
     }
     function musicXmlRest(note,clefName){
       if(note.duration!=='whole')return '<rest/>';
@@ -480,12 +517,12 @@
     }
     function buildMusicXml(){
       ensureEntryIds();pruneEditRanges();renderedNoteObjectMap=new Map();
-      const data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:+keySignatureSelect.value,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
+      const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble'},{beats,beatType,capacity,groups}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
       let renderedNoteObjectId=0;
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'';
         const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{
-          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,data.keySignature),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
+          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?capacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
           const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(number=>`<slur type="start" number="${number}"/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations?`<notations>${tiedXml}${slurXml}${articulations}</notations>`:'';
@@ -888,7 +925,7 @@
     function positionWriteNoteContext(){
       const index=writeNoteIndex(),hit=writeNoteHitboxes.find(box=>box.entryIndex===index);if(workMode!=='write'||index<0||!hit){clearWriteNoteEdit();return}
       writeEditHighlight?.remove();const highlight=document.createElement('div');highlight.className='write-note-highlight';highlight.style.left=`${hit.left}px`;highlight.style.top=`${hit.top}px`;highlight.style.width=`${hit.width}px`;highlight.style.height=`${hit.height}px`;scorePage.appendChild(highlight);writeEditHighlight=highlight;
-      const note=notes[index],isChromatic=[1,3,6,8,10].includes(mod(note.midi,12));writeNoteAccidentalButton.disabled=!isChromatic;writeNoteAccidentalButton.setAttribute('aria-label',automaticUseFlats(note,index,projectData?.keySignature??+keySignatureSelect.value)?'Kirjoita sama sävel ylennettynä':'Kirjoita sama sävel alennettuna');
+      const note=notes[index],isChromatic=[1,3,6,8,10].includes(mod(note.midi,12));writeNoteAccidentalButton.disabled=!isChromatic;writeNoteAccidentalButton.setAttribute('aria-label',automaticUseFlats(note,index,projectData?.keySignature??selectedKeyInfo().fifths,projectData?.keyMode??selectedKeyInfo().mode,projectData?.keyTonic??selectedKeyInfo().tonic)?'Kirjoita sama sävel ylennettynä':'Kirjoita sama sävel alennettuna');
       writeNoteContext.hidden=false;const scale=scorePageScale||1,shellLeft=scorePageShell.offsetLeft,shellTop=scorePageShell.offsetTop,toolbarWidth=writeNoteContext.offsetWidth||96,toolbarHeight=writeNoteContext.offsetHeight||52,scoreHeight=Math.max(score.clientHeight,score.scrollHeight);
       let left=shellLeft+(hit.left+hit.width/2)*scale-toolbarWidth/2,top=shellTop+hit.top*scale-toolbarHeight-7;
       if(top<score.scrollTop+6)top=shellTop+hit.bottom*scale+7;left=clamp(left,score.scrollLeft+6,score.scrollLeft+score.clientWidth-toolbarWidth-6);top=clamp(top,score.scrollTop+6,Math.max(score.scrollTop+6,scoreHeight-toolbarHeight-6));writeNoteContext.style.left=`${left}px`;writeNoteContext.style.top=`${top}px`;
@@ -899,7 +936,7 @@
     function refreshWriteGeometry(){buildWriteNoteHitboxes();if(writeEditNoteId)positionWriteNoteContext()}
     function toggleWriteNoteAccidental(){
       const index=writeNoteIndex(),note=notes[index];if(index<0||!note||![1,3,6,8,10].includes(mod(note.midi,12)))return;
-      const before={...note},currentFlat=automaticUseFlats(note,index,projectData?.keySignature??+keySignatureSelect.value);note.accidentalStyle=currentFlat?'sharp':'flat';rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
+      const before={...note},currentFlat=automaticUseFlats(note,index,projectData?.keySignature??selectedKeyInfo().fifths,projectData?.keyMode??selectedKeyInfo().mode,projectData?.keyTonic??selectedKeyInfo().tonic);note.accidentalStyle=currentFlat?'sharp':'flat';rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
     }
     function repairTiesAround(index){
       const note=notes[index],previous=notes[index-1],next=notes[index+1];if(note?.tieFromPrevious&&(!previous||previous.rest||note.rest||previous.midi!==note.midi))note.tieFromPrevious=false;if(next?.tieFromPrevious&&(!note||note.rest||next.rest||note.midi!==next.midi))next.tieFromPrevious=false;
@@ -1091,7 +1128,7 @@
     }
     function applyProjectData(){
       saveInstrument();
-      projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:+keySignatureSelect.value,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
+      const keyInfo=selectedKeyInfo();projectData={instrument:instrumentSelect.value,instrumentName:selectedText(instrumentSelect),title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,clef:instrumentClefs[instrumentSelect.value]||'treble',transpose:profile().transpose};
       syncInstrumentChoices(true);setInstrumentMenuOpen(false);
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
