@@ -64,7 +64,7 @@
     .line-spacing-preview-strip{position:absolute;left:0;width:100%;overflow:hidden;will-change:transform;pointer-events:none}
     .line-spacing-preview-source{position:absolute;left:0;top:0;width:100%;min-height:1123px;pointer-events:none;will-change:transform}
     .line-spacing-preview-source svg{display:block;max-width:100%}
-    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg{visibility:hidden!important}
+    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg,.score-page.slider-preview-active #osmdContainer .barline-edit-markers,.score-page.slider-preview-active #osmdContainer .ending-range-preview-layer{visibility:hidden!important}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
@@ -78,6 +78,10 @@
     .selection-action-button svg path:first-child{fill:none}
     .selection-action-button[aria-pressed="true"]{border-color:#8653f6;background:#eee7ff;box-shadow:inset 0 0 0 1px #8653f633}
     .selection-action-button:disabled{opacity:.38;cursor:default}
+    .selection-action-button.ending-tool-button{font:800 17px/1 Georgia,"Times New Roman",serif}
+    .ending-range-preview-layer{position:absolute;z-index:8;inset:0 auto auto 0;pointer-events:none;overflow:visible}
+    .ending-range-preview-box{position:absolute;border:2px dashed #7045d0;border-radius:7px;background:#8653f61a;box-sizing:border-box}
+    .ending-range-preview-label{position:absolute;left:4px;top:2px;color:#5633ad;font:800 17px/1 Georgia,"Times New Roman",serif;background:#ffffffd9;border-radius:5px;padding:2px 4px}
     .selection-dynamic-button{min-width:44px;width:44px;height:36px;flex:0 0 44px;display:grid;place-items:center;padding:0;border:1px solid #d3c5f7;border-radius:10px;background:#fff;color:#5633ad;font:italic 800 18px/1 Georgia,"Times New Roman",serif;touch-action:manipulation;cursor:pointer}
     .selection-dynamic-button[aria-pressed="true"]{border-color:#8653f6;background:#eee7ff;box-shadow:inset 0 0 0 1px #8653f633}
     .selection-dynamic-button:disabled{opacity:.38;cursor:default}
@@ -98,6 +102,17 @@
     .system-break-candidate-marker:active{transform:scale(.94)}
     .system-break-candidate-svg{color:#765da9;opacity:.78;pointer-events:all;touch-action:manipulation;cursor:pointer}
     .system-break-candidate-svg text{fill:currentColor;font:700 23px/1 system-ui,sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none}
+    .barline-edit-markers{position:absolute;z-index:9;inset:0 auto auto 0;pointer-events:none}
+    .barline-edit-marker{position:absolute;width:42px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #9db2cf;border-radius:10px;background:#ffffffeb;color:#263b5b;box-shadow:0 2px 7px #24375022;pointer-events:auto;touch-action:manipulation;cursor:pointer}
+    .barline-edit-marker svg{width:30px;height:26px;overflow:visible;pointer-events:none}
+    .barline-edit-marker:hover,.barline-edit-marker:focus-visible{border-color:#8960e6;background:#f2edff;color:#5633ad;outline:none}
+    .barline-edit-marker:active{transform:scale(.95)}
+    .barline-palette{position:absolute;z-index:42;display:flex;gap:5px;padding:6px;border:1px solid #b8a1f3;border-radius:13px;background:#fffffff7;box-shadow:0 8px 24px #482d892e;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none}
+    .barline-palette[hidden]{display:none!important}
+    .barline-choice-button{width:44px;height:42px;display:grid;place-items:center;padding:0;border:1px solid #d5deeb;border-radius:9px;background:#fff;color:#1d3150;touch-action:manipulation;cursor:pointer}
+    .barline-choice-button svg{width:32px;height:28px;pointer-events:none}
+    .barline-choice-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad}
+    .barline-choice-button:disabled{opacity:.25;cursor:default}
     .app[data-work-mode="edit"] .score-area{padding-left:78px}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
     .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:none}
@@ -162,7 +177,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.note-selection-layer,#status,.score-prompt{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block}
       .score-area{display:block;padding:0}
@@ -341,6 +356,9 @@
             <button class="selection-action-button" id="selectionStaccatoButton" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="5"/></svg></button>
             <button class="selection-action-button" id="selectionPortatoButton" type="button" aria-label="Lisää tai poista portatoviivat" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 24h24"/></svg></button>
             <button class="selection-action-button" id="selectionAccentButton" type="button" aria-label="Lisää tai poista aksentit" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m13 14 22 10-22 10"/></svg></button>
+            <button class="selection-action-button" id="barlineEditButton" type="button" aria-label="Muokkaa tahtiviivoja" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M16 10v28M27 10v28"/><circle cx="36" cy="19" r="2.5"/><circle cx="36" cy="29" r="2.5"/></svg></button>
+            <button class="selection-action-button ending-tool-button" id="endingOneButton" type="button" aria-label="Lisää tai poista 1. maali" aria-pressed="false">1.</button>
+            <button class="selection-action-button ending-tool-button" id="endingTwoButton" type="button" aria-label="Lisää tai poista 2. maali" aria-pressed="false">2.</button>
             <button class="selection-action-button" id="selectionCrescendoButton" type="button" aria-label="Lisää tai poista crescendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 24 41 10M7 24l34 14"/></svg></button>
             <button class="selection-action-button" id="selectionDiminuendoButton" type="button" aria-label="Lisää tai poista diminuendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m7 10 34 14M7 38l34-14"/></svg></button>
           </div>
@@ -352,6 +370,12 @@
             <button class="selection-dynamic-button" type="button" data-dynamic="f" aria-label="Forte" aria-pressed="false" disabled>f</button>
             <button class="selection-dynamic-button" type="button" data-dynamic="ff" aria-label="Fortissimo" aria-pressed="false" disabled>ff</button>
           </div>
+        </div>
+        <div class="barline-palette" id="barlinePalette" role="toolbar" aria-label="Tahtiviivan tyyppi" hidden>
+          <button class="barline-choice-button" type="button" data-barline-style="normal" aria-label="Normaali tahtiviiva" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M16 3v22" stroke="currentColor" stroke-width="2"/></svg></button>
+          <button class="barline-choice-button" type="button" data-barline-style="double" aria-label="Kaksoisviiva" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M12 3v22M20 3v22" stroke="currentColor" stroke-width="2"/></svg></button>
+          <button class="barline-choice-button" type="button" data-barline-style="repeat-start" aria-label="Kertaus alkaa" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M9 3v22" stroke="currentColor" stroke-width="4"/><path d="M15 3v22" stroke="currentColor" stroke-width="1.8"/><circle cx="23" cy="10" r="2" fill="currentColor"/><circle cx="23" cy="18" r="2" fill="currentColor"/></svg></button>
+          <button class="barline-choice-button" type="button" data-barline-style="repeat-end" aria-label="Kertaus päättyy" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><circle cx="9" cy="10" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/><path d="M17 3v22" stroke="currentColor" stroke-width="1.8"/><path d="M23 3v22" stroke="currentColor" stroke-width="4"/></svg></button>
         </div>
       </section>
       <div class="keyboard-panel" id="keyboardPanel" hidden>
@@ -373,7 +397,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -391,7 +415,7 @@
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
@@ -574,10 +598,34 @@
     function wedgeDirectionsXml(items,stop=false){
       return items.map(item=>`<direction placement="below"><direction-type><wedge type="${stop?'stop':item.type}" number="${item.number}"/></direction-type></direction>`).join('');
     }
+    function barlineStyleForBoundary(boundary){return barlineStyles.get(boundary)||'normal'}
+    function endingStartingAt(measureIndex){return endings.find(item=>item.startMeasure===measureIndex)||null}
+    function endingEndingAt(measureIndex){return endings.find(item=>item.endMeasure===measureIndex)||null}
+    function pruneEndings(totalMeasures){
+      endings=endings.map(item=>({...item,endMeasure:Math.min(item.endMeasure,totalMeasures-1)})).filter(item=>Number.isInteger(item.number)&&(item.number===1||item.number===2)&&Number.isInteger(item.startMeasure)&&Number.isInteger(item.endMeasure)&&item.startMeasure>=0&&item.startMeasure<totalMeasures&&item.endMeasure>=item.startMeasure);
+    }
+    function leftBarlineXml(boundary){
+      const style=barlineStyleForBoundary(boundary),ending=endingStartingAt(boundary),parts=[];
+      if(style==='repeat-start')parts.push('<bar-style>heavy-light</bar-style>');
+      if(ending)parts.push(`<ending number="${ending.number}" type="start"/>`);
+      if(style==='repeat-start')parts.push('<repeat direction="forward"/>');
+      return parts.length?`<barline location="left">${parts.join('')}</barline>`:'';
+    }
+    function rightBarlineXml(boundary,totalMeasures){
+      const style=barlineStyleForBoundary(boundary),ending=endingEndingAt(boundary-1),parts=[];
+      if(style==='repeat-end'||boundary===totalMeasures)parts.push('<bar-style>light-heavy</bar-style>');
+      else if(style==='double')parts.push('<bar-style>light-light</bar-style>');
+      if(ending){const endingType=ending.number===2&&boundary<totalMeasures?'discontinue':'stop';parts.push(`<ending number="${ending.number}" type="${endingType}"/>`)}
+      if(style==='repeat-end')parts.push('<repeat direction="backward"/>');
+      return parts.length?`<barline location="right">${parts.join('')}</barline>`:'';
+    }
     function buildMusicXml(){
       ensureEntryIds();pruneEditRanges();renderedNoteObjectMap=new Map();
       const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:selectedText(instrumentSelect),title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:instrumentClefs[instrumentSelect.value]||'treble'},{beats,beatType,capacity,groups,groupCapacities,pickupCapacity}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
       let renderedNoteObjectId=0;
+      const totalMeasures=groups.length;
+      [...barlineStyles.keys()].forEach(boundary=>{if(boundary<0||boundary>totalMeasures)barlineStyles.delete(boundary)});
+      pruneEndings(totalMeasures);
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
         const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{
@@ -588,8 +636,8 @@
           const before=`${wedgeDirectionsXml(decorations.hairpinStarts)}${dynamicDirectionXml(note.dynamic)}`,after=wedgeDirectionsXml(decorations.hairpinStops,true);
           return `${before}<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${beamTags[noteIndex]}${notations}</note>${after}`;
         }).join(''):(renderedNoteObjectId+=1,`<note print-object="no"><rest${pickupCapacity&&index===0?'':' measure="yes"'}/><duration>${measureCapacity}</duration><voice>1</voice></note>`);
-        const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'',measureNumber=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'';
-        return `<measure number="${measureNumber}"${implicit}>${systemBreak}${attributes}${entries}</measure>`;
+        const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'',measureNumber=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'',leftBarline=leftBarlineXml(index),rightBarline=rightBarlineXml(index+1,totalMeasures);
+        return `<measure number="${measureNumber}"${implicit}>${systemBreak}${attributes}${leftBarline}${entries}${rightBarline}</measure>`;
       }).join('');
       return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
     }
@@ -650,7 +698,7 @@
       workMode=next;
       if(next==='write'&&keyboardPanel.hidden&&e)togglePiano(e);else if(next!=='write')closeKeyboardForWorkMode();
       if(next!=='edit'){
-        systemBreakModeActive=false;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
+        systemBreakModeActive=false;barlineEditModeActive=false;endingModeActive=0;endingDrag=null;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
       }
       if(next!=='write')clearWriteNoteEdit();
       syncWorkModeUI();
@@ -712,7 +760,7 @@
       const setButton=(button,enabled,active=false)=>{button.disabled=!enabled;button.setAttribute('aria-pressed',String(Boolean(active)))};
       setButton(selectionSlurButton,Boolean(range),Boolean(slur));setButton(selectionTieFlipButton,Number.isInteger(tieIndex),Number.isInteger(tieIndex));setButton(selectionStaccatoButton,indices.length>0,allStaccato);setButton(selectionPortatoButton,indices.length>0,allPortato);setButton(selectionAccentButton,indices.length>0,allAccent);setButton(selectionCrescendoButton,Boolean(range),Boolean(crescendo));setButton(selectionDiminuendoButton,Boolean(range),Boolean(diminuendo));
       const activeDynamic=indices.length?(notes[indices[0]].dynamic||''):'';selectionDynamicButtons.forEach(button=>{button.disabled=!indices.length;button.setAttribute('aria-pressed',String(Boolean(indices.length&&button.dataset.dynamic===activeDynamic))) });
-      systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));stretchLastLineButton.setAttribute('aria-pressed',String(stretchLastLine));stretchLastLineButton.setAttribute('aria-busy',String(stretchCommandRunning));
+      systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));barlineEditButton.setAttribute('aria-pressed',String(barlineEditModeActive));endingOneButton.setAttribute('aria-pressed',String(endingModeActive===1));endingTwoButton.setAttribute('aria-pressed',String(endingModeActive===2));stretchLastLineButton.setAttribute('aria-pressed',String(stretchLastLine));stretchLastLineButton.setAttribute('aria-busy',String(stretchCommandRunning));
     }
     const SELECTION_TOOLBAR_POSITION_KEY='pikakirjoitin-selection-toolbar-position-v1';
     function clampSelectionToolbarPosition(left,top){
@@ -850,7 +898,7 @@
     function invalidateLineSpacingRasterCache(){lineSpacingRasterGeneration+=1;lineSpacingRasterCache=null;lineSpacingRasterCachePromise=null}
     function svgSnapshotImage(svg){
       return new Promise((resolve,reject)=>{
-        const clone=svg.cloneNode(true);clone.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+        const clone=svg.cloneNode(true);clone.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg,.barline-edit-markers,.ending-range-preview-layer').forEach(element=>element.remove());clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
         const blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),image=new Image();
         image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};image.onerror=error=>{URL.revokeObjectURL(url);reject(error)};image.src=url;
       });
@@ -873,7 +921,7 @@
       const generation=lineSpacingRasterGeneration,run=()=>{if(generation!==lineSpacingRasterGeneration||workMode!=='edit'||scoreRendering)return;ensureLineSpacingRasterCache().catch(()=>{})};if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:450});else setTimeout(run,80);
     }
     function makeVectorPreviewSource(){
-      const source=osmdContainer.cloneNode(true);source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());return source;
+      const source=osmdContainer.cloneNode(true);source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg,.barline-edit-markers,.ending-range-preview-layer').forEach(element=>element.remove());return source;
     }
     function buildStaffTopPreview(){
       destroyStaffTopPreview(false);if(staffTopPointerId===null)return null;
@@ -963,7 +1011,7 @@
       if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=LINE_SPACING_MIN;else if(e.key==='End')next=LINE_SPACING_MAX;else return;
       e.preventDefault();lineSpacingValue=clamp(next,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();applyLineSpacingRules();renderScore();
     }
-    function refreshEditGeometry(){if(workMode!=='edit')return;buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers()}
+    function refreshEditGeometry(){if(workMode!=='edit')return;buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers();renderBarlineMarkers()}
     function buildWriteNoteHitboxes(){
       writeNoteHitboxes=[];if(!scoreRenderer)return;
       const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,visited=new Set();
@@ -1003,7 +1051,7 @@
     function deleteWriteNote(){
       const index=writeNoteIndex();if(index<0)return;const note=notes[index];rememberAction({type:'delete',index,note:{...note},slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item}))});clearWriteNoteEdit();notes.splice(index,1);repairTiesAround(Math.max(0,index-1));pruneEditRanges();renderScore();
     }
-    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());syncSelectionToolbar()}
+    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
     function selectInRectangle(rect){selectedNoteIndices.clear();selectionHitboxes.forEach(hitbox=>{if(rectanglesIntersect(rect,hitbox))selectedNoteIndices.add(hitbox.entryIndex)})}
     function selectAtPoint(point){const hits=selectionHitboxes.filter(hitbox=>rectanglesIntersect({left:point.x,right:point.x,top:point.y,bottom:point.y},hitbox)).sort((a,b)=>a.width*a.height-b.width*b.height);selectedNoteIndices.clear();if(hits[0])selectedNoteIndices.add(hits[0].entryIndex)}
     function toggleBooleanForSelection(property,label){const indices=getSelectedNoteIndices();if(!indices.length)return;const enable=!indices.every(index=>Boolean(notes[index][property]));indices.forEach(index=>{notes[index][property]=enable});status.textContent=`${label} ${enable?'lisätty':'poistettu'}`;renderScore()}
@@ -1013,9 +1061,88 @@
     function toggleTiePlacement(){const index=getSelectedTieStartIndex();if(!Number.isInteger(index))return;const current=notes[index].tiePlacement==='above'?'above':notes[index].tiePlacement==='below'?'below':renderedTiePlacement(index);notes[index].tiePlacement=current==='above'?'below':'above';renderScore()}
     function toggleSystemBreakMode(){
       systemBreakModeActive=!systemBreakModeActive;
+      if(systemBreakModeActive){barlineEditModeActive=false;endingModeActive=0;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();closeBarlinePalette();osmdContainer.querySelector('.barline-edit-markers')?.remove()}
       syncSelectionToolbar();
       renderSystemBreakMarkers();
     }
+    function closeBarlinePalette(){barlinePalette.hidden=true;barlineActiveBoundary=null}
+    function barlineIconSvg(style,isFinal=false){
+      if(isFinal&&style==='normal')return '<svg viewBox="0 0 32 28" aria-hidden="true"><path d="M14 3v22" stroke="currentColor" stroke-width="1.8"/><path d="M20 3v22" stroke="currentColor" stroke-width="4"/></svg>';
+      if(style==='double')return '<svg viewBox="0 0 32 28" aria-hidden="true"><path d="M12 3v22M20 3v22" stroke="currentColor" stroke-width="2"/></svg>';
+      if(style==='repeat-start')return '<svg viewBox="0 0 32 28" aria-hidden="true"><path d="M9 3v22" stroke="currentColor" stroke-width="4"/><path d="M15 3v22" stroke="currentColor" stroke-width="1.8"/><circle cx="23" cy="10" r="2" fill="currentColor"/><circle cx="23" cy="18" r="2" fill="currentColor"/></svg>';
+      if(style==='repeat-end')return '<svg viewBox="0 0 32 28" aria-hidden="true"><circle cx="9" cy="10" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/><path d="M17 3v22" stroke="currentColor" stroke-width="1.8"/><path d="M23 3v22" stroke="currentColor" stroke-width="4"/></svg>';
+      return '<svg viewBox="0 0 32 28" aria-hidden="true"><path d="M16 3v22" stroke="currentColor" stroke-width="2"/></svg>';
+    }
+    function toggleBarlineEditMode(){
+      barlineEditModeActive=!barlineEditModeActive;
+      if(barlineEditModeActive){systemBreakModeActive=false;endingModeActive=0;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove())}else closeBarlinePalette();
+      syncSelectionToolbar();renderBarlineMarkers();
+    }
+    function openBarlinePalette(boundary,marker,totalMeasures){
+      barlineActiveBoundary=boundary;const current=barlineStyleForBoundary(boundary);
+      barlineChoiceButtons.forEach(button=>{const style=button.dataset.barlineStyle;button.disabled=(boundary===0&&(style==='double'||style==='repeat-end'))||(boundary===totalMeasures&&(style==='double'||style==='repeat-start'));button.setAttribute('aria-pressed',String(style===current))});
+      barlinePalette.hidden=false;requestAnimationFrame(()=>{const markerRect=marker.getBoundingClientRect(),areaRect=scoreArea.getBoundingClientRect(),paletteRect=barlinePalette.getBoundingClientRect(),pad=8;let left=markerRect.left-areaRect.left+markerRect.width/2-paletteRect.width/2,top=markerRect.top-areaRect.top-paletteRect.height-7;if(top<pad)top=markerRect.bottom-areaRect.top+7;left=clamp(left,pad,Math.max(pad,areaRect.width-paletteRect.width-pad));top=clamp(top,pad,Math.max(pad,areaRect.height-paletteRect.height-pad));barlinePalette.style.left=`${left}px`;barlinePalette.style.top=`${top}px`});
+    }
+    function applyBarlineStyle(style){
+      if(!Number.isInteger(barlineActiveBoundary))return;const boundary=barlineActiveBoundary,totalMeasures=scoreRenderer?.GraphicSheet?.MeasureList?.length||measureData().groups.length;
+      if((boundary===0&&(style==='double'||style==='repeat-end'))||(boundary===totalMeasures&&(style==='double'||style==='repeat-start')))return;
+      if(style==='normal')barlineStyles.delete(boundary);else barlineStyles.set(boundary,style);closeBarlinePalette();renderScore();
+    }
+    function renderBarlineMarkers(){
+      osmdContainer.querySelector('.barline-edit-markers')?.remove();
+      if(workMode!=='edit'||!barlineEditModeActive||!scoreRenderer)return;
+      const graphicSheet=scoreRenderer.GraphicSheet,measureList=graphicSheet?.MeasureList||[],musicPages=graphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg');if(!fallbackSvg||!measureList.length)return;
+      const svgByPage=new Map();musicPages.forEach((page,pageIndex)=>{const svg=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`)?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
+      const layer=document.createElement('div');layer.className='barline-edit-markers';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;const containerRect=osmdContainer.getBoundingClientRect(),totalMeasures=measureList.length;
+      const appendBoundary=(boundary)=>{
+        const measureIndex=boundary===0?0:boundary-1,measure=measureList[measureIndex]?.find(item=>item&&item.isVisible?.()!==false);if(!measure)return;const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,stave=measure.stave||measure.getVFStave?.();let x,y;
+        if(stave?.getX&&stave?.getWidth&&stave?.getY){x=boundary===0?stave.getX():stave.getX()+stave.getWidth();y=stave.getY()}else{const box=measure.PositionAndShape;if(!box?.AbsolutePosition)return;const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;x=(box.AbsolutePosition.x-pageOrigin.x+(boundary===0?box.BorderLeft:box.BorderRight))*10*zoom;y=(box.AbsolutePosition.y-pageOrigin.y+box.BorderTop)*10*zoom}
+        const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height,scale=scorePageScale||1;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
+        const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*(svgRect.width/viewWidth)/scale,top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale,style=barlineStyleForBoundary(boundary),marker=document.createElement('button');marker.type='button';marker.className='barline-edit-marker';marker.innerHTML=barlineIconSvg(style,boundary===totalMeasures);marker.setAttribute('aria-label',boundary===0?'Muokkaa alkutahtiviivaa':boundary===totalMeasures?'Muokkaa loppuviivaa':`Muokkaa tahtiviivaa ${boundary}`);marker.style.left=`${clamp(left-21,3,Math.max(3,osmdContainer.scrollWidth-45))}px`;marker.style.top=`${Math.max(3,top-37)}px`;marker.addEventListener('pointerdown',event=>event.stopPropagation());marker.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();openBarlinePalette(boundary,marker,totalMeasures)});layer.appendChild(marker);
+      };
+      for(let boundary=0;boundary<=totalMeasures;boundary+=1)appendBoundary(boundary);osmdContainer.appendChild(layer);
+    }
+    function toggleEndingMode(number){
+      endingModeActive=endingModeActive===number?0:number;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();
+      if(endingModeActive){systemBreakModeActive=false;barlineEditModeActive=false;closeBarlinePalette();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();selectedNoteIndices.clear();renderSelectionOverlay()}
+      syncSelectionToolbar();
+    }
+    function renderedMeasureHitboxes(){
+      if(!scoreRenderer)return[];
+      const graphicSheet=scoreRenderer.GraphicSheet,measureList=graphicSheet?.MeasureList||[],musicPages=graphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg'),containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;if(!fallbackSvg||!measureList.length)return[];
+      const svgByPage=new Map();musicPages.forEach((page,pageIndex)=>{const svg=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`)?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
+      const boxes=[];
+      measureList.forEach((group,index)=>{
+        const measure=(group||[]).find(item=>item&&item.isVisible?.()!==false);if(!measure)return;const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,stave=measure.stave||measure.getVFStave?.();let x,y,width,height;
+        if(stave?.getX&&stave?.getWidth&&stave?.getY){x=stave.getX();y=stave.getY()-26;width=stave.getWidth();height=Math.max(92,Number(stave.getHeight?.())||0)+44}
+        else{const box=measure.PositionAndShape;if(!box?.AbsolutePosition)return;const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;x=(box.AbsolutePosition.x-pageOrigin.x-box.BorderLeft)*10*zoom;y=(box.AbsolutePosition.y-pageOrigin.y-box.BorderTop)*10*zoom;width=(box.BorderLeft+box.BorderRight)*10*zoom;height=Math.max(92,(box.BorderTop+box.BorderBottom)*10*zoom)}
+        const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
+        const fx=(svgRect.width/viewWidth)/scale,fy=(svgRect.height/viewHeight)/scale,left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*fx,top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*fy,w=width*fx,h=height*fy;boxes.push({index,left,top,right:left+w,bottom:top+h,width:w,height:h});
+      });
+      return boxes;
+    }
+    function measureIndexAtPoint(point,boxes=renderedMeasureHitboxes()){
+      const inside=boxes.filter(box=>point.x>=box.left&&point.x<=box.right&&point.y>=box.top&&point.y<=box.bottom);if(inside.length)return inside.sort((a,b)=>a.width*a.height-b.width*b.height)[0].index;
+      let best=null,bestDistance=Infinity;boxes.forEach(box=>{const dx=point.x<box.left?box.left-point.x:point.x>box.right?point.x-box.right:0,dy=point.y<box.top?box.top-point.y:point.y>box.bottom?point.y-box.bottom:0,d=Math.hypot(dx,dy);if(d<bestDistance){bestDistance=d;best=box.index}});return bestDistance<=42?best:null;
+    }
+    function renderEndingRangePreview(){
+      osmdContainer.querySelector('.ending-range-preview-layer')?.remove();if(!endingDrag)return;const boxes=endingDrag.boxes||renderedMeasureHitboxes(),first=Math.min(endingDrag.startMeasure,endingDrag.currentMeasure),last=Math.max(endingDrag.startMeasure,endingDrag.currentMeasure),layer=document.createElement('div');layer.className='ending-range-preview-layer';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;
+      boxes.filter(box=>box.index>=first&&box.index<=last).forEach((box,i)=>{const el=document.createElement('div');el.className='ending-range-preview-box';el.style.left=`${box.left}px`;el.style.top=`${box.top}px`;el.style.width=`${box.width}px`;el.style.height=`${box.height}px`;if(i===0){const label=document.createElement('span');label.className='ending-range-preview-label';label.textContent=`${endingDrag.number}.`;el.appendChild(label)}layer.appendChild(el)});osmdContainer.appendChild(layer);
+    }
+    function beginEndingDrag(e){
+      if(!endingModeActive)return false;const boxes=renderedMeasureHitboxes(),point=contentPointFromPointer(e),measureIndex=measureIndexAtPoint(point,boxes);if(!Number.isInteger(measureIndex))return false;e.preventDefault();e.stopPropagation();endingDrag={pointerId:e.pointerId,number:endingModeActive,startMeasure:measureIndex,currentMeasure:measureIndex,boxes};try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderEndingRangePreview();return true;
+    }
+    function moveEndingDrag(e){
+      if(!endingDrag||endingDrag.pointerId!==e.pointerId)return false;e.preventDefault();e.stopPropagation();const measureIndex=measureIndexAtPoint(contentPointFromPointer(e),endingDrag.boxes);if(Number.isInteger(measureIndex)&&measureIndex!==endingDrag.currentMeasure){endingDrag.currentMeasure=measureIndex;renderEndingRangePreview()}return true;
+    }
+    function finishEndingDrag(e,cancelled=false){
+      if(!endingDrag||endingDrag.pointerId!==e.pointerId)return false;e.preventDefault();e.stopPropagation();const drag=endingDrag;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}
+      if(cancelled){syncSelectionToolbar();return true}
+      const first=Math.min(drag.startMeasure,drag.currentMeasure),last=Math.max(drag.startMeasure,drag.currentMeasure),exact=endings.find(item=>item.number===drag.number&&item.startMeasure===first&&item.endMeasure===last);
+      if(exact){endings=endings.filter(item=>item!==exact);status.textContent=`${drag.number}. maali poistettu`}else{endings=endings.filter(item=>item.endMeasure<first||item.startMeasure>last);endings.push({number:drag.number,startMeasure:first,endMeasure:last});endings.sort((a,b)=>a.startMeasure-b.startMeasure||a.number-b.number);status.textContent=`${drag.number}. maali: tahdit ${first+1}–${last+1}`}
+      endingModeActive=0;syncSelectionToolbar();renderScore();return true;
+    }
+
     function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);renderScore()}
     function removeSystemBreakAfter(measureIndex){systemBreaks.delete(measureIndex);renderScore()}
     function renderSystemBreakMarkers(){
@@ -1143,7 +1270,7 @@
       if(action.type==='add')notes.pop();
       else if(action.type==='delete'){notes.splice(clamp(action.index,0,notes.length),0,{...action.note});slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}))}
       else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.before}}
-      else if(action.type==='clear'){notes=action.notes.map(note=>({...note}));slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}));systemBreaks=new Set(action.systemBreaks||[])}
+      else if(action.type==='clear'){notes=action.notes.map(note=>({...note}));slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}));systemBreaks=new Set(action.systemBreaks||[]);barlineStyles=new Map(action.barlineStyles||[]);endings=(action.endings||[]).map(item=>({...item}))}
       pruneEditRanges();
       renderScore();return action;
     }
@@ -1152,13 +1279,13 @@
       if(action.type==='add')notes.push({...action.note});
       else if(action.type==='delete'){const index=notes.findIndex(note=>note.id===action.note.id);if(index>=0)notes.splice(index,1);pruneEditRanges()}
       else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.after}}
-      else if(action.type==='clear'){notes=[];slurs=[];hairpins=[];systemBreaks.clear();selectedNoteIndices.clear()}
+      else if(action.type==='clear'){notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();endings=[];selectedNoteIndices.clear()}
       rememberAction(action);
     }
     function clearScore(){
       setTieArmed(false);
       if(!notes.length)return;
-      rememberAction({type:'clear',notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),systemBreaks:[...systemBreaks]});notes=[];slurs=[];hairpins=[];systemBreaks.clear();selectedNoteIndices.clear();renderScore();
+      rememberAction({type:'clear',notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],endings:endings.map(item=>({...item}))});notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();endings=[];selectedNoteIndices.clear();renderScore();
     }
     function restoreInstrument(){
       try{
@@ -1545,7 +1672,7 @@
     writeNoteContext.addEventListener('pointerup',e=>e.stopPropagation());
     writeNoteAccidentalButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleWriteNoteAccidental()});
     writeNoteDeleteButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();deleteWriteNote()});
-    score.addEventListener('scroll',()=>{if(writeEditNoteId)positionWriteNoteContext()},{passive:true});
+    score.addEventListener('scroll',()=>{if(writeEditNoteId)positionWriteNoteContext();if(!barlinePalette.hidden)closeBarlinePalette()},{passive:true});
     score.addEventListener('touchstart',startScoreTouchLock,{passive:false,capture:true});
     score.addEventListener('touchmove',moveScoreTouchLock,{passive:false,capture:true});
     score.addEventListener('touchend',endScoreTouchLock,{passive:false,capture:true});
@@ -1580,19 +1707,24 @@
     lineSpacingSlider.addEventListener('pointercancel',e=>finishLineSpacingDrag(e,true),{passive:false});
     lineSpacingSlider.addEventListener('keydown',lineSpacingKey);
     systemBreakButton.addEventListener('click',toggleSystemBreakMode);
+    barlineEditButton.addEventListener('click',toggleBarlineEditMode);
+    endingOneButton.addEventListener('click',()=>toggleEndingMode(1));
+    endingTwoButton.addEventListener('click',()=>toggleEndingMode(2));
+    barlineChoiceButtons.forEach(button=>button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();applyBarlineStyle(button.dataset.barlineStyle)}));
     stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     osmdContainer.addEventListener('pointerdown',e=>{
-      if(workMode!=='edit'||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg'))return;
+      if(workMode!=='edit'||barlineEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker'))return;
+      if(endingModeActive){beginEndingDrag(e);return}
       e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
     osmdContainer.addEventListener('pointermove',e=>{
-      if(workMode!=='edit'||!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||Math.hypot(selectionDrag.current.x-selectionDrag.start.x,selectionDrag.current.y-selectionDrag.start.y)>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));renderSelectionOverlay();
+      if(workMode!=='edit')return;if(endingDrag){moveEndingDrag(e);return}if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||Math.hypot(selectionDrag.current.x-selectionDrag.start.x,selectionDrag.current.y-selectionDrag.start.y)>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));renderSelectionOverlay();
     },{passive:false});
     const finishSelectionGesture=(e,cancelled=false)=>{
       if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();if(cancelled)selectedNoteIndices.clear();else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));else selectAtPoint(selectionDrag.current)}selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     };
-    osmdContainer.addEventListener('pointerup',e=>finishSelectionGesture(e));
-    osmdContainer.addEventListener('pointercancel',e=>finishSelectionGesture(e,true));
+    osmdContainer.addEventListener('pointerup',e=>{if(endingDrag){finishEndingDrag(e);return}finishSelectionGesture(e)});
+    osmdContainer.addEventListener('pointercancel',e=>{if(endingDrag){finishEndingDrag(e,true);return}finishSelectionGesture(e,true)});
   </script>
 </body>
 </html>
