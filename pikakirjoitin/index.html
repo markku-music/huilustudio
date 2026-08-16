@@ -54,9 +54,7 @@
     .line-spacing-thumb::before{content:'';width:18px;height:8px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.8}
     .line-spacing-slider:focus-visible{border-radius:12px;box-shadow:0 0 0 3px #8d6ae755}
     .line-spacing-preview{position:absolute;z-index:5;inset:0;pointer-events:none;overflow:visible}
-    .line-spacing-preview-strip{position:absolute;left:0;width:100%;overflow:hidden;will-change:transform;pointer-events:none}
-    .line-spacing-preview-source{position:absolute;left:0;width:100%;min-height:1123px;pointer-events:none}
-    .line-spacing-preview-source svg{display:block;max-width:100%}
+    .line-spacing-preview-canvas{position:absolute;left:0;top:0;display:block;pointer-events:none;contain:strict}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
@@ -341,9 +339,9 @@
     };
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
-    let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingPreview=null,lineSpacingCommitRunning=false;
+    let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let paginationTestActive=false,paginationTestMeasureCount=48;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -524,7 +522,7 @@
         systemBreakModeActive=false;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
       }
       syncWorkModeUI();
-      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry()});
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}});
     }
     function updatePaginationTestDiagnostics(){
       if(!paginationTestReadout)return;
@@ -569,12 +567,13 @@
       try{
         while(scoreRenderPending){
           scoreRenderPending=false;
+          invalidateLineSpacingRasterCache();
           scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
           applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
           await scoreRenderer.load(buildMusicXml());
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();updatePaginationTestDiagnostics();
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();updatePaginationTestDiagnostics();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -698,53 +697,61 @@
       return systems.filter((item,index,array)=>index===0||Math.abs(item.rowY-array[index-1].rowY)>2);
     }
     function renderedSystemRowYs(){return renderedSystemGeometry().map(item=>item.rowY)}
-    function buildLineSpacingPreview(){
-      destroyLineSpacingPreview(false);
-      const systems=renderedSystemGeometry(),rows=systems.map(item=>item.rowY),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';
-      const strips=[];
-      if(rows.length>=2){
-        const separators=[];
-        for(let i=0;i<systems.length-1;i++){
-          const upper=systems[i],lower=systems[i+1],mid=(upper.rowY+lower.rowY)/2;
-          // Prefer the actual whitespace between OSMD system bounding boxes. This
-          // prevents a low slur/dynamic from the upper system being clipped into
-          // (and then moving with) the next preview strip.
-          const upperBottom=Number.isFinite(upper.bottom)?upper.bottom:null,lowerTop=Number.isFinite(lower.top)?lower.top:null;
-          let separator=mid;
-          if(upperBottom!==null&&lowerTop!==null&&lowerTop>upperBottom+2)separator=(upperBottom+lowerTop)/2;
-          else if(upperBottom!==null&&upperBottom<lower.rowY-2)separator=Math.max(mid,upperBottom+2);
-          else if(lowerTop!==null&&lowerTop>upper.rowY+2)separator=Math.min(mid,lowerTop-2);
-          separators.push(clamp(separator,upper.rowY+2,lower.rowY-2));
-        }
-        rows.forEach((rowY,index)=>{
-          const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],strip=document.createElement('div'),source=osmdContainer.cloneNode(true);
-          strip.className='line-spacing-preview-strip';strip.style.top=`${top}px`;strip.style.height=`${Math.max(1,bottom-top)}px`;source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());source.style.top=`${-top}px`;strip.appendChild(source);preview.appendChild(strip);strips.push(strip);
-        });
-        lineSpacingPreview={element:preview,strips,startValue:lineSpacingDragStartValue,mode:'strips'};
-      }else{
-        const source=osmdContainer.cloneNode(true);source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());source.style.top='0';source.style.transformOrigin='50% 0';source.style.willChange='transform';preview.appendChild(source);lineSpacingPreview={element:preview,source,startValue:lineSpacingDragStartValue,mode:'scale'};
+    function lineSpacingSeparators(systems,totalHeight){
+      const separators=[];
+      for(let i=0;i<systems.length-1;i++){
+        const upper=systems[i],lower=systems[i+1],mid=(upper.rowY+lower.rowY)/2;
+        const upperBottom=Number.isFinite(upper.bottom)?upper.bottom:null,lowerTop=Number.isFinite(lower.top)?lower.top:null;
+        let separator=mid;
+        if(upperBottom!==null&&lowerTop!==null&&lowerTop>upperBottom+2)separator=(upperBottom+lowerTop)/2;
+        else if(upperBottom!==null&&upperBottom<lower.rowY-2)separator=Math.max(mid,upperBottom+2);
+        else if(lowerTop!==null&&lowerTop>upper.rowY+2)separator=Math.min(mid,lowerTop-2);
+        separators.push(clamp(separator,upper.rowY+2,lower.rowY-2));
       }
-      scorePage.appendChild(preview);osmdContainer.style.visibility='hidden';return lineSpacingPreview;
+      return separators;
+    }
+    function invalidateLineSpacingRasterCache(){lineSpacingRasterGeneration+=1;lineSpacingRasterCache=null;lineSpacingRasterCachePromise=null}
+    function svgSnapshotImage(svg){
+      return new Promise((resolve,reject)=>{
+        const clone=svg.cloneNode(true);clone.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+        const blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),image=new Image();
+        image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};image.onerror=error=>{URL.revokeObjectURL(url);reject(error)};image.src=url;
+      });
+    }
+    async function createLineSpacingRasterCache(generation=lineSpacingRasterGeneration){
+      const systems=renderedSystemGeometry(),rows=systems.map(item=>item.rowY),width=Math.max(1,Math.ceil(osmdContainer.clientWidth||A4_WIDTH)),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),pixelScale=Math.min(1,Math.sqrt(LINE_SPACING_PREVIEW_MAX_PIXELS/Math.max(1,width*totalHeight))),pixelWidth=Math.max(1,Math.round(width*pixelScale)),pixelHeight=Math.max(1,Math.round(totalHeight*pixelScale)),source=document.createElement('canvas');
+      source.width=pixelWidth;source.height=pixelHeight;const ctx=source.getContext('2d',{alpha:true,desynchronized:true});if(!ctx)throw new Error('Canvas-esikatselua ei voitu avata');
+      const containerRect=osmdContainer.getBoundingClientRect(),pageScale=scorePageScale||1,pages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')],pageSources=pages.length?pages:[...osmdContainer.querySelectorAll('svg')];
+      for(const page of pageSources){
+        if(generation!==lineSpacingRasterGeneration)return null;const svg=page.matches?.('svg')?page:page.querySelector('svg');if(!svg)continue;const rect=svg.getBoundingClientRect(),left=(rect.left-containerRect.left)/pageScale+osmdContainer.scrollLeft,top=(rect.top-containerRect.top)/pageScale+osmdContainer.scrollTop,w=rect.width/pageScale,h=rect.height/pageScale;if(!(w>0&&h>0))continue;
+        try{const image=await svgSnapshotImage(svg);if(generation!==lineSpacingRasterGeneration)return null;ctx.drawImage(image,Math.round(left*pixelScale),Math.round(top*pixelScale),Math.max(1,Math.round(w*pixelScale)),Math.max(1,Math.round(h*pixelScale)))}catch(error){console.warn('Rivivälin canvas-esikatselu: SVG-snapshot epäonnistui',error)}
+      }
+      if(generation!==lineSpacingRasterGeneration)return null;return {source,systems,rows,separators:lineSpacingSeparators(systems,totalHeight),width,totalHeight,pixelScale,pixelWidth,pixelHeight,generation};
+    }
+    function ensureLineSpacingRasterCache(){
+      if(lineSpacingRasterCache?.generation===lineSpacingRasterGeneration)return Promise.resolve(lineSpacingRasterCache);if(lineSpacingRasterCachePromise)return lineSpacingRasterCachePromise;const generation=lineSpacingRasterGeneration;
+      lineSpacingRasterCachePromise=createLineSpacingRasterCache(generation).then(cache=>{if(cache&&generation===lineSpacingRasterGeneration)lineSpacingRasterCache=cache;return cache}).finally(()=>{if(generation===lineSpacingRasterGeneration)lineSpacingRasterCachePromise=null});return lineSpacingRasterCachePromise;
+    }
+    function queueLineSpacingRasterCache(){
+      const generation=lineSpacingRasterGeneration,run=()=>{if(generation!==lineSpacingRasterGeneration||workMode!=='edit'||scoreRendering)return;ensureLineSpacingRasterCache().catch(()=>{})};if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:450});else setTimeout(run,80);
+    }
+    async function buildLineSpacingPreview(){
+      destroyLineSpacingPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||lineSpacingPointerId===null)return null;
+      const preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight}px`;preview.appendChild(canvas);scorePage.appendChild(preview);lineSpacingPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:lineSpacingDragStartValue};osmdContainer.style.visibility='hidden';updateLineSpacingPreview(lineSpacingValue);return lineSpacingPreview;
     }
     function updateLineSpacingPreview(value){
-      if(!lineSpacingPreview)return;
-      const unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;
-      if(lineSpacingPreview.mode==='strips')lineSpacingPreview.strips.forEach((strip,index)=>{strip.style.transform=`translate3d(0,${index*unitDelta}px,0)`});
-      else if(lineSpacingPreview.source){const scaleY=clamp(1+unitDelta/520,.88,1.22);lineSpacingPreview.source.style.transform=`scaleY(${scaleY})`}
+      if(!lineSpacingPreview?.ctx)return;const {ctx,cache}=lineSpacingPreview,{source,rows,separators,pixelScale,pixelWidth,pixelHeight,totalHeight}=cache,unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;ctx.clearRect(0,0,pixelWidth,pixelHeight);if(rows.length<2){ctx.drawImage(source,0,0);return}
+      rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],sy=Math.max(0,Math.round(top*pixelScale)),ey=Math.min(pixelHeight,Math.round(bottom*pixelScale)),sh=Math.max(1,ey-sy),dy=Math.round((top+index*unitDelta)*pixelScale);ctx.drawImage(source,0,sy,pixelWidth,sh,0,dy,pixelWidth,sh)});
     }
-    function destroyLineSpacingPreview(showOriginal=true){
-      lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal)osmdContainer.style.visibility='';
-    }
+    function scheduleLineSpacingPreview(value){lineSpacingPreviewPendingValue=value;if(lineSpacingPreviewFrame)return;lineSpacingPreviewFrame=requestAnimationFrame(()=>{lineSpacingPreviewFrame=0;updateLineSpacingPreview(lineSpacingPreviewPendingValue)})}
+    function destroyLineSpacingPreview(showOriginal=true){if(lineSpacingPreviewFrame){cancelAnimationFrame(lineSpacingPreviewFrame);lineSpacingPreviewFrame=0}lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
     function beginLineSpacingDrag(e){
-      if(workMode!=='edit'||lineSpacingCommitRunning||scoreRendering||(e.pointerType==='mouse'&&e.button!==0))return;
-      e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}buildLineSpacingPreview();setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY));
+      if(workMode!=='edit'||lineSpacingCommitRunning||scoreRendering||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;lineSpacingPreviewPendingValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}buildLineSpacingPreview().then(()=>{if(lineSpacingPointerId===e.pointerId)scheduleLineSpacingPreview(lineSpacingValue)}).catch(error=>console.warn('Rivivälin live-esikatselu ei käynnistynyt',error));setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY));
     }
-    function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();updateLineSpacingPreview(lineSpacingValue)}
+    function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();scheduleLineSpacingPreview(lineSpacingValue)}
     function moveLineSpacingDrag(e){if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY))}
     async function finishLineSpacingDrag(e,cancelled=false){
-      if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();try{if(lineSpacingSlider.hasPointerCapture(e.pointerId))lineSpacingSlider.releasePointerCapture(e.pointerId)}catch{}lineSpacingPointerId=null;
-      if(cancelled)lineSpacingValue=lineSpacingDragStartValue;syncLineSpacingSlider();updateLineSpacingPreview(lineSpacingValue);lineSpacingCommitRunning=true;applyLineSpacingRules();
-      try{await renderScore()}finally{destroyLineSpacingPreview(true);lineSpacingCommitRunning=false;if(workMode==='edit')refreshEditGeometry()}
+      if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();try{if(lineSpacingSlider.hasPointerCapture(e.pointerId))lineSpacingSlider.releasePointerCapture(e.pointerId)}catch{}lineSpacingPointerId=null;if(cancelled)lineSpacingValue=lineSpacingDragStartValue;syncLineSpacingSlider();updateLineSpacingPreview(lineSpacingValue);lineSpacingCommitRunning=true;applyLineSpacingRules();try{await renderScore()}finally{destroyLineSpacingPreview(true);lineSpacingCommitRunning=false;if(workMode==='edit')refreshEditGeometry()}
     }
     function lineSpacingKey(e){
       let next=lineSpacingValue,step=.5;
