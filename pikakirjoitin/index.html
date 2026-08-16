@@ -1290,12 +1290,15 @@
       const center=editTouchCenterFromTouches(e.touches);if(!center)return;
       cancelSelectionForPinch();
       const pageRect=scorePage.getBoundingClientRect(),displayScale=scoreDisplayScale()||1;
-      editPinch={startDistance:center.distance,startZoom:editViewZoom,anchorX:(center.x-pageRect.left)/displayScale,anchorY:(center.y-pageRect.top)/displayScale};
+      editPinch={lastDistance:center.distance,anchorX:(center.x-pageRect.left)/displayScale,anchorY:(center.y-pageRect.top)/displayScale};
       editPinchConsumed=true;
     }
     function applyEditPinch(center){
       if(!editPinch||workMode!=='edit')return;
-      const nextZoom=clamp(editPinch.startZoom*(center.distance/editPinch.startDistance),EDIT_VIEW_ZOOM_MIN,EDIT_VIEW_ZOOM_MAX);
+      const previousDistance=Math.max(1,editPinch.lastDistance||center.distance);
+      const distanceRatio=center.distance/previousDistance;
+      editPinch.lastDistance=center.distance;
+      const nextZoom=clamp(editViewZoom*distanceRatio,EDIT_VIEW_ZOOM_MIN,EDIT_VIEW_ZOOM_MAX);
       editViewZoom=nextZoom;applyScorePageDisplayScale();
       const pageRect=scorePage.getBoundingClientRect(),displayScale=scoreDisplayScale()||1;
       const actualX=pageRect.left+editPinch.anchorX*displayScale,actualY=pageRect.top+editPinch.anchorY*displayScale;
