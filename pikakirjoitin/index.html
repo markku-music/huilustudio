@@ -610,25 +610,26 @@
       const rect=lineSpacingSlider.getBoundingClientRect(),thumbHeight=lineSpacingThumb.offsetHeight,top=rect.top+10+thumbHeight/2,bottom=rect.bottom-10-thumbHeight/2,ratio=clamp((clientY-top)/Math.max(1,bottom-top),0,1);
       return LINE_SPACING_MIN+ratio*(LINE_SPACING_MAX-LINE_SPACING_MIN);
     }
-    function renderedSystemRowYs(){
+    function renderedSystemGeometry(){
       if(!scoreRenderer)return[];
       const graphicSheet=scoreRenderer.GraphicSheet,measureList=graphicSheet?.MeasureList||[],musicPages=graphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg');
       if(!fallbackSvg||!measureList.length)return[];
       const svgByPage=new Map();
       musicPages.forEach((page,pageIndex)=>{const pageElement=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`),svg=pageElement?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
-      const containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,seen=new WeakSet(),rows=[];
+      const containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,seen=new WeakSet(),systems=[];
+      const toContainerY=(value,svgRect,viewBox,viewHeight)=>
+        (svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(value-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
       measureList.forEach(row=>row?.forEach(measure=>{
         if(!measure||measure.isVisible?.()===false)return;
         const staffLine=measure.ParentStaffLine;if(!staffLine||seen.has(staffLine))return;
-        const musicPage=measure.ParentMusicSystem?.Parent||staffLine.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;
+        const musicSystem=measure.ParentMusicSystem||staffLine.ParentMusicSystem,musicPage=musicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;
         if(!svgRect.height||!viewHeight||!scale)return;
         const stave=measure.stave||measure.getVFStave?.();
         let rawY;
         if(stave?.getY){
           rawY=stave.getY();
         }else{
-          const first=staffLine.Measures?.find(item=>item&&item.isVisible?.()!==false);
-          const firstStave=first&&(first.stave||first.getVFStave?.());
+          const first=staffLine.Measures?.find(item=>item&&item.isVisible?.()!==false),firstStave=first&&(first.stave||first.getVFStave?.());
           if(firstStave?.getY)rawY=firstStave.getY();
           else{
             const source=first||measure,box=source?.PositionAndShape,pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;
@@ -637,18 +638,41 @@
         }
         if(!Number.isFinite(rawY))return;
         seen.add(staffLine);
-        const y=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(rawY-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
-        if(Number.isFinite(y))rows.push(y);
+        const rowY=toContainerY(rawY,svgRect,viewBox,viewHeight);
+        let top=null,bottom=null;
+        const systemBox=musicSystem?.PositionAndShape,pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;
+        if(systemBox?.AbsolutePosition){
+          const absY=(systemBox.AbsolutePosition.y-pageOrigin.y)*10*zoom;
+          const a=toContainerY(absY+(Number(systemBox.BorderTop)||0)*10*zoom,svgRect,viewBox,viewHeight);
+          const b=toContainerY(absY+(Number(systemBox.BorderBottom)||0)*10*zoom,svgRect,viewBox,viewHeight);
+          if(Number.isFinite(a)&&Number.isFinite(b)){top=Math.min(a,b);bottom=Math.max(a,b)}
+        }
+        if(Number.isFinite(rowY))systems.push({rowY,top,bottom});
       }));
-      return rows.sort((a,b)=>a-b).filter((value,index,array)=>index===0||Math.abs(value-array[index-1])>2);
+      systems.sort((a,b)=>a.rowY-b.rowY);
+      return systems.filter((item,index,array)=>index===0||Math.abs(item.rowY-array[index-1].rowY)>2);
     }
+    function renderedSystemRowYs(){return renderedSystemGeometry().map(item=>item.rowY)}
     function buildLineSpacingPreview(){
       destroyLineSpacingPreview(false);
-      const rows=renderedSystemRowYs(),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';
+      const systems=renderedSystemGeometry(),rows=systems.map(item=>item.rowY),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';
       const strips=[];
       if(rows.length>=2){
+        const separators=[];
+        for(let i=0;i<systems.length-1;i++){
+          const upper=systems[i],lower=systems[i+1],mid=(upper.rowY+lower.rowY)/2;
+          // Prefer the actual whitespace between OSMD system bounding boxes. This
+          // prevents a low slur/dynamic from the upper system being clipped into
+          // (and then moving with) the next preview strip.
+          const upperBottom=Number.isFinite(upper.bottom)?upper.bottom:null,lowerTop=Number.isFinite(lower.top)?lower.top:null;
+          let separator=mid;
+          if(upperBottom!==null&&lowerTop!==null&&lowerTop>upperBottom+2)separator=(upperBottom+lowerTop)/2;
+          else if(upperBottom!==null&&upperBottom<lower.rowY-2)separator=Math.max(mid,upperBottom+2);
+          else if(lowerTop!==null&&lowerTop>upper.rowY+2)separator=Math.min(mid,lowerTop-2);
+          separators.push(clamp(separator,upper.rowY+2,lower.rowY-2));
+        }
         rows.forEach((rowY,index)=>{
-          const top=index===0?0:(rows[index-1]+rowY)/2,bottom=index===rows.length-1?totalHeight:(rowY+rows[index+1])/2,strip=document.createElement('div'),source=osmdContainer.cloneNode(true);
+          const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],strip=document.createElement('div'),source=osmdContainer.cloneNode(true);
           strip.className='line-spacing-preview-strip';strip.style.top=`${top}px`;strip.style.height=`${Math.max(1,bottom-top)}px`;source.removeAttribute('id');source.className='line-spacing-preview-source';source.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));source.querySelectorAll('.note-selection-layer,.system-break-markers,.system-break-candidate-svg').forEach(element=>element.remove());source.style.top=`${-top}px`;strip.appendChild(source);preview.appendChild(strip);strips.push(strip);
         });
         lineSpacingPreview={element:preview,strips,startValue:lineSpacingDragStartValue,mode:'strips'};
