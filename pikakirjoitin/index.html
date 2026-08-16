@@ -32,7 +32,7 @@
     .score-info-row{position:absolute;z-index:2;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
     .score-tempo{min-width:0;text-align:left;overflow-wrap:anywhere}
     .score-composer{min-width:0;text-align:right;overflow-wrap:anywhere}
-    #osmdContainer{width:100%;min-height:1123px;pointer-events:none}
+    #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
     .score-prompt{display:none!important}
     .modifier-rail{position:absolute;z-index:12;top:8px;left:0;width:58px;display:grid;gap:6px;padding:7px 5px 7px 6px;border:1px solid #677281;border-left:0;border-radius:0 13px 13px 0;background:#20242af2;box-shadow:5px 7px 18px #10182045;transform:translateX(-105%);opacity:0;visibility:hidden;pointer-events:none;touch-action:none;-webkit-touch-callout:none;transition:transform .16s ease-out,opacity .16s ease-out,visibility 0s linear .16s}
@@ -69,6 +69,9 @@
     .note-selection-marquee{position:absolute;border:2px dashed #7045d0;border-radius:8px;background:#8653f61a}
     .system-break-markers{position:absolute;z-index:8;inset:0 auto auto 0;pointer-events:none}
     .system-break-marker{position:absolute;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #aa8cff;border-radius:50%;background:#f1ebff;color:#5d35b5;box-shadow:0 2px 7px #52309c2e;font-size:20px;font-weight:800;line-height:1;pointer-events:auto;touch-action:manipulation;cursor:pointer}
+    .system-break-candidate-marker{position:absolute;width:36px;height:36px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#ffffffc9;color:#765da9;box-shadow:0 1px 5px #52309c26;font:700 23px/1 system-ui,sans-serif;opacity:.88;pointer-events:auto;touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none}
+    .system-break-candidate-marker:hover,.system-break-candidate-marker:focus-visible{background:#f1ebff;color:#5d35b5;opacity:1;outline:2px solid #aa8cff;outline-offset:1px}
+    .system-break-candidate-marker:active{transform:scale(.94)}
     .system-break-candidate-svg{color:#765da9;opacity:.78;pointer-events:all;touch-action:manipulation;cursor:pointer}
     .system-break-candidate-svg text{fill:currentColor;font:700 23px/1 system-ui,sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
@@ -126,7 +129,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.system-break-markers,.system-break-candidate-svg,.note-selection-layer,#status,.score-prompt{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.note-selection-layer,#status,.score-prompt{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block}
       .score-area{display:block;padding:0}
@@ -580,30 +583,102 @@
     function toggleSlurForSelection(){const range=getSelectionRange();if(!range)return;const existing=findSelectionSlur(range);if(existing)slurs=slurs.filter(item=>item!==existing);else slurs.push({startId:range.startId,endId:range.endId});renderScore()}
     function toggleHairpinForSelection(type){const range=getSelectionRange();if(!range)return;const existing=findSelectionHairpin(type,range);hairpins=hairpins.filter(item=>!(item.startId===range.startId&&item.endId===range.endId));if(!existing)hairpins.push({type,startId:range.startId,endId:range.endId});renderScore()}
     function toggleTiePlacement(){const index=getSelectedTieStartIndex();if(!Number.isInteger(index))return;const current=notes[index].tiePlacement==='above'?'above':notes[index].tiePlacement==='below'?'below':renderedTiePlacement(index);notes[index].tiePlacement=current==='above'?'below':'above';renderScore()}
-    function toggleSystemBreakMode(){systemBreakModeActive=!systemBreakModeActive;syncSelectionToolbar();renderSystemBreakMarkers()}
+    function toggleSystemBreakMode(){
+      systemBreakModeActive=!systemBreakModeActive;
+      syncSelectionToolbar();
+      renderSystemBreakMarkers();
+    }
     function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);renderScore()}
     function removeSystemBreakAfter(measureIndex){systemBreaks.delete(measureIndex);renderScore()}
     function renderSystemBreakMarkers(){
-      osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());
+      osmdContainer.querySelector('.system-break-markers')?.remove();
+      osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());
       if(workMode!=='edit'||!systemBreakModeActive||!scoreRenderer)return;
-      const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],musicPages=scoreRenderer.GraphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg');if(!fallbackSvg||!measureList.length)return;
-      const svgByPage=new Map();musicPages.forEach((page,pageIndex)=>{const svg=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1} svg`);if(svg)svgByPage.set(page,svg)});
-      const layer=document.createElement('div');layer.className='system-break-markers';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;const containerRect=osmdContainer.getBoundingClientRect(),rowYByStaffLine=new WeakMap();
+
+      const graphicSheet=scoreRenderer.GraphicSheet;
+      const measureList=graphicSheet?.MeasureList||[];
+      const musicPages=graphicSheet?.MusicPages||[];
+      const fallbackSvg=osmdContainer.querySelector('svg');
+      if(!fallbackSvg||measureList.length<1)return;
+
+      const svgByPage=new Map();
+      musicPages.forEach((page,pageIndex)=>{
+        const pageElement=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`);
+        const svg=pageElement?.querySelector('svg');
+        if(svg)svgByPage.set(page,svg);
+      });
+
+      const layer=document.createElement('div');
+      layer.className='system-break-markers';
+      layer.style.width=`${osmdContainer.scrollWidth}px`;
+      layer.style.height=`${osmdContainer.scrollHeight}px`;
+      const containerRect=osmdContainer.getBoundingClientRect();
+      const rowYByStaffLine=new WeakMap();
+
       const appendMarker=(measureIndex,candidate)=>{
-        const measure=measureList[measureIndex-1]?.find(item=>item&&item.isVisible?.()!==false);if(!measure)return;
-        const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,stave=measure.stave||measure.getVFStave?.();let x,y;
-        if(stave?.getX&&stave?.getWidth&&stave?.getY){x=stave.getX()+stave.getWidth();y=stave.getY()}else return;
-        if(candidate){
-          const ns='http://www.w3.org/2000/svg',zoom=Number(scoreRenderer.zoom)||1,staffLine=measure.ParentStaffLine;if(staffLine&&!rowYByStaffLine.has(staffLine)){const first=staffLine.Measures?.find(item=>(item.stave||item.getVFStave?.())?.getY),firstStave=first&&(first.stave||first.getVFStave?.());rowYByStaffLine.set(staffLine,firstStave?.getY?.()??y)}
-          const markerX=x/zoom,markerY=(staffLine?(rowYByStaffLine.get(staffLine)??y):y)/zoom,group=document.createElementNS(ns,'g');group.classList.add('system-break-candidate-svg');group.setAttribute('role','button');group.setAttribute('tabindex','0');group.setAttribute('aria-label',`Tee rivinvaihto tahdin ${measureIndex} jälkeen`);
-          const hit=document.createElementNS(ns,'rect');hit.setAttribute('x',String(markerX-18));hit.setAttribute('y',String(markerY-38));hit.setAttribute('width','36');hit.setAttribute('height','36');hit.setAttribute('fill','transparent');const plus=document.createElementNS(ns,'text');plus.setAttribute('x',String(markerX));plus.setAttribute('y',String(markerY-12));plus.setAttribute('text-anchor','middle');plus.textContent='+';
-          const place=e=>{e.preventDefault();e.stopPropagation();placeSystemBreakAfter(measureIndex)};group.addEventListener('pointerdown',e=>e.stopPropagation());group.addEventListener('click',place);group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')place(e)});group.append(hit,plus);svg.appendChild(group);return;
+        const measure=measureList[measureIndex-1]?.find(item=>item&&item.isVisible?.()!==false);
+        if(!measure)return;
+
+        const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent;
+        const svg=svgByPage.get(musicPage)||fallbackSvg;
+        const stave=measure.stave||measure.getVFStave?.();
+        let x;
+        let y;
+        if(stave?.getX&&stave?.getWidth&&stave?.getY){
+          x=stave.getX()+stave.getWidth();
+          y=stave.getY();
+        }else{
+          const box=measure.PositionAndShape;
+          if(!box?.AbsolutePosition)return;
+          const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0};
+          const zoom=Number(scoreRenderer.zoom)||1;
+          x=(box.AbsolutePosition.x-pageOrigin.x+box.BorderRight)*10*zoom;
+          y=(box.AbsolutePosition.y-pageOrigin.y+box.BorderTop)*10*zoom;
         }
-        const marker=document.createElement('button');marker.type='button';marker.className='system-break-marker';marker.textContent='↵';marker.setAttribute('aria-label',`Poista rivinvaihto tahdin ${measureIndex} jälkeen`);
-        const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height,scale=scorePageScale||1;if(!viewWidth||!viewHeight)return;
-        const left=(svgRect.left-containerRect.left)/scale+(x-(viewBox?.x||0))*(svgRect.width/viewWidth)/scale,top=(svgRect.top-containerRect.top)/scale+(y-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;marker.style.left=`${clamp(left-40,4,osmdContainer.clientWidth-40)}px`;marker.style.top=`${Math.max(4,top-34)}px`;marker.addEventListener('pointerdown',e=>e.stopPropagation());marker.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();removeSystemBreakAfter(measureIndex)});layer.appendChild(marker);
+
+        const staffLine=measure.ParentStaffLine;
+        if(staffLine&&!rowYByStaffLine.has(staffLine)){
+          const first=staffLine.Measures?.find(item=>(item?.stave||item?.getVFStave?.())?.getY);
+          const firstStave=first&&(first.stave||first.getVFStave?.());
+          rowYByStaffLine.set(staffLine,firstStave?.getY?.()??y);
+        }
+        const rowY=staffLine?(rowYByStaffLine.get(staffLine)??y):y;
+        const svgRect=svg.getBoundingClientRect();
+        const viewBox=svg.viewBox?.baseVal;
+        const viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width;
+        const viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;
+        const scale=scorePageScale||1;
+        if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
+        const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*(svgRect.width/viewWidth)/scale;
+        const top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(rowY-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
+
+        const marker=document.createElement('button');
+        marker.type='button';
+        marker.textContent=candidate?'+':'↵';
+        marker.className=candidate?'system-break-candidate-marker':'system-break-marker';
+        const actionLabel=candidate?`Tee rivinvaihto tahdin ${measureIndex} jälkeen`:`Poista rivinvaihto tahdin ${measureIndex} jälkeen`;
+        marker.setAttribute('aria-label',actionLabel);
+        marker.title=actionLabel;
+        const markerOffset=candidate?18:40;
+        const maximumLeft=Math.max(4,osmdContainer.scrollWidth-40);
+        marker.style.left=`${clamp(left-markerOffset,4,maximumLeft)}px`;
+        marker.style.top=`${Math.max(4,top-(candidate?40:34))}px`;
+        marker.addEventListener('pointerdown',event=>event.stopPropagation());
+        marker.addEventListener('click',event=>{
+          event.preventDefault();
+          event.stopPropagation();
+          if(candidate)placeSystemBreakAfter(measureIndex);else removeSystemBreakAfter(measureIndex);
+        });
+        layer.appendChild(marker);
       };
-      [...systemBreaks].sort((a,b)=>a-b).forEach(index=>appendMarker(index,false));measureList.forEach((_,position)=>{const index=position+1;if(!systemBreaks.has(index))appendMarker(index,true)});osmdContainer.appendChild(layer);
+
+      [...systemBreaks].sort((a,b)=>a-b).forEach(index=>appendMarker(index,false));
+      measureList.forEach((_,position)=>{
+        if(position>=measureList.length-1)return;
+        const index=position+1;
+        if(!systemBreaks.has(index))appendMarker(index,true);
+      });
+      osmdContainer.appendChild(layer);
     }
     async function toggleStretchLastLine(){if(stretchCommandRunning)return;stretchLastLine=!stretchLastLine;stretchCommandRunning=true;syncSelectionToolbar();try{await renderScore();await new Promise(resolve=>requestAnimationFrame(resolve));await renderScore()}finally{stretchCommandRunning=false;syncSelectionToolbar()}}
     function rememberAction(action){
