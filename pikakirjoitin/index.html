@@ -25,13 +25,13 @@
     .workspace{min-height:0;flex:1;display:flex;flex-direction:column}
     .score-area{position:relative;min-height:0;flex:7 1 70%;display:flex;padding:0 16px 12px}
     .score{position:relative;width:100%;min-height:120px;overflow:auto;padding:8px 0;border:2px solid #9ba6b4;border-radius:12px;background:#dfe4ea;color:#18202a;box-shadow:0 10px 28px #1c273520;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;cursor:pointer}
-    .score:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .score:focus-visible{outline:none}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
-    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538}
+    .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:none;outline:none;border:none}
     .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
     .score-info-row{position:absolute;z-index:6;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
-    .score-tempo{min-width:0;text-align:left;overflow-wrap:anywhere}
-    .score-composer{min-width:0;text-align:right;overflow-wrap:anywhere}
+    .score-tempo{grid-column:1;min-width:0;text-align:left;overflow-wrap:anywhere}
+    .score-composer{grid-column:2;min-width:0;text-align:right;overflow-wrap:anywhere}
     #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
     .score-prompt{display:none!important}
@@ -199,11 +199,11 @@
         <label class="field wide" for="titleInput">
           <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
         </label>
-        <label class="field" for="composerInput">
-          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
-        </label>
         <label class="field" for="tempoInput">
           <input id="tempoInput" type="text" autocomplete="off" placeholder="Tempoteksti" aria-label="Tempoteksti">
+        </label>
+        <label class="field" for="composerInput">
+          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
         </label>
         <label class="field" for="keySignatureSelect">
           <select id="keySignatureSelect" aria-label="Sävellaji">
