@@ -354,7 +354,7 @@
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75,EDIT_VIEW_ZOOM_MIN=1,EDIT_VIEW_ZOOM_MAX=2.5;
-    const scorePointers=new Set(),editZoomPointers=new Map();
+    const scorePointers=new Set();
     let editPinch=null,editPinchSelectionSnapshot=null,editPinchConsumed=false,editPinchSuppressClickUntil=0;
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -1265,20 +1265,30 @@
       if(e.cancelable)e.preventDefault();
       keepOuterViewportFixed();
     }
-    function editTouchCenter(points){
-      const values=[...points.values()];if(values.length<2)return null;
-      const a=values[0],b=values[1];return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))};
+    function editTouchCenterFromTouches(touches){
+      if(!touches||touches.length<2)return null;
+      const a=touches[0],b=touches[1];
+      return {x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2,distance:Math.max(1,Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY))};
     }
     function cancelSelectionForPinch(){
       if(selectionDrag){try{if(osmdContainer.hasPointerCapture(selectionDrag.pointerId))osmdContainer.releasePointerCapture(selectionDrag.pointerId)}catch{}selectionDrag=null}
       if(editPinchSelectionSnapshot)selectedNoteIndices=new Set(editPinchSelectionSnapshot);
       renderSelectionOverlay();
     }
-    function beginEditPinch(){
-      if(workMode!=='edit'||editZoomPointers.size<2||editPinch)return;
-      const center=editTouchCenter(editZoomPointers);if(!center)return;
+    function guardEditTouchPointerDown(e){
+      if(workMode!=='edit'||e.pointerType!=='touch')return;
+      if(e.isPrimary){
+        if(!editPinchConsumed)editPinchSelectionSnapshot=new Set(selectedNoteIndices);
+        return;
+      }
+      // Android/Chrome may dispatch the second pointerdown before touchstart.
+      // Stop it here so the second finger cannot become a selection drag.
+      e.preventDefault();e.stopPropagation();cancelSelectionForPinch();
+    }
+    function beginEditPinchFromTouches(e){
+      if(workMode!=='edit'||e.touches.length<2||editPinch)return;
+      const center=editTouchCenterFromTouches(e.touches);if(!center)return;
       cancelSelectionForPinch();
-      for(const pointerId of editZoomPointers.keys())try{score.setPointerCapture(pointerId)}catch{}
       const pageRect=scorePage.getBoundingClientRect(),displayScale=scoreDisplayScale()||1;
       editPinch={startDistance:center.distance,startZoom:editViewZoom,anchorX:(center.x-pageRect.left)/displayScale,anchorY:(center.y-pageRect.top)/displayScale};
       editPinchConsumed=true;
@@ -1291,32 +1301,36 @@
       const actualX=pageRect.left+editPinch.anchorX*displayScale,actualY=pageRect.top+editPinch.anchorY*displayScale;
       score.scrollLeft+=actualX-center.x;score.scrollTop+=actualY-center.y;
     }
-    function startEditZoomPointer(e){
-      if(workMode!=='edit'||e.pointerType!=='touch')return;
-      if(!editZoomPointers.size){editPinchSelectionSnapshot=new Set(selectedNoteIndices);editPinchConsumed=false}
-      editZoomPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(editZoomPointers.size>=2){e.preventDefault();e.stopPropagation();beginEditPinch()}
-    }
-    function moveEditZoomPointer(e){
-      if(workMode!=='edit'||e.pointerType!=='touch'||!editZoomPointers.has(e.pointerId))return;
-      editZoomPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(!editPinch&&editZoomPointers.size>=2)beginEditPinch();
-      if(editPinch){e.preventDefault();e.stopPropagation();const center=editTouchCenter(editZoomPointers);if(center)applyEditPinch(center)}
-    }
-    function endEditZoomPointer(e){
-      if(!editZoomPointers.has(e.pointerId))return;
-      const suppress=Boolean(editPinch||editPinchConsumed);
-      if(suppress){e.preventDefault();e.stopPropagation()}
-      editZoomPointers.delete(e.pointerId);
-      try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
-      if(editZoomPointers.size<2)editPinch=null;
-      if(!editZoomPointers.size){
-        if(editPinchConsumed){editPinchSuppressClickUntil=performance.now()+350;refreshEditGeometry()}
-        editPinchSelectionSnapshot=null;editPinchConsumed=false;
+    function startEditZoomTouch(e){
+      if(workMode!=='edit')return;
+      if(e.touches.length>=2){
+        if(e.cancelable)e.preventDefault();e.stopPropagation();
+        beginEditPinchFromTouches(e);
       }
     }
+    function moveEditZoomTouch(e){
+      if(workMode!=='edit'||!editPinch||e.touches.length<2)return;
+      if(e.cancelable)e.preventDefault();e.stopPropagation();
+      const center=editTouchCenterFromTouches(e.touches);if(center)applyEditPinch(center);
+    }
+    function endEditZoomTouch(e){
+      if(workMode!=='edit'||!editPinchConsumed)return;
+      if(e.cancelable)e.preventDefault();e.stopPropagation();
+      if(e.touches.length<2&&editPinch){
+        editPinch=null;editPinchSuppressClickUntil=performance.now()+450;refreshEditGeometry();
+      }
+      if(!e.touches.length){
+        editPinch=null;editPinchSelectionSnapshot=null;editPinchConsumed=false;
+      }
+    }
+    function cancelEditZoomTouch(e){
+      if(workMode!=='edit')return;
+      if(e?.cancelable)e.preventDefault();
+      if(editPinchConsumed){editPinchSuppressClickUntil=performance.now()+450;refreshEditGeometry()}
+      editPinch=null;editPinchSelectionSnapshot=null;editPinchConsumed=false;selectionDrag=null;renderSelectionOverlay();
+    }
     function cancelEditPinch(){
-      editPinch=null;editZoomPointers.clear();editPinchSelectionSnapshot=null;editPinchConsumed=false;
+      editPinch=null;editPinchSelectionSnapshot=null;editPinchConsumed=false;
     }
     function suppressClickAfterPinch(e){
       if(workMode==='edit'&&performance.now()<editPinchSuppressClickUntil){e.preventDefault();e.stopPropagation()}
@@ -1395,11 +1409,14 @@
     window.addEventListener('resize',resizeLayout);
     window.addEventListener('osmd-ready',renderScore);
     restoreSelectionToolbarPosition();
-    score.addEventListener('pointerdown',startEditZoomPointer,{capture:true,passive:false});
-    score.addEventListener('pointermove',moveEditZoomPointer,{capture:true,passive:false});
-    score.addEventListener('pointerup',endEditZoomPointer,{capture:true,passive:false});
-    score.addEventListener('pointercancel',endEditZoomPointer,{capture:true,passive:false});
+    score.addEventListener('pointerdown',guardEditTouchPointerDown,{capture:true,passive:false});
+    score.addEventListener('touchstart',startEditZoomTouch,{capture:true,passive:false});
+    score.addEventListener('touchmove',moveEditZoomTouch,{capture:true,passive:false});
+    score.addEventListener('touchend',endEditZoomTouch,{capture:true,passive:false});
+    score.addEventListener('touchcancel',cancelEditZoomTouch,{capture:true,passive:false});
     score.addEventListener('click',suppressClickAfterPinch,{capture:true});
+    window.addEventListener('blur',cancelEditPinch);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelEditPinch()});
     score.addEventListener('pointerdown',startScoreGesture);
     score.addEventListener('pointermove',moveScoreGesture,{passive:true});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
@@ -1431,6 +1448,7 @@
     stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg'))return;
+      if(e.pointerType==='touch'&&(!e.isPrimary||editPinchConsumed||performance.now()<editPinchSuppressClickUntil))return;
       e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
     osmdContainer.addEventListener('pointermove',e=>{
