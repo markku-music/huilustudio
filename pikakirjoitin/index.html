@@ -65,8 +65,11 @@
     .note-selection-layer,.system-break-layer{position:absolute;z-index:7;inset:0;pointer-events:none;overflow:visible}
     .note-selection-highlight{position:absolute;border:2px solid #6841d6e0;border-radius:8px;background:#8653f629;box-shadow:0 0 0 2px #ffffff8c}
     .note-selection-marquee{position:absolute;border:2px dashed #6841d6e8;border-radius:8px;background:#8653f61f}
-    .system-break-marker{position:absolute;z-index:2;width:25px;height:25px;display:grid;place-items:center;padding:0;border:1px solid #5e86bd;border-radius:50%;background:#f5f9ffeb;color:#2365aa;box-shadow:0 2px 7px #1c273538;font-size:15px;font-weight:900;line-height:1;pointer-events:auto;touch-action:manipulation;cursor:pointer}
-    .system-break-marker[aria-pressed="true"]{border-color:#174d83;background:#2365aa;color:#fff}
+    .system-break-marker{position:absolute;z-index:2;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #aa8cff;border-radius:50%;background:#f1ebff;color:#5d35b5;box-shadow:0 2px 7px rgba(82,48,156,.18);font-size:20px;font-weight:800;line-height:1;pointer-events:auto;touch-action:manipulation;cursor:pointer;user-select:none;-webkit-user-select:none}
+    .system-break-marker:hover,.system-break-marker:focus-visible{background:#e6dbff;border-color:#8057dd;outline:none}
+    .system-break-marker:active{transform:scale(.94)}
+    .system-break-marker.system-break-candidate{width:36px;height:36px;border-color:transparent;border-radius:0;background:transparent;color:#765da9;box-shadow:none;font-size:23px;opacity:.78}
+    .system-break-marker.system-break-candidate:hover,.system-break-marker.system-break-candidate:focus-visible{background:transparent;color:#5d35b5;opacity:1}
     .app[data-work-mode="edit"] .score-title,.app[data-work-mode="edit"] .score-tempo,.app[data-work-mode="edit"] .score-composer{pointer-events:auto;cursor:move;touch-action:none;outline-offset:3px}
     .app[data-work-mode="edit"] .score-title{cursor:ns-resize}
     .app[data-work-mode="edit"] .score-info-row{pointer-events:auto}
@@ -611,7 +614,7 @@
         if(!Number.isFinite(x)||!Number.isFinite(y))continue;
         const point=svgPointToContainer(svg,x,y),breakMeasure=index+1;
         if(!point)continue;
-        const button=document.createElement('button');button.type='button';button.className='system-break-marker';button.dataset.breakMeasure=String(breakMeasure);button.setAttribute('aria-label',`Rivinvaihto tahdin ${breakMeasure} jälkeen`);button.setAttribute('aria-pressed',String(systemBreaks.has(breakMeasure)));button.textContent='↵';Object.assign(button.style,{left:point.x-12+'px',top:point.y-29+'px'});layer.appendChild(button);
+        const hasBreak=systemBreaks.has(breakMeasure),button=document.createElement('button');button.type='button';button.className='system-break-marker'+(hasBreak?'':' system-break-candidate');button.dataset.breakMeasure=String(breakMeasure);button.setAttribute('aria-label',hasBreak?`Poista rivinvaihto tahdin ${breakMeasure} jälkeen`:`Tee rivinvaihto tahdin ${breakMeasure} jälkeen`);button.setAttribute('aria-pressed',String(hasBreak));button.title=button.getAttribute('aria-label');button.textContent=hasBreak?'↵':'+';Object.assign(button.style,{left:point.x-18+'px',top:point.y-38+'px'});layer.appendChild(button);
       }
       osmdContainer.appendChild(layer);
     }
