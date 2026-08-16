@@ -47,6 +47,12 @@
     .modifier-divider{height:1px;margin:1px 5px;background:#697686}
     .tie-button svg{display:block;width:34px;height:26px;pointer-events:none}
     .edit-rail{position:absolute;z-index:26;left:8px;bottom:20px;width:58px;display:none;flex-direction:column;gap:10px;padding:8px;border:1px solid #d0d9e6;border-radius:20px;background:#ffffffed;box-shadow:0 8px 24px #1c273526;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+    .staff-top-slider{position:relative;width:42px;height:200px;flex:0 0 200px;touch-action:none;cursor:ns-resize;outline:none}
+    .staff-top-track{position:absolute;top:10px;bottom:10px;left:18px;width:6px;border-radius:999px;background:#d8e1ed;box-shadow:inset 0 1px 3px #1c27352e;pointer-events:none}
+    .staff-top-fill{position:absolute;top:0;left:0;width:100%;height:0;border-radius:999px;background:#3679bd;pointer-events:none}
+    .staff-top-thumb{position:absolute;z-index:2;top:0;left:3px;width:36px;height:26px;display:grid;place-items:center;border:1px solid #7faada;border-radius:10px;background:#fff;color:#2365aa;box-shadow:0 2px 7px #1d477530;transform:translate3d(0,0,0);will-change:transform;pointer-events:none}
+    .staff-top-thumb::before{content:'';width:19px;height:10px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;box-shadow:0 -3px 0 -1px currentColor;opacity:.82}
+    .staff-top-slider:focus-visible{border-radius:12px;box-shadow:0 0 0 3px #62a7ff55}
     .line-spacing-slider{position:relative;width:42px;height:300px;flex:0 0 300px;touch-action:none;cursor:ns-resize;outline:none}
     .line-spacing-track{position:absolute;top:10px;bottom:10px;left:18px;width:6px;border-radius:999px;background:#d8e1ed;box-shadow:inset 0 1px 3px #1c27352e;pointer-events:none}
     .line-spacing-fill{position:absolute;top:0;left:0;width:100%;height:0;border-radius:999px;background:#7654ce;pointer-events:none}
@@ -135,13 +141,6 @@
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:10px}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
-
-    /* SIVUTUSTESTI: vain tämän erillisen laboratorioversion diagnostiikka */
-    .pagination-test-button{min-height:38px;padding:0 14px;border:0;border-left:1px solid #ffffff2b;background:#5b6572;color:#fff;font:750 12px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.04em;cursor:pointer}
-    .pagination-test-button:active{background:#414a55}
-    .pagination-test-readout{position:absolute;z-index:40;top:48px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:7px 12px;border-radius:999px;background:#18202ae8;color:#fff;font:700 12px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 4px 14px #0003}
-    #osmdContainer .pagination-probe-page{outline:3px dashed #d84b4b;outline-offset:-3px}
-    @media print{.pagination-test-button,.pagination-test-readout{display:none!important}#osmdContainer .pagination-probe-page{outline:0!important}}
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
@@ -248,9 +247,7 @@
       <button class="mode-tab" id="writeModeButton" type="button" data-work-mode="write" aria-pressed="true">KIRJOITA</button>
       <button class="mode-tab" id="editModeButton" type="button" data-work-mode="edit" aria-pressed="false" disabled>MUOKKAA</button>
       <button class="mode-tab" id="printModeButton" type="button" data-work-mode="print" aria-pressed="false" disabled>TULOSTA</button>
-      <button class="pagination-test-button" id="paginationTestButton" type="button">TÄYTÄ SIVUTUSTESTI</button>
     </nav>
-    <div class="pagination-test-readout" id="paginationTestReadout">SIVUTUSTESTI · valitse soitin ja paina TÄYTÄ SIVUTUSTESTI</div>
     <div class="workspace">
       <section class="score-area">
         <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
@@ -279,6 +276,10 @@
           </button>
         </div>
         <div class="edit-rail" id="editRail" role="toolbar" aria-label="Rivien muokkaus">
+          <div class="staff-top-slider" id="staffTopSlider" role="slider" tabindex="0" aria-label="Viivastojen aloituskorkeus" aria-orientation="vertical" aria-valuemin="8" aria-valuemax="30" aria-valuenow="17" aria-valuetext="Nykyinen aloituskorkeus" title="Viivastojen aloituskorkeus">
+            <div class="staff-top-track" aria-hidden="true"><div class="staff-top-fill" id="staffTopFill"></div></div>
+            <div class="staff-top-thumb" id="staffTopThumb" aria-hidden="true"></div>
+          </div>
           <div class="line-spacing-slider" id="lineSpacingSlider" role="slider" tabindex="0" aria-label="Riviväli" aria-orientation="vertical" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5" aria-valuetext="300 %">
             <div class="line-spacing-track" aria-hidden="true"><div class="line-spacing-fill" id="lineSpacingFill"></div></div>
             <div class="line-spacing-thumb" id="lineSpacingThumb" aria-hidden="true"></div>
@@ -320,7 +321,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const paginationTestButton=document.querySelector('#paginationTestButton'),paginationTestReadout=document.querySelector('#paginationTestReadout'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
+    const selectionToolbar=document.querySelector('#selectionToolbar'),selectionCount=document.querySelector('#selectionCount'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicSelect=document.querySelector('#selectionDynamicSelect'),selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionClearButton=document.querySelector('#selectionClearButton'),systemBreakButton=document.querySelector('#systemBreakButton'),stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -340,8 +341,8 @@
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
-    let paginationTestActive=false,paginationTestMeasureCount=48;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000;
+    let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -490,8 +491,7 @@
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
       scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
       scoreRenderer.setPageFormat('A4_P');
-      scoreRenderer.EngravingRules.PageTopMargin=17;
-      scoreRenderer.EngravingRules.PageTopMarginNarrow=17;
+      applyStaffTopRules();
       applyLineSpacingRules();
       return true;
     }
@@ -522,41 +522,7 @@
         systemBreakModeActive=false;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
       }
       syncWorkModeUI();
-      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}});
-    }
-    function updatePaginationTestDiagnostics(){
-      if(!paginationTestReadout)return;
-      const graphicSheet=scoreRenderer?.GraphicSheet;
-      const musicPages=graphicSheet?.MusicPages||[];
-      const domPages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')];
-      osmdContainer.querySelectorAll('.pagination-probe-page').forEach(element=>element.classList.remove('pagination-probe-page'));
-      if(paginationTestActive)domPages.forEach(element=>element.classList.add('pagination-probe-page'));
-      const systemCount=scoreRenderer?renderedSystemGeometry().length:0;
-      const measureCount=measureData().groups.length;
-      const height=Math.round(osmdContainer.scrollHeight||0);
-      paginationTestReadout.textContent=paginationTestActive
-        ?`SIVUTUSTESTI · ${measureCount} tahtia · ${systemCount} nuottiriviä · OSMD-sivuja ${musicPages.length} · DOM-sivuja ${domPages.length} · sisältö ${height}px`
-        :'SIVUTUSTESTI · valitse soitin ja paina TÄYTÄ SIVUTUSTESTI';
-    }
-    function makePaginationTestNotes(measureCount){
-      const pattern=[72,74,76,77,79,77,76,74];
-      notes=[];slurs=[];hairpins=[];selectedNoteIndices.clear();editHistory=[];nextEntryId=1;
-      for(let measure=0;measure<measureCount;measure+=1){
-        for(let beat=0;beat<4;beat+=1){
-          notes.push({id:createEntryId(),midi:pattern[(measure+beat)%pattern.length],duration:'quarter',dotted:false,rest:false,tieFromPrevious:false});
-        }
-      }
-      systemBreaks=new Set();
-      for(let measureIndex=2;measureIndex<measureCount;measureIndex+=2)systemBreaks.add(measureIndex);
-    }
-    async function runPaginationTest(){
-      if(!projectData){paginationTestReadout.textContent='SIVUTUSTESTI · valitse ensin soitin';return}
-      paginationTestActive=true;paginationTestMeasureCount=48;lineSpacingValue=5;lineSpacingDragStartValue=5;syncLineSpacingSlider();applyLineSpacingRules();
-      makePaginationTestNotes(paginationTestMeasureCount);
-      score.scrollTop=0;
-      await renderScore();
-      updatePaginationTestDiagnostics();
-      status.textContent='Sivutustesti: 48 tahtia, rivinvaihto joka 2. tahdin jälkeen';
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}});
     }
 
     async function renderScore(){
@@ -569,11 +535,13 @@
           scoreRenderPending=false;
           invalidateLineSpacingRasterCache();
           scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
+          applyStaffTopRules();
           applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
           await scoreRenderer.load(buildMusicXml());
+          applyStaffTopRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();updatePaginationTestDiagnostics();queueLineSpacingRasterCache();
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -636,6 +604,24 @@
       selectionHitboxes.forEach(hitbox=>{if(!selectedNoteIndices.has(hitbox.entryIndex))return;const highlight=document.createElement('div');highlight.className='note-selection-highlight';highlight.style.left=`${hitbox.left}px`;highlight.style.top=`${hitbox.top}px`;highlight.style.width=`${hitbox.width}px`;highlight.style.height=`${hitbox.height}px`;layer.appendChild(highlight)});
       if(selectionDrag){const rect=normalizedRectangle(selectionDrag.start,selectionDrag.current),marquee=document.createElement('div');marquee.className='note-selection-marquee';marquee.style.left=`${rect.left}px`;marquee.style.top=`${rect.top}px`;marquee.style.width=`${Math.max(1,rect.right-rect.left)}px`;marquee.style.height=`${Math.max(1,rect.bottom-rect.top)}px`;layer.appendChild(marquee)}
       osmdContainer.appendChild(layer);
+    }
+    function applyStaffTopRules(){
+      if(!scoreRenderer?.EngravingRules)return;
+      scoreRenderer.EngravingRules.PageTopMargin=staffTopValue;
+      scoreRenderer.EngravingRules.PageTopMarginNarrow=staffTopValue;
+    }
+    function staffTopRatio(value=staffTopValue){return (clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX)-STAFF_TOP_MIN)/(STAFF_TOP_MAX-STAFF_TOP_MIN)}
+    function syncStaffTopSlider(value=staffTopValue){
+      const ratio=staffTopRatio(value),travel=Math.max(0,staffTopSlider.clientHeight-staffTopThumb.offsetHeight-20),y=10+ratio*travel;
+      staffTopThumb.style.transform=`translate3d(0,${y}px,0)`;
+      staffTopFill.style.height=`${ratio*100}%`;
+      staffTopSlider.setAttribute('aria-valuenow',String(Number(value.toFixed(2))));
+      const delta=value-STAFF_TOP_DEFAULT;
+      staffTopSlider.setAttribute('aria-valuetext',Math.abs(delta)<.01?'Nykyinen aloituskorkeus':delta>0?`Viivastot ${Math.round(delta*10)} px alempana`:`Viivastot ${Math.round(-delta*10)} px ylempänä`);
+    }
+    function staffTopValueFromClientY(clientY){
+      const rect=staffTopSlider.getBoundingClientRect(),thumbHeight=staffTopThumb.offsetHeight,top=rect.top+10+thumbHeight/2,bottom=rect.bottom-10-thumbHeight/2,ratio=clamp((clientY-top)/Math.max(1,bottom-top),0,1);
+      return STAFF_TOP_MIN+ratio*(STAFF_TOP_MAX-STAFF_TOP_MIN);
     }
     function applyLineSpacingRules(){
       if(!scoreRenderer?.EngravingRules)return;
@@ -735,6 +721,27 @@
     function queueLineSpacingRasterCache(){
       const generation=lineSpacingRasterGeneration,run=()=>{if(generation!==lineSpacingRasterGeneration||workMode!=='edit'||scoreRendering)return;ensureLineSpacingRasterCache().catch(()=>{})};if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:450});else setTimeout(run,80);
     }
+    async function buildStaffTopPreview(){
+      destroyStaffTopPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||staffTopPointerId===null)return null;
+      const maxDown=Math.max(0,(STAFF_TOP_MAX-staffTopDragStartValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT),extraPx=Math.ceil(maxDown*cache.pixelScale),preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight+extraPx;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight+maxDown}px`;preview.appendChild(canvas);scorePage.appendChild(preview);staffTopPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:staffTopDragStartValue};osmdContainer.style.visibility='hidden';updateStaffTopPreview(staffTopValue);return staffTopPreview;
+    }
+    function updateStaffTopPreview(value){
+      if(!staffTopPreview?.ctx)return;const {ctx,canvas,cache}=staffTopPreview,delta=(value-staffTopPreview.startValue)*STAFF_TOP_PREVIEW_PX_PER_UNIT,dy=Math.round(delta*cache.pixelScale);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(cache.source,0,dy);
+    }
+    function scheduleStaffTopPreview(value){staffTopPreviewPendingValue=value;if(staffTopPreviewFrame)return;staffTopPreviewFrame=requestAnimationFrame(()=>{staffTopPreviewFrame=0;updateStaffTopPreview(staffTopPreviewPendingValue)})}
+    function destroyStaffTopPreview(showOriginal=true){if(staffTopPreviewFrame){cancelAnimationFrame(staffTopPreviewFrame);staffTopPreviewFrame=0}staffTopPreview?.element?.remove();staffTopPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
+    function beginStaffTopDrag(e){
+      if(workMode!=='edit'||staffTopCommitRunning||lineSpacingCommitRunning||lineSpacingPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();e.stopPropagation();staffTopPointerId=e.pointerId;staffTopDragStartValue=staffTopValue;staffTopPreviewPendingValue=staffTopValue;try{staffTopSlider.setPointerCapture(e.pointerId)}catch{}buildStaffTopPreview().then(()=>{if(staffTopPointerId===e.pointerId)scheduleStaffTopPreview(staffTopValue)}).catch(error=>console.warn('Viivastojen aloituskorkeuden live-esikatselu ei käynnistynyt',error));setStaffTopPreviewValue(staffTopValueFromClientY(e.clientY));
+    }
+    function setStaffTopPreviewValue(value){staffTopValue=clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();scheduleStaffTopPreview(staffTopValue)}
+    function moveStaffTopDrag(e){if(e.pointerId!==staffTopPointerId)return;e.preventDefault();e.stopPropagation();setStaffTopPreviewValue(staffTopValueFromClientY(e.clientY))}
+    async function finishStaffTopDrag(e,cancelled=false){
+      if(e.pointerId!==staffTopPointerId)return;e.preventDefault();e.stopPropagation();try{if(staffTopSlider.hasPointerCapture(e.pointerId))staffTopSlider.releasePointerCapture(e.pointerId)}catch{}staffTopPointerId=null;if(cancelled)staffTopValue=staffTopDragStartValue;syncStaffTopSlider();updateStaffTopPreview(staffTopValue);staffTopCommitRunning=true;applyStaffTopRules();try{await renderScore()}finally{destroyStaffTopPreview(true);staffTopCommitRunning=false;if(workMode==='edit')refreshEditGeometry()}
+    }
+    function staffTopKey(e){
+      let next=staffTopValue,step=.5;if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=STAFF_TOP_MIN;else if(e.key==='End')next=STAFF_TOP_MAX;else return;
+      e.preventDefault();staffTopValue=clamp(next,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();applyStaffTopRules();renderScore();
+    }
     async function buildLineSpacingPreview(){
       destroyLineSpacingPreview(false);const generation=lineSpacingRasterGeneration,cache=await ensureLineSpacingRasterCache();if(!cache||generation!==lineSpacingRasterGeneration||lineSpacingPointerId===null)return null;
       const preview=document.createElement('div'),canvas=document.createElement('canvas');preview.className='line-spacing-preview';canvas.className='line-spacing-preview-canvas';canvas.width=cache.pixelWidth;canvas.height=cache.pixelHeight;canvas.style.width=`${cache.width}px`;canvas.style.height=`${cache.totalHeight}px`;preview.appendChild(canvas);scorePage.appendChild(preview);lineSpacingPreview={element:preview,canvas,ctx:canvas.getContext('2d',{alpha:true,desynchronized:true}),cache,startValue:lineSpacingDragStartValue};osmdContainer.style.visibility='hidden';updateLineSpacingPreview(lineSpacingValue);return lineSpacingPreview;
@@ -746,7 +753,7 @@
     function scheduleLineSpacingPreview(value){lineSpacingPreviewPendingValue=value;if(lineSpacingPreviewFrame)return;lineSpacingPreviewFrame=requestAnimationFrame(()=>{lineSpacingPreviewFrame=0;updateLineSpacingPreview(lineSpacingPreviewPendingValue)})}
     function destroyLineSpacingPreview(showOriginal=true){if(lineSpacingPreviewFrame){cancelAnimationFrame(lineSpacingPreviewFrame);lineSpacingPreviewFrame=0}lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal)osmdContainer.style.visibility=''}
     function beginLineSpacingDrag(e){
-      if(workMode!=='edit'||lineSpacingCommitRunning||scoreRendering||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;lineSpacingPreviewPendingValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}buildLineSpacingPreview().then(()=>{if(lineSpacingPointerId===e.pointerId)scheduleLineSpacingPreview(lineSpacingValue)}).catch(error=>console.warn('Rivivälin live-esikatselu ei käynnistynyt',error));setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY));
+      if(workMode!=='edit'||lineSpacingCommitRunning||staffTopCommitRunning||staffTopPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;lineSpacingPreviewPendingValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}buildLineSpacingPreview().then(()=>{if(lineSpacingPointerId===e.pointerId)scheduleLineSpacingPreview(lineSpacingValue)}).catch(error=>console.warn('Rivivälin live-esikatselu ei käynnistynyt',error));setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY));
     }
     function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();scheduleLineSpacingPreview(lineSpacingValue)}
     function moveLineSpacingDrag(e){if(e.pointerId!==lineSpacingPointerId)return;e.preventDefault();e.stopPropagation();setLineSpacingPreviewValue(lineSpacingValueFromClientY(e.clientY))}
@@ -1165,7 +1172,7 @@
       e.preventDefault();syncScrollThumb();
     }
     function resizeLayout(){
-      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{if(workMode==='edit')refreshEditGeometry()});
+      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry()});
     }
     function keepOuterViewportFixed(){
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -1216,8 +1223,7 @@
     applyInstrumentProfile();
     syncWorkModeUI();
     syncSelectionToolbar();
-    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview()});
-    paginationTestButton.addEventListener('click',runPaginationTest);
+    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider()});
     modeTabs.addEventListener('pointerup',activateWorkMode);
     modeTabs.addEventListener('keydown',activateWorkMode);
     instrumentTrigger.addEventListener('click',()=>setInstrumentMenuOpen(instrumentMenu.hidden));
@@ -1262,6 +1268,11 @@
     selectionDynamicSelect.addEventListener('change',e=>applyDynamicForSelection(e.target.value));
     selectionCrescendoButton.addEventListener('click',()=>toggleHairpinForSelection('crescendo'));
     selectionDiminuendoButton.addEventListener('click',()=>toggleHairpinForSelection('diminuendo'));
+    staffTopSlider.addEventListener('pointerdown',beginStaffTopDrag,{passive:false});
+    staffTopSlider.addEventListener('pointermove',moveStaffTopDrag,{passive:false});
+    staffTopSlider.addEventListener('pointerup',e=>finishStaffTopDrag(e),{passive:false});
+    staffTopSlider.addEventListener('pointercancel',e=>finishStaffTopDrag(e,true),{passive:false});
+    staffTopSlider.addEventListener('keydown',staffTopKey);
     lineSpacingSlider.addEventListener('pointerdown',beginLineSpacingDrag,{passive:false});
     lineSpacingSlider.addEventListener('pointermove',moveLineSpacingDrag,{passive:false});
     lineSpacingSlider.addEventListener('pointerup',e=>finishLineSpacingDrag(e),{passive:false});

@@ -1,18 +1,18 @@
 {
-  "name": "Pikakirjoitin",
-  "short_name": "Pikakirjoitin",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#eef1f5",
-  "theme_color": "#eef1f5",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
+ "name": "Pikakirjoitin",
+ "short_name": "Pikakirjoitin",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#eef1f5",
+ "theme_color": "#eef1f5",
+ "icons": [
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any maskable"
+  }
+ ]
 }
