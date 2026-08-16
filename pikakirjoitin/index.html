@@ -46,6 +46,9 @@
     .modifier-button[aria-pressed="true"] .modifier-icon{filter:brightness(0) invert(1)}
     .modifier-divider{height:1px;margin:1px 5px;background:#697686}
     .tie-button svg{display:block;width:34px;height:26px;pointer-events:none}
+    .triplet-button svg{display:block;width:34px;height:30px;pointer-events:none}
+    .triplet-button svg path{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+    .triplet-button svg text{fill:currentColor;font:800 14px/1 system-ui,-apple-system,sans-serif}
     .tie-button .custom-tool-icon{display:block;width:38px;height:38px;object-fit:contain;pointer-events:none}
     .modifier-button[aria-pressed="true"] .custom-tool-icon{filter:brightness(0) invert(1)}
     .edit-rail{position:fixed;z-index:26;left:max(8px,env(safe-area-inset-left));bottom:max(20px,calc(env(safe-area-inset-bottom) + 20px));width:58px;display:none;flex-direction:column;gap:10px;padding:8px;border:1px solid #d0d9e6;border-radius:20px;background:#ffffffed;box-shadow:0 8px 24px #1c273526;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);contain:layout paint}
@@ -337,6 +340,9 @@
           <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti" aria-pressed="false"><img class="modifier-icon" src="assets/double-crochet.svg" alt="" aria-hidden="true" draggable="false"></button>
           <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false"><img class="modifier-icon" src="assets/rest.svg" alt="" aria-hidden="true" draggable="false"></button>
           <div class="modifier-divider" aria-hidden="true"></div>
+          <button class="modifier-button triplet-button" id="tripletButton" type="button" aria-label="Trioli: seuraavat kolme nuottia" aria-pressed="false">
+            <svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">3</text></svg>
+          </button>
           <button class="modifier-button tie-button" id="tieButton" type="button" aria-label="Yhdyskaari seuraavaan saman sävelen nuottiin" aria-pressed="false">
             <img class="custom-tool-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
           </button>
@@ -405,7 +411,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,DOUBLE_BASS_MIN_MIDI=24,DOUBLE_BASS_MAX_MIDI=83,WHITE_COUNT=35,BLACK_WIDTH=.62,INSTRUMENT_KEY='pikakirjoitin.instrument',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),instrumentSelect=document.querySelector('#instrumentSelect'),instrumentPicker=document.querySelector('#instrumentPicker'),instrumentTrigger=document.querySelector('#instrumentTrigger'),instrumentTriggerLabel=document.querySelector('#instrumentTriggerLabel'),instrumentMenu=document.querySelector('#instrumentMenu'),instrumentHeading=document.querySelector('#instrumentHeading'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -423,7 +429,7 @@
       cello:{min:36,max:64,start:36,transpose:0},
       'double-bass':{min:40,max:60,start:24,transpose:-12}
     };
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
@@ -533,9 +539,10 @@
       return `<rest${note.measureRest?' measure="yes"':''}><display-step>${step}</display-step><display-octave>${octave}</display-octave></rest>`;
     }
     function noteDurationValue(note){
-      const base=noteDurations[note.duration]||noteDurations.quarter;
-      return note.dotted?base*1.5:base;
+      const base=noteDurations[note.duration]||noteDurations.quarter,dotted=note.dotted?base*1.5:base;
+      return note.tupletId?dotted*2/3:dotted;
     }
+    function musicXmlDurationValue(note){return Math.round(noteDurationValue(note)*3)}
     function beamUnit(beats,beatType){
       return beatType===8&&beats%3===0?12:32/beatType;
     }
@@ -636,16 +643,17 @@
       [...barlineStyles.keys()].forEach(boundary=>{if(boundary<0||boundary>totalMeasures)barlineStyles.delete(boundary)});
       pruneEndings(totalMeasures);
       const measures=groups.map((group,index)=>{
-        const attributes=index===0?`<attributes><divisions>8</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
+        const attributes=index===0?`<attributes><divisions>24</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
         const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{
-          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?measureCapacity:noteDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'';
+          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*3):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'',timeModification=note.tupletId?'<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>':'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
-          const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(item=>`<slur type="start" number="${item.number}"${placement(item.placement)}/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations?`<notations>${tiedXml}${slurXml}${articulations}</notations>`:'';
+          const tupletNotation=note.tupletId&&note.tupletIndex===0?'<tuplet type="start" number="1" bracket="yes" show-number="actual"/>':note.tupletId&&note.tupletIndex===2?'<tuplet type="stop" number="1"/>':'';
+          const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(item=>`<slur type="start" number="${item.number}"${placement(item.placement)}/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations||tupletNotation?`<notations>${tiedXml}${slurXml}${articulations}${tupletNotation}</notations>`:'';
           const before=`${wedgeDirectionsXml(decorations.hairpinStarts)}${dynamicDirectionXml(note.dynamic)}`,after=wedgeDirectionsXml(decorations.hairpinStops,true);
           const stemXml=!measureRest&&(note.stemDirection==='up'||note.stemDirection==='down')?`<stem>${note.stemDirection}</stem>`:'';
-          return `${before}<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${stemXml}${beamTags[noteIndex]}${notations}</note>${after}`;
-        }).join(''):(renderedNoteObjectId+=1,`<note print-object="no"><rest${pickupCapacity&&index===0?'':' measure="yes"'}/><duration>${measureCapacity}</duration><voice>1</voice></note>`);
+          return `${before}<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${timeModification}${stemXml}${beamTags[noteIndex]}${notations}</note>${after}`;
+        }).join(''):(renderedNoteObjectId+=1,`<note print-object="no"><rest${pickupCapacity&&index===0?'':' measure="yes"'}/><duration>${Math.round(measureCapacity*3)}</duration><voice>1</voice></note>`);
         const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'',measureNumber=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'',leftBarline=leftBarlineXml(index),rightBarline=rightBarlineXml(index+1,totalMeasures);
         return `<measure number="${measureNumber}"${implicit}>${systemBreak}${attributes}${leftBarline}${entries}${rightBarline}</measure>`;
       }).join('');
@@ -690,7 +698,7 @@
     }
     function closeKeyboardForWorkMode(){
       if(keyboardPanel.hidden)return;
-      clearModifier();setTieArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');
+      clearModifier();setTieArmed(false);setTripletArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');
     }
     function syncWorkModeUI(){
       if(!notes.length&&workMode!=='write')workMode='write';
@@ -1268,13 +1276,44 @@
     function setTieArmed(value){
       tieArmed=Boolean(value);tieButton.setAttribute('aria-pressed',String(tieArmed));
     }
+    function stripTupletMetadata(note){delete note.tupletId;delete note.tupletIndex;return note}
+    function cancelPendingTriplet(){
+      if(!tripletGroupId||tripletCount<=0)return false;
+      let changed=false;
+      notes.forEach(note=>{if(note.tupletId===tripletGroupId){stripTupletMetadata(note);changed=true}});
+      editHistory.forEach(action=>{if(action.type==='add'&&action.note?.tupletId===tripletGroupId)action.note={...stripTupletMetadata({...action.note})}});
+      return changed;
+    }
+    function setTripletArmed(value,{cancelPending=true}={}){
+      const next=Boolean(value);
+      if(!next&&tripletArmed&&cancelPending){const changed=cancelPendingTriplet();if(changed)renderScore()}
+      tripletArmed=next;
+      if(next){if(!tripletGroupId){tripletGroupId=`tuplet-${nextTupletId++}`;tripletCount=0}}
+      else{tripletGroupId=null;tripletCount=0}
+      tripletButton.setAttribute('aria-pressed',String(tripletArmed));
+    }
+    function applyPendingTriplet(note){
+      if(!tripletArmed)return null;
+      if(!tripletGroupId)tripletGroupId=`tuplet-${nextTupletId++}`;
+      const id=tripletGroupId;note.tupletId=id;note.tupletIndex=tripletCount;tripletCount+=1;
+      if(tripletCount>=3){completedTupletId=id;setTripletArmed(false,{cancelPending:false});return id}
+      return null;
+    }
+    function collapseCompletedTripletHistory(id){
+      if(!id)return;
+      const groupNotes=notes.filter(note=>note.tupletId===id).sort((a,b)=>a.tupletIndex-b.tupletIndex);
+      if(groupNotes.length!==3)return;
+      const ids=new Set(groupNotes.map(note=>note.id)),kept=[];
+      for(const action of editHistory){if(action.type==='add'&&ids.has(action.note?.id))continue;kept.push(action)}
+      kept.push({type:'add-triplet',notes:groupNotes.map(note=>({...note}))});editHistory=kept.slice(-250);
+    }
     function consumeTie(midi,rest){
       if(!tieArmed)return false;
       const previous=notes.at(-1),tieFromPrevious=Boolean(!rest&&previous&&!previous.rest&&!previous.measureRest&&previous.midi===midi);
       setTieArmed(false);return tieFromPrevious;
     }
     function addScoreNote(midi,{duration='quarter',dotted=false,rest=false}={}){
-      const note={id:createEntryId(),midi,duration,dotted,rest,measureRest:false,tieFromPrevious:consumeTie(midi,rest)},action={type:'add',note:{...note}};
+      const note={id:createEntryId(),midi,duration,dotted,rest,measureRest:false,tieFromPrevious:consumeTie(midi,rest)};applyPendingTriplet(note);const action={type:'add',note:{...note}};
       notes.push(note);rememberAction(action);renderScore();return {note,action};
     }
     function clearLongPress(){
@@ -1283,7 +1322,7 @@
     }
     function setActiveNoteDuration(duration){
       if(!activeNote)return;
-      const measureRest=duration==='whole'&&activeNote.rest;
+      const measureRest=duration==='whole'&&activeNote.rest&&!activeNote.tupletId;
       if(activeNote.duration===duration&&activeNote.measureRest===measureRest)return;
       activeNote.duration=duration;activeNote.measureRest=measureRest;
       if(activeNoteAction?.type==='add'){activeNoteAction.note.duration=duration;activeNoteAction.note.measureRest=measureRest}
@@ -1293,7 +1332,8 @@
     function undoLastChange(){
       const action=editHistory.pop();
       if(!action)return null;
-      if(action.type==='add')notes.pop();
+      if(action.type==='add'){const removed=notes.pop();if(removed?.tupletId&&tripletArmed&&removed.tupletId===tripletGroupId)tripletCount=Math.max(0,tripletCount-1)}
+      else if(action.type==='add-triplet'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id))}
       else if(action.type==='delete'){notes.splice(clamp(action.index,0,notes.length),0,{...action.note});slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}))}
       else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.before}}
       else if(action.type==='clear'){notes=action.notes.map(note=>({...note}));slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}));systemBreaks=new Set(action.systemBreaks||[]);barlineStyles=new Map(action.barlineStyles||[]);endings=(action.endings||[]).map(item=>({...item}))}
@@ -1302,14 +1342,15 @@
     }
     function redoChange(action){
       if(!action)return;
-      if(action.type==='add')notes.push({...action.note});
+      if(action.type==='add'){notes.push({...action.note});if(action.note?.tupletId&&tripletArmed&&action.note.tupletId===tripletGroupId)tripletCount=Math.max(tripletCount,(action.note.tupletIndex||0)+1)}
+      else if(action.type==='add-triplet')notes.push(...(action.notes||[]).map(note=>({...note})));
       else if(action.type==='delete'){const index=notes.findIndex(note=>note.id===action.note.id);if(index>=0)notes.splice(index,1);pruneEditRanges()}
       else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.after}}
       else if(action.type==='clear'){notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();endings=[];selectedNoteIndices.clear()}
       rememberAction(action);
     }
     function clearScore(){
-      setTieArmed(false);
+      setTieArmed(false);setTripletArmed(false);
       if(!notes.length)return;
       rememberAction({type:'clear',notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],endings:endings.map(item=>({...item}))});notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();endings=[];selectedNoteIndices.clear();renderScore();
     }
@@ -1435,6 +1476,10 @@
         if(modifierPointerId!==null)return;
         e.preventDefault();e.stopPropagation();setTieArmed(!tieArmed);return;
       }
+      if(button===tripletButton){
+        if(modifierPointerId!==null)return;
+        e.preventDefault();e.stopPropagation();setTripletArmed(!tripletArmed);return;
+      }
       if(modifierPointerId!==null)return;
       e.preventDefault();e.stopPropagation();
       modifierPointerId=e.pointerId;activeModifier=button.dataset.modifier;activeModifierButton=button;button.setAttribute('aria-pressed','true');
@@ -1482,7 +1527,7 @@
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!keyboardPanel.hidden){clearModifier();setTieArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
+      if(!keyboardPanel.hidden){clearModifier();setTieArmed(false);setTripletArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
       if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
@@ -1531,7 +1576,7 @@
       if(activeNoteSounds){const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06)}
       activeKey.classList.remove('active');if(activeNoteSounds&&soundingKey)soundingKey.classList.add('sounding-resting');
       try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
-      const replaced=activeReplacingExisting;activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
+      const replaced=activeReplacingExisting,finishedTupletId=completedTupletId;completedTupletId=null;if(finishedTupletId)collapseCompletedTripletHistory(finishedTupletId);activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
     }
 
     function syncScrollThumb(){
