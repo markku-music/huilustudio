@@ -353,7 +353,7 @@
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1,editViewZoom=1,editViewTargetZoom=1,editViewFocus=null,editViewFrame=0;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75,EDIT_SELECTION_ZOOM=1.28,EDIT_SELECTION_ZOOM_START_PX=12,EDIT_ZOOM_IN_EASE=.065,EDIT_ZOOM_OUT_EASE=.18,EDIT_FOCUS_EASE=.12;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75,EDIT_SELECTION_ZOOM=1.30,EDIT_SELECTION_ZOOM_START_PX=12,EDIT_ZOOM_IN_EASE=.065,EDIT_ZOOM_OUT_EASE=.18,EDIT_FOCUS_EASE=.12;
     const scorePointers=new Set();
 
     function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
@@ -516,6 +516,13 @@
       const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale;scorePageScale=clamp(Math.min(widthScale,heightScale),.42,1.28);applyScorePageView();
     }
     function editSelectionCenter(start,current){const rect=normalizedRectangle(start,current);return{x:(rect.left+rect.right)/2,y:(rect.top+rect.bottom)/2}}
+    function selectionZoomForDragDistance(screenDistance){
+      const d=Math.max(0,screenDistance-EDIT_SELECTION_ZOOM_START_PX),stops=[[0,1],[25,1.01],[50,1.04],[100,1.10],[150,1.17],[200,1.23],[300,EDIT_SELECTION_ZOOM]];
+      for(let i=1;i<stops.length;i++){
+        if(d<=stops[i][0]){const [x0,z0]=stops[i-1],[x1,z1]=stops[i],t=(d-x0)/(x1-x0);return z0+(z1-z0)*clamp(t,0,1)}
+      }
+      return EDIT_SELECTION_ZOOM;
+    }
     function scheduleEditView(){if(!editViewFrame)editViewFrame=requestAnimationFrame(stepEditView)}
     function targetEditView(focus,zoom=EDIT_SELECTION_ZOOM){
       if(workMode!=='edit')return;editViewTargetZoom=clamp(zoom,1,EDIT_SELECTION_ZOOM);if(focus)editViewFocus={x:focus.x,y:focus.y};scheduleEditView();
@@ -1389,16 +1396,16 @@
     stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg'))return;
-      e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false,zoomStarted:false,startClientX:e.clientX,startClientY:e.clientY};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
+      e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false,zoomStarted:false,startClientX:e.clientX,startClientY:e.clientY,zoom:1};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
     osmdContainer.addEventListener('pointermove',e=>{
       if(workMode!=='edit'||!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);const screenDistance=Math.hypot(e.clientX-selectionDrag.startClientX,e.clientY-selectionDrag.startClientY);selectionDrag.moved=selectionDrag.moved||screenDistance>4;if(!selectionDrag.zoomStarted&&screenDistance>=EDIT_SELECTION_ZOOM_START_PX)selectionDrag.zoomStarted=true;
-      if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));if(selectionDrag.zoomStarted)targetEditView(editSelectionCenter(selectionDrag.start,selectionDrag.current));renderSelectionOverlay();
+      if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));if(selectionDrag.zoomStarted){selectionDrag.zoom=selectionZoomForDragDistance(screenDistance);targetEditView(editSelectionCenter(selectionDrag.start,selectionDrag.current),selectionDrag.zoom)}renderSelectionOverlay();
     },{passive:false});
     const finishSelectionGesture=(e,cancelled=false)=>{
       if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();let finalFocus=null;
-      if(cancelled)selectedNoteIndices.clear();else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved){selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));if(selectionDrag.zoomStarted)finalFocus=editSelectionCenter(selectionDrag.start,selectionDrag.current)}else{selectAtPoint(selectionDrag.current);resetEditView(false)}}
-      selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();if(finalFocus)targetEditView(finalFocus);
+      let finalZoom=1;if(cancelled)selectedNoteIndices.clear();else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved){selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));if(selectionDrag.zoomStarted){finalFocus=editSelectionCenter(selectionDrag.start,selectionDrag.current);finalZoom=selectionDrag.zoom||1}}else{selectAtPoint(selectionDrag.current);resetEditView(false)}}
+      selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();if(finalFocus)targetEditView(finalFocus,finalZoom);
     };
     osmdContainer.addEventListener('pointerup',e=>finishSelectionGesture(e));
     osmdContainer.addEventListener('pointercancel',e=>finishSelectionGesture(e,true));
