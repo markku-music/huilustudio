@@ -165,7 +165,6 @@
     .pickup-label{flex:0 0 auto;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
     .pickup-choices{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
     .pickup-choice{min-width:42px;height:42px;display:grid;place-items:center;padding:0 7px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font:750 20px/1 Georgia,"Times New Roman",serif;touch-action:manipulation;cursor:pointer}
-    .pickup-choice[data-units="0"]{font:750 13px/1 system-ui,-apple-system,sans-serif}
     .pickup-choice img{display:block;width:15px;height:26px;pointer-events:none}
     .pickup-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
     .pickup-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
@@ -479,17 +478,19 @@
       const capacity=timeSignatureCapacity(),previous=Number(pickupSelect.value)||0;
       const values=(pickupPresets[timeSignatureSelect.value]||[]).filter(units=>units>0&&units<capacity);
       pickupSelect.value=String(values.includes(previous)?previous:0);
-      pickupChoices.innerHTML=[0,...values].map(units=>{
-        const label=units===0?'Ei':pickupFraction(units);
+      pickupChoices.innerHTML=values.map(units=>{
+        const label=pickupFraction(units);
         const icon=pickupIcons[units];
-        const content=units===0?'Ei':(icon?`<img src="${icon}" alt="">`:label);
-        return `<button class="pickup-choice" type="button" data-units="${units}" aria-label="${units===0?'Ei kohotahtia':'Kohotahti '+label}" aria-pressed="false">${content}</button>`;
+        const content=icon?`<img src="${icon}" alt="">`:label;
+        return `<button class="pickup-choice" type="button" data-units="${units}" aria-label="Kohotahti ${label}" aria-pressed="false">${content}</button>`;
       }).join('');
       syncPickupButtons();
     }
     function choosePickup(e){
       const button=e.target.closest('.pickup-choice');if(!button)return;
-      pickupSelect.value=button.dataset.units||'0';syncPickupButtons();
+      const units=Number(button.dataset.units)||0,current=Number(pickupSelect.value)||0;
+      pickupSelect.value=String(current===units?0:units);
+      syncPickupButtons();
     }
     const minorLeadingSpellings={
       'A':['G',1],'E':['D',1],'B':['A',1],'F#':['E',1],'C#':['B',1],'G#':['F',2],'D#':['C',2],'A#':['G',2],
