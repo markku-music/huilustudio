@@ -180,32 +180,18 @@
     .notation-choice.icon-choice img{display:block;width:22px;height:34px;pointer-events:none;filter:none}
     .notation-choice.icon-choice[aria-pressed="true"] img{filter:brightness(0) saturate(100%) invert(25%) sepia(39%) saturate(1864%) hue-rotate(185deg) brightness(92%) contrast(90%)}
     .notation-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
-    .key-signature-field{grid-column:1/-1;display:grid;gap:8px}
+        .key-signature-field{grid-column:1/-1;display:grid;gap:8px}
     .field-label{display:block;color:#536274;font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
     .visually-hidden-select{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
     .key-signature-picker{display:grid;gap:8px;padding:8px 10px;border:1px solid #d2dbe6;border-radius:14px;background:#f7f9fc}
-    .key-signature-section{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:start;gap:8px}
-    .key-signature-mode{padding-top:5px;color:#536274;font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
-    .key-signature-choices{display:flex;flex-wrap:wrap;gap:6px}
-    .key-signature-choice{min-width:42px;height:34px;padding:0 8px;border:1px solid #cfd8e4;border-radius:10px;background:#fff;color:#203046;font-size:14px;font-weight:750;line-height:1;touch-action:manipulation;cursor:pointer}
-    .key-signature-choice.minor{font-style:italic;font-weight:700}
-    .key-signature-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
-    .key-signature-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
-
-    .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
-    .instrument-picker{position:relative}
-    .instrument-trigger{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#263342;font-size:15px;font-weight:700;text-align:left;touch-action:manipulation;cursor:pointer}
-    .instrument-trigger svg{width:12px;height:8px;flex:none;transition:transform .15s ease;pointer-events:none}
-    .instrument-trigger[aria-expanded="true"] svg{transform:rotate(180deg)}
-    .instrument-menu{position:absolute;z-index:20;left:0;right:0;bottom:calc(100% + 6px);max-height:min(220px,36svh);overflow:auto;padding:4px;border:1px solid #9ba6b4;border-radius:11px;background:#fff;box-shadow:0 12px 30px #1c273538;-webkit-overflow-scrolling:touch;touch-action:pan-y}
-    .instrument-menu[hidden]{display:none}
-    .instrument-choice{width:100%;min-height:42px;padding:7px 10px;border:0;border-bottom:1px solid #e0e6ed;border-radius:7px;background:#fff;color:#263342;font-size:13px;font-weight:700;text-align:left;touch-action:manipulation;cursor:pointer}
-    .instrument-choice:last-child{border-bottom:0}
-    .instrument-choice:active,.instrument-choice[aria-selected="true"]{background:#dcecff;color:#174d83}
-    .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
-    .start-button[hidden]{display:none}
-    @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
-    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
+    .key-signature-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+    .key-signature-choice,.key-signature-mode-toggle{height:34px;padding:0 8px;border:1px solid #cfd8e4;border-radius:10px;background:#fff;color:#203046;font-size:14px;font-weight:750;line-height:1;touch-action:manipulation;cursor:pointer}
+    .key-signature-choice{min-width:38px;font-family:ui-serif, Georgia, "Times New Roman", serif;letter-spacing:-0.04em}
+    .key-signature-choice[data-fifths="0"]{min-width:42px;letter-spacing:0}
+    .key-signature-mode-toggle{padding:0 12px;margin-left:4px;font-size:13px;font-weight:800;letter-spacing:.02em}
+    .key-signature-choice[aria-pressed="true"],.key-signature-mode-toggle[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
+    .key-signature-choice:focus-visible,.key-signature-mode-toggle:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
@@ -241,7 +227,7 @@
         <label class="field" for="composerInput">
           <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
         </label>
-        <div class="field key-signature-field">
+                <div class="field key-signature-field">
           <span class="field-label">Sävellaji</span>
           <select id="keySignatureSelect" class="visually-hidden-select" aria-label="Sävellaji">
             <option value="0" data-mode="major" data-tonic="C">C-duuri</option>
@@ -276,49 +262,24 @@
             <option value="-7" data-mode="minor" data-tonic="Ab">as-molli</option>
           </select>
           <div class="key-signature-picker" id="keySignatureChoices" role="group" aria-label="Sävellaji">
-            <div class="key-signature-section">
-              <span class="key-signature-mode">Duuri</span>
-              <div class="key-signature-choices">
-                <button class="key-signature-choice" type="button" data-key-index="28">Ces</button>
-                <button class="key-signature-choice" type="button" data-key-index="26">Ges</button>
-                <button class="key-signature-choice" type="button" data-key-index="24">Des</button>
-                <button class="key-signature-choice" type="button" data-key-index="22">As</button>
-                <button class="key-signature-choice" type="button" data-key-index="20">Es</button>
-                <button class="key-signature-choice" type="button" data-key-index="18">B</button>
-                <button class="key-signature-choice" type="button" data-key-index="16">F</button>
-                <button class="key-signature-choice" type="button" data-key-index="0">C</button>
-                <button class="key-signature-choice" type="button" data-key-index="2">G</button>
-                <button class="key-signature-choice" type="button" data-key-index="4">D</button>
-                <button class="key-signature-choice" type="button" data-key-index="6">A</button>
-                <button class="key-signature-choice" type="button" data-key-index="8">E</button>
-                <button class="key-signature-choice" type="button" data-key-index="10">H</button>
-                <button class="key-signature-choice" type="button" data-key-index="12">Fis</button>
-                <button class="key-signature-choice" type="button" data-key-index="14">Cis</button>
-              </div>
-            </div>
-            <div class="key-signature-section">
-              <span class="key-signature-mode">Molli</span>
-              <div class="key-signature-choices">
-                <button class="key-signature-choice minor" type="button" data-key-index="29">as</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="27">es</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="25">b</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="23">f</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="21">c</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="19">g</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="17">d</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="1">a</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="3">e</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="5">h</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="7">fis</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="9">cis</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="11">gis</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="13">dis</button>
-                <button class="key-signature-choice minor" type="button" data-key-index="15">ais</button>
-              </div>
+            <div class="key-signature-controls">
+              <button class="key-signature-choice" type="button" data-fifths="-6">♭♭♭♭♭♭</button>
+              <button class="key-signature-choice" type="button" data-fifths="-5">♭♭♭♭♭</button>
+              <button class="key-signature-choice" type="button" data-fifths="-4">♭♭♭♭</button>
+              <button class="key-signature-choice" type="button" data-fifths="-3">♭♭♭</button>
+              <button class="key-signature-choice" type="button" data-fifths="-2">♭♭</button>
+              <button class="key-signature-choice" type="button" data-fifths="-1">♭</button>
+              <button class="key-signature-choice" type="button" data-fifths="0">♮</button>
+              <button class="key-signature-choice" type="button" data-fifths="1">♯</button>
+              <button class="key-signature-choice" type="button" data-fifths="2">♯♯</button>
+              <button class="key-signature-choice" type="button" data-fifths="3">♯♯♯</button>
+              <button class="key-signature-choice" type="button" data-fifths="4">♯♯♯♯</button>
+              <button class="key-signature-choice" type="button" data-fifths="5">♯♯♯♯♯</button>
+              <button class="key-signature-mode-toggle" id="keyModeToggle" type="button" aria-pressed="false">molli</button>
             </div>
           </div>
         </div>
-        <label class="field" for="timeSignatureSelect">
+<label class="field" for="timeSignatureSelect">
           <select id="timeSignatureSelect" aria-label="Tahtilaji">
             <option value="2/4">2/4</option>
             <option value="3/4">3/4</option>
@@ -466,7 +427,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keySignatureChoices=document.querySelector('#keySignatureChoices'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keySignatureChoices=document.querySelector('#keySignatureChoices'),keyModeToggle=document.querySelector('#keyModeToggle'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -501,6 +462,10 @@
     function selectedKeyInfo(){
       const option=keySignatureSelect.selectedOptions[0];
       return {fifths:+(option?.value||0),mode:option?.dataset.mode||'major',tonic:option?.dataset.tonic||'C'};
+    }
+    function setKeySignatureByValues(fifths,mode){
+      const targetIndex=[...keySignatureSelect.options].findIndex(option=>+(option.value||0)===Number(fifths) && (option.dataset.mode||'major')===mode);
+      if(targetIndex>=0)keySignatureSelect.selectedIndex=targetIndex;
     }
     function timeSignatureCapacity(value=timeSignatureSelect.value){
       const [beats,beatType]=String(value||'4/4').split('/').map(Number);
@@ -1413,17 +1378,26 @@
     }
     function selectedText(select){return select.options[select.selectedIndex].textContent}
     function syncNotationChoices(){
+      const keyInfo=selectedKeyInfo();
       tuningChoices.querySelectorAll('[data-tuning]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.tuning===tuningSelect.value)));
       clefChoices.querySelectorAll('[data-clef]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clef===clefSelect.value)));
-      keySignatureChoices?.querySelectorAll('[data-key-index]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.keyIndex)===keySignatureSelect.selectedIndex)));
+      keySignatureChoices?.querySelectorAll('[data-fifths]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.fifths)===keyInfo.fifths)));
+      if(keyModeToggle)keyModeToggle.setAttribute('aria-pressed',String(keyInfo.mode==='minor'));
     }
     function chooseNotationSetting(e){
-      const tuningButton=e.target.closest('[data-tuning]'),clefButton=e.target.closest('[data-clef]'),keyButton=e.target.closest('[data-key-index]');
-      if(!tuningButton&&!clefButton&&!keyButton)return;
+      const tuningButton=e.target.closest('[data-tuning]'),clefButton=e.target.closest('[data-clef]'),keyButton=e.target.closest('[data-fifths]'),modeButton=e.target.closest('#keyModeToggle');
+      if(!tuningButton&&!clefButton&&!keyButton&&!modeButton)return;
       e.preventDefault();
       if(tuningButton)tuningSelect.value=tuningButton.dataset.tuning;
       if(clefButton)clefSelect.value=clefButton.dataset.clef;
-      if(keyButton)keySignatureSelect.selectedIndex=Number(keyButton.dataset.keyIndex)||0;
+      if(keyButton){
+        const mode=selectedKeyInfo().mode||'major';
+        setKeySignatureByValues(Number(keyButton.dataset.fifths)||0,mode);
+      }
+      if(modeButton){
+        const keyInfo=selectedKeyInfo();
+        setKeySignatureByValues(keyInfo.fifths,keyInfo.mode==='minor'?'major':'minor');
+      }
       syncNotationChoices();
     }
     function showProjectModal(){
