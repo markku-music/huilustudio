@@ -75,6 +75,10 @@
     .last-line-stretch-handle:focus-visible{outline:none}
     .last-line-stretch-handle.is-dragging::before{width:3px;background:#7654ce;opacity:1;box-shadow:0 0 0 1px #ffffff88,0 0 5px #7654ce55}
     .last-line-stretch-handle[hidden]{display:none!important}
+    .last-line-drag-overlay,.last-line-drag-mask{position:absolute;z-index:19;pointer-events:none;display:none}
+    .last-line-drag-overlay{width:3px;height:42px;border-radius:2px;background:#7654ce;box-shadow:0 0 0 1px #ffffff88,0 0 5px #7654ce55}
+    .last-line-drag-mask{width:8px;height:46px;background:#fff}
+    .last-line-drag-overlay.is-visible,.last-line-drag-mask.is-visible{display:block}
     .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg,.score-page.slider-preview-active #osmdContainer .barline-edit-markers,.score-page.slider-preview-active #osmdContainer .beam-edit-markers,.score-page.slider-preview-active #osmdContainer .ending-range-preview-layer,.score-page.slider-preview-active .last-line-stretch-handle{visibility:hidden!important}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
@@ -546,7 +550,7 @@
     const clefKeyboardStarts={treble:60,alto:48,bass:36};
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     const LAST_LINE_STRETCH_DEFAULT=1.4,LAST_LINE_STRETCH_MIN=1,LAST_LINE_STRETCH_MAX=100;
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT,lastLineStretchBaseWidth=null,lastLineStretchDrag=null,lastLineStretchLastTap=0,lastLineStretchPreviewFrame=0,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT,lastLineStretchBaseWidth=null,lastLineStretchDrag=null,lastLineStretchLastTap=0,lastLineStretchPreviewFrame=0,lastLineStretchLayoutEpoch=0,lastLineStretchGeometryReady=true,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
@@ -972,7 +976,7 @@
           await scoreRenderer.load(buildMusicXml());
           applyStaffTopRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();lastLineStretchGeometryReady=true;renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -1297,7 +1301,7 @@
     function deleteWriteNote(){
       const index=writeNoteIndex();if(index<0)return;const note=notes[index];rememberAction({type:'delete',index,note:{...note},slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item}))});clearWriteNoteEdit();notes.splice(index,1);repairTiesAround(Math.max(0,index-1));pruneEditRanges();renderScore();
     }
-    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();scorePage.querySelector('.last-line-stretch-handle')?.setAttribute('hidden','');endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
+    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();scorePage.querySelector('.last-line-stretch-handle')?.setAttribute('hidden','');hideLastLineDragVisuals();endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
     function selectInRectangle(rect){selectedNoteIndices.clear();selectionHitboxes.forEach(hitbox=>{if(rectanglesIntersect(rect,hitbox))selectedNoteIndices.add(hitbox.entryIndex)})}
     function selectAtPoint(point){const hits=selectionHitboxes.filter(hitbox=>rectanglesIntersect({left:point.x,right:point.x,top:point.y,bottom:point.y},hitbox)).sort((a,b)=>a.width*a.height-b.width*b.height);selectedNoteIndices.clear();if(hits[0])selectedNoteIndices.add(hits[0].entryIndex)}
     function toggleBooleanForSelection(property,label){const indices=getSelectedNoteIndices();if(!indices.length)return;const enable=!indices.every(index=>Boolean(notes[index][property]));indices.forEach(index=>{notes[index][property]=enable});status.textContent=`${label} ${enable?'lisätty':'poistettu'}`;renderScore()}
@@ -1475,10 +1479,14 @@
 
     function resetLastLineStretchAfterSystemLayoutChange(){
       cancelLastLineStretchPreview();
+      lastLineStretchLayoutEpoch+=1;
+      lastLineStretchGeometryReady=false;
+      const drag=lastLineStretchDrag,handle=scorePage.querySelector('.last-line-stretch-handle');
+      if(drag&&handle){try{if(handle.hasPointerCapture?.(drag.pointerId))handle.releasePointerCapture(drag.pointerId)}catch{}}
       lastLineStretchDrag=null;
       lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT;
       lastLineStretchBaseWidth=null;
-      const handle=scorePage.querySelector('.last-line-stretch-handle');
+      hideLastLineDragVisuals();
       if(handle){handle.classList.remove('is-dragging');handle.hidden=true}
     }
     function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);resetLastLineStretchAfterSystemLayoutChange();renderScore()}
@@ -1599,7 +1607,7 @@
     }
     function renderLastLineStretchHandle(){
       const handle=ensureLastLineStretchHandle();
-      if(workMode!=='edit'||!notes.length||!scoreRenderer||staffTopCommitRunning||lineSpacingCommitRunning){handle.hidden=true;return}
+      if(workMode!=='edit'||!notes.length||!scoreRenderer||!lastLineStretchGeometryReady||staffTopCommitRunning||lineSpacingCommitRunning){handle.hidden=true;return}
       const geometry=lastSystemStretchGeometry();if(!geometry){handle.hidden=true;return}
       const containerRect=osmdContainer.getBoundingClientRect(),pageRect=scorePage.getBoundingClientRect(),scale=scorePageScale||1;
       const offsetX=(containerRect.left-pageRect.left)/scale+osmdContainer.scrollLeft,offsetY=(containerRect.top-pageRect.top)/scale+osmdContainer.scrollTop;
@@ -1611,25 +1619,56 @@
     function lastLinePointerContentX(clientX){
       const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;return (clientX-rect.left)/scale+osmdContainer.scrollLeft;
     }
+    function ensureLastLineDragVisuals(){
+      let overlay=scorePage.querySelector('.last-line-drag-overlay'),mask=scorePage.querySelector('.last-line-drag-mask');
+      if(!mask){mask=document.createElement('div');mask.className='last-line-drag-mask';scorePage.appendChild(mask)}
+      if(!overlay){overlay=document.createElement('div');overlay.className='last-line-drag-overlay';scorePage.appendChild(overlay)}
+      return {overlay,mask};
+    }
+    function renderLastLineDragVisuals(){
+      const drag=lastLineStretchDrag,{overlay,mask}=ensureLastLineDragVisuals();
+      if(!drag){overlay.classList.remove('is-visible');mask.classList.remove('is-visible');return}
+      const geometry=lastSystemStretchGeometry();if(!geometry)return;
+      const containerRect=osmdContainer.getBoundingClientRect(),pageRect=scorePage.getBoundingClientRect(),scale=scorePageScale||1;
+      const offsetX=(containerRect.left-pageRect.left)/scale+osmdContainer.scrollLeft,offsetY=(containerRect.top-pageRect.top)/scale+osmdContainer.scrollTop;
+      const top=offsetY+geometry.rowY+20-21;
+      mask.style.left=`${offsetX+geometry.right-4}px`;mask.style.top=`${top-2}px`;
+      overlay.style.left=`${offsetX+drag.targetRight-1.5}px`;overlay.style.top=`${top}px`;
+      mask.classList.add('is-visible');overlay.classList.add('is-visible');
+    }
+    function hideLastLineDragVisuals(){
+      const overlay=scorePage.querySelector('.last-line-drag-overlay'),mask=scorePage.querySelector('.last-line-drag-mask');
+      overlay?.classList.remove('is-visible');mask?.classList.remove('is-visible');
+    }
     function renderLastLineStretchPreview(){
       if(!lastLineStretchDrag||!scoreRenderer)return;
       try{
-        const drag=lastLineStretchDrag;
-        for(let attempt=0;attempt<7;attempt+=1){
+        const drag=lastLineStretchDrag;if(drag.layoutEpoch!==lastLineStretchLayoutEpoch||!lastLineStretchGeometryReady)return;const targetFactor=clamp((drag.targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
+        const step=Math.max(.0012,Math.abs(targetFactor)*.0025);
+        const candidates=[targetFactor,targetFactor-step,targetFactor+step,targetFactor-step*2,targetFactor+step*2]
+          .map(value=>clamp(value,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX))
+          .filter((value,index,array)=>array.findIndex(other=>Math.abs(other-value)<.00005)===index);
+        let bestFactor=lastLineStretchFactor,bestError=Infinity;
+        for(const candidate of candidates){
+          lastLineStretchFactor=candidate;
           scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
           applyStaffTopRules();applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
           scoreRenderer.updateGraphic?.();scoreRenderer.zoom=1;scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
-          if(!lastLineStretchDrag||lastLineStretchDrag!==drag)break;
-          const geometry=lastSystemStretchGeometry();if(!geometry||!Number.isFinite(drag.targetRight))break;
-          const error=drag.targetRight-geometry.right;if(Math.abs(error)<=.75)break;
-          const actualWidth=Math.max(1,geometry.right-drag.left),targetWidth=Math.max(1,drag.targetRight-drag.left);
-          let corrected=lastLineStretchFactor*(targetWidth/actualWidth);
-          if(Math.abs(error)>8)corrected*=error>0?1.035:.975;
-          corrected=clamp(corrected,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
-          if(Math.abs(corrected-lastLineStretchFactor)<.0001)break;lastLineStretchFactor=corrected;
+          if(!lastLineStretchDrag||lastLineStretchDrag!==drag)return;
+          const geometry=lastSystemStretchGeometry();if(!geometry)continue;
+          const error=Math.abs(drag.targetRight-geometry.right);
+          if(error<bestError){bestError=error;bestFactor=candidate}
+          if(error<=.75)break;
         }
-        renderLastLineStretchHandle();
+        if(Math.abs(lastLineStretchFactor-bestFactor)>=.00005){
+          lastLineStretchFactor=bestFactor;
+          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
+          applyStaffTopRules();applyLineSpacingRules();
+          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
+          scoreRenderer.updateGraphic?.();scoreRenderer.zoom=1;scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
+        }
+        renderLastLineStretchHandle();renderLastLineDragVisuals();
       }catch(error){console.error(error)}
     }
     function queueLastLineStretchPreview(){
@@ -1638,28 +1677,42 @@
     }
     function cancelLastLineStretchPreview(){if(lastLineStretchPreviewFrame){cancelAnimationFrame(lastLineStretchPreviewFrame);lastLineStretchPreviewFrame=0}}
     function beginLastLineStretchDrag(event){
-      if(workMode!=='edit'||lastLineStretchDrag)return;const geometry=lastSystemStretchGeometry();if(!geometry)return;
+      if(workMode!=='edit'||lastLineStretchDrag||!lastLineStretchGeometryReady||scoreRendering)return;
+      if(event.pointerType==='mouse'&&(event.button!==0||!event.isPrimary))return;
+      const geometry=lastSystemStretchGeometry();if(!geometry)return;
       event.preventDefault();event.stopPropagation();
       const baseWidth=Math.max(1,geometry.baseWidth||geometry.width/Math.max(LAST_LINE_STRETCH_MIN,lastLineStretchFactor));
-      lastLineStretchDrag={pointerId:event.pointerId,startClientX:event.clientX,lastClientX:event.clientX,moved:false,left:geometry.left,fullRight:geometry.fullRight,baseWidth,targetRight:geometry.right};
+      const pointerX=lastLinePointerContentX(event.clientX);
+      lastLineStretchDrag={pointerId:event.pointerId,armed:true,layoutEpoch:lastLineStretchLayoutEpoch,startClientX:event.clientX,lastClientX:event.clientX,moved:false,left:geometry.left,fullRight:geometry.fullRight,baseWidth,targetRight:geometry.right,grabOffset:pointerX-geometry.right};
       lastLineStretchFactor=clamp(geometry.width/baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
-      event.currentTarget.classList.add('is-dragging');try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}
+      event.currentTarget.classList.add('is-dragging');try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}renderLastLineDragVisuals();
     }
     function moveLastLineStretchDrag(event){
-      const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();drag.lastClientX=event.clientX;if(Math.abs(event.clientX-drag.startClientX)>2)drag.moved=true;
-      let targetRight=clamp(lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
+      const drag=lastLineStretchDrag;if(!drag||!drag.armed||drag.pointerId!==event.pointerId||drag.layoutEpoch!==lastLineStretchLayoutEpoch||!lastLineStretchGeometryReady)return;
+      if(event.pointerType==='mouse'&&(event.buttons&1)!==1){abortLastLineStretchDrag(event.pointerId);return}
+      event.preventDefault();event.stopPropagation();drag.lastClientX=event.clientX;if(Math.abs(event.clientX-drag.startClientX)>2)drag.moved=true;
+      let targetRight=clamp(lastLinePointerContentX(event.clientX)-(drag.grabOffset||0),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
       const snapDistance=Math.max(8,14/(scorePageScale||1));if(drag.fullRight-targetRight<=snapDistance)targetRight=drag.fullRight;drag.targetRight=targetRight;
-      lastLineStretchFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);queueLastLineStretchPreview();
+      renderLastLineDragVisuals();lastLineStretchFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);queueLastLineStretchPreview();
     }
-    function finishLastLineStretchDrag(event,cancelled=false){
-      const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();cancelLastLineStretchPreview();const handle=event.currentTarget;try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;
-      if(cancelled){renderScore();return}
-      if(!drag.moved){const now=performance.now();if(now-lastLineStretchLastTap<360){lastLineStretchLastTap=0;resetLastLineStretch();return}lastLineStretchLastTap=now;renderLastLineStretchHandle();return}
-      const targetRight=clamp(Number.isFinite(drag.targetRight)?drag.targetRight:lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
-      const requestedFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
-      if(!Number.isFinite(lastLineStretchFactor)||Math.abs(targetRight-drag.fullRight)>1)lastLineStretchFactor=requestedFactor;
-      else lastLineStretchFactor=Math.max(lastLineStretchFactor,requestedFactor);
-      status.textContent=targetRight>=drag.fullRight-1?'Viimeinen rivi venytetty täyteen leveyteen':'Viimeisen rivin leveys säädetty';renderScore();
+    function abortLastLineStretchDrag(pointerId=null){
+      const drag=lastLineStretchDrag;if(!drag||(pointerId!==null&&drag.pointerId!==pointerId))return;
+      cancelLastLineStretchPreview();
+      const handle=scorePage.querySelector('.last-line-stretch-handle');
+      try{if(handle?.hasPointerCapture?.(drag.pointerId))handle.releasePointerCapture(drag.pointerId)}catch{}
+      handle?.classList.remove('is-dragging');drag.armed=false;lastLineStretchDrag=null;hideLastLineDragVisuals();renderLastLineStretchHandle();
+    }
+    async function finishLastLineStretchDrag(event,cancelled=false){
+      const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();cancelLastLineStretchPreview();const handle=event.currentTarget;if(drag.layoutEpoch!==lastLineStretchLayoutEpoch||!lastLineStretchGeometryReady){try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();renderLastLineStretchHandle();return}
+      if(cancelled){try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();renderScore();return}
+      if(!drag.moved){try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();const now=performance.now();if(now-lastLineStretchLastTap<360){lastLineStretchLastTap=0;resetLastLineStretch();return}lastLineStretchLastTap=now;renderLastLineStretchHandle();return}
+      // Tee yksi viimeinen vakaan OSMD-layoutin valinta juuri irrotuksen tavoitekohtaan.
+      renderLastLineStretchPreview();
+      const settledGeometry=lastSystemStretchGeometry();
+      try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();
+      status.textContent=settledGeometry&&settledGeometry.right>=drag.fullRight-1?'Viimeinen rivi venytetty täyteen leveyteen':'Viimeisen rivin leveys säädetty';
+      if(settledGeometry&&Number.isFinite(lastLineStretchFactor)&&lastLineStretchFactor>0)lastLineStretchBaseWidth=Math.max(1,(settledGeometry.right-settledGeometry.left)/lastLineStretchFactor);
+      renderLastLineStretchHandle();
     }
     function resetLastLineStretch(){
       if(lastLineStretchDrag)return;cancelLastLineStretchPreview();lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT;lastLineStretchBaseWidth=null;status.textContent='Viimeisen rivin automaattinen leveys palautettu';renderScore();
@@ -2156,6 +2209,8 @@
     score.addEventListener('pointerdown',startScoreGesture);
     score.addEventListener('pointermove',moveScoreGesture,{passive:true});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
+    window.addEventListener('pointerup',e=>{const drag=lastLineStretchDrag;if(drag&&drag.pointerId===e.pointerId&&!scorePage.querySelector('.last-line-stretch-handle')?.hasPointerCapture?.(e.pointerId))abortLastLineStretchDrag(e.pointerId)},true);
+    window.addEventListener('pointercancel',e=>abortLastLineStretchDrag(e.pointerId),true);
     score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
     score.addEventListener('keydown',scoreKey);
     selectionSlurButton.addEventListener('click',toggleSlurForSelection);
