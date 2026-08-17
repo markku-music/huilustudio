@@ -174,22 +174,17 @@
     .key-wheel-card::before,.key-wheel-card::after{content:'';position:absolute;left:50%;top:50%;border:1px solid #c8d3df;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
     .key-wheel-card::before{width:55%;height:55%}
     .key-wheel-card::after{width:78%;height:78%}
-    .key-wheel-close{position:absolute;z-index:7;top:calc(50% - 59px);left:50%;width:26px;height:26px;display:grid;place-items:center;padding:0;border:1px solid #c4cfdb;border-radius:50%;background:#fff;color:#4e5c6c;font-size:18px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 2px 6px #1c27351c;cursor:pointer}
-    .key-wheel-slot{position:absolute;z-index:3;display:grid;place-items:center;padding:0 4px;border:1px solid #aebbc9;border-radius:10px;background:#fff;color:#263342;box-shadow:0 2px 5px #1c27351f;font-weight:850;line-height:1;transform:translate(-50%,-50%);touch-action:manipulation;cursor:pointer}
-    .key-wheel-slot.major{width:58px;height:34px;font-size:14px}
-    .key-wheel-slot.minor{width:48px;height:30px;border-color:#c5b8e7;background:#fbf9ff;color:#60458e;font-size:12px}
-    .key-wheel-slot.shared{font-size:10px;letter-spacing:-.02em}
-    .key-wheel-slot[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa55,0 2px 6px #1c27352b}
-    .key-wheel-slot.minor[aria-pressed="true"]{border-color:#7654ce;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #7654ce55,0 2px 6px #1c27352b}
-    .key-wheel-slot:focus-visible,.key-wheel-close:focus-visible,.key-wheel-pair-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
-    .key-wheel-center{position:absolute;z-index:4;left:50%;top:50%;width:132px;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 8px;border:1px solid #c7d1dc;border-radius:22px;background:#fffffff2;box-shadow:0 4px 14px #1c27351c;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-    .key-wheel-title{color:#516173;font-size:10px;font-weight:900;letter-spacing:.08em}
-    .key-wheel-current{max-width:116px;color:#18202a;font-size:15px;font-weight:850;line-height:1.1}
-    .key-wheel-legend{color:#738092;font-size:9px;font-weight:750;line-height:1.2}
-    .key-wheel-pair{position:absolute;z-index:6;left:50%;top:50%;width:150px;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px;border:1px solid #9eafc1;border-radius:18px;background:#fff;box-shadow:0 8px 24px #1c273540;transform:translate(-50%,-50%)}
-    .key-wheel-pair[hidden]{display:none}
-    .key-wheel-pair-label{grid-column:1/-1;color:#526172;font-size:10px;font-weight:850;text-align:center}
-    .key-wheel-pair-choice{min-height:42px;padding:5px;border:1px solid #b4c0ce;border-radius:10px;background:#f7f9fc;color:#263342;font-size:13px;font-weight:850;touch-action:manipulation;cursor:pointer}
+    .key-wheel-close{position:absolute;z-index:7;top:50%;left:50%;width:30px;height:30px;display:grid;place-items:center;padding:0;border:1px solid #c4cfdb;border-radius:50%;background:#fff;color:#4e5c6c;font-size:19px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 2px 6px #1c27351c;cursor:pointer}
+    .key-wheel-slot{position:absolute;z-index:3;display:grid;place-items:center;width:50px;height:50px;padding:0;border:0;background:transparent;color:#263342;box-shadow:none;font-weight:850;line-height:1;white-space:nowrap;transform:translate(-50%,-50%);touch-action:manipulation;cursor:pointer;position:absolute;isolation:isolate}
+    .key-wheel-slot::before{content:'';position:absolute;inset:7px;border:1px solid #aebbc9;border-radius:50%;background:#fff;box-shadow:0 2px 5px #1c27351f;z-index:-1}
+    .key-wheel-slot.major{font-size:12px;letter-spacing:-0.01em}
+    .key-wheel-slot.minor{width:46px;height:46px;color:#60458e;font-size:11px;letter-spacing:-0.01em}
+    .key-wheel-slot.minor::before{inset:6px;border-color:#c5b8e7;background:#fbf9ff}
+    .key-wheel-slot[aria-pressed="true"]{color:#174d83}
+    .key-wheel-slot[aria-pressed="true"]::before{border-color:#2365aa;background:#dcecff;box-shadow:inset 0 0 0 1px #2365aa55,0 2px 6px #1c27352b}
+    .key-wheel-slot.minor[aria-pressed="true"]{color:#5633ad}
+    .key-wheel-slot.minor[aria-pressed="true"]::before{border-color:#7654ce;background:#eee7ff;box-shadow:inset 0 0 0 1px #7654ce55,0 2px 6px #1c27352b}
+    .key-wheel-slot:focus-visible,.key-wheel-close:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .pickup-control{grid-column:1/-1;min-height:48px;display:flex;align-items:center;gap:10px;min-width:0}
     .pickup-label{flex:0 0 70px;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
     .pickup-choices{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
@@ -276,10 +271,6 @@
             <option value="4" data-mode="minor" data-tonic="C#">cis-molli</option>
             <option value="5" data-mode="major" data-tonic="B">H-duuri</option>
             <option value="5" data-mode="minor" data-tonic="G#">gis-molli</option>
-            <option value="6" data-mode="major" data-tonic="F#">Fis-duuri</option>
-            <option value="6" data-mode="minor" data-tonic="D#">dis-molli</option>
-            <option value="7" data-mode="major" data-tonic="C#">Cis-duuri</option>
-            <option value="7" data-mode="minor" data-tonic="A#">ais-molli</option>
             <option value="-1" data-mode="major" data-tonic="F">F-duuri</option>
             <option value="-1" data-mode="minor" data-tonic="D">d-molli</option>
             <option value="-2" data-mode="major" data-tonic="Bb">B-duuri</option>
@@ -292,8 +283,6 @@
             <option value="-5" data-mode="minor" data-tonic="Bb">b-molli</option>
             <option value="-6" data-mode="major" data-tonic="Gb">Ges-duuri</option>
             <option value="-6" data-mode="minor" data-tonic="Eb">es-molli</option>
-            <option value="-7" data-mode="major" data-tonic="Cb">Ces-duuri</option>
-            <option value="-7" data-mode="minor" data-tonic="Ab">as-molli</option>
           </select>
         </div>
         <label class="field" for="timeSignatureSelect">
@@ -342,12 +331,6 @@
     <div class="key-wheel-card" id="keyWheelCard">
       <button class="key-wheel-close" id="keyWheelClose" type="button" aria-label="Sulje sävellajivalinta">×</button>
       <div id="keyWheelSlots"></div>
-      <div class="key-wheel-center" id="keyWheelCenter" aria-hidden="true">
-        <span class="key-wheel-title">KVINTTIYMPYRÄ</span>
-        <strong class="key-wheel-current" id="keyWheelCurrent">C-duuri</strong>
-        <span class="key-wheel-legend">duuri ulkona · molli sisällä</span>
-      </div>
-      <div class="key-wheel-pair" id="keyWheelPair" hidden></div>
     </div>
   </div>
 
@@ -457,7 +440,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),keyWheelCurrent=document.querySelector('#keyWheelCurrent'),keyWheelPair=document.querySelector('#keyWheelPair'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -499,9 +482,9 @@
       {major:[{label:'D',fifths:2,tonic:'D'}],minor:[{label:'h',fifths:2,tonic:'B'}]},
       {major:[{label:'A',fifths:3,tonic:'A'}],minor:[{label:'fis',fifths:3,tonic:'F#'}]},
       {major:[{label:'E',fifths:4,tonic:'E'}],minor:[{label:'cis',fifths:4,tonic:'C#'}]},
-      {major:[{label:'H',fifths:5,tonic:'B'},{label:'Ces',fifths:-7,tonic:'Cb'}],minor:[{label:'gis',fifths:5,tonic:'G#'},{label:'as',fifths:-7,tonic:'Ab'}]},
-      {major:[{label:'Fis',fifths:6,tonic:'F#'},{label:'Ges',fifths:-6,tonic:'Gb'}],minor:[{label:'dis',fifths:6,tonic:'D#'},{label:'es',fifths:-6,tonic:'Eb'}]},
-      {major:[{label:'Cis',fifths:7,tonic:'C#'},{label:'Des',fifths:-5,tonic:'Db'}],minor:[{label:'ais',fifths:7,tonic:'A#'},{label:'b',fifths:-5,tonic:'Bb'}]},
+      {major:[{label:'H',fifths:5,tonic:'B'}],minor:[{label:'gis',fifths:5,tonic:'G#'}]},
+      {major:[{label:'Ges',fifths:-6,tonic:'Gb'}],minor:[{label:'es',fifths:-6,tonic:'Eb'}]},
+      {major:[{label:'Des',fifths:-5,tonic:'Db'}],minor:[{label:'b',fifths:-5,tonic:'Bb'}]},
       {major:[{label:'As',fifths:-4,tonic:'Ab'}],minor:[{label:'f',fifths:-4,tonic:'F'}]},
       {major:[{label:'Es',fifths:-3,tonic:'Eb'}],minor:[{label:'c',fifths:-3,tonic:'C'}]},
       {major:[{label:'B',fifths:-2,tonic:'Bb'}],minor:[{label:'g',fifths:-2,tonic:'G'}]},
@@ -515,7 +498,7 @@
     }
     function syncKeyPicker(){
       const text=keySignatureSelect.selectedOptions[0]?.textContent||'C-duuri';
-      keyTriggerValue.textContent=text;keyWheelCurrent.textContent=text;
+      keyTriggerValue.textContent=text;
       const info=selectedKeyInfo();
       keyWheelSlots.querySelectorAll('.key-wheel-slot').forEach(button=>{
         const variants=keyWheelData[+button.dataset.slot]?.[button.dataset.mode]||[];
@@ -527,39 +510,30 @@
       const option=keyOptionFor(choice,mode);if(!option)return;
       keySignatureSelect.selectedIndex=option.index;syncKeyPicker();closeKeyWheel();
     }
-    function showKeyPair(choices,mode){
-      keyWheelPair.replaceChildren();
-      const label=document.createElement('span');label.className='key-wheel-pair-label';label.textContent='Valitse kirjoitusasu';keyWheelPair.appendChild(label);
-      choices.forEach(choice=>{
-        const button=document.createElement('button');button.type='button';button.className='key-wheel-pair-choice';button.textContent=choice.label;button.setAttribute('aria-label',keyChoiceName(choice,mode));
-        button.addEventListener('click',()=>chooseKeyChoice(choice,mode));keyWheelPair.appendChild(button);
-      });
-      keyWheelPair.hidden=false;requestAnimationFrame(()=>keyWheelPair.querySelector('button')?.focus());
-    }
     function chooseKeyWheelSlot(e){
       const button=e.target.closest('.key-wheel-slot');if(!button)return;
       const choices=keyWheelData[+button.dataset.slot]?.[button.dataset.mode]||[];if(!choices.length)return;
       e.preventDefault();
-      if(choices.length===1)chooseKeyChoice(choices[0],button.dataset.mode);else showKeyPair(choices,button.dataset.mode);
+      chooseKeyChoice(choices[0],button.dataset.mode);
     }
     function buildKeyWheel(){
       keyWheelSlots.replaceChildren();
       keyWheelData.forEach((slot,index)=>{
         const angle=(index*30-90)*Math.PI/180;
         [['major',39],['minor',25]].forEach(([mode,radius])=>{
-          const choices=slot[mode],button=document.createElement('button');button.type='button';button.className=`key-wheel-slot ${mode}${choices.length>1?' shared':''}`;button.dataset.slot=String(index);button.dataset.mode=mode;
+          const choices=slot[mode],button=document.createElement('button');button.type='button';button.className=`key-wheel-slot ${mode}`;button.dataset.slot=String(index);button.dataset.mode=mode;
           button.style.left=`${50+Math.cos(angle)*radius}%`;button.style.top=`${50+Math.sin(angle)*radius}%`;
-          button.textContent=choices.map(choice=>choice.label).join('/');button.setAttribute('aria-label',choices.map(choice=>keyChoiceName(choice,mode)).join(' tai '));button.setAttribute('aria-pressed','false');keyWheelSlots.appendChild(button);
+          button.textContent=choices[0].label;button.setAttribute('aria-label',keyChoiceName(choices[0],mode));button.setAttribute('aria-pressed','false');keyWheelSlots.appendChild(button);
         });
       });
       syncKeyPicker();
     }
     function openKeyWheel(e){
-      e?.preventDefault();keyWheelPair.hidden=true;syncKeyPicker();keyWheelPopover.hidden=false;keyTrigger.setAttribute('aria-expanded','true');
+      e?.preventDefault();syncKeyPicker();keyWheelPopover.hidden=false;keyTrigger.setAttribute('aria-expanded','true');
       requestAnimationFrame(()=>{const selected=keyWheelSlots.querySelector('[aria-pressed="true"]');(selected||keyWheelClose).focus()});
     }
     function closeKeyWheel(){
-      if(keyWheelPopover.hidden)return;keyWheelPair.hidden=true;keyWheelPopover.hidden=true;keyTrigger.setAttribute('aria-expanded','false');keyTrigger.focus();
+      if(keyWheelPopover.hidden)return;keyWheelPopover.hidden=true;keyTrigger.setAttribute('aria-expanded','false');keyTrigger.focus();
     }
     function keyWheelBackdrop(e){if(e.target===keyWheelPopover)closeKeyWheel()}
     function keyWheelKey(e){if(e.key==='Escape'&&!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}}
