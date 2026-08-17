@@ -1623,7 +1623,6 @@
           if(!lastLineStretchDrag||lastLineStretchDrag!==drag)break;
           const geometry=lastSystemStretchGeometry();if(!geometry||!Number.isFinite(drag.targetRight))break;
           const error=drag.targetRight-geometry.right;if(Math.abs(error)<=.75)break;
-          if(drag.targetRight>=drag.fullRight-.75&&geometry.right>=drag.fullRight-.75)break;
           const actualWidth=Math.max(1,geometry.right-drag.left),targetWidth=Math.max(1,drag.targetRight-drag.left);
           let corrected=lastLineStretchFactor*(targetWidth/actualWidth);
           if(Math.abs(error)>8)corrected*=error>0?1.035:.975;
@@ -1648,8 +1647,8 @@
     }
     function moveLastLineStretchDrag(event){
       const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();drag.lastClientX=event.clientX;if(Math.abs(event.clientX-drag.startClientX)>2)drag.moved=true;
-      const targetRight=clamp(lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
-      drag.targetRight=targetRight;
+      let targetRight=clamp(lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
+      const snapDistance=Math.max(8,14/(scorePageScale||1));if(drag.fullRight-targetRight<=snapDistance)targetRight=drag.fullRight;drag.targetRight=targetRight;
       lastLineStretchFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);queueLastLineStretchPreview();
     }
     function finishLastLineStretchDrag(event,cancelled=false){
@@ -1658,7 +1657,8 @@
       if(!drag.moved){const now=performance.now();if(now-lastLineStretchLastTap<360){lastLineStretchLastTap=0;resetLastLineStretch();return}lastLineStretchLastTap=now;renderLastLineStretchHandle();return}
       const targetRight=clamp(Number.isFinite(drag.targetRight)?drag.targetRight:lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
       const requestedFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
-      lastLineStretchFactor=requestedFactor;
+      if(!Number.isFinite(lastLineStretchFactor)||Math.abs(targetRight-drag.fullRight)>1)lastLineStretchFactor=requestedFactor;
+      else lastLineStretchFactor=Math.max(lastLineStretchFactor,requestedFactor);
       status.textContent=targetRight>=drag.fullRight-1?'Viimeinen rivi venytetty täyteen leveyteen':'Viimeisen rivin leveys säädetty';renderScore();
     }
     function resetLastLineStretch(){
