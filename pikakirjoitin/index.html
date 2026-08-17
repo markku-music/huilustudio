@@ -180,6 +180,18 @@
     .notation-choice.icon-choice img{display:block;width:22px;height:34px;pointer-events:none;filter:none}
     .notation-choice.icon-choice[aria-pressed="true"] img{filter:brightness(0) saturate(100%) invert(25%) sepia(39%) saturate(1864%) hue-rotate(185deg) brightness(92%) contrast(90%)}
     .notation-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .key-signature-field{grid-column:1/-1;display:grid;gap:8px}
+    .field-label{display:block;color:#536274;font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+    .visually-hidden-select{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+    .key-signature-picker{display:grid;gap:8px;padding:8px 10px;border:1px solid #d2dbe6;border-radius:14px;background:#f7f9fc}
+    .key-signature-section{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:start;gap:8px}
+    .key-signature-mode{padding-top:5px;color:#536274;font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+    .key-signature-choices{display:flex;flex-wrap:wrap;gap:6px}
+    .key-signature-choice{min-width:42px;height:34px;padding:0 8px;border:1px solid #cfd8e4;border-radius:10px;background:#fff;color:#203046;font-size:14px;font-weight:750;line-height:1;touch-action:manipulation;cursor:pointer}
+    .key-signature-choice.minor{font-style:italic;font-weight:700}
+    .key-signature-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
+    .key-signature-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+
     .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
     .instrument-picker{position:relative}
     .instrument-trigger{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#263342;font-size:15px;font-weight:700;text-align:left;touch-action:manipulation;cursor:pointer}
@@ -229,8 +241,9 @@
         <label class="field" for="composerInput">
           <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
         </label>
-        <label class="field" for="keySignatureSelect">
-          <select id="keySignatureSelect" aria-label="Sävellaji">
+        <div class="field key-signature-field">
+          <span class="field-label">Sävellaji</span>
+          <select id="keySignatureSelect" class="visually-hidden-select" aria-label="Sävellaji">
             <option value="0" data-mode="major" data-tonic="C">C-duuri</option>
             <option value="0" data-mode="minor" data-tonic="A">a-molli</option>
             <option value="1" data-mode="major" data-tonic="G">G-duuri</option>
@@ -262,7 +275,49 @@
             <option value="-7" data-mode="major" data-tonic="Cb">Ces-duuri</option>
             <option value="-7" data-mode="minor" data-tonic="Ab">as-molli</option>
           </select>
-        </label>
+          <div class="key-signature-picker" id="keySignatureChoices" role="group" aria-label="Sävellaji">
+            <div class="key-signature-section">
+              <span class="key-signature-mode">Duuri</span>
+              <div class="key-signature-choices">
+                <button class="key-signature-choice" type="button" data-key-index="28">Ces</button>
+                <button class="key-signature-choice" type="button" data-key-index="26">Ges</button>
+                <button class="key-signature-choice" type="button" data-key-index="24">Des</button>
+                <button class="key-signature-choice" type="button" data-key-index="22">As</button>
+                <button class="key-signature-choice" type="button" data-key-index="20">Es</button>
+                <button class="key-signature-choice" type="button" data-key-index="18">B</button>
+                <button class="key-signature-choice" type="button" data-key-index="16">F</button>
+                <button class="key-signature-choice" type="button" data-key-index="0">C</button>
+                <button class="key-signature-choice" type="button" data-key-index="2">G</button>
+                <button class="key-signature-choice" type="button" data-key-index="4">D</button>
+                <button class="key-signature-choice" type="button" data-key-index="6">A</button>
+                <button class="key-signature-choice" type="button" data-key-index="8">E</button>
+                <button class="key-signature-choice" type="button" data-key-index="10">H</button>
+                <button class="key-signature-choice" type="button" data-key-index="12">Fis</button>
+                <button class="key-signature-choice" type="button" data-key-index="14">Cis</button>
+              </div>
+            </div>
+            <div class="key-signature-section">
+              <span class="key-signature-mode">Molli</span>
+              <div class="key-signature-choices">
+                <button class="key-signature-choice minor" type="button" data-key-index="29">as</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="27">es</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="25">b</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="23">f</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="21">c</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="19">g</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="17">d</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="1">a</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="3">e</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="5">h</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="7">fis</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="9">cis</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="11">gis</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="13">dis</button>
+                <button class="key-signature-choice minor" type="button" data-key-index="15">ais</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <label class="field" for="timeSignatureSelect">
           <select id="timeSignatureSelect" aria-label="Tahtilaji">
             <option value="2/4">2/4</option>
@@ -411,7 +466,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keySignatureChoices=document.querySelector('#keySignatureChoices'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -1360,13 +1415,15 @@
     function syncNotationChoices(){
       tuningChoices.querySelectorAll('[data-tuning]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.tuning===tuningSelect.value)));
       clefChoices.querySelectorAll('[data-clef]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clef===clefSelect.value)));
+      keySignatureChoices?.querySelectorAll('[data-key-index]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.keyIndex)===keySignatureSelect.selectedIndex)));
     }
     function chooseNotationSetting(e){
-      const tuningButton=e.target.closest('[data-tuning]'),clefButton=e.target.closest('[data-clef]');
-      if(!tuningButton&&!clefButton)return;
+      const tuningButton=e.target.closest('[data-tuning]'),clefButton=e.target.closest('[data-clef]'),keyButton=e.target.closest('[data-key-index]');
+      if(!tuningButton&&!clefButton&&!keyButton)return;
       e.preventDefault();
       if(tuningButton)tuningSelect.value=tuningButton.dataset.tuning;
       if(clefButton)clefSelect.value=clefButton.dataset.clef;
+      if(keyButton)keySignatureSelect.selectedIndex=Number(keyButton.dataset.keyIndex)||0;
       syncNotationChoices();
     }
     function showProjectModal(){
@@ -1700,6 +1757,7 @@
     modeTabs.addEventListener('keydown',activateWorkMode);
     tuningChoices.addEventListener('click',chooseNotationSetting);
     clefChoices.addEventListener('click',chooseNotationSetting);
+    keySignatureChoices?.addEventListener('click',chooseNotationSetting);
     timeSignatureSelect.addEventListener('change',syncPickupOptions);
     pickupChoices.addEventListener('click',choosePickup);
     projectForm.addEventListener('submit',saveProject);
