@@ -3,21 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#82c8e8">
 <title>Sävelkoju</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Sävelkoju">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="game">
   <div id="stage">
-    <div id="progressLamps" class="progress-lamps" aria-label="Edistyminen">
-      <span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
     <div id="reticle"><i></i></div>
     <div id="flash"></div>
     <div id="hitText">PLING!</div>
+  </div>
+
+
+  <div id="progressLamps" class="progress-lamps" aria-label="Edistyminen">
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <div id="rotateOverlay" class="rotate-overlay" aria-hidden="true">
+    <div class="rotate-card panel">
+      <div class="rotate-phone" aria-hidden="true">↻</div>
+      <strong>Käännä puhelin vaakaan</strong>
+      <span>Sävelkoju jatkuu automaattisesti.</span>
+    </div>
   </div>
 
   <div id="hud" class="panel hidden">
@@ -144,5 +159,22 @@
 <script src="scoreboard.js"></script>
 <script src="audio-manager.js"></script>
 <script src="game.js"></script>
+
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('./sw.js', {
+        scope: './',
+        updateViaCache: 'none'
+      });
+      registration.update().catch(() => {});
+    } catch (err) {
+      console.warn('PWA service worker:', err);
+    }
+  });
+}
+</script>
+
 </body>
 </html>
