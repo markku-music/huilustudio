@@ -162,7 +162,7 @@
     .field.wide{grid-column:1/-1}
     .field input,.field select{width:100%;min-height:46px;padding:9px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;font-size:16px}
     .pickup-control{grid-column:1/-1;min-height:48px;display:flex;align-items:center;gap:10px;min-width:0}
-    .pickup-label{flex:0 0 auto;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
+    .pickup-label{flex:0 0 70px;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
     .pickup-choices{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
     .pickup-choice{min-width:42px;height:42px;display:grid;place-items:center;padding:0 7px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font:750 20px/1 Georgia,"Times New Roman",serif;touch-action:manipulation;cursor:pointer}
     .pickup-choice img{display:block;width:15px;height:26px;pointer-events:none}
@@ -171,6 +171,8 @@
     .notation-settings{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
     .notation-setting{display:flex;align-items:center;gap:8px;min-width:0}
     .notation-setting-label{flex:0 0 auto;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
+    .tuning-setting{gap:10px}
+    .tuning-setting .notation-setting-label{flex:0 0 70px}
     .notation-choice-group{display:flex;align-items:center;gap:5px;min-width:0}
     .notation-choice{min-width:42px;height:40px;padding:0 9px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font-size:14px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .notation-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
@@ -191,7 +193,7 @@
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
-    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
+    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
@@ -279,8 +281,8 @@
           <div class="pickup-choices" id="pickupChoices"></div>
         </div>
         <div class="notation-settings">
-          <div class="notation-setting" role="group" aria-label="Vire">
-            <span class="notation-setting-label">Vire</span>
+          <div class="notation-setting tuning-setting" role="group" aria-label="Viritys">
+            <span class="notation-setting-label">Viritys</span>
             <input id="tuningSelect" type="hidden" value="C">
             <div class="notation-choice-group" id="tuningChoices">
               <button class="notation-choice" type="button" data-tuning="C" aria-pressed="true">C</button>
