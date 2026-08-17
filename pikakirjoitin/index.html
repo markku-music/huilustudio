@@ -175,6 +175,9 @@
     .notation-choice-group{display:flex;align-items:center;gap:5px;min-width:0}
     .notation-choice{min-width:42px;height:40px;padding:0 9px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font-size:14px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .notation-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
+    .notation-choice.icon-choice{min-width:48px;width:48px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+    .notation-choice.icon-choice img{display:block;width:22px;height:34px;pointer-events:none;filter:none}
+    .notation-choice.icon-choice[aria-pressed="true"] img{filter:brightness(0) saturate(100%) invert(25%) sepia(39%) saturate(1864%) hue-rotate(185deg) brightness(92%) contrast(90%)}
     .notation-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .instrument-heading{margin:20px 0 10px;color:#4e5c6c;font-size:11px;font-weight:850;letter-spacing:.07em;text-align:center}
     .instrument-picker{position:relative}
@@ -288,12 +291,11 @@
             </div>
           </div>
           <div class="notation-setting" role="group" aria-label="Nuottiavain">
-            <span class="notation-setting-label">Avain</span>
             <input id="clefSelect" type="hidden" value="treble">
             <div class="notation-choice-group" id="clefChoices">
-              <button class="notation-choice" type="button" data-clef="treble" aria-label="G-avain" aria-pressed="true">G</button>
-              <button class="notation-choice" type="button" data-clef="bass" aria-label="F-avain" aria-pressed="false">F</button>
-              <button class="notation-choice" type="button" data-clef="alto" aria-label="C-avain" aria-pressed="false">C</button>
+              <button class="notation-choice icon-choice" type="button" data-clef="treble" aria-label="G-avain" aria-pressed="true"><img src="assets/clef-treble.svg" alt=""></button>
+              <button class="notation-choice icon-choice" type="button" data-clef="bass" aria-label="F-avain" aria-pressed="false"><img src="assets/clef-bass.svg" alt=""></button>
+              <button class="notation-choice icon-choice" type="button" data-clef="alto" aria-label="C-avain" aria-pressed="false"><img src="assets/clef-alto.svg" alt=""></button>
             </div>
           </div>
         </div>
