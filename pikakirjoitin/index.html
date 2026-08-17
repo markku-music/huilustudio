@@ -1345,8 +1345,8 @@
     }
     function restoreNotationSettings(){
       try{
-        const tuning=localStorage.getItem(TUNING_KEY),clef=localStorage.getItem(CLEF_KEY);
-        if(tuning&&Object.hasOwn(tuningTransposes,tuning))tuningSelect.value=tuning;
+        const clef=localStorage.getItem(CLEF_KEY);
+        tuningSelect.value='C';
         if(clef&&Object.hasOwn(clefKeyboardStarts,clef))clefSelect.value=clef;
       }catch{}
     }
