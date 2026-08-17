@@ -185,6 +185,20 @@
     .key-wheel-slot.minor[aria-pressed="true"]{color:#5633ad}
     .key-wheel-slot.minor[aria-pressed="true"]::before{border-color:#7654ce;background:#eee7ff;box-shadow:inset 0 0 0 1px #7654ce55,0 2px 6px #1c27352b}
     .key-wheel-slot:focus-visible,.key-wheel-close:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .meter-picker{position:relative;display:grid;min-width:0}
+    .meter-trigger{width:100%;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;text-align:left;touch-action:manipulation;cursor:pointer}
+    .meter-trigger-value{font-size:20px;font-weight:800;line-height:1}
+    .meter-trigger-icon{position:relative;width:24px;height:24px;flex:0 0 24px;border:1.5px solid #60758c;border-radius:50%;opacity:.9}
+    .meter-trigger-icon::before{content:'';position:absolute;left:6px;right:6px;top:7px;height:1.5px;background:#60758c;box-shadow:0 7px 0 #60758c}
+    .meter-trigger:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .meter-wheel-popover{position:fixed;z-index:981;inset:0;display:grid;place-items:center;padding:14px;background:#17202b8f;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+    .meter-wheel-popover[hidden]{display:none}
+    .meter-wheel-card{position:relative;width:min(330px,calc(100vw - 28px));aspect-ratio:1;border:1px solid #aebac8;border-radius:50%;background:radial-gradient(circle at center,#fff 0 28%,#edf3fa 28.5% 67%,#fff 67.5% 100%);box-shadow:0 24px 60px #0007;overflow:hidden;touch-action:manipulation}
+    .meter-wheel-card::before{content:'';position:absolute;left:50%;top:50%;width:68%;height:68%;border:1px solid #c8d3df;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+    .meter-wheel-close{position:absolute;z-index:7;top:50%;left:50%;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #c4cfdb;border-radius:50%;background:#fff;color:#4e5c6c;font-size:20px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 2px 6px #1c27351c;cursor:pointer}
+    .meter-wheel-slot{position:absolute;z-index:3;width:58px;height:58px;display:grid;place-items:center;padding:0;border:1px solid #aebbc9;border-radius:50%;background:#fff;color:#263342;box-shadow:0 2px 5px #1c27351f;font-size:18px;font-weight:800;line-height:1;transform:translate(-50%,-50%);touch-action:manipulation;cursor:pointer}
+    .meter-wheel-slot[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa55,0 2px 6px #1c27352b}
+    .meter-wheel-slot:focus-visible,.meter-wheel-close:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .pickup-control{grid-column:1/-1;min-height:48px;display:flex;align-items:center;gap:10px;min-width:0}
     .pickup-label{flex:0 0 70px;color:#4e5c6c;font-size:13px;font-weight:800;white-space:nowrap}
     .pickup-choices{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
@@ -286,8 +300,12 @@
             <option value="-6" data-mode="minor" data-tonic="Eb">es-molli</option>
           </select>
         </div>
-        <label class="field" for="timeSignatureSelect">
-          <select id="timeSignatureSelect" aria-label="Tahtilaji">
+        <div class="meter-picker">
+          <button class="meter-trigger" id="meterTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="meterWheelPopover">
+            <span class="meter-trigger-value" id="meterTriggerValue">4/4</span>
+            <span class="meter-trigger-icon" aria-hidden="true"></span>
+          </button>
+          <select id="timeSignatureSelect" aria-label="Tahtilaji" hidden>
             <option value="2/4">2/4</option>
             <option value="3/4">3/4</option>
             <option value="4/4" selected>4/4</option>
@@ -297,7 +315,7 @@
             <option value="9/8">9/8</option>
             <option value="12/8">12/8</option>
           </select>
-        </label>
+        </div>
         <div class="pickup-control" role="group" aria-label="Kohotahti">
           <span class="pickup-label">Kohotahti</span>
           <input id="pickupSelect" type="hidden" value="0">
@@ -332,6 +350,13 @@
     <div class="key-wheel-card" id="keyWheelCard">
       <button class="key-wheel-close" id="keyWheelClose" type="button" aria-label="Sulje sävellajivalinta">×</button>
       <div id="keyWheelSlots"></div>
+    </div>
+  </div>
+
+  <div class="meter-wheel-popover" id="meterWheelPopover" role="dialog" aria-modal="true" aria-label="Valitse tahtiosoitus" hidden>
+    <div class="meter-wheel-card" id="meterWheelCard">
+      <button class="meter-wheel-close" id="meterWheelClose" type="button" aria-label="Sulje tahtiosoitusvalinta">×</button>
+      <div id="meterWheelSlots"></div>
     </div>
   </div>
 
@@ -441,7 +466,7 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -538,6 +563,38 @@
     }
     function keyWheelBackdrop(e){if(e.target===keyWheelPopover)closeKeyWheel()}
     function keyWheelKey(e){if(e.key==='Escape'&&!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}}
+    const meterWheelData=['2/4','3/4','4/4','2/2','3/8','6/8','9/8','12/8'];
+    function syncMeterPicker(){
+      const value=timeSignatureSelect.value||'4/4';
+      meterTriggerValue.textContent=value;
+      meterWheelSlots.querySelectorAll('.meter-wheel-slot').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.meter===value)));
+    }
+    function buildMeterWheel(){
+      meterWheelSlots.replaceChildren();
+      meterWheelData.forEach((value,index)=>{
+        const angle=(index*45-90)*Math.PI/180,button=document.createElement('button');
+        button.type='button';button.className='meter-wheel-slot';button.dataset.meter=value;button.textContent=value;button.setAttribute('aria-label',`Tahtiosoitus ${value}`);button.setAttribute('aria-pressed','false');
+        button.style.left=`${50+Math.cos(angle)*37}%`;button.style.top=`${50+Math.sin(angle)*37}%`;meterWheelSlots.appendChild(button);
+      });
+      syncMeterPicker();
+    }
+    function chooseMeterWheelSlot(e){
+      const button=e.target.closest('.meter-wheel-slot');if(!button)return;
+      e.preventDefault();timeSignatureSelect.value=button.dataset.meter;syncMeterPicker();syncPickupOptions();closeMeterWheel();
+    }
+    function openMeterWheel(e){
+      e?.preventDefault();syncMeterPicker();meterWheelPopover.hidden=false;meterTrigger.setAttribute('aria-expanded','true');
+      requestAnimationFrame(()=>{const selected=meterWheelSlots.querySelector('[aria-pressed="true"]');(selected||meterWheelClose).focus()});
+    }
+    function closeMeterWheel(){
+      if(meterWheelPopover.hidden)return;meterWheelPopover.hidden=true;meterTrigger.setAttribute('aria-expanded','false');meterTrigger.focus();
+    }
+    function meterWheelBackdrop(e){if(e.target===meterWheelPopover)closeMeterWheel()}
+    function pickerEscapeKey(e){
+      if(e.key!=='Escape')return;
+      if(!meterWheelPopover.hidden){e.preventDefault();closeMeterWheel();return}
+      if(!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}
+    }
     function timeSignatureCapacity(value=timeSignatureSelect.value){
       const [beats,beatType]=String(value||'4/4').split('/').map(Number);
       return beats*32/beatType;
@@ -1461,7 +1518,7 @@
       syncNotationChoices();
     }
     function showProjectModal(){
-      syncNotationChoices();syncKeyPicker();projectSaveButton.hidden=false;projectSaveButton.textContent='TALLENNA';projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
+      syncNotationChoices();syncKeyPicker();syncMeterPicker();projectSaveButton.hidden=false;projectSaveButton.textContent='TALLENNA';projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
     }
     function editProjectFromTitle(e){
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
@@ -1781,7 +1838,7 @@
       e.preventDefault();setWorkMode(button.dataset.workMode,e);
     }
 
-    restoreNotationSettings();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();
+    restoreNotationSettings();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
     buildKeyboard();
     applyNotationSettings();
     syncWorkModeUI();
@@ -1795,8 +1852,12 @@
     keyWheelSlots.addEventListener('click',chooseKeyWheelSlot);
     keyWheelClose.addEventListener('click',closeKeyWheel);
     keyWheelPopover.addEventListener('click',keyWheelBackdrop);
-    document.addEventListener('keydown',keyWheelKey);
-    timeSignatureSelect.addEventListener('change',syncPickupOptions);
+    meterTrigger.addEventListener('click',openMeterWheel);
+    meterWheelSlots.addEventListener('click',chooseMeterWheelSlot);
+    meterWheelClose.addEventListener('click',closeMeterWheel);
+    meterWheelPopover.addEventListener('click',meterWheelBackdrop);
+    document.addEventListener('keydown',pickerEscapeKey);
+    timeSignatureSelect.addEventListener('change',()=>{syncMeterPicker();syncPickupOptions()});
     pickupChoices.addEventListener('click',choosePickup);
     projectForm.addEventListener('submit',saveProject);
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
