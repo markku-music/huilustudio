@@ -69,7 +69,13 @@
     .line-spacing-preview-strip{position:absolute;left:0;width:100%;overflow:hidden;will-change:transform;pointer-events:none}
     .line-spacing-preview-source{position:absolute;left:0;top:0;width:100%;min-height:1123px;pointer-events:none;will-change:transform}
     .line-spacing-preview-source svg{display:block;max-width:100%}
-    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg,.score-page.slider-preview-active #osmdContainer .barline-edit-markers,.score-page.slider-preview-active #osmdContainer .ending-range-preview-layer{visibility:hidden!important}
+    .last-line-stretch-handle{position:absolute;z-index:18;width:34px;height:56px;display:grid;place-items:center;padding:0;border:0;background:transparent;cursor:ew-resize;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+    .last-line-stretch-handle::before{content:'';width:3px;height:42px;border-radius:2px;background:transparent;opacity:0;transition:background .12s,opacity .12s}
+    .last-line-stretch-handle:hover::before,.last-line-stretch-handle:focus-visible::before{background:#527fae;opacity:.42}
+    .last-line-stretch-handle:focus-visible{outline:none}
+    .last-line-stretch-handle.is-dragging::before{width:3px;background:#7654ce;opacity:1;box-shadow:0 0 0 1px #ffffff88,0 0 5px #7654ce55}
+    .last-line-stretch-handle[hidden]{display:none!important}
+    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg,.score-page.slider-preview-active #osmdContainer .barline-edit-markers,.score-page.slider-preview-active #osmdContainer .beam-edit-markers,.score-page.slider-preview-active #osmdContainer .ending-range-preview-layer,.score-page.slider-preview-active .last-line-stretch-handle{visibility:hidden!important}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
@@ -117,6 +123,18 @@
     .barline-edit-marker svg{width:30px;height:26px;overflow:visible;pointer-events:none}
     .barline-edit-marker:hover,.barline-edit-marker:focus-visible{border-color:#8960e6;background:#f2edff;color:#5633ad;outline:none}
     .barline-edit-marker:active{transform:scale(.95)}
+    .beam-edit-markers{position:absolute;z-index:10;inset:0 auto auto 0;pointer-events:none;overflow:visible}
+    .beam-edit-marker{position:absolute;width:24px;height:24px;display:grid;place-items:center;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;pointer-events:auto;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .beam-edit-marker::before{content:'';background-repeat:no-repeat;background-position:center;opacity:.96;transition:opacity .12s,transform .12s,filter .12s}
+    .beam-edit-marker[data-beam-action="cut"][data-beam-side="up"]::before{width:14px;height:9px;background-size:14px 9px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 1L7 8L13 1' fill='%23d33a3a'/%3E%3C/svg%3E");filter:drop-shadow(0 0 1px rgba(255,255,255,.96))}
+    .beam-edit-marker[data-beam-action="cut"][data-beam-side="down"]::before{width:14px;height:9px;background-size:14px 9px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 8L7 1L13 8' fill='%23d33a3a'/%3E%3C/svg%3E");filter:drop-shadow(0 0 1px rgba(255,255,255,.96))}
+    .beam-edit-marker[data-beam-action="glue"]::before{width:12px;height:12px;background-size:12px 12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%232f8f57' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M8 3v10M3 8h10'/%3E%3C/svg%3E");filter:drop-shadow(0 0 1px rgba(255,255,255,.92))}
+    .beam-edit-marker:hover::before,.beam-edit-marker:focus-visible::before{opacity:1;transform:scale(1.12)}
+    .beam-edit-marker:hover[data-beam-action="cut"][data-beam-side="up"]::before,.beam-edit-marker:focus-visible[data-beam-action="cut"][data-beam-side="up"]::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 1L7 8L13 1' fill='%23e23131'/%3E%3C/svg%3E")}
+    .beam-edit-marker:hover[data-beam-action="cut"][data-beam-side="down"]::before,.beam-edit-marker:focus-visible[data-beam-action="cut"][data-beam-side="down"]::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 8L7 1L13 8' fill='%23e23131'/%3E%3C/svg%3E")}
+    .beam-edit-marker:hover[data-beam-action="glue"]::before,.beam-edit-marker:focus-visible[data-beam-action="glue"]::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2323a455' stroke-width='2.3' stroke-linecap='round'%3E%3Cpath d='M8 3v10M3 8h10'/%3E%3C/svg%3E")}
+    .beam-edit-marker:focus-visible{outline:none}
+    .beam-edit-marker:active{transform:translate(-50%,-50%) scale(.94)}
     .barline-palette{position:absolute;z-index:42;display:flex;gap:5px;padding:6px;border:1px solid #b8a1f3;border-radius:13px;background:#fffffff7;box-shadow:0 8px 24px #482d892e;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none}
     .barline-palette[hidden]{display:none!important}
     .barline-choice-button{width:44px;height:42px;display:grid;place-items:center;padding:0;border:1px solid #d5deeb;border-radius:9px;background:#fff;color:#1d3150;touch-action:manipulation;cursor:pointer}
@@ -257,7 +275,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,.last-line-stretch-handle,#status,.score-prompt,.publish-screen{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block!important}
       .score-area{display:block!important;padding:0!important}
@@ -467,7 +485,6 @@
           <button class="edit-rail-button" id="systemBreakButton" type="button" aria-label="Muokkaa rivinvaihtoja" aria-pressed="false">
             <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 12h32M8 21h24M8 30h20"/><path d="M38 21v9c0 4.4-3.6 8-8 8H18"/><path d="m23 33-5 5 5 5"/></svg>
           </button>
-          <button class="edit-rail-button" id="stretchLastLineButton" type="button" aria-label="Venytä viimeinen rivi koko leveyteen" aria-pressed="false">↔</button>
         </div>
         <div class="selection-toolbar" id="selectionToolbar" role="toolbar" aria-label="Valittujen nuottien muokkaus" aria-hidden="true">
           <div class="selection-toolbar-row selection-toolbar-main-row">
@@ -479,6 +496,7 @@
             <button class="selection-action-button" id="selectionStaccatoButton" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="5"/></svg></button>
             <button class="selection-action-button" id="selectionPortatoButton" type="button" aria-label="Lisää tai poista portatoviivat" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 24h24"/></svg></button>
             <button class="selection-action-button" id="selectionAccentButton" type="button" aria-label="Lisää tai poista aksentit" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m13 14 22 10-22 10"/></svg></button>
+            <button class="selection-action-button" id="beamEditButton" type="button" aria-label="Muokkaa palkitusta" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="13" cy="36" rx="5.5" ry="4" transform="rotate(-17 13 36)"/><ellipse cx="35" cy="31" rx="5.5" ry="4" transform="rotate(-17 35 31)"/><path d="M17 34V12M39 29V7"/><path d="M17 12 39 7" stroke-width="6"/></svg></button>
             <button class="selection-action-button" id="barlineEditButton" type="button" aria-label="Muokkaa tahtiviivoja" aria-pressed="false"><img class="custom-tool-icon" src="assets/repeat.svg" alt="" aria-hidden="true" draggable="false"></button>
             <button class="selection-action-button ending-tool-button" id="endingOneButton" type="button" aria-label="Lisää tai poista 1. maali" aria-pressed="false"><img class="custom-tool-icon" src="assets/ending-1.svg" alt="" aria-hidden="true" draggable="false"></button>
             <button class="selection-action-button ending-tool-button" id="endingTwoButton" type="button" aria-label="Lisää tai poista 2. maali" aria-pressed="false"><img class="custom-tool-icon" src="assets/ending-2.svg" alt="" aria-hidden="true" draggable="false"></button>
@@ -520,14 +538,15 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
     const tuningTransposes={C:0,Bb:-2,Eb:-9,F:-7};
     const clefKeyboardStarts={treble:60,alto:48,bass:36};
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    const LAST_LINE_STRETCH_DEFAULT=1.4,LAST_LINE_STRETCH_MIN=1,LAST_LINE_STRETCH_MAX=100;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT,lastLineStretchBaseWidth=null,lastLineStretchDrag=null,lastLineStretchLastTap=0,lastLineStretchPreviewFrame=0,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
@@ -739,35 +758,37 @@
     function beamUnit(beats,beatType){
       return beatType===8&&beats%3===0?12:32/beatType;
     }
+    function beamPairKey(left,right){return left?.id&&right?.id?`${left.id}|${right.id}`:''}
+    function isManualBeamable(note){return Boolean(note&&!note.rest&&!note.measureRest&&(note.duration==='eighth'||note.duration==='sixteenth'))}
+    function measureBeamConnections(group,beats,beatType){
+      const starts=[];let offset=0;for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
+      const unit=beamUnit(beats,beatType),connections=[];
+      for(let index=0;index<group.length-1;index+=1){
+        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
+        connections.push({index,key,left,right,leftCandidate,rightCandidate,automatic,connected});
+      }
+      return {starts,connections};
+    }
     function measureBeamTags(group,beats,beatType){
-      const tags=group.map(()=>[]),starts=[];
-      let offset=0,run=[],bucket=-1;
-      for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
-      const flushRun=()=>{
+      const tags=group.map(()=>[]),{starts,connections}=measureBeamConnections(group,beats,beatType);
+      let index=0;
+      while(index<group.length){
+        if(!isManualBeamable(group[index])){index+=1;continue}
+        const run=[index];
+        while(index<group.length-1&&connections[index]?.connected){index+=1;run.push(index)}
         if(run.length>1){
-          run.forEach((index,position)=>tags[index].push([1,position===0?'begin':position===run.length-1?'end':'continue']));
+          run.forEach((noteIndex,position)=>tags[noteIndex].push([1,position===0?'begin':position===run.length-1?'end':'continue']));
           let secondary=[];
           const flushSecondary=()=>{
-            if(secondary.length===1){
-              const index=secondary[0];
-              tags[index].push([2,starts[index]%4===0?'forward hook':'backward hook']);
-            }else secondary.forEach((index,position)=>tags[index].push([2,position===0?'begin':position===secondary.length-1?'end':'continue']));
+            if(secondary.length===1){const noteIndex=secondary[0];tags[noteIndex].push([2,starts[noteIndex]%4===0?'forward hook':'backward hook'])}
+            else secondary.forEach((noteIndex,position)=>tags[noteIndex].push([2,position===0?'begin':position===secondary.length-1?'end':'continue']));
             secondary=[];
           };
-          for(const index of run){
-            if(group[index].duration==='sixteenth')secondary.push(index);else flushSecondary();
-          }
+          for(const noteIndex of run){if(group[noteIndex].duration==='sixteenth')secondary.push(noteIndex);else flushSecondary()}
           flushSecondary();
         }
-        run=[];
-      };
-      const unit=beamUnit(beats,beatType);
-      group.forEach((note,index)=>{
-        const duration=noteDurationValue(note),currentBucket=Math.floor(starts[index]/unit),insideBeat=starts[index]+duration<=(currentBucket+1)*unit,beamable=!note.rest&&insideBeat&&(note.duration==='eighth'||note.duration==='sixteenth');
-        if(!beamable||currentBucket!==bucket)flushRun();
-        if(beamable){if(!run.length)bucket=currentBucket;run.push(index)}
-      });
-      flushRun();
+        index+=1;
+      }
       return tags.map(beams=>beams.map(([number,value])=>`<beam number="${number}">${value}</beam>`).join(''));
     }
     function measureData(){
@@ -793,6 +814,7 @@
       const ids=new Set(notes.map(note=>note.id));
       slurs=slurs.filter(item=>ids.has(item.startId)&&ids.has(item.endId));
       hairpins=hairpins.filter(item=>ids.has(item.startId)&&ids.has(item.endId));
+      beamOverrides=new Map([...beamOverrides].filter(([key])=>{const [leftId,rightId]=String(key).split('|');return ids.has(leftId)&&ids.has(rightId)}));
       selectedNoteIndices=new Set([...selectedNoteIndices].filter(index=>notes[index]&&!notes[index].rest&&!notes[index].measureRest));
     }
     function editRangeDecorations(note){
@@ -879,8 +901,9 @@
     function ensureScoreRenderer(){
       if(scoreRenderer)return true;
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
-      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
+      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,newSystemFromXML:true,stretchLastSystemLine:false});
       scoreRenderer.setPageFormat('A4_P');
+      if(scoreRenderer.EngravingRules)scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor;
       applyStaffTopRules();
       applyLineSpacingRules();
       return true;
@@ -909,7 +932,7 @@
       workMode=next;
       if(next==='write'&&keyboardPanel.hidden&&e)togglePiano(e);else if(next!=='write')closeKeyboardForWorkMode();
       if(next!=='edit'){
-        systemBreakModeActive=false;barlineEditModeActive=false;endingModeActive=0;endingDrag=null;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
+        systemBreakModeActive=false;barlineEditModeActive=false;beamEditModeActive=false;endingModeActive=0;endingDrag=null;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
       }
       if(next!=='write')clearWriteNoteEdit();
       syncWorkModeUI();
@@ -929,7 +952,7 @@
     function savePdf(){statusMessage('Valitse tulostusikkunassa Tallenna PDF tallentaaksesi tiedoston esimerkiksi Driveen.');window.print()}
     function exportXml(){downloadBlob(new Blob([buildMusicXml()],{type:'application/vnd.recordare.musicxml+xml'}),`${projectFileBaseName()}.musicxml`);statusMessage('MusicXML tallennettu laitteelle.')}
     function buildProjectFile(){
-      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],staffTopValue,lineSpacingValue,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0}};
+      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,lastLineStretchFactor,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0}};
     }
     function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
 
@@ -942,13 +965,13 @@
         while(scoreRenderPending){
           scoreRenderPending=false;
           invalidateLineSpacingRasterCache();
-          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
+          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
           applyStaffTopRules();
           applyLineSpacingRules();
-          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
+          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
           await scoreRenderer.load(buildMusicXml());
           applyStaffTopRules();
-          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
+          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
           scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
@@ -988,7 +1011,7 @@
       const setButton=(button,enabled,active=false)=>{button.disabled=!enabled;button.setAttribute('aria-pressed',String(Boolean(active)))};
       setButton(selectionSlurButton,Boolean(range),Boolean(slur));setButton(selectionSlurFlipButton,Boolean(slur),false);setButton(selectionStemFlipButton,indices.length>0,false);setButton(selectionTieFlipButton,Number.isInteger(tieIndex),Number.isInteger(tieIndex));setButton(selectionStaccatoButton,indices.length>0,allStaccato);setButton(selectionPortatoButton,indices.length>0,allPortato);setButton(selectionAccentButton,indices.length>0,allAccent);setButton(selectionCrescendoButton,Boolean(range),Boolean(crescendo));setButton(selectionDiminuendoButton,Boolean(range),Boolean(diminuendo));
       const activeDynamic=indices.length?(notes[indices[0]].dynamic||''):'';selectionDynamicButtons.forEach(button=>{button.disabled=!indices.length;button.setAttribute('aria-pressed',String(Boolean(indices.length&&button.dataset.dynamic===activeDynamic))) });
-      systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));barlineEditButton.setAttribute('aria-pressed',String(barlineEditModeActive));endingOneButton.setAttribute('aria-pressed',String(endingModeActive===1));endingTwoButton.setAttribute('aria-pressed',String(endingModeActive===2));stretchLastLineButton.setAttribute('aria-pressed',String(stretchLastLine));stretchLastLineButton.setAttribute('aria-busy',String(stretchCommandRunning));
+      systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));barlineEditButton.setAttribute('aria-pressed',String(barlineEditModeActive));beamEditButton.setAttribute('aria-pressed',String(beamEditModeActive));endingOneButton.setAttribute('aria-pressed',String(endingModeActive===1));endingTwoButton.setAttribute('aria-pressed',String(endingModeActive===2));
     }
     const SELECTION_TOOLBAR_POSITION_KEY='pikakirjoitin-selection-toolbar-position-v1';
     function clampSelectionToolbarPosition(left,top){
@@ -1190,14 +1213,10 @@
     }
     function buildLineSpacingVectorPreview(systems=renderedSystemGeometry()){
       destroyLineSpacingPreview(false);if(lineSpacingPointerId===null)return null;
-      const rows=systems.map(item=>item.rowY),totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';const strips=[];
-      if(rows.length>=2){
-        const separators=lineSpacingSeparators(systems,totalHeight);
-        rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],strip=document.createElement('div'),source=makeVectorPreviewSource();strip.className='line-spacing-preview-strip';strip.style.top=`${top}px`;strip.style.height=`${Math.max(1,bottom-top)}px`;source.style.top=`${-top}px`;strip.appendChild(source);preview.appendChild(strip);strips.push(strip)});
-        lineSpacingPreview={element:preview,strips,startValue:lineSpacingDragStartValue,mode:'vector-strips'};
-      }else{
-        const source=makeVectorPreviewSource();source.style.transformOrigin='50% 0';preview.appendChild(source);lineSpacingPreview={element:preview,source,startValue:lineSpacingDragStartValue,mode:'vector-scale'};
-      }
+      const rows=systems.map(item=>item.rowY);if(rows.length<2)return null;
+      const totalHeight=Math.max(osmdContainer.scrollHeight,scorePage.scrollHeight,A4_HEIGHT),preview=document.createElement('div');preview.className='line-spacing-preview';const strips=[],separators=lineSpacingSeparators(systems,totalHeight);
+      rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],strip=document.createElement('div'),source=makeVectorPreviewSource();strip.className='line-spacing-preview-strip';strip.style.top=`${top}px`;strip.style.height=`${Math.max(1,bottom-top)}px`;source.style.top=`${-top}px`;strip.appendChild(source);preview.appendChild(strip);strips.push(strip)});
+      lineSpacingPreview={element:preview,strips,startValue:lineSpacingDragStartValue,mode:'vector-strips'};
       scorePage.appendChild(preview);osmdContainer.style.visibility='hidden';return lineSpacingPreview;
     }
     async function buildLineSpacingCanvasPreview(){
@@ -1207,7 +1226,6 @@
     function updateLineSpacingPreview(value){
       if(!lineSpacingPreview)return;const unitDelta=(value-lineSpacingPreview.startValue)*LINE_SPACING_PREVIEW_PX_PER_UNIT;
       if(lineSpacingPreview.mode==='vector-strips'){lineSpacingPreview.strips.forEach((strip,index)=>{strip.style.transform=`translate3d(0,${index*unitDelta}px,0)`});return}
-      if(lineSpacingPreview.mode==='vector-scale'){const scaleY=clamp(1+unitDelta/520,.88,1.22);lineSpacingPreview.source.style.transform=`scaleY(${scaleY})`;return}
       if(lineSpacingPreview.mode!=='canvas'||!lineSpacingPreview.ctx)return;
       const {ctx,cache}=lineSpacingPreview,{source,rows,separators,pixelScale,pixelWidth,pixelHeight,totalHeight}=cache;ctx.clearRect(0,0,pixelWidth,pixelHeight);if(rows.length<2){ctx.drawImage(source,0,0);return}
       rows.forEach((rowY,index)=>{const top=index===0?0:separators[index-1],bottom=index===rows.length-1?totalHeight:separators[index],sy=Math.max(0,Math.round(top*pixelScale)),ey=Math.min(pixelHeight,Math.round(bottom*pixelScale)),sh=Math.max(1,ey-sy),dy=Math.round((top+index*unitDelta)*pixelScale);ctx.drawImage(source,0,sy,pixelWidth,sh,0,dy,pixelWidth,sh)});
@@ -1239,7 +1257,7 @@
       if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=LINE_SPACING_MIN;else if(e.key==='End')next=LINE_SPACING_MAX;else return;
       e.preventDefault();lineSpacingValue=clamp(next,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();applyLineSpacingRules();renderScore();
     }
-    function refreshEditGeometry(){if(workMode!=='edit')return;buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers();renderBarlineMarkers()}
+    function refreshEditGeometry(){if(workMode!=='edit'){renderLastLineStretchHandle();return}buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers();renderBarlineMarkers();renderBeamEditMarkers();renderLastLineStretchHandle()}
     function buildWriteNoteHitboxes(){
       writeNoteHitboxes=[];if(!scoreRenderer)return;
       const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,visited=new Set();
@@ -1279,7 +1297,7 @@
     function deleteWriteNote(){
       const index=writeNoteIndex();if(index<0)return;const note=notes[index];rememberAction({type:'delete',index,note:{...note},slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item}))});clearWriteNoteEdit();notes.splice(index,1);repairTiesAround(Math.max(0,index-1));pruneEditRanges();renderScore();
     }
-    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
+    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();scorePage.querySelector('.last-line-stretch-handle')?.setAttribute('hidden','');endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
     function selectInRectangle(rect){selectedNoteIndices.clear();selectionHitboxes.forEach(hitbox=>{if(rectanglesIntersect(rect,hitbox))selectedNoteIndices.add(hitbox.entryIndex)})}
     function selectAtPoint(point){const hits=selectionHitboxes.filter(hitbox=>rectanglesIntersect({left:point.x,right:point.x,top:point.y,bottom:point.y},hitbox)).sort((a,b)=>a.width*a.height-b.width*b.height);selectedNoteIndices.clear();if(hits[0])selectedNoteIndices.add(hits[0].entryIndex)}
     function toggleBooleanForSelection(property,label){const indices=getSelectedNoteIndices();if(!indices.length)return;const enable=!indices.every(index=>Boolean(notes[index][property]));indices.forEach(index=>{notes[index][property]=enable});status.textContent=`${label} ${enable?'lisätty':'poistettu'}`;renderScore()}
@@ -1303,9 +1321,77 @@
     function toggleStemDirectionForSelection(){const indices=getSelectedNoteIndices();if(!indices.length)return;indices.forEach(index=>{const note=notes[index];const current=note.stemDirection==='up'||note.stemDirection==='down'?note.stemDirection:renderedStemDirection(index);note.stemDirection=current==='up'?'down':'up'});status.textContent=`Nuottivarren suunta vaihdettu`;renderScore()}
     function toggleHairpinForSelection(type){const range=getSelectionRange();if(!range)return;const existing=findSelectionHairpin(type,range);hairpins=hairpins.filter(item=>!(item.startId===range.startId&&item.endId===range.endId));if(!existing)hairpins.push({type,startId:range.startId,endId:range.endId});renderScore()}
     function toggleTiePlacement(){const index=getSelectedTieStartIndex();if(!Number.isInteger(index))return;const current=notes[index].tiePlacement==='above'?'above':notes[index].tiePlacement==='below'?'below':renderedTiePlacement(index);notes[index].tiePlacement=current==='above'?'below':'above';renderScore()}
+    function beamPairStates(){
+      ensureEntryIds();const {beats,beatType,groups}=measureData(),noteIndices=new Map(notes.map((note,index)=>[note,index])),states=[];
+      groups.forEach((group,measureIndex)=>{const {connections}=measureBeamConnections(group,beats,beatType);connections.forEach(item=>{if(!item.leftCandidate||!item.rightCandidate)return;const leftIndex=noteIndices.get(item.left),rightIndex=noteIndices.get(item.right);if(Number.isInteger(leftIndex)&&Number.isInteger(rightIndex))states.push({...item,leftIndex,rightIndex,measureIndex})})});
+      return states;
+    }
+    function renderedBeamStemAnchor(index){
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;
+      for(const measureGroup of measureList)for(const measure of measureGroup||[])for(const staffEntry of measure?.staffEntries||[])for(const voiceEntry of staffEntry?.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry?.notes||[]){
+        const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;if(renderedNoteObjectMap.get(objectId)!==index)continue;
+        const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el,svg=element?.ownerSVGElement;if(!vexNote||!svg)continue;
+        try{
+          const x=Number(vexNote.getStemX?.()),extents=vexNote.getStemExtents?.(),topY=Number(extents?.topY),baseY=Number(extents?.baseY),stemDirection=Number(vexNote.getStemDirection?.()??vexNote.stem_direction??vexNote.stemDirection);if(!Number.isFinite(x)||!Number.isFinite(topY)||!Number.isFinite(baseY))continue;
+          const y=stemDirection<0?Math.max(topY,baseY):Math.min(topY,baseY),svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)continue;
+          const fx=(svgRect.width/viewWidth)/scale,fy=(svgRect.height/viewHeight)/scale,left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*fx,top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*fy;return {x:left,y:top,direction:stemDirection<0?'down':'up'};
+        }catch{}
+      }
+      return null;
+    }
+
+    function renderedNoteheadAnchor(index){
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;
+      for(const measureGroup of measureList)for(const measure of measureGroup||[])for(const staffEntry of measure?.staffEntries||[])for(const voiceEntry of staffEntry?.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry?.notes||[]){
+        const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;if(renderedNoteObjectMap.get(objectId)!==index)continue;
+        const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el,svg=element?.ownerSVGElement;if(!element||!svg)continue;
+        try{
+          const notehead=element.querySelector?.('.vf-notehead, [class*="notehead"], g.vf-notehead path, g.vf-notehead ellipse, path.vf-notehead, ellipse.vf-notehead')||element.querySelector?.('g path, g ellipse, path, ellipse');
+          const box=(notehead&&typeof notehead.getBBox==='function'?notehead.getBBox():null)||(typeof element.getBBox==='function'?element.getBBox():null);
+          if(!box||!Number.isFinite(box.x)||!Number.isFinite(box.y)||!Number.isFinite(box.width)||!Number.isFinite(box.height)||!box.width||!box.height)continue;
+          const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)continue;
+          const fx=(svgRect.width/viewWidth)/scale,fy=(svgRect.height/viewHeight)/scale;
+          const x=box.x+box.width/2,y=box.y+box.height/2;
+          const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*fx;
+          const top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*fy;
+          return {x:left,y:top};
+        }catch{}
+      }
+      return null;
+    }
+    function beamMarkerAnchor(hitbox,index){
+      const exact=renderedBeamStemAnchor(index);if(exact)return exact;const direction=notes[index]?.stemDirection==='up'||notes[index]?.stemDirection==='down'?notes[index].stemDirection:renderedStemDirection(index),x=hitbox.left+hitbox.width/2,y=direction==='down'?hitbox.bottom-7:hitbox.top+7;return {x,y,direction};
+    }
+    function renderBeamEditMarkers(){
+      osmdContainer.querySelector('.beam-edit-markers')?.remove();
+      if(workMode!=='edit'||!beamEditModeActive||!scoreRenderer)return;
+      const hitByIndex=new Map(selectionHitboxes.map(hit=>[hit.entryIndex,hit])),layer=document.createElement('div');layer.className='beam-edit-markers';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;
+      beamPairStates().forEach(state=>{
+        const leftHit=hitByIndex.get(state.leftIndex),rightHit=hitByIndex.get(state.rightIndex);if(!leftHit||!rightHit)return;
+        const left=beamMarkerAnchor(leftHit,state.leftIndex),right=beamMarkerAnchor(rightHit,state.rightIndex),x1=left.x,x2=right.x;if(x2<=x1+8)return;
+        let y1=left.y,y2=right.y;if(left.direction!==right.direction){const upper=Math.min(leftHit.top,rightHit.top)+7;y1=upper;y2=upper}
+        const dx=x2-x1,dy=y2-y1,marker=document.createElement('button'),midX=(x1+x2)/2,midY=(y1+y2)/2,beamSide=left.direction===right.direction?left.direction:(left.direction||right.direction||'up');
+        const leftHead=renderedNoteheadAnchor(state.leftIndex),rightHead=renderedNoteheadAnchor(state.rightIndex);
+        const noteMidX=leftHead&&rightHead?(leftHead.x+rightHead.x)/2:midX;
+        const noteMidY=leftHead&&rightHead?(leftHead.y+rightHead.y)/2:((leftHit.top+leftHit.height/2)+(rightHit.top+rightHit.height/2))/2;
+        const markerX=state.connected?midX:noteMidX,markerY=state.connected?(midY+(beamSide==='down'?10:-10)):noteMidY;
+        marker.type='button';marker.className=`beam-edit-marker${state.connected?' is-connected':''}`;marker.dataset.beamAction=state.connected?'cut':'glue';marker.dataset.beamSide=beamSide;marker.style.left=`${markerX}px`;marker.style.top=`${markerY}px`;marker.style.transform='translate(-50%,-50%)';marker.setAttribute('aria-label',state.connected?'Katkaise palkki tästä':'Yhdistä palkki tästä');marker.title=state.connected?'Katkaise palkki':'Yhdistä palkki';
+        marker.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()});
+        marker.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();toggleBeamConnection(state)});layer.appendChild(marker);
+      });
+      osmdContainer.appendChild(layer);
+    }
+    function toggleBeamConnection(state){
+      const key=state?.key;if(!key)return;const next=!state.connected;if(next===state.automatic)beamOverrides.delete(key);else beamOverrides.set(key,next);status.textContent=next?'Palkki yhdistetty':'Palkki katkaistu';renderScore();
+    }
+    function toggleBeamEditMode(){
+      beamEditModeActive=!beamEditModeActive;
+      if(beamEditModeActive){systemBreakModeActive=false;barlineEditModeActive=false;endingModeActive=0;endingDrag=null;selectedNoteIndices.clear();selectionDrag=null;closeBarlinePalette();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();renderSelectionOverlay();status.textContent='Palkitus: napauta punaista kiilaa tai vihreää plussaa'}
+      syncSelectionToolbar();renderBeamEditMarkers();
+    }
     function toggleSystemBreakMode(){
       systemBreakModeActive=!systemBreakModeActive;
-      if(systemBreakModeActive){barlineEditModeActive=false;endingModeActive=0;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();closeBarlinePalette();osmdContainer.querySelector('.barline-edit-markers')?.remove()}
+      if(systemBreakModeActive){barlineEditModeActive=false;beamEditModeActive=false;endingModeActive=0;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();closeBarlinePalette();osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove()}
       syncSelectionToolbar();
       renderSystemBreakMarkers();
     }
@@ -1319,7 +1405,7 @@
     }
     function toggleBarlineEditMode(){
       barlineEditModeActive=!barlineEditModeActive;
-      if(barlineEditModeActive){systemBreakModeActive=false;endingModeActive=0;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove())}else closeBarlinePalette();
+      if(barlineEditModeActive){systemBreakModeActive=false;beamEditModeActive=false;endingModeActive=0;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.beam-edit-markers')?.remove()}else closeBarlinePalette();
       syncSelectionToolbar();renderBarlineMarkers();
     }
     function openBarlinePalette(boundary,marker,totalMeasures){
@@ -1348,7 +1434,7 @@
     }
     function toggleEndingMode(number){
       endingModeActive=endingModeActive===number?0:number;endingDrag=null;osmdContainer.querySelector('.ending-range-preview-layer')?.remove();
-      if(endingModeActive){systemBreakModeActive=false;barlineEditModeActive=false;closeBarlinePalette();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();selectedNoteIndices.clear();renderSelectionOverlay()}
+      if(endingModeActive){systemBreakModeActive=false;barlineEditModeActive=false;beamEditModeActive=false;closeBarlinePalette();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove();selectedNoteIndices.clear();renderSelectionOverlay()}
       syncSelectionToolbar();
     }
     function renderedMeasureHitboxes(){
@@ -1387,8 +1473,16 @@
       endingModeActive=0;syncSelectionToolbar();renderScore();return true;
     }
 
-    function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);renderScore()}
-    function removeSystemBreakAfter(measureIndex){systemBreaks.delete(measureIndex);renderScore()}
+    function resetLastLineStretchAfterSystemLayoutChange(){
+      cancelLastLineStretchPreview();
+      lastLineStretchDrag=null;
+      lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT;
+      lastLineStretchBaseWidth=null;
+      const handle=scorePage.querySelector('.last-line-stretch-handle');
+      if(handle){handle.classList.remove('is-dragging');handle.hidden=true}
+    }
+    function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);resetLastLineStretchAfterSystemLayoutChange();renderScore()}
+    function removeSystemBreakAfter(measureIndex){systemBreaks.delete(measureIndex);resetLastLineStretchAfterSystemLayoutChange();renderScore()}
     function renderSystemBreakMarkers(){
       osmdContainer.querySelector('.system-break-markers')?.remove();
       osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());
@@ -1479,7 +1573,97 @@
       });
       osmdContainer.appendChild(layer);
     }
-    async function toggleStretchLastLine(){if(stretchCommandRunning)return;stretchLastLine=!stretchLastLine;stretchCommandRunning=true;syncSelectionToolbar();try{await renderScore();await new Promise(resolve=>requestAnimationFrame(resolve));await renderScore()}finally{stretchCommandRunning=false;syncSelectionToolbar()}}
+    function lastSystemStretchGeometry(){
+      if(!scoreRenderer)return null;
+      const boxes=renderedMeasureHitboxes();if(!boxes.length)return null;
+      const last=boxes.at(-1),rowBoxes=boxes.filter(box=>Math.abs(box.top-last.top)<12);if(!rowBoxes.length)return null;
+      const left=Math.min(...rowBoxes.map(box=>box.left)),right=Math.max(...rowBoxes.map(box=>box.right)),width=Math.max(1,right-left);
+      const otherBoxes=boxes.filter(box=>Math.abs(box.top-last.top)>=12),previousRight=otherBoxes.length?Math.max(...otherBoxes.map(box=>box.right)):null;
+      const zoom=Number(scoreRenderer.zoom)||1,rightMargin=(Number(scoreRenderer.EngravingRules?.PageRightMargin)||5)*10*zoom;
+      const fallbackRight=Math.max(right,Math.min(osmdContainer.scrollWidth-4,A4_WIDTH-rightMargin));
+      const fullRight=Math.max(right,fallbackRight,Number.isFinite(previousRight)?previousRight:0);
+      const system=renderedSystemGeometry().at(-1),rowY=Number.isFinite(system?.rowY)?system.rowY:last.top+26;
+      if(!lastLineStretchDrag&&right<fullRight-2&&Number.isFinite(lastLineStretchFactor)&&lastLineStretchFactor>0)lastLineStretchBaseWidth=width/lastLineStretchFactor;
+      if(!Number.isFinite(lastLineStretchBaseWidth)||lastLineStretchBaseWidth<=1)lastLineStretchBaseWidth=width/Math.max(LAST_LINE_STRETCH_MIN,lastLineStretchFactor);
+      return {left,right,width,fullRight,rowY,baseWidth:lastLineStretchBaseWidth};
+    }
+    function ensureLastLineStretchHandle(){
+      let handle=scorePage.querySelector('.last-line-stretch-handle');if(handle)return handle;
+      handle=document.createElement('button');handle.type='button';handle.className='last-line-stretch-handle';handle.setAttribute('aria-label','Vedä viimeisen rivin loppuviivaa vasemmalle tai oikealle. Kaksoisnapauta palauttaaksesi automaattisen leveyden.');handle.title='Vedä loppuviivaa · kaksoisnapauta palauttaaksesi';handle.hidden=true;scorePage.appendChild(handle);
+      handle.addEventListener('pointerdown',beginLastLineStretchDrag);
+      handle.addEventListener('pointermove',moveLastLineStretchDrag);
+      handle.addEventListener('pointerup',event=>finishLastLineStretchDrag(event,false));
+      handle.addEventListener('pointercancel',event=>finishLastLineStretchDrag(event,true));
+      handle.addEventListener('dblclick',event=>{event.preventDefault();event.stopPropagation();resetLastLineStretch()});
+      return handle;
+    }
+    function renderLastLineStretchHandle(){
+      const handle=ensureLastLineStretchHandle();
+      if(workMode!=='edit'||!notes.length||!scoreRenderer||staffTopCommitRunning||lineSpacingCommitRunning){handle.hidden=true;return}
+      const geometry=lastSystemStretchGeometry();if(!geometry){handle.hidden=true;return}
+      const containerRect=osmdContainer.getBoundingClientRect(),pageRect=scorePage.getBoundingClientRect(),scale=scorePageScale||1;
+      const offsetX=(containerRect.left-pageRect.left)/scale+osmdContainer.scrollLeft,offsetY=(containerRect.top-pageRect.top)/scale+osmdContainer.scrollTop;
+      const displayRight=geometry.right;
+      handle.hidden=false;handle.style.left=`${offsetX+displayRight-17}px`;handle.style.top=`${offsetY+geometry.rowY+20-28}px`;
+      const fullWidth=Math.max(1,geometry.fullRight-geometry.left),currentWidth=Math.max(1,displayRight-geometry.left),percent=Math.round(currentWidth/fullWidth*100);
+      handle.setAttribute('aria-valuetext',`${percent} % sivun leveydestä`);
+    }
+    function lastLinePointerContentX(clientX){
+      const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;return (clientX-rect.left)/scale+osmdContainer.scrollLeft;
+    }
+    function renderLastLineStretchPreview(){
+      if(!lastLineStretchDrag||!scoreRenderer)return;
+      try{
+        const drag=lastLineStretchDrag;
+        for(let attempt=0;attempt<7;attempt+=1){
+          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
+          applyStaffTopRules();applyLineSpacingRules();
+          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
+          scoreRenderer.updateGraphic?.();scoreRenderer.zoom=1;scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
+          if(!lastLineStretchDrag||lastLineStretchDrag!==drag)break;
+          const geometry=lastSystemStretchGeometry();if(!geometry||!Number.isFinite(drag.targetRight))break;
+          const error=drag.targetRight-geometry.right;if(Math.abs(error)<=.75)break;
+          const actualWidth=Math.max(1,geometry.right-drag.left),targetWidth=Math.max(1,drag.targetRight-drag.left);
+          let corrected=lastLineStretchFactor*(targetWidth/actualWidth);
+          if(Math.abs(error)>8)corrected*=error>0?1.035:.975;
+          corrected=clamp(corrected,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
+          if(Math.abs(corrected-lastLineStretchFactor)<.0001)break;lastLineStretchFactor=corrected;
+        }
+        renderLastLineStretchHandle();
+      }catch(error){console.error(error)}
+    }
+    function queueLastLineStretchPreview(){
+      if(lastLineStretchPreviewFrame)return;
+      lastLineStretchPreviewFrame=requestAnimationFrame(()=>{lastLineStretchPreviewFrame=0;renderLastLineStretchPreview()});
+    }
+    function cancelLastLineStretchPreview(){if(lastLineStretchPreviewFrame){cancelAnimationFrame(lastLineStretchPreviewFrame);lastLineStretchPreviewFrame=0}}
+    function beginLastLineStretchDrag(event){
+      if(workMode!=='edit'||lastLineStretchDrag)return;const geometry=lastSystemStretchGeometry();if(!geometry)return;
+      event.preventDefault();event.stopPropagation();
+      const baseWidth=Math.max(1,geometry.baseWidth||geometry.width/Math.max(LAST_LINE_STRETCH_MIN,lastLineStretchFactor));
+      lastLineStretchDrag={pointerId:event.pointerId,startClientX:event.clientX,lastClientX:event.clientX,moved:false,left:geometry.left,fullRight:geometry.fullRight,baseWidth,targetRight:geometry.right};
+      lastLineStretchFactor=clamp(geometry.width/baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
+      event.currentTarget.classList.add('is-dragging');try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}
+    }
+    function moveLastLineStretchDrag(event){
+      const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();drag.lastClientX=event.clientX;if(Math.abs(event.clientX-drag.startClientX)>2)drag.moved=true;
+      let targetRight=clamp(lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
+      const snapDistance=Math.max(8,14/(scorePageScale||1));if(drag.fullRight-targetRight<=snapDistance)targetRight=drag.fullRight;drag.targetRight=targetRight;
+      lastLineStretchFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);queueLastLineStretchPreview();
+    }
+    function finishLastLineStretchDrag(event,cancelled=false){
+      const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();cancelLastLineStretchPreview();const handle=event.currentTarget;try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;
+      if(cancelled){renderScore();return}
+      if(!drag.moved){const now=performance.now();if(now-lastLineStretchLastTap<360){lastLineStretchLastTap=0;resetLastLineStretch();return}lastLineStretchLastTap=now;renderLastLineStretchHandle();return}
+      const targetRight=clamp(Number.isFinite(drag.targetRight)?drag.targetRight:lastLinePointerContentX(event.clientX),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
+      const requestedFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
+      if(!Number.isFinite(lastLineStretchFactor)||Math.abs(targetRight-drag.fullRight)>1)lastLineStretchFactor=requestedFactor;
+      else lastLineStretchFactor=Math.max(lastLineStretchFactor,requestedFactor);
+      status.textContent=targetRight>=drag.fullRight-1?'Viimeinen rivi venytetty täyteen leveyteen':'Viimeisen rivin leveys säädetty';renderScore();
+    }
+    function resetLastLineStretch(){
+      if(lastLineStretchDrag)return;cancelLastLineStretchPreview();lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT;lastLineStretchBaseWidth=null;status.textContent='Viimeisen rivin automaattinen leveys palautettu';renderScore();
+    }
     function rememberAction(action){
       editHistory.push(action);if(editHistory.length>250)editHistory.shift();
     }
@@ -1546,7 +1730,7 @@
       else if(action.type==='add-triplet'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id))}
       else if(action.type==='delete'){notes.splice(clamp(action.index,0,notes.length),0,{...action.note});slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}))}
       else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.before}}
-      else if(action.type==='clear'){notes=action.notes.map(note=>({...note}));slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}));systemBreaks=new Set(action.systemBreaks||[]);barlineStyles=new Map(action.barlineStyles||[]);endings=(action.endings||[]).map(item=>({...item}))}
+      else if(action.type==='clear'){notes=action.notes.map(note=>({...note}));slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}));systemBreaks=new Set(action.systemBreaks||[]);barlineStyles=new Map(action.barlineStyles||[]);beamOverrides=new Map(action.beamOverrides||[]);endings=(action.endings||[]).map(item=>({...item}))}
       pruneEditRanges();
       renderScore();return action;
     }
@@ -1556,13 +1740,13 @@
       else if(action.type==='add-triplet')notes.push(...(action.notes||[]).map(note=>({...note})));
       else if(action.type==='delete'){const index=notes.findIndex(note=>note.id===action.note.id);if(index>=0)notes.splice(index,1);pruneEditRanges()}
       else if(action.type==='update-note'){const index=notes.findIndex(note=>note.id===action.id);if(index>=0)notes[index]={...action.after}}
-      else if(action.type==='clear'){notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();endings=[];selectedNoteIndices.clear()}
+      else if(action.type==='clear'){notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();beamOverrides.clear();endings=[];selectedNoteIndices.clear()}
       rememberAction(action);
     }
     function clearScore(){
       setTieArmed(false);setTripletArmed(false);
       if(!notes.length)return;
-      rememberAction({type:'clear',notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],endings:endings.map(item=>({...item}))});notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();endings=[];selectedNoteIndices.clear();renderScore();
+      rememberAction({type:'clear',notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],endings:endings.map(item=>({...item}))});notes=[];slurs=[];hairpins=[];systemBreaks.clear();barlineStyles.clear();beamOverrides.clear();endings=[];selectedNoteIndices.clear();renderScore();
     }
     function restoreNotationSettings(){
       try{
@@ -1999,13 +2183,13 @@
     lineSpacingSlider.addEventListener('pointercancel',e=>finishLineSpacingDrag(e,true),{passive:false});
     lineSpacingSlider.addEventListener('keydown',lineSpacingKey);
     systemBreakButton.addEventListener('click',toggleSystemBreakMode);
+    beamEditButton.addEventListener('click',toggleBeamEditMode);
     barlineEditButton.addEventListener('click',toggleBarlineEditMode);
     endingOneButton.addEventListener('click',()=>toggleEndingMode(1));
     endingTwoButton.addEventListener('click',()=>toggleEndingMode(2));
     barlineChoiceButtons.forEach(button=>button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();applyBarlineStyle(button.dataset.barlineStyle)}));
-    stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     osmdContainer.addEventListener('pointerdown',e=>{
-      if(workMode!=='edit'||barlineEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker'))return;
+      if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
       e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
