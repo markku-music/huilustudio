@@ -50,6 +50,19 @@ function fitStage(){
 window.addEventListener('resize',fitStage);
 
 fitStage();
+
+// iPadOS Home Screen snapshot guard: leave the stage in a fitted state
+// whenever the web app is backgrounded/closed, and refit immediately on return.
+function stabilizeStageForSnapshot(){
+  fitStage();
+  void stage.offsetWidth;
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden') stabilizeStageForSnapshot();
+  else fitStage();
+});
+window.addEventListener('pagehide',stabilizeStageForSnapshot);
+window.addEventListener('pageshow',()=>fitStage());
 function captureSessionName(){
   const name=window.SavelkojuScoreboard.cleanName(sessionName.value);
   if(!name){
