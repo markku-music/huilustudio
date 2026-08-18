@@ -19,7 +19,10 @@
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
     .app{position:fixed;inset:0;width:100%;height:auto;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
     p{margin:0;color:#586474;font-size:14px}
-    .mode-tabs{position:fixed;z-index:40;top:0;left:50%;width:min(380px,calc(100% - 24px));height:34px;display:flex;align-items:flex-start;gap:4px;transform:translateX(-50%);pointer-events:auto}
+    .mode-tabs{position:fixed;z-index:40;top:0;left:50%;width:min(452px,calc(100% - 24px));height:34px;display:flex;align-items:flex-start;gap:4px;transform:translateX(-50%);pointer-events:auto}
+    .new-project-tab{flex:0 0 58px;height:30px;padding:0 7px;border:1px solid #536b82;border-top:0;border-radius:0 0 10px 10px;background:#5b7187;color:#fff;box-shadow:0 3px 8px #1c27352b;font-size:9px;font-weight:850;letter-spacing:.055em;white-space:nowrap;touch-action:manipulation;-webkit-touch-callout:none;cursor:pointer}
+    .new-project-tab:active{height:34px;border-color:#174d83;background:#2365aa;box-shadow:0 5px 12px #1c273540}
+    .new-project-tab:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .mode-tab{min-width:0;height:30px;flex:1;padding:0 8px;border:1px solid #536b82;border-top:0;border-radius:0 0 10px 10px;background:#71879c;color:#fff;box-shadow:0 3px 8px #1c27352b;font-size:9px;font-weight:850;letter-spacing:.055em;white-space:nowrap;touch-action:manipulation;-webkit-touch-callout:none;cursor:pointer}
     .mode-tab[aria-pressed="true"]{height:34px;border-color:#174d83;background:#2365aa;box-shadow:0 5px 12px #1c273540}
     .mode-tab:disabled{border-color:#8e9aa8;background:#aeb8c4;color:#eef2f6;opacity:.68;cursor:default}
@@ -75,6 +78,19 @@
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
+    .note-size-button{height:48px;flex:0 0 48px}
+    .note-size-button svg{width:32px;height:32px}
+    .note-size-panel{position:fixed;z-index:44;width:min(250px,calc(100vw - 92px));padding:12px 14px 11px;border:1px solid #b8a1f3;border-radius:16px;background:#fffffff7;color:#322452;box-shadow:0 10px 30px #482d8938;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);touch-action:manipulation;-webkit-user-select:none;user-select:none}
+    .note-size-panel[hidden]{display:none!important}
+    .note-size-title{display:block;margin-bottom:8px;text-align:center;font-size:13px;font-weight:850;letter-spacing:.025em}
+    .note-size-stepper{display:grid;grid-template-columns:48px minmax(76px,1fr) 48px;align-items:center;gap:7px}
+    .note-size-step-button,.note-size-value{height:42px;padding:0;border:1px solid #a78ce6;border-radius:11px;background:#fff;color:#5633ad;font-weight:850;touch-action:manipulation;cursor:pointer}
+    .note-size-step-button{font-size:21px;line-height:1}
+    .note-size-value{font-size:14px;background:#f5f0ff}
+    .note-size-step-button:active:not(:disabled),.note-size-value:active:not(:disabled){background:#e9deff}
+    .note-size-step-button:focus-visible,.note-size-value:focus-visible{outline:0;box-shadow:0 0 0 3px #8d6ae755}
+    .note-size-step-button:disabled,.note-size-value:disabled{cursor:default;opacity:.42}
+    .note-size-limits{margin-top:7px;color:#74668f;text-align:center;font-size:10px;font-weight:750;line-height:1}
     .selection-toolbar{position:absolute;z-index:30;top:16px;left:50%;display:none;flex-direction:column;align-items:stretch;gap:5px;padding:6px;border:1px solid #b8a1f3;border-radius:16px;background:#fffffff5;box-shadow:0 8px 24px #482d892e;transform:translateX(-50%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none;-webkit-user-select:none;user-select:none}
     .selection-toolbar-row{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
     .selection-toolbar-drag-handle{width:28px;height:38px;flex:0 0 28px;display:grid;place-items:center;padding:0;border:0;border-radius:9px;background:transparent;color:#8a73bc;touch-action:none;cursor:grab}
@@ -264,14 +280,14 @@
     .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
-    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.mode-tab{padding:0 4px;font-size:8px}}
+    @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.new-project-tab{flex-basis:50px;padding:0 4px;font-size:8px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (max-width:900px){.publish-grid{grid-template-columns:1fr}.publish-screen{padding:20px 4px 8px}.publish-title{font-size:28px}}
     @media (max-width:560px){.publish-header{flex-direction:column;gap:12px}.publish-card{min-height:196px;padding:22px 18px}.publish-card-title{font-size:21px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.note-size-panel,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block!important}
       .score-area{display:block!important;padding:0!important}
@@ -402,6 +418,7 @@
 
   <main class="app" id="app" aria-hidden="true" inert>
     <nav class="mode-tabs" id="modeTabs" aria-label="Työskentelytila">
+      <button class="new-project-tab" id="newProjectButton" type="button" aria-label="Aloita uusi nuotti">UUSI</button>
       <button class="mode-tab" id="writeModeButton" type="button" data-work-mode="write" aria-pressed="true">KIRJOITA</button>
       <button class="mode-tab" id="editModeButton" type="button" data-work-mode="edit" aria-pressed="false" disabled>MUOKKAA</button>
       <button class="mode-tab" id="printModeButton" type="button" data-work-mode="print" aria-pressed="false" disabled>JULKAISE</button>
@@ -475,7 +492,7 @@
             <img class="custom-tool-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
           </button>
         </div>
-        <div class="edit-rail" id="editRail" role="toolbar" aria-label="Rivien muokkaus">
+        <div class="edit-rail" id="editRail" role="toolbar" aria-label="Nuottikuvan ja rivien muokkaus">
           <div class="staff-top-slider" id="staffTopSlider" role="slider" tabindex="0" aria-label="Viivastojen aloituskorkeus" aria-orientation="vertical" aria-valuemin="8" aria-valuemax="30" aria-valuenow="17" aria-valuetext="Nykyinen aloituskorkeus" title="Viivastojen aloituskorkeus">
             <div class="staff-top-track" aria-hidden="true"><div class="staff-top-fill" id="staffTopFill"></div></div>
             <div class="staff-top-thumb" id="staffTopThumb" aria-hidden="true"></div>
@@ -484,10 +501,22 @@
             <div class="line-spacing-track" aria-hidden="true"><div class="line-spacing-fill" id="lineSpacingFill"></div></div>
             <div class="line-spacing-thumb" id="lineSpacingThumb" aria-hidden="true"></div>
           </div>
+          <button class="edit-rail-button note-size-button" id="noteSizeButton" type="button" aria-label="Säädä nuottikuvan kokoa" aria-controls="noteSizePanel" aria-expanded="false" aria-pressed="false">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="13" cy="34" rx="4.8" ry="3.5" transform="rotate(-18 13 34)" fill="currentColor" stroke="none"/><path d="M17 33V20"/><ellipse cx="34" cy="30" rx="7" ry="4.8" transform="rotate(-18 34 30)" fill="currentColor" stroke="none"/><path d="M40 29V10"/></svg>
+          </button>
           <button class="edit-rail-button" id="systemBreakButton" type="button" aria-label="Muokkaa rivinvaihtoja" aria-pressed="false">
             <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 12h32M8 21h24M8 30h20"/><path d="M38 21v9c0 4.4-3.6 8-8 8H18"/><path d="m23 33-5 5 5 5"/></svg>
           </button>
           <button class="edit-rail-button" id="stretchLastLineButton" type="button" aria-label="Venytä viimeinen rivi koko leveyteen" aria-pressed="false">↔</button>
+        </div>
+        <div class="note-size-panel" id="noteSizePanel" role="dialog" aria-label="Nuottikuvan koko" aria-busy="false" hidden>
+          <span class="note-size-title">Nuottikoko</span>
+          <div class="note-size-stepper" role="group" aria-label="Muuta nuottikuvan kokoa viiden prosenttiyksikön askelin">
+            <button class="note-size-step-button" id="noteSizeDecreaseButton" type="button" aria-label="Pienennä nuottikokoa viisi prosenttiyksikköä">◀</button>
+            <button class="note-size-value" id="noteSizeResetButton" type="button" aria-label="Nuottikoko 100 prosenttia. Palauta sataan prosenttiin">100 %</button>
+            <button class="note-size-step-button" id="noteSizeIncreaseButton" type="button" aria-label="Suurenna nuottikokoa viisi prosenttiyksikköä">▶</button>
+          </div>
+          <div class="note-size-limits" aria-hidden="true">70 % – 140 %</div>
         </div>
         <div class="selection-toolbar" id="selectionToolbar" role="toolbar" aria-label="Valittujen nuottien muokkaus" aria-hidden="true">
           <div class="selection-toolbar-row selection-toolbar-main-row">
@@ -540,8 +569,8 @@
 
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -551,7 +580,8 @@
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
-    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
+    let noteSizePercent=100,noteSizeCommitRunning=false,noteSizeBasePageMargins=null;
+    const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,NOTE_SIZE_MIN=70,NOTE_SIZE_MAX=140,NOTE_SIZE_DEFAULT=100,NOTE_SIZE_STEP=5,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
     const scorePointers=new Set();
     const scoreTouchIds=new Set();
     let scoreMultiTouchLocked=false,scoreMultiTouchScrollTop=0,scoreMultiTouchScrollLeft=0;
@@ -666,6 +696,7 @@
     function meterWheelBackdrop(e){if(e.target===meterWheelPopover)closeMeterWheel()}
     function pickerEscapeKey(e){
       if(e.key!=='Escape')return;
+      if(!noteSizePanel.hidden){e.preventDefault();closeNoteSizePanel({focusButton:true});return}
       if(!meterWheelPopover.hidden){e.preventDefault();closeMeterWheel();return}
       if(!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}
     }
@@ -919,6 +950,7 @@
     }
     function syncWorkModeUI(){
       if(!notes.length&&workMode!=='write')workMode='write';
+      if(workMode!=='edit')closeNoteSizePanel();
       const hasNotes=notes.length>0,modes=[[writeModeButton,'write'],[editModeButton,'edit'],[printModeButton,'print']];
       editModeButton.disabled=!hasNotes;printModeButton.disabled=!hasNotes;
       modes.forEach(([button,mode])=>button.setAttribute('aria-pressed',String(workMode===mode)));
@@ -931,6 +963,7 @@
       const next=mode==='edit'?'edit':mode==='print'?'print':'write';
       if(next!=='write'&&!notes.length)return;
       workMode=next;
+      if(next!=='edit')closeNoteSizePanel();
       if(next==='write'&&keyboardPanel.hidden&&e)togglePiano(e);else if(next!=='write')closeKeyboardForWorkMode();
       if(next!=='edit'){
         systemBreakModeActive=false;barlineEditModeActive=false;beamEditModeActive=false;endingModeActive=0;endingDrag=null;selectedNoteIndices.clear();selectionDrag=null;selectionHitboxes=[];clearEditorOverlays();
@@ -953,7 +986,7 @@
     function savePdf(){statusMessage('Valitse tulostusikkunassa Tallenna PDF tallentaaksesi tiedoston esimerkiksi Driveen.');window.print()}
     function exportXml(){downloadBlob(new Blob([buildMusicXml()],{type:'application/vnd.recordare.musicxml+xml'}),`${projectFileBaseName()}.musicxml`);statusMessage('MusicXML tallennettu laitteelle.')}
     function buildProjectFile(){
-      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0}};
+      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
     function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
 
@@ -971,9 +1004,11 @@
           applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
           await scoreRenderer.load(buildMusicXml());
+          scoreRenderer.Zoom=noteSizeZoom();
           applyStaffTopRules();
+          applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
+          await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -1058,8 +1093,11 @@
     }
     function applyStaffTopRules(){
       if(!scoreRenderer?.EngravingRules)return;
-      scoreRenderer.EngravingRules.PageTopMargin=staffTopValue;
-      scoreRenderer.EngravingRules.PageTopMarginNarrow=staffTopValue;
+      const rules=scoreRenderer.EngravingRules,zoom=noteSizeZoom(),compensatedValue=staffTopValue/zoom;
+      if(!noteSizeBasePageMargins)noteSizeBasePageMargins={left:rules.PageLeftMargin,right:rules.PageRightMargin,bottom:rules.PageBottomMargin};
+      rules.PageLeftMargin=noteSizeBasePageMargins.left/zoom;rules.PageRightMargin=noteSizeBasePageMargins.right/zoom;rules.PageBottomMargin=noteSizeBasePageMargins.bottom/zoom;
+      rules.PageTopMargin=compensatedValue;
+      rules.PageTopMarginNarrow=compensatedValue;
     }
     function staffTopRatio(value=staffTopValue){return (clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX)-STAFF_TOP_MIN)/(STAFF_TOP_MAX-STAFF_TOP_MIN)}
     function syncStaffTopSlider(value=staffTopValue){
@@ -1076,8 +1114,9 @@
     }
     function applyLineSpacingRules(){
       if(!scoreRenderer?.EngravingRules)return;
-      scoreRenderer.EngravingRules.MinimumDistanceBetweenSystems=lineSpacingValue;
-      scoreRenderer.EngravingRules.MinSkyBottomDistBetweenSystems=lineSpacingValue;
+      const compensatedValue=lineSpacingValue/noteSizeZoom();
+      scoreRenderer.EngravingRules.MinimumDistanceBetweenSystems=compensatedValue;
+      scoreRenderer.EngravingRules.MinSkyBottomDistBetweenSystems=compensatedValue;
     }
     function lineSpacingRatio(value=lineSpacingValue){return (clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX)-LINE_SPACING_MIN)/(LINE_SPACING_MAX-LINE_SPACING_MIN)}
     function syncLineSpacingSlider(value=lineSpacingValue){
@@ -1193,7 +1232,7 @@
       return clamp(startValue+deltaRatio*(max-min),min,max);
     }
     function beginStaffTopDrag(e){
-      if(workMode!=='edit'||staffTopCommitRunning||lineSpacingCommitRunning||lineSpacingPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,staffTopThumb))return;
+      if(workMode!=='edit'||staffTopCommitRunning||lineSpacingCommitRunning||noteSizeCommitRunning||lineSpacingPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,staffTopThumb))return;
       e.preventDefault();e.stopPropagation();staffTopPointerId=e.pointerId;staffTopDragStartValue=staffTopValue;staffTopDragStartClientY=e.clientY;staffTopDragMoved=false;staffTopPreviewPendingValue=staffTopValue;try{staffTopSlider.setPointerCapture(e.pointerId)}catch{}
     }
     function setStaffTopPreviewValue(value){staffTopValue=clamp(value,STAFF_TOP_MIN,STAFF_TOP_MAX);syncStaffTopSlider();scheduleStaffTopPreview(staffTopValue)}
@@ -1234,7 +1273,7 @@
     function scheduleLineSpacingPreview(value){lineSpacingPreviewPendingValue=value;if(lineSpacingPreviewFrame)return;lineSpacingPreviewFrame=requestAnimationFrame(()=>{lineSpacingPreviewFrame=0;updateLineSpacingPreview(lineSpacingPreviewPendingValue)})}
     function destroyLineSpacingPreview(showOriginal=true){if(lineSpacingPreviewFrame){cancelAnimationFrame(lineSpacingPreviewFrame);lineSpacingPreviewFrame=0}const wasVector=Boolean(lineSpacingPreview?.mode?.startsWith('vector'));lineSpacingPreview?.element?.remove();lineSpacingPreview=null;if(showOriginal||wasVector)osmdContainer.style.visibility='';if(!staffTopPreview)scorePage.classList.remove('slider-preview-active')}
     function beginLineSpacingDrag(e){
-      if(workMode!=='edit'||lineSpacingCommitRunning||staffTopCommitRunning||staffTopPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,lineSpacingThumb))return;
+      if(workMode!=='edit'||lineSpacingCommitRunning||staffTopCommitRunning||noteSizeCommitRunning||staffTopPointerId!==null||scoreRendering||(e.pointerType==='mouse'&&e.button!==0)||!pointerHitsSliderThumb(e,lineSpacingThumb))return;
       e.preventDefault();e.stopPropagation();lineSpacingPointerId=e.pointerId;lineSpacingDragStartValue=lineSpacingValue;lineSpacingDragStartClientY=e.clientY;lineSpacingDragMoved=false;lineSpacingPreviewPendingValue=lineSpacingValue;try{lineSpacingSlider.setPointerCapture(e.pointerId)}catch{}
     }
     function setLineSpacingPreviewValue(value){lineSpacingValue=clamp(value,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();scheduleLineSpacingPreview(lineSpacingValue)}
@@ -1257,6 +1296,35 @@
       let next=lineSpacingValue,step=.5;
       if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=LINE_SPACING_MIN;else if(e.key==='End')next=LINE_SPACING_MAX;else return;
       e.preventDefault();lineSpacingValue=clamp(next,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();applyLineSpacingRules();renderScore();
+    }
+    function noteSizeZoom(value=noteSizePercent){
+      const number=Number(value);return clamp(Number.isFinite(number)?number:NOTE_SIZE_DEFAULT,NOTE_SIZE_MIN,NOTE_SIZE_MAX)/100;
+    }
+    function syncNoteSizeControls(){
+      const shown=Math.round(clamp(noteSizePercent,NOTE_SIZE_MIN,NOTE_SIZE_MAX)),busy=noteSizeCommitRunning;
+      noteSizeResetButton.textContent=`${shown} %`;noteSizeResetButton.setAttribute('aria-label',`Nuottikoko ${shown} prosenttia. Palauta sataan prosenttiin`);
+      noteSizeDecreaseButton.disabled=busy||shown<=NOTE_SIZE_MIN;noteSizeIncreaseButton.disabled=busy||shown>=NOTE_SIZE_MAX;noteSizeResetButton.disabled=busy||shown===NOTE_SIZE_DEFAULT;noteSizePanel.setAttribute('aria-busy',String(busy));
+    }
+    function positionNoteSizePanel(){
+      if(noteSizePanel.hidden)return;const buttonRect=noteSizeButton.getBoundingClientRect(),panelRect=noteSizePanel.getBoundingClientRect(),maxLeft=Math.max(8,window.innerWidth-panelRect.width-8),maxTop=Math.max(42,window.innerHeight-panelRect.height-8),left=clamp(buttonRect.right+10,8,maxLeft),top=clamp(buttonRect.top+(buttonRect.height-panelRect.height)/2,42,maxTop);noteSizePanel.style.left=`${left}px`;noteSizePanel.style.top=`${top}px`;
+    }
+    function openNoteSizePanel(e){
+      if(workMode!=='edit'||!notes.length)return;e?.preventDefault();e?.stopPropagation();noteSizePanel.hidden=false;noteSizeButton.setAttribute('aria-expanded','true');noteSizeButton.setAttribute('aria-pressed','true');syncNoteSizeControls();requestAnimationFrame(()=>{positionNoteSizePanel();syncNoteSizeControls();(noteSizePercent<=NOTE_SIZE_MIN?noteSizeIncreaseButton:noteSizeDecreaseButton).focus()});
+    }
+    function closeNoteSizePanel({focusButton=false}={}){
+      if(noteSizePanel.hidden)return;noteSizePanel.hidden=true;noteSizeButton.setAttribute('aria-expanded','false');noteSizeButton.setAttribute('aria-pressed','false');if(focusButton&&workMode==='edit')noteSizeButton.focus();
+    }
+    function toggleNoteSizePanel(e){if(noteSizePanel.hidden)openNoteSizePanel(e);else{e?.preventDefault();e?.stopPropagation();closeNoteSizePanel()}}
+    function closeNoteSizeFromOutside(e){if(noteSizePanel.hidden||noteSizePanel.contains(e.target)||noteSizeButton.contains(e.target))return;closeNoteSizePanel()}
+    async function commitNoteSizeFromControl(value){
+      if(noteSizeCommitRunning||scoreRendering||staffTopCommitRunning||lineSpacingCommitRunning||staffTopPointerId!==null||lineSpacingPointerId!==null)return;const number=Number(value),next=clamp(Math.round((Number.isFinite(number)?number:NOTE_SIZE_DEFAULT)/NOTE_SIZE_STEP)*NOTE_SIZE_STEP,NOTE_SIZE_MIN,NOTE_SIZE_MAX);if(next===noteSizePercent){syncNoteSizeControls();return}noteSizePercent=next;noteSizeCommitRunning=true;syncNoteSizeControls();try{await renderScore();statusMessage(`Nuottikoko ${noteSizePercent} %`)}finally{noteSizeCommitRunning=false;syncNoteSizeControls();positionNoteSizePanel();if(workMode==='edit')refreshEditGeometry()}
+    }
+    function resetNoteSize(e){e.preventDefault();e.stopPropagation();commitNoteSizeFromControl(NOTE_SIZE_DEFAULT)}
+    function changeNoteSizeByStep(direction,e){
+      e?.preventDefault();e?.stopPropagation();const next=direction<0?Math.ceil(noteSizePercent/NOTE_SIZE_STEP)*NOTE_SIZE_STEP-NOTE_SIZE_STEP:Math.floor(noteSizePercent/NOTE_SIZE_STEP)*NOTE_SIZE_STEP+NOTE_SIZE_STEP;commitNoteSizeFromControl(next);
+    }
+    function noteSizePanelKey(e){
+      if(e.key==='ArrowLeft'||e.key==='ArrowDown')changeNoteSizeByStep(-1,e);else if(e.key==='ArrowRight'||e.key==='ArrowUp')changeNoteSizeByStep(1,e);else if(e.key==='Home')resetNoteSize(e);
     }
     function refreshEditGeometry(){if(workMode!=='edit')return;buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers();renderBarlineMarkers();renderBeamEditMarkers()}
     function buildWriteNoteHitboxes(){
@@ -1910,7 +1978,7 @@
       e.preventDefault();syncScrollThumb();
     }
     function resizeLayout(){
-      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit')refreshEditGeometry();else if(workMode==='write')refreshWriteGeometry()});
+      syncScrollThumb();positionModifierRail();updateScorePagePreview();requestAnimationFrame(()=>{syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls();positionNoteSizePanel();if(workMode==='edit')refreshEditGeometry();else if(workMode==='write')refreshWriteGeometry()});
     }
     function keepOuterViewportFixed(){
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -1994,13 +2062,20 @@
       if(e.type==='pointerup'&&e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();setWorkMode(button.dataset.workMode,e);
     }
+    function startNewProject(e){
+      e?.preventDefault();
+      if(!window.confirm('Aloitetaanko uusi nuotti? Nykyisen työn tallentamattomat muutokset häviävät.'))return;
+      closeKeyboardForWorkMode();
+      window.location.reload();
+    }
 
     restoreNotationSettings();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
     buildKeyboard();
     applyNotationSettings();
     syncWorkModeUI();
     syncSelectionToolbar();
-    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider()});
+    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls()});
+    newProjectButton.addEventListener('click',startNewProject);
     modeTabs.addEventListener('pointerup',activateWorkMode);
     modeTabs.addEventListener('keydown',activateWorkMode);
     tuningChoices.addEventListener('click',chooseNotationSetting);
@@ -2085,6 +2160,12 @@
     lineSpacingSlider.addEventListener('pointerup',e=>finishLineSpacingDrag(e),{passive:false});
     lineSpacingSlider.addEventListener('pointercancel',e=>finishLineSpacingDrag(e,true),{passive:false});
     lineSpacingSlider.addEventListener('keydown',lineSpacingKey);
+    noteSizeButton.addEventListener('click',toggleNoteSizePanel);
+    noteSizeDecreaseButton.addEventListener('click',e=>changeNoteSizeByStep(-1,e));
+    noteSizeResetButton.addEventListener('click',resetNoteSize);
+    noteSizeIncreaseButton.addEventListener('click',e=>changeNoteSizeByStep(1,e));
+    noteSizePanel.addEventListener('keydown',noteSizePanelKey);
+    document.addEventListener('pointerdown',closeNoteSizeFromOutside);
     systemBreakButton.addEventListener('click',toggleSystemBreakMode);
     beamEditButton.addEventListener('click',toggleBeamEditMode);
     barlineEditButton.addEventListener('click',toggleBarlineEditMode);
