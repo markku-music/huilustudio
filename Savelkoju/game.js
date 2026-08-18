@@ -9,7 +9,7 @@ const LEVELS={
 const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:648},D:{cx:750,cy:365}};
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps'),rotateOverlay=$('rotateOverlay');
+const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),heardEl=$('heard'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
 let engine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
 const gameAudio=new window.SavelkojuAudioManager({
   hit:'Lamppu.wav',
@@ -42,63 +42,8 @@ async function playFinaleSoundUntilEnd(){
     finaleLightsRunning=false;
   }
 }
-// 3.6 Responsive Engine
-// Pelimaailma pysyy aina samassa 1536 x 1024 -koordinaatistossa. Vain sen
-// esityskoko muuttuu. Kosketuslaitteen leveällä näytöllä sallitaan hallittu
-// pystysuuntainen rajaus, jotta koju ei kutistu puhelimessa postimerkiksi.
-const STAGE_W=1536;
-const STAGE_H=1024;
-const SAFE_GAME_HEIGHT=655; // sisältää D-taulun, alataulut ja osumaefektit
-let orientationBlocked=false;
-
-function viewportSize(){
-  const vv=window.visualViewport;
-  const width=Math.max(1,Math.round(vv?.width||window.innerWidth||document.documentElement.clientWidth));
-  const height=Math.max(1,Math.round(vv?.height||window.innerHeight||document.documentElement.clientHeight));
-  return {width,height};
-}
-function isTouchLayout(){return navigator.maxTouchPoints>0 || matchMedia('(pointer:coarse)').matches;}
-function isPhonePortrait(){
-  const {width,height}=viewportSize();
-  return isTouchLayout() && height>width && Math.min(width,height)<=600;
-}
-function syncOrientationBlock(){
-  const blocked=running && isPhonePortrait();
-  if(blocked===orientationBlocked)return;
-  orientationBlocked=blocked;
-  document.body.classList.toggle('orientation-blocked',blocked);
-  rotateOverlay?.setAttribute('aria-hidden',blocked?'false':'true');
-  if(blocked){
-    accepting=false;
-    reticle.style.opacity='0';
-  }else if(running){
-    // Sama tavoite jatkuu, kun puhelin käännetään takaisin vaakaan.
-    setTarget(target);
-  }
-}
-function fitStage(){
-  const {width,height}=viewportSize();
-  const contain=Math.min(width/STAGE_W,height/STAGE_H);
-  const aspect=width/height;
-  const stageAspect=STAGE_W/STAGE_H;
-  let scale=contain;
-
-  // Tableteilla ja puhelimilla, jotka ovat pelikuvaa leveämpiä, täytetään
-  // näyttö leveyssuunnassa. Rajaus sallitaan vain niin pitkälle, että
-  // varsinainen pelialue pysyy kokonaan näkyvissä.
-  if(isTouchLayout() && width>height && aspect>stageAspect){
-    const fillWidth=width/STAGE_W;
-    const safeByHeight=height/SAFE_GAME_HEIGHT;
-    scale=Math.min(fillWidth,safeByHeight);
-  }
-
-  stage.style.transform=`translate(-50%,-50%) scale(${scale})`;
-  document.documentElement.style.setProperty('--stage-scale',String(scale));
-  syncOrientationBlock();
-}
-addEventListener('resize',fitStage,{passive:true});
-addEventListener('orientationchange',()=>setTimeout(fitStage,80),{passive:true});
-fitStage();
+function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
+addEventListener('resize',fitStage);fitStage();
 
 if(window.visualViewport){
   let lastViewportHeight=window.visualViewport.height;
@@ -197,7 +142,6 @@ async function changePlayer(){
   finishOverlay.classList.remove('finale-fade');
   hud.classList.add('hidden');
   levelOverlay.classList.remove('hidden');
-  fitStage();
 
   score=0;
   scoreEl.textContent='0';
@@ -230,7 +174,7 @@ async function resumeMic(){
     if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
   }catch(err){console.warn(err);}
 }
-async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);fitStage();}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
+async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
 function updateSemesterLabels(){
   const s=window.SavelkojuScoreboard.currentSemester();
   if(finishSemester) finishSemester.textContent='· '+s.label;
@@ -287,7 +231,6 @@ async function prepareFinishOverlay(){
   running=false;
   accepting=false;
   reticle.style.opacity='0';
-  fitStage();
   finalTimeMs=Math.round(performance.now()-startedAt);
   timeResult.textContent=formatTime(finalTimeMs);
   finishLevel.textContent=level.name+' · 10 osumaa';
@@ -435,7 +378,7 @@ async function resetAllSemesterScores(){
   }
 }
 
-async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');fitStage();}
+async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
 async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
 document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{

@@ -1,9 +1,0 @@
-SÄVELKOJU 3.6 – RESPONSIVE ENGINE
-
-Pelimaailma: 1536 x 1024, muuttumaton.
-Desktop: alkuperäinen contain-skaalaus.
-Kosketuslaite, leveä landscape: hallittu width-fill, jota rajoittaa 655 px korkea safe gameplay area.
-Puhelin portrait pelin aikana: orientation overlay + osumien vastaanotto keskeytetty.
-HUD ja 10 lamppua ovat viewport-koordinaateissa.
-
-Tämän rakenteen tarkoitus on, ettei eri laitteille tarvitse ylläpitää omia peliversioita.

@@ -448,192 +448,43 @@ button strong{
 }
 
 
-/* ================================================================
-   3.6 RESPONSIVE ENGINE
-   Yksi pelimaailma, useita kuvasuhteita. Pelin 1536x1024 koordinaatit
-   säilyvät ennallaan; käyttöliittymä ankkuroidaan suoraan viewportiin.
-   ================================================================ */
-
-html,body,#game{width:100%;height:100%;height:100dvh}
-#game{isolation:isolate}
-#stage{will-change:transform}
-
-/* Lamput ovat nyt HUD-elementti, eivät osa skaalautuvaa pelikuvaa. */
-.progress-lamps{
+/* 3.5.8 PWA-päivitysilmoitus */
+.pwa-update-banner{
   position:fixed;
   left:50%;
-  bottom:max(108px,calc(env(safe-area-inset-bottom) + 98px));
-  transform:translateX(-50%);
-  gap:clamp(8px,1.2vw,18px);
-  z-index:12;
-}
-.progress-lamps span{
-  width:clamp(18px,2.1vw,26px);
-  height:clamp(18px,2.1vw,26px);
-  border-width:clamp(2px,.22vw,3px);
-}
-
-#hud{
-  bottom:max(18px,env(safe-area-inset-bottom));
-  max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 24px);
-}
-
-/* Safe area myös koko ruudun ikkunoille. */
-.overlay{
-  padding:
-    max(10px,env(safe-area-inset-top))
-    max(10px,env(safe-area-inset-right))
-    max(10px,env(safe-area-inset-bottom))
-    max(10px,env(safe-area-inset-left));
-}
-.card,.level-card,.scoreboard-panel,.admin-panel{
-  max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px);
-}
-
-/* Puhelimen pystyasento sallitaan valikoissa. Itse peli pyytää vaakasuuntaa. */
-.rotate-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
+  bottom:max(18px, env(safe-area-inset-bottom));
   z-index:120;
+  display:flex;
   align-items:center;
-  justify-content:center;
-  padding:
-    max(22px,env(safe-area-inset-top))
-    max(22px,env(safe-area-inset-right))
-    max(22px,env(safe-area-inset-bottom))
-    max(22px,env(safe-area-inset-left));
-  background:rgba(35,54,49,.72);
+  gap:14px;
+  max-width:min(560px,calc(100vw - 32px));
+  padding:10px 12px 10px 16px;
+  border:2px solid rgba(36,35,31,.34);
+  border-radius:16px;
+  background:rgba(255,253,245,.96);
+  color:var(--ink);
+  box-shadow:0 8px 28px rgba(36,35,31,.20);
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
+  font-weight:800;
 }
-.orientation-blocked .rotate-overlay{display:flex}
-.rotate-card{
-  width:min(360px,100%);
-  padding:28px 22px;
-  text-align:center;
+.pwa-update-banner.hidden{display:none!important}
+.pwa-update-banner span{min-width:0}
+.pwa-update-banner button{
+  flex:0 0 auto;
+  margin:0;
+  padding:9px 13px;
+  border-width:2px;
+  border-radius:11px;
+  font-size:15px;
+  white-space:nowrap;
 }
-.rotate-card strong{display:block;font-size:24px;line-height:1.12}
-.rotate-card span{display:block;margin-top:8px;font-size:15px;font-weight:750;opacity:.75}
-.rotate-phone{
-  width:78px;
-  height:48px;
-  margin:0 auto 18px;
-  display:grid;
-  place-items:center;
-  border:4px solid var(--ink);
-  border-radius:13px;
-  background:#f5d267;
-  font-size:30px;
-  font-weight:1000;
-}
-
-/* Puhelin / matala tabletti vaakasuunnassa: viewport-HUD pidetään suurena,
-   vaikka taustapeliä rajataan pystysuunnassa. */
-@media (orientation:landscape) and (max-height:600px){
-  #hud{
-    bottom:max(6px,env(safe-area-inset-bottom));
-    width:min(760px,calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px));
-    grid-template-columns:78px 1fr 78px;
-    padding:4px 10px;
-    border-width:3px;
-    border-radius:14px;
+@media (max-width:560px){
+  .pwa-update-banner{
+    width:calc(100vw - 28px);
+    box-sizing:border-box;
+    gap:10px;
+    font-size:14px;
   }
-  #hud small{font-size:9px}
-  #hud strong{font-size:25px}
-  #heard{font-size:11px;line-height:1.05}
-  #levelNameHud{font-size:10px!important}
-
-  .progress-lamps{
-    top:max(8px,env(safe-area-inset-top));
-    bottom:auto;
-    gap:clamp(6px,1.15vw,11px);
-  }
-  .progress-lamps span{width:18px;height:18px;border-width:2px}
-
-  #message{top:max(8px,env(safe-area-inset-top));font-size:17px;padding:6px 12px}
-
-  .level-card{
-    width:min(900px,calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px));
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
-    overflow:auto;
-    padding:10px 14px 12px;
-  }
-  .level-card h1{font-size:29px;margin:0 0 3px}
-  .lead{font-size:14px;margin:2px 0 7px}
-  .session-name-box.direct-name{margin:4px 0 7px;gap:7px}
-  .session-name-box input{padding:8px 11px;font-size:16px;border-width:3px;border-radius:12px}
-  .name-done-btn{min-width:88px;padding:0 12px;border-width:3px;border-radius:12px;font-size:15px}
-  .levels{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-  .level-btn{display:block;margin:0;padding:8px 7px;border-width:3px;border-radius:12px;text-align:center}
-  .level-btn b{display:block;font-size:14px;line-height:1.05}
-  .level-btn span{display:block;margin-top:3px;font-size:12px;white-space:normal}
-  .menu-actions{grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
-  .menu-actions .help-btn{padding:7px 10px;border-width:3px;border-radius:12px;font-size:14px}
-
-  .scoreboard-panel{
-    width:min(760px,calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px));
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
-    padding:12px 16px;
-  }
-  .scoreboard-panel h1{font-size:28px;margin:0 0 3px}
-  .semester-heading{margin:0 0 7px;font-size:12px}
-  .score-tabs{grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px}
-  .score-tab{padding:6px 5px;font-size:10px;border-width:3px}
-  .score-list.big li{padding:5px 8px;font-size:13px}
-  .board-close{width:36px;height:36px;right:6px;top:6px;border-width:3px;font-size:17px}
-
-  .finish-card{
-    width:min(650px,calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px));
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
-    padding:12px 16px;
-  }
-  .finish-card h1{font-size:30px;margin-bottom:2px}
-  .finish-card p{font-size:14px;margin:4px 0}
-  .time{font-size:27px;margin:5px 0}
-  .save-score{margin:6px 0 4px;padding-top:5px}
-  .finish-board{margin:4px 0 7px}
-  .finish-board h2{font-size:14px;margin-bottom:3px}
-  .finish-card .score-list li{padding:4px 7px;font-size:12px}
-  .finish-card button{display:inline-block;width:auto;margin:4px 3px 0;padding:7px 12px;border-width:3px;font-size:13px}
-
-  .admin-panel{
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
-    padding:14px 16px;
-  }
-  .admin-panel h1{font-size:28px;margin-bottom:8px}
-  #adminLogin{gap:6px}
-  #adminLogin input,.admin-password-box input{padding:8px 10px;border-width:3px;font-size:14px}
-  .admin-panel button{padding:8px 12px;border-width:3px;font-size:14px}
-  .admin-reset-grid{grid-template-columns:repeat(2,1fr);gap:6px;margin:7px 0}
-  .admin-password-box{margin:8px 0 7px;padding-top:7px;gap:6px}
-  .admin-note{font-size:13px;margin-bottom:5px}
-
-  .admin-gear{
-    right:max(6px,env(safe-area-inset-right));
-    bottom:max(6px,env(safe-area-inset-bottom));
-    width:34px;height:34px;min-width:34px;line-height:30px;font-size:17px;
-  }
-}
-
-/* Pystyssä oleva puhelin: valikko säilyy täysin käyttökelpoisena. */
-@media (orientation:portrait) and (max-width:600px){
-  .overlay{align-items:start;overflow:auto}
-  .level-card{
-    margin:auto 0;
-    max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
-    overflow:auto;
-    padding:20px 16px;
-  }
-  .level-card h1{font-size:38px}
-  .session-name-box.direct-name{display:flex;gap:7px}
-  .session-name-box.direct-name input{font-size:16px;padding:11px}
-  .name-done-btn{min-width:82px;padding:0 11px;font-size:15px}
-  .level-btn{padding:12px 14px}
-  .menu-actions{grid-template-columns:1fr}
-  .scoreboard-panel,.admin-panel,.finish-card{max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px)}
-}
-
-@supports not (height:100dvh){
-  html,body,#game{height:100vh}
+  .pwa-update-banner button{padding:8px 10px;font-size:14px}
 }
