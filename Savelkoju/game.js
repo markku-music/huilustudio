@@ -45,6 +45,7 @@ async function playFinaleSoundUntilEnd(){
 function fitStage(){
   const scale=Math.min(window.innerWidth/1536,window.innerHeight/1024);
   stage.style.transform=`translate(-50%,-50%) scale(${scale})`;
+  stage.style.visibility='visible';
 }
 window.addEventListener('resize',fitStage);
 fitStage();
