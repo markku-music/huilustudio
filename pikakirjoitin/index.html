@@ -1008,7 +1008,9 @@
           applyStaffTopRules();
           applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
+          await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();
+          if(workMode==='edit')await new Promise(resolve=>requestAnimationFrame(resolve));
+          refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -1072,7 +1074,39 @@
     function clearSelection(){selectedNoteIndices.clear();selectionDrag=null;renderSelectionOverlay()}
     function rectanglesIntersect(a,b){return a.left<=b.right&&a.right>=b.left&&a.top<=b.bottom&&a.bottom>=b.top}
     function normalizedRectangle(start,end){return {left:Math.min(start.x,end.x),right:Math.max(start.x,end.x),top:Math.min(start.y,end.y),bottom:Math.max(start.y,end.y)}}
-    function contentPointFromPointer(e){const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;return {x:(e.clientX-rect.left)/scale,y:(e.clientY-rect.top)/scale}}
+    function clientPointToScoreContent(clientX,clientY){
+      const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;
+      return {x:(clientX-rect.left)/scale+osmdContainer.scrollLeft,y:(clientY-rect.top)/scale+osmdContainer.scrollTop};
+    }
+    function clientRectToScoreContent(rect){
+      const topLeft=clientPointToScoreContent(rect.left,rect.top),bottomRight=clientPointToScoreContent(rect.right,rect.bottom);
+      return {left:topLeft.x,top:topLeft.y,right:bottomRight.x,bottom:bottomRight.y,width:bottomRight.x-topLeft.x,height:bottomRight.y-topLeft.y};
+    }
+    function renderedMeasureElement(measure,svg){
+      if(!measure||!svg)return null;const number=String(measure.MeasureNumber??'');if(!number)return null;
+      for(const element of svg.querySelectorAll?.('.vf-measure')||[])if(element.id===number)return element;
+      return null;
+    }
+    function svgElementPointToScoreContent(element,x,y){
+      if(!element||!Number.isFinite(x)||!Number.isFinite(y))return null;
+      try{
+        const box=element.getBBox?.(),rect=element.getBoundingClientRect?.();
+        if(box&&rect&&box.width>0&&box.height>0&&rect.width>0&&rect.height>0){
+          return clientPointToScoreContent(rect.left+(x-box.x)*rect.width/box.width,rect.top+(y-box.y)*rect.height/box.height);
+        }
+      }catch{}
+      try{
+        const matrix=element.getScreenCTM?.(),svg=element.ownerSVGElement||element,point=svg.createSVGPoint?.();
+        if(matrix&&point){point.x=x;point.y=y;const transformed=point.matrixTransform(matrix);return clientPointToScoreContent(transformed.x,transformed.y)}
+      }catch{}
+      return null;
+    }
+    function svgElementRectToScoreContent(element,x,y,width,height){
+      const points=[[x,y],[x+width,y],[x,y+height],[x+width,y+height]].map(([px,py])=>svgElementPointToScoreContent(element,px,py)).filter(Boolean);
+      if(points.length!==4)return null;const xs=points.map(point=>point.x),ys=points.map(point=>point.y),left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+      return {left,top,right,bottom,width:right-left,height:bottom-top};
+    }
+    function contentPointFromPointer(e){return clientPointToScoreContent(e.clientX,e.clientY)}
     function buildSelectionHitboxes(){
       selectionHitboxes=[];if(workMode!=='edit'||!scoreRenderer)return;
       const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,visited=new Set();
@@ -1136,14 +1170,12 @@
       if(!fallbackSvg||!measureList.length)return[];
       const svgByPage=new Map();
       musicPages.forEach((page,pageIndex)=>{const pageElement=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`),svg=pageElement?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
-      const containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,seen=new WeakSet(),systems=[];
-      const toContainerY=(value,svgRect,viewBox,viewHeight)=>
-        (svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(value-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
+      const seen=new WeakSet(),systems=[];
       measureList.forEach(row=>row?.forEach(measure=>{
         if(!measure||measure.isVisible?.()===false)return;
         const staffLine=measure.ParentStaffLine;if(!staffLine||seen.has(staffLine))return;
-        const musicSystem=measure.ParentMusicSystem||staffLine.ParentMusicSystem,musicPage=musicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;
-        if(!svgRect.height||!viewHeight||!scale)return;
+        const musicSystem=measure.ParentMusicSystem||staffLine.ParentMusicSystem,musicPage=musicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,measureElement=renderedMeasureElement(measure,svg);
+        if(!measureElement)return;
         const stave=measure.stave||measure.getVFStave?.();
         let rawY;
         if(stave?.getY){
@@ -1152,19 +1184,19 @@
           const first=staffLine.Measures?.find(item=>item&&item.isVisible?.()!==false),firstStave=first&&(first.stave||first.getVFStave?.());
           if(firstStave?.getY)rawY=firstStave.getY();
           else{
-            const source=first||measure,box=source?.PositionAndShape,pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;
-            if(box?.AbsolutePosition)rawY=(box.AbsolutePosition.y-pageOrigin.y+(box.BorderTop||0))*10*zoom;
+            const source=first||measure,box=source?.PositionAndShape,pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0};
+            if(box?.AbsolutePosition)rawY=(box.AbsolutePosition.y-pageOrigin.y+(box.BorderTop||0))*10;
           }
         }
         if(!Number.isFinite(rawY))return;
         seen.add(staffLine);
-        const rowY=toContainerY(rawY,svgRect,viewBox,viewHeight);
+        const rowY=svgElementPointToScoreContent(measureElement,0,rawY)?.y;
         let top=null,bottom=null;
-        const systemBox=musicSystem?.PositionAndShape,pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;
+        const systemBox=musicSystem?.PositionAndShape,pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0};
         if(systemBox?.AbsolutePosition){
-          const absY=(systemBox.AbsolutePosition.y-pageOrigin.y)*10*zoom;
-          const a=toContainerY(absY+(Number(systemBox.BorderTop)||0)*10*zoom,svgRect,viewBox,viewHeight);
-          const b=toContainerY(absY+(Number(systemBox.BorderBottom)||0)*10*zoom,svgRect,viewBox,viewHeight);
+          const absY=(systemBox.AbsolutePosition.y-pageOrigin.y)*10;
+          const a=svgElementPointToScoreContent(measureElement,0,absY+(Number(systemBox.BorderTop)||0)*10)?.y;
+          const b=svgElementPointToScoreContent(measureElement,0,absY+(Number(systemBox.BorderBottom)||0)*10)?.y;
           if(Number.isFinite(a)&&Number.isFinite(b)){top=Math.min(a,b);bottom=Math.max(a,b)}
         }
         if(Number.isFinite(rowY))systems.push({rowY,top,bottom});
@@ -1396,34 +1428,28 @@
       return states;
     }
     function renderedBeamStemAnchor(index){
-      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[];
       for(const measureGroup of measureList)for(const measure of measureGroup||[])for(const staffEntry of measure?.staffEntries||[])for(const voiceEntry of staffEntry?.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry?.notes||[]){
         const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;if(renderedNoteObjectMap.get(objectId)!==index)continue;
         const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el,svg=element?.ownerSVGElement;if(!vexNote||!svg)continue;
         try{
           const x=Number(vexNote.getStemX?.()),extents=vexNote.getStemExtents?.(),topY=Number(extents?.topY),baseY=Number(extents?.baseY),stemDirection=Number(vexNote.getStemDirection?.()??vexNote.stem_direction??vexNote.stemDirection);if(!Number.isFinite(x)||!Number.isFinite(topY)||!Number.isFinite(baseY))continue;
-          const y=stemDirection<0?Math.max(topY,baseY):Math.min(topY,baseY),svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)continue;
-          const fx=(svgRect.width/viewWidth)/scale,fy=(svgRect.height/viewHeight)/scale,left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*fx,top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*fy;return {x:left,y:top,direction:stemDirection<0?'down':'up'};
+          const y=stemDirection<0?Math.max(topY,baseY):Math.min(topY,baseY),measureElement=element.closest?.('.vf-measure'),point=svgElementPointToScoreContent(measureElement,x,y);if(!point)continue;
+          return {x:point.x,y:point.y,direction:stemDirection<0?'down':'up'};
         }catch{}
       }
       return null;
     }
 
     function renderedNoteheadAnchor(index){
-      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[];
       for(const measureGroup of measureList)for(const measure of measureGroup||[])for(const staffEntry of measure?.staffEntries||[])for(const voiceEntry of staffEntry?.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry?.notes||[]){
         const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;if(renderedNoteObjectMap.get(objectId)!==index)continue;
         const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el,svg=element?.ownerSVGElement;if(!element||!svg)continue;
         try{
           const notehead=element.querySelector?.('.vf-notehead, [class*="notehead"], g.vf-notehead path, g.vf-notehead ellipse, path.vf-notehead, ellipse.vf-notehead')||element.querySelector?.('g path, g ellipse, path, ellipse');
-          const box=(notehead&&typeof notehead.getBBox==='function'?notehead.getBBox():null)||(typeof element.getBBox==='function'?element.getBBox():null);
-          if(!box||!Number.isFinite(box.x)||!Number.isFinite(box.y)||!Number.isFinite(box.width)||!Number.isFinite(box.height)||!box.width||!box.height)continue;
-          const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)continue;
-          const fx=(svgRect.width/viewWidth)/scale,fy=(svgRect.height/viewHeight)/scale;
-          const x=box.x+box.width/2,y=box.y+box.height/2;
-          const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*fx;
-          const top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*fy;
-          return {x:left,y:top};
+          const rect=(notehead||element).getBoundingClientRect?.();if(!rect||!rect.width||!rect.height)continue;const box=clientRectToScoreContent(rect);
+          return {x:box.left+box.width/2,y:box.top+box.height/2};
         }catch{}
       }
       return null;
@@ -1492,12 +1518,11 @@
       if(workMode!=='edit'||!barlineEditModeActive||!scoreRenderer)return;
       const graphicSheet=scoreRenderer.GraphicSheet,measureList=graphicSheet?.MeasureList||[],musicPages=graphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg');if(!fallbackSvg||!measureList.length)return;
       const svgByPage=new Map();musicPages.forEach((page,pageIndex)=>{const svg=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`)?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
-      const layer=document.createElement('div');layer.className='barline-edit-markers';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;const containerRect=osmdContainer.getBoundingClientRect(),totalMeasures=measureList.length;
+      const layer=document.createElement('div');layer.className='barline-edit-markers';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;const totalMeasures=measureList.length;
       const appendBoundary=(boundary)=>{
-        const measureIndex=boundary===0?0:boundary-1,measure=measureList[measureIndex]?.find(item=>item&&item.isVisible?.()!==false);if(!measure)return;const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,stave=measure.stave||measure.getVFStave?.();let x,y;
-        if(stave?.getX&&stave?.getWidth&&stave?.getY){x=boundary===0?stave.getX():stave.getX()+stave.getWidth();y=stave.getY()}else{const box=measure.PositionAndShape;if(!box?.AbsolutePosition)return;const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;x=(box.AbsolutePosition.x-pageOrigin.x+(boundary===0?box.BorderLeft:box.BorderRight))*10*zoom;y=(box.AbsolutePosition.y-pageOrigin.y+box.BorderTop)*10*zoom}
-        const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height,scale=scorePageScale||1;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
-        const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*(svgRect.width/viewWidth)/scale,top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale,style=barlineStyleForBoundary(boundary),marker=document.createElement('button');marker.type='button';marker.className='barline-edit-marker';marker.innerHTML=barlineIconSvg(style,boundary===totalMeasures);marker.setAttribute('aria-label',boundary===0?'Muokkaa alkutahtiviivaa':boundary===totalMeasures?'Muokkaa loppuviivaa':`Muokkaa tahtiviivaa ${boundary}`);marker.style.left=`${clamp(left-21,3,Math.max(3,osmdContainer.scrollWidth-45))}px`;marker.style.top=`${Math.max(3,top-37)}px`;marker.addEventListener('pointerdown',event=>event.stopPropagation());marker.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();openBarlinePalette(boundary,marker,totalMeasures)});layer.appendChild(marker);
+        const measureIndex=boundary===0?0:boundary-1,measure=measureList[measureIndex]?.find(item=>item&&item.isVisible?.()!==false);if(!measure)return;const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,measureElement=renderedMeasureElement(measure,svg),stave=measure.stave||measure.getVFStave?.();if(!measureElement)return;let x,y;
+        if(stave?.getX&&stave?.getWidth&&stave?.getY){x=boundary===0?stave.getX():stave.getX()+stave.getWidth();y=stave.getY()}else{const box=measure.PositionAndShape;if(!box?.AbsolutePosition)return;const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0};x=(box.AbsolutePosition.x-pageOrigin.x+(boundary===0?box.BorderLeft:box.BorderRight))*10;y=(box.AbsolutePosition.y-pageOrigin.y+box.BorderTop)*10}
+        const point=svgElementPointToScoreContent(measureElement,x,y);if(!point)return;const left=point.x,top=point.y,style=barlineStyleForBoundary(boundary),marker=document.createElement('button');marker.type='button';marker.className='barline-edit-marker';marker.innerHTML=barlineIconSvg(style,boundary===totalMeasures);marker.setAttribute('aria-label',boundary===0?'Muokkaa alkutahtiviivaa':boundary===totalMeasures?'Muokkaa loppuviivaa':`Muokkaa tahtiviivaa ${boundary}`);marker.style.left=`${clamp(left-21,3,Math.max(3,osmdContainer.scrollWidth-45))}px`;marker.style.top=`${Math.max(3,top-37)}px`;marker.addEventListener('pointerdown',event=>event.stopPropagation());marker.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();openBarlinePalette(boundary,marker,totalMeasures)});layer.appendChild(marker);
       };
       for(let boundary=0;boundary<=totalMeasures;boundary+=1)appendBoundary(boundary);osmdContainer.appendChild(layer);
     }
@@ -1508,15 +1533,14 @@
     }
     function renderedMeasureHitboxes(){
       if(!scoreRenderer)return[];
-      const graphicSheet=scoreRenderer.GraphicSheet,measureList=graphicSheet?.MeasureList||[],musicPages=graphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg'),containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;if(!fallbackSvg||!measureList.length)return[];
+      const graphicSheet=scoreRenderer.GraphicSheet,measureList=graphicSheet?.MeasureList||[],musicPages=graphicSheet?.MusicPages||[],fallbackSvg=osmdContainer.querySelector('svg');if(!fallbackSvg||!measureList.length)return[];
       const svgByPage=new Map();musicPages.forEach((page,pageIndex)=>{const svg=osmdContainer.querySelector(`#osmdCanvasPage${pageIndex+1}`)?.querySelector('svg');if(svg)svgByPage.set(page,svg)});
       const boxes=[];
       measureList.forEach((group,index)=>{
-        const measure=(group||[]).find(item=>item&&item.isVisible?.()!==false);if(!measure)return;const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,stave=measure.stave||measure.getVFStave?.();let x,y,width,height;
+        const measure=(group||[]).find(item=>item&&item.isVisible?.()!==false);if(!measure)return;const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent,svg=svgByPage.get(musicPage)||fallbackSvg,measureElement=renderedMeasureElement(measure,svg),stave=measure.stave||measure.getVFStave?.();if(!measureElement)return;let x,y,width,height;
         if(stave?.getX&&stave?.getWidth&&stave?.getY){x=stave.getX();y=stave.getY()-26;width=stave.getWidth();height=Math.max(92,Number(stave.getHeight?.())||0)+44}
-        else{const box=measure.PositionAndShape;if(!box?.AbsolutePosition)return;const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0},zoom=Number(scoreRenderer.zoom)||1;x=(box.AbsolutePosition.x-pageOrigin.x-box.BorderLeft)*10*zoom;y=(box.AbsolutePosition.y-pageOrigin.y-box.BorderTop)*10*zoom;width=(box.BorderLeft+box.BorderRight)*10*zoom;height=Math.max(92,(box.BorderTop+box.BorderBottom)*10*zoom)}
-        const svgRect=svg.getBoundingClientRect(),viewBox=svg.viewBox?.baseVal,viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width,viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
-        const fx=(svgRect.width/viewWidth)/scale,fy=(svgRect.height/viewHeight)/scale,left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*fx,top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(y-(viewBox?.y||0))*fy,w=width*fx,h=height*fy;boxes.push({index,left,top,right:left+w,bottom:top+h,width:w,height:h});
+        else{const box=measure.PositionAndShape;if(!box?.AbsolutePosition)return;const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0};x=(box.AbsolutePosition.x-pageOrigin.x-box.BorderLeft)*10;y=(box.AbsolutePosition.y-pageOrigin.y-box.BorderTop)*10;width=(box.BorderLeft+box.BorderRight)*10;height=Math.max(92,(box.BorderTop+box.BorderBottom)*10)}
+        const rendered=svgElementRectToScoreContent(measureElement,x,y,width,height);if(!rendered)return;boxes.push({index,...rendered});
       });
       return boxes;
     }
@@ -1566,7 +1590,6 @@
       layer.className='system-break-markers';
       layer.style.width=`${osmdContainer.scrollWidth}px`;
       layer.style.height=`${osmdContainer.scrollHeight}px`;
-      const containerRect=osmdContainer.getBoundingClientRect();
       const rowYByStaffLine=new WeakMap();
 
       const appendMarker=(measureIndex,candidate)=>{
@@ -1575,6 +1598,8 @@
 
         const musicPage=measure.ParentMusicSystem?.Parent||measure.ParentStaffLine?.ParentMusicSystem?.Parent;
         const svg=svgByPage.get(musicPage)||fallbackSvg;
+        const measureElement=renderedMeasureElement(measure,svg);
+        if(!measureElement)return;
         const stave=measure.stave||measure.getVFStave?.();
         let x;
         let y;
@@ -1585,9 +1610,8 @@
           const box=measure.PositionAndShape;
           if(!box?.AbsolutePosition)return;
           const pageOrigin=musicPage?.PositionAndShape?.AbsolutePosition||{x:0,y:0};
-          const zoom=Number(scoreRenderer.zoom)||1;
-          x=(box.AbsolutePosition.x-pageOrigin.x+box.BorderRight)*10*zoom;
-          y=(box.AbsolutePosition.y-pageOrigin.y+box.BorderTop)*10*zoom;
+          x=(box.AbsolutePosition.x-pageOrigin.x+box.BorderRight)*10;
+          y=(box.AbsolutePosition.y-pageOrigin.y+box.BorderTop)*10;
         }
 
         const staffLine=measure.ParentStaffLine;
@@ -1597,14 +1621,7 @@
           rowYByStaffLine.set(staffLine,firstStave?.getY?.()??y);
         }
         const rowY=staffLine?(rowYByStaffLine.get(staffLine)??y):y;
-        const svgRect=svg.getBoundingClientRect();
-        const viewBox=svg.viewBox?.baseVal;
-        const viewWidth=viewBox?.width||Number(svg.getAttribute('width'))||svgRect.width;
-        const viewHeight=viewBox?.height||Number(svg.getAttribute('height'))||svgRect.height;
-        const scale=scorePageScale||1;
-        if(!svgRect.width||!svgRect.height||!viewWidth||!viewHeight||!scale)return;
-        const left=(svgRect.left-containerRect.left)/scale+osmdContainer.scrollLeft+(x-(viewBox?.x||0))*(svgRect.width/viewWidth)/scale;
-        const top=(svgRect.top-containerRect.top)/scale+osmdContainer.scrollTop+(rowY-(viewBox?.y||0))*(svgRect.height/viewHeight)/scale;
+        const point=svgElementPointToScoreContent(measureElement,x,rowY);if(!point)return;const left=point.x,top=point.y;
 
         const marker=document.createElement('button');
         marker.type='button';
