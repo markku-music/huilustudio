@@ -98,30 +98,53 @@ async function getCurrentAdmin(){
   return adminDoc.exists ? {uid:user.uid,email:user.email||''} : null;
 }
 
-async function deleteCurrentSemesterScores(levelId){
-  if(!init()) throw new Error('Firebase ei latautunut.');
-  const admin=await getCurrentAdmin();
-  if(!admin) throw new Error('Admin-kirjautuminen vaaditaan.');
+async function commitDeleteRefs(refs,{batchSize=450,concurrency=3}={}){
+  if(!refs.length) return 0;
+  const chunks=[];
+  for(let i=0;i<refs.length;i+=batchSize) chunks.push(refs.slice(i,i+batchSize));
 
-  const semester=currentSemester();
+  let next=0;
+  async function worker(){
+    while(next<chunks.length){
+      const chunk=chunks[next++];
+      const batch=db.batch();
+      chunk.forEach(ref=>batch.delete(ref));
+      await batch.commit();
+    }
+  }
+
+  const workerCount=Math.min(concurrency,chunks.length);
+  await Promise.all(Array.from({length:workerCount},()=>worker()));
+  return refs.length;
+}
+
+async function fetchCurrentSemesterScoreDocs(levelId,semester){
   const T=firebase.firestore.Timestamp;
   const col=db.collection('scoreboards').doc(String(levelId)).collection('scores');
-
   const snap=await col
     .where('createdAt','>=',T.fromDate(semester.start))
     .where('createdAt','<',T.fromDate(semester.end))
     .get();
+  return snap.docs;
+}
 
-  let deleted=0;
-  const docs=snap.docs;
+async function deleteCurrentSemesterScoresMany(levelIds){
+  if(!init()) throw new Error('Firebase ei latautunut.');
+  const admin=await getCurrentAdmin();
+  if(!admin) throw new Error('Admin-kirjautuminen vaaditaan.');
 
-  for(let i=0;i<docs.length;i+=450){
-    const batch=db.batch();
-    docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));
-    await batch.commit();
-    deleted+=Math.min(450,docs.length-i);
-  }
-  return deleted;
+  const ids=[...new Set((levelIds||[]).map(Number).filter(Number.isFinite))];
+  if(!ids.length) return 0;
+  const semester=currentSemester();
+
+  // Haut rinnakkain. Poistot voidaan tehdä samoissa batcheissa myös eri tasojen kokoelmista.
+  const snapshots=await Promise.all(ids.map(id=>fetchCurrentSemesterScoreDocs(id,semester)));
+  const refs=snapshots.flat().map(doc=>doc.ref);
+  return commitDeleteRefs(refs);
+}
+
+async function deleteCurrentSemesterScores(levelId){
+  return deleteCurrentSemesterScoresMany([levelId]);
 }
 
 
@@ -139,5 +162,5 @@ async function updateAdminPassword(newPassword){
   await user.updatePassword(password);
 }
 
-window.SavelkojuScoreboard={init,saveScore,loadScores,cleanName,currentSemester,signInAdmin,signOutAdmin,getCurrentAdmin,deleteCurrentSemesterScores,updateAdminPassword};
+window.SavelkojuScoreboard={init,saveScore,loadScores,cleanName,currentSemester,signInAdmin,signOutAdmin,getCurrentAdmin,deleteCurrentSemesterScores,deleteCurrentSemesterScoresMany,updateAdminPassword};
 })();
