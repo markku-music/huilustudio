@@ -367,7 +367,10 @@ async function resetAllSemesterScores(){
 
   adminStatus.textContent='Poistetaan kaikkien tasojen tuloksia…';
   try{
-    const total=await window.SavelkojuScoreboard.deleteCurrentSemesterScoresMany([1,2,3]);
+    let total=0;
+    for(const id of [1,2,3]){
+      total+=await window.SavelkojuScoreboard.deleteCurrentSemesterScores(id);
+    }
     adminStatus.textContent=`Poistettu yhteensä ${total} tulosta.`;
   }catch(e){
     console.error(e);
