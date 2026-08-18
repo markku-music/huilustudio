@@ -2,18 +2,14 @@
 <html lang="fi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#82c8e8">
 <title>Sävelkoju</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="apple-touch-startup-image" href="startup-ipad-pro-12.9-landscape.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
-<link rel="apple-touch-startup-image" href="startup-ipad-pro-13-landscape.png" media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
-<link rel="apple-touch-startup-image" href="startup-ipad-pro-11-landscape.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
-<link rel="apple-touch-startup-image" href="startup-ipad-pro-11-new-landscape.png" media="(device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
 <meta name="apple-mobile-web-app-title" content="Sävelkoju">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -145,11 +141,6 @@
     </div>
   </div>
 
-  <div id="pwaUpdateBanner" class="pwa-update-banner hidden" role="status" aria-live="polite">
-    <span>Uusi versio Sävelkojusta on saatavilla.</span>
-    <button id="pwaUpdateButton" type="button">Päivitä nyt</button>
-  </div>
-
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -159,7 +150,21 @@
 <script src="audio-manager.js"></script>
 <script src="game.js"></script>
 
-<script src="pwa-manager.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('./sw.js', {
+        scope: './',
+        updateViaCache: 'none'
+      });
+      registration.update().catch(() => {});
+    } catch (err) {
+      console.warn('PWA service worker:', err);
+    }
+  });
+}
+</script>
 
 </body>
 </html>
