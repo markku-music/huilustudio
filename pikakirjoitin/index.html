@@ -456,15 +456,15 @@
             </div>
           </div>
           <div class="publish-grid">
-            <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta tai tallenna PDF">
+            <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta">
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 9V4h10v5"></path><rect x="5" y="10" width="14" height="7" rx="2"></rect><path d="M7 14h10v6H7z"></path></svg></div>
-              <div class="publish-card-title">Tulosta / PDF</div>
-              <div class="publish-card-desc">Tulosta paperille tai tallenna PDF:nä, esimerkiksi Google Driveen.</div>
+              <div class="publish-card-title">Tulosta</div>
+              <div class="publish-card-desc">Tulosta nuotti paperille iPadin tai muun laitteen tulostusikkunasta.</div>
             </button>
-            <button class="publish-card" id="publishShareButton" type="button" aria-label="Lähetä PDF sähköpostilla tai WhatsAppilla" aria-busy="true" disabled>
+            <button class="publish-card" id="publishShareButton" type="button" aria-label="Tallenna tai lähetä PDF" aria-busy="true" disabled>
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.7M8.3 13.1l7.4 4.7"></path></svg></div>
-              <div class="publish-card-title">Lähetä</div>
-              <div class="publish-card-desc">Lähetä valmis PDF sähköpostilla tai WhatsAppilla laitteen jakoikkunasta.</div>
+              <div class="publish-card-title">PDF – tallenna tai lähetä</div>
+              <div class="publish-card-desc">Valitse jakoikkunasta Drive, Tiedostot, sähköposti tai WhatsApp.</div>
             </button>
             <button class="publish-card" id="publishXmlButton" type="button" aria-label="Export XML">
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M8 16l2-2-2-2"></path><path d="M12 12h2"></path><path d="m17 12-2 2 2 2"></path></svg></div>
@@ -1035,7 +1035,7 @@
     }
     function printScore(){window.print()}
     function sharePdf(){
-      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}const file=new File([publishPdfBlob],`${projectFileBaseName()}.pdf`,{type:'application/pdf',lastModified:Date.now()});shareOrDownloadFile(file,{title:projectData?.title||'Nuotti',text:'Pikakirjoittimella tehty nuotti.',successMessage:'PDF lähetetty jakoikkunaan.',fallbackMessage:'PDF ladattu laitteelle lähettämistä varten.'});
+      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}const file=new File([publishPdfBlob],`${projectFileBaseName()}.pdf`,{type:'application/pdf',lastModified:Date.now()});shareOrDownloadFile(file,{title:projectData?.title||'Nuotti',text:'Pikakirjoittimella tehty nuotti.',successMessage:'PDF annettu jakoikkunaan.',fallbackMessage:'PDF ladattu laitteelle.'});
     }
     function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFile(file,{title:`${projectData?.title||'Nuotti'} – MusicXML`,text:'Pikakirjoittimen MusicXML-tiedosto.',successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
     function buildProjectFile(){
