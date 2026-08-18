@@ -156,7 +156,6 @@ function hitEffect(){const p=POS[target];reticle.classList.remove('hit');void re
 function hear(note){if(!running||!accepting||note!==target)return;const now=performance.now();if(now-lastAccepted<500)return;lastAccepted=now;accepting=false;score++;scoreEl.textContent=score;updateProgressLamps();playHitSound();hitEffect();showMessage('Hieno osuma!');setTimeout(()=>{if(score>=TOTAL){finaleLampShow();}else nextTarget();},500);}
 function microphoneOutput(output){if(output.status==='signal'){const note=PITCH_CLASS[output.pitchClass];heardEl.textContent=note?`KUULEN: ${note}`:'KUUNTELEN…';if(note)hear(note);return;}if(output.status==='opening')heardEl.textContent='AVATAAN MIKROFONIA…';else if(output.status==='error')heardEl.textContent='MIKROFONIVIRHE';else heardEl.textContent='KUUNTELEN…';}
 function ensureEngine(){if(engine)return engine;const M=window.NuottikompassiMicrophoneEngine;if(!M)throw new Error('Mikrofonimoottoria ei voitu ladata.');engine=new M.MicrophoneEngine({...M.DEFAULTS,referenceEnabled:false,liveReferenceEnabled:false},microphoneOutput);return engine;}
-window.__SavelkojuMicDiagnostics=()=>{try{return engine?.getDiagnostics?.()||null;}catch(_){return null;}};
 async function pauseMic(){
   running=false;
   accepting=false;
