@@ -42,66 +42,13 @@ async function playFinaleSoundUntilEnd(){
     finaleLightsRunning=false;
   }
 }
-function fitStage(){
-  const width=Math.max(1,Number(window.innerWidth)||document.documentElement.clientWidth||1);
-  const height=Math.max(1,Number(window.innerHeight)||document.documentElement.clientHeight||1);
-  const scale=Math.min(width/1536,height/1024);
-  stage.style.transform=`translate(-50%,-50%) scale(${scale})`;
-  return {width,height};
-}
-
-addEventListener('resize',fitStage);
-
-// iPadOS voi antaa vaakasuuntaisen PWA-ikkunan ensimmäisen mitan liian
-// aikaisin. Näyttämö pidetään piilossa, kunnes mitat ovat ehtineet tasaantua.
-function viewportSignature(){
-  const vv=window.visualViewport;
-  return [
-    Math.round(window.innerWidth||0),
-    Math.round(window.innerHeight||0),
-    vv ? Math.round(vv.width||0) : 0,
-    vv ? Math.round(vv.height||0) : 0
-  ].join('x');
-}
-
-function revealAfterStableViewport(){
-  const startedAt=performance.now();
-  const landscape=(window.innerWidth||0)>(window.innerHeight||0);
-  const minimumWait=landscape?320:100;
-  const maximumWait=900;
-  let previousSignature='';
-  let stableSamples=0;
-
-  function sample(){
-    fitStage();
-    const signature=viewportSignature();
-
-    if(signature===previousSignature) stableSamples+=1;
-    else stableSamples=0;
-    previousSignature=signature;
-
-    const elapsed=performance.now()-startedAt;
-    const stableEnough=elapsed>=minimumWait&&stableSamples>=2;
-    const timedOut=elapsed>=maximumWait;
-
-    if(stableEnough||timedOut){
-      // Varmista yksi valmis selainpiirto ennen kuin peli tuodaan näkyviin.
-      requestAnimationFrame(()=>document.documentElement.classList.add('viewport-ready'));
-      return;
-    }
-    setTimeout(sample,40);
-  }
-
-  sample();
-}
-
-revealAfterStableViewport();
+function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
+addEventListener('resize',fitStage);fitStage();
 
 if(window.visualViewport){
   let lastViewportHeight=window.visualViewport.height;
   window.visualViewport.addEventListener('resize',()=>{
     const currentHeight=window.visualViewport.height;
-    fitStage();
 
     // Kun näppäimistö sulkeutuu, visual viewport kasvaa selvästi.
     if(currentHeight > lastViewportHeight + 80){
