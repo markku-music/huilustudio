@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.23';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.25';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const APP_SHELL = [
   './icon-192.png',
   './icon-512.png',
   './vendor/osmd/opensheetmusicdisplay.min.js',
+  './vendor/pdf-lib/pdf-lib.min.js',
+  './vendor/pdf-lib/LICENSE.md',
   './assets/clef-alto.svg',
   './assets/clef-bass.svg',
   './assets/clef-treble.svg',

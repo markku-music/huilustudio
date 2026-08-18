@@ -170,6 +170,7 @@
     .publish-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:220px;padding:26px 22px;border:1px solid #d6e0ea;border-radius:28px;background:#fff;box-shadow:0 12px 30px #1d283612;color:#172434;text-align:center;cursor:pointer;touch-action:manipulation;transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease,background .14s ease}
     .publish-card:hover,.publish-card:focus-visible{transform:translateY(-2px);border-color:#8cb2e6;box-shadow:0 16px 34px #1d28361b;background:#fbfdff;outline:none}
     .publish-card:active{transform:translateY(0) scale(.985)}
+    .publish-card:disabled{cursor:wait;opacity:.58;transform:none;box-shadow:0 8px 20px #1d28360d}
     .publish-card-icon{width:88px;height:88px;display:grid;place-items:center;border-radius:24px;background:#edf4ff;color:#2365aa;box-shadow:inset 0 0 0 1px #cfe0fa}
     .publish-card-icon svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
     .publish-card-title{font-size:23px;font-weight:850;color:#172434}
@@ -281,8 +282,8 @@
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.new-project-tab{flex-basis:50px;padding:0 4px;font-size:8px}.mode-tab{padding:0 4px;font-size:8px}}
-    @media (max-width:900px){.publish-grid{grid-template-columns:1fr}.publish-screen{padding:20px 4px 8px}.publish-title{font-size:28px}}
-    @media (max-width:560px){.publish-header{flex-direction:column;gap:12px}.publish-card{min-height:196px;padding:22px 18px}.publish-card-title{font-size:21px}}
+    @media (max-width:900px){.publish-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:16px}.publish-title{font-size:28px}.publish-card{min-height:188px;padding:18px 14px;gap:10px}.publish-card-icon{width:72px;height:72px}.publish-card-icon svg{width:40px;height:40px}.publish-card-title{font-size:20px}.publish-card-desc{font-size:13px}}
+    @media (max-width:560px){.publish-grid{grid-template-columns:1fr}.publish-header{flex-direction:column;gap:10px}.publish-card{min-height:174px;padding:18px}.publish-card-title{font-size:20px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     @page{size:A4 portrait;margin:0}
     @media print{
@@ -455,25 +456,25 @@
             </div>
           </div>
           <div class="publish-grid">
-            <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta">
+            <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta tai tallenna PDF">
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 9V4h10v5"></path><rect x="5" y="10" width="14" height="7" rx="2"></rect><path d="M7 14h10v6H7z"></path></svg></div>
-              <div class="publish-card-title">Tulosta</div>
-              <div class="publish-card-desc">Tulosta nuotti paperille laitteen normaalin tulostusikkunan kautta.</div>
+              <div class="publish-card-title">Tulosta / PDF</div>
+              <div class="publish-card-desc">Tulosta paperille tai tallenna PDF:nä, esimerkiksi Google Driveen.</div>
             </button>
-            <button class="publish-card" id="publishPdfButton" type="button" aria-label="Tallenna PDF">
-              <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M9 16h6"></path></svg></div>
-              <div class="publish-card-title">Tallenna PDF</div>
-              <div class="publish-card-desc">Avaa tulostusikkunan, josta voit tallentaa PDF:n esimerkiksi Driveen.</div>
+            <button class="publish-card" id="publishShareButton" type="button" aria-label="Lähetä PDF sähköpostilla tai WhatsAppilla" aria-busy="true" disabled>
+              <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.7M8.3 13.1l7.4 4.7"></path></svg></div>
+              <div class="publish-card-title">Lähetä</div>
+              <div class="publish-card-desc">Lähetä valmis PDF sähköpostilla tai WhatsAppilla laitteen jakoikkunasta.</div>
             </button>
             <button class="publish-card" id="publishXmlButton" type="button" aria-label="Export XML">
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M8 16l2-2-2-2"></path><path d="M12 12h2"></path><path d="m17 12-2 2 2 2"></path></svg></div>
               <div class="publish-card-title">Export XML</div>
-              <div class="publish-card-desc">Vie MusicXML-tiedosto jatkokäyttöön ja tallenna se vaikka Driveen.</div>
+              <div class="publish-card-desc">Vie MusicXML-tiedosto Doricoon tai muuhun nuotinkirjoitusohjelmaan.</div>
             </button>
             <button class="publish-card" id="publishProjectButton" type="button" aria-label="Tallenna projekti">
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4"></path><path d="M9 18h6"></path></svg></div>
               <div class="publish-card-title">Tallenna projekti</div>
-              <div class="publish-card-desc">Tallenna Pikakirjoittimen oma projekti myöhempää avaamista ja muokkaamista varten.</div>
+              <div class="publish-card-desc">Tallenna muokattava Pikakirjoitin-projekti myöhempää avaamista varten.</div>
             </button>
           </div>
         </section>
@@ -567,10 +568,11 @@
     <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
   </main>
 
+  <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishPrintButton=document.querySelector('#publishPrintButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -970,7 +972,7 @@
       }
       if(next!=='write')clearWriteNoteEdit();
       syncWorkModeUI();
-      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}else if(workMode==='write')refreshWriteGeometry()});
+      requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();if(workMode==='edit'){refreshEditGeometry();queueLineSpacingRasterCache()}else if(workMode==='write')refreshWriteGeometry();else if(workMode==='print')preparePublishPdf()});
     }
 
     function statusMessage(message){status.textContent=message}
@@ -982,15 +984,67 @@
       const link=document.createElement('a'),url=URL.createObjectURL(blob);
       link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);
     }
+    let publishPdfBlob=null,publishPdfPromise=null,publishPdfRevision=0;
+    function syncPublishPdfButtons(){
+      const ready=Boolean(publishPdfBlob),busy=Boolean(publishPdfPromise);
+      [publishShareButton].forEach(button=>{if(!button)return;button.disabled=!ready;button.setAttribute('aria-busy',String(busy))});
+    }
+    function invalidatePublishFiles(){publishPdfRevision+=1;publishPdfBlob=null;publishPdfPromise=null;syncPublishPdfButtons()}
+    function scoreSvgPages(){
+      const wrappers=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')],pages=wrappers.map(page=>page.matches?.('svg')?page:page.querySelector('svg')).filter(Boolean);
+      if(pages.length)return pages;
+      return [...osmdContainer.querySelectorAll('svg')].filter(svg=>!svg.classList.contains('system-break-candidate-svg'));
+    }
+    function publicationSvgImage(svg){
+      return new Promise((resolve,reject)=>{
+        const clone=svg.cloneNode(true);clone.querySelectorAll('.system-break-candidate-svg,foreignObject').forEach(element=>element.remove());clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');clone.setAttribute('width',String(A4_WIDTH));clone.setAttribute('height',String(A4_HEIGHT));
+        if(!clone.getAttribute('viewBox')){const sourceWidth=Number(svg.getAttribute('width'))||A4_WIDTH,sourceHeight=Number(svg.getAttribute('height'))||A4_HEIGHT;clone.setAttribute('viewBox',`0 0 ${sourceWidth} ${sourceHeight}`)}
+        const blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),image=new Image();
+        image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Nuottisivua ei voitu muuntaa kuvaksi.'))};image.src=url;
+      });
+    }
+    function wrappedCanvasLines(ctx,text,maxWidth,maxLines=2){
+      const words=String(text||'').trim().split(/\s+/).filter(Boolean),lines=[];let line='';
+      words.forEach(word=>{const candidate=line?`${line} ${word}`:word;if(!line||ctx.measureText(candidate).width<=maxWidth)line=candidate;else{lines.push(line);line=word}});if(line)lines.push(line);
+      if(lines.length>maxLines){const rest=lines.slice(maxLines-1).join(' ');lines.length=maxLines-1;let last=rest;while(last.length>1&&ctx.measureText(`${last}…`).width>maxWidth)last=last.slice(0,-1);lines.push(`${last}…`)}
+      return lines;
+    }
+    function drawPublicationHeader(ctx){
+      const title=(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim(),tempo=(scoreTempo.textContent||projectData?.tempoText||'').trim(),composer=(scoreComposer.textContent||projectData?.composer||'').trim(),titleStyle=getComputedStyle(scoreTitle),infoStyle=getComputedStyle(scoreTempo.parentElement),titleTop=Number.parseFloat(titleStyle.top)||28,infoTop=Number.parseFloat(infoStyle.top)||104;
+      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font='750 25px system-ui,-apple-system,sans-serif';wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';ctx.font='650 15px system-ui,-apple-system,sans-serif';if(tempo){ctx.textAlign='left';ctx.fillText(tempo,50,infoTop)}if(composer){ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,infoTop)}ctx.restore();
+    }
+    function canvasBlob(canvas,type='image/png',quality){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF-sivun kuvan luominen epäonnistui.')),type,quality))}
+    async function publicationPagePng(svg,pageIndex){
+      const rasterScale=2,canvas=document.createElement('canvas');canvas.width=A4_WIDTH*rasterScale;canvas.height=A4_HEIGHT*rasterScale;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('PDF-kuvapintaa ei voitu luoda.');ctx.setTransform(rasterScale,0,0,rasterScale,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,A4_WIDTH,A4_HEIGHT);const image=await publicationSvgImage(svg);ctx.drawImage(image,0,0,A4_WIDTH,A4_HEIGHT);if(pageIndex===0)drawPublicationHeader(ctx);const blob=await canvasBlob(canvas);canvas.width=1;canvas.height=1;return new Uint8Array(await blob.arrayBuffer());
+    }
+    async function createScorePdfBlob(){
+      const PDFDocument=window.PDFLib?.PDFDocument;if(!PDFDocument)throw new Error('PDF-moottori ei ole vielä käytettävissä.');const svgs=scoreSvgPages();if(!svgs.length)throw new Error('Nuottisivuja ei löytynyt PDF:ää varten.');const documentPdf=await PDFDocument.create(),pageWidth=595.28,pageHeight=841.89;documentPdf.setTitle(projectData?.title||'Nimetön kappale');if(projectData?.composer)documentPdf.setAuthor(projectData.composer);documentPdf.setCreator('Pikakirjoitin');
+      for(let index=0;index<svgs.length;index+=1){const pngBytes=await publicationPagePng(svgs[index],index),image=await documentPdf.embedPng(pngBytes),page=documentPdf.addPage([pageWidth,pageHeight]);page.drawImage(image,{x:0,y:0,width:pageWidth,height:pageHeight})}
+      const bytes=await documentPdf.save({useObjectStreams:true});return new Blob([bytes],{type:'application/pdf'});
+    }
+    async function preparePublishPdf(){
+      if(publishPdfBlob)return publishPdfBlob;if(publishPdfPromise)return publishPdfPromise;const revision=publishPdfRevision,promise=createScorePdfBlob();publishPdfPromise=promise;syncPublishPdfButtons();statusMessage('PDF valmistellaan…');
+      try{const blob=await promise;if(revision===publishPdfRevision){publishPdfBlob=blob;statusMessage('PDF valmis jaettavaksi.')}return blob}catch(error){console.error(error);if(revision===publishPdfRevision)statusMessage(error?.message||'PDF:n valmistelu epäonnistui.');return null}finally{if(publishPdfPromise===promise)publishPdfPromise=null;syncPublishPdfButtons()}
+    }
+    function canShareFile(file){if(typeof navigator.share!=='function')return false;try{return typeof navigator.canShare!=='function'||navigator.canShare({files:[file]})}catch{return false}}
+    function shareOrDownloadFile(file,{title,text,successMessage,fallbackMessage}){
+      if(canShareFile(file)){
+        navigator.share({files:[file],title,text}).then(()=>statusMessage(successMessage)).catch(error=>{if(error?.name==='AbortError')statusMessage('Jakaminen peruttiin.');else{console.error(error);downloadBlob(file,file.name);statusMessage(fallbackMessage)}});return;
+      }
+      downloadBlob(file,file.name);statusMessage(fallbackMessage);
+    }
     function printScore(){window.print()}
-    function savePdf(){statusMessage('Valitse tulostusikkunassa Tallenna PDF tallentaaksesi tiedoston esimerkiksi Driveen.');window.print()}
-    function exportXml(){downloadBlob(new Blob([buildMusicXml()],{type:'application/vnd.recordare.musicxml+xml'}),`${projectFileBaseName()}.musicxml`);statusMessage('MusicXML tallennettu laitteelle.')}
+    function sharePdf(){
+      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}const file=new File([publishPdfBlob],`${projectFileBaseName()}.pdf`,{type:'application/pdf',lastModified:Date.now()});shareOrDownloadFile(file,{title:projectData?.title||'Nuotti',text:'Pikakirjoittimella tehty nuotti.',successMessage:'PDF lähetetty jakoikkunaan.',fallbackMessage:'PDF ladattu laitteelle lähettämistä varten.'});
+    }
+    function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFile(file,{title:`${projectData?.title||'Nuotti'} – MusicXML`,text:'Pikakirjoittimen MusicXML-tiedosto.',successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
     function buildProjectFile(){
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
     function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
 
     async function renderScore(){
+      invalidatePublishFiles();
       syncWorkModeUI();
       scorePrompt.hidden=notes.length>0;scoreRenderPending=true;
       if(scoreRendering||!ensureScoreRenderer())return;
@@ -2109,7 +2163,7 @@
     timeSignatureSelect.addEventListener('change',()=>{syncMeterPicker();syncPickupOptions()});
     pickupChoices.addEventListener('click',choosePickup);
     publishPrintButton?.addEventListener('click',printScore);
-    publishPdfButton?.addEventListener('click',savePdf);
+    publishShareButton?.addEventListener('click',sharePdf);
     publishXmlButton?.addEventListener('click',exportXml);
     publishProjectButton?.addEventListener('click',saveProjectFile);
     projectForm.addEventListener('submit',saveProject);
