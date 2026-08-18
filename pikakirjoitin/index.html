@@ -69,17 +69,7 @@
     .line-spacing-preview-strip{position:absolute;left:0;width:100%;overflow:hidden;will-change:transform;pointer-events:none}
     .line-spacing-preview-source{position:absolute;left:0;top:0;width:100%;min-height:1123px;pointer-events:none;will-change:transform}
     .line-spacing-preview-source svg{display:block;max-width:100%}
-    .last-line-stretch-handle{position:absolute;z-index:18;width:34px;height:56px;display:grid;place-items:center;padding:0;border:0;background:transparent;cursor:ew-resize;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-    .last-line-stretch-handle::before{content:'';width:3px;height:42px;border-radius:2px;background:transparent;opacity:0;transition:background .12s,opacity .12s}
-    .last-line-stretch-handle:hover::before,.last-line-stretch-handle:focus-visible::before{background:#527fae;opacity:.42}
-    .last-line-stretch-handle:focus-visible{outline:none}
-    .last-line-stretch-handle.is-dragging::before{width:3px;background:#7654ce;opacity:1;box-shadow:0 0 0 1px #ffffff88,0 0 5px #7654ce55}
-    .last-line-stretch-handle[hidden]{display:none!important}
-    .last-line-drag-overlay,.last-line-drag-mask{position:absolute;z-index:19;pointer-events:none;display:none}
-    .last-line-drag-overlay{width:3px;height:42px;border-radius:2px;background:#7654ce;box-shadow:0 0 0 1px #ffffff88,0 0 5px #7654ce55}
-    .last-line-drag-mask{width:8px;height:46px;background:#fff}
-    .last-line-drag-overlay.is-visible,.last-line-drag-mask.is-visible{display:block}
-    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg,.score-page.slider-preview-active #osmdContainer .barline-edit-markers,.score-page.slider-preview-active #osmdContainer .beam-edit-markers,.score-page.slider-preview-active #osmdContainer .ending-range-preview-layer,.score-page.slider-preview-active .last-line-stretch-handle{visibility:hidden!important}
+    .score-page.slider-preview-active #osmdContainer .note-selection-layer,.score-page.slider-preview-active #osmdContainer .system-break-markers,.score-page.slider-preview-active #osmdContainer .system-break-candidate-svg,.score-page.slider-preview-active #osmdContainer .barline-edit-markers,.score-page.slider-preview-active #osmdContainer .beam-edit-markers,.score-page.slider-preview-active #osmdContainer .ending-range-preview-layer{visibility:hidden!important}
     .edit-rail-button{width:42px;height:64px;display:grid;place-items:center;padding:0;border:1px solid #ccd8e8;border-radius:13px;background:#fff;color:#1d3150;box-shadow:0 2px 5px #1c273514;font-size:30px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}
     .edit-rail-button svg{display:block;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .edit-rail-button[aria-pressed="true"]{border-color:#8960e6;background:#eee7ff;color:#5633ad;box-shadow:inset 0 0 0 1px #8653f633}
@@ -279,7 +269,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,.last-line-stretch-handle,#status,.score-prompt,.publish-screen{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block!important}
       .score-area{display:block!important;padding:0!important}
@@ -489,6 +479,7 @@
           <button class="edit-rail-button" id="systemBreakButton" type="button" aria-label="Muokkaa rivinvaihtoja" aria-pressed="false">
             <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 12h32M8 21h24M8 30h20"/><path d="M38 21v9c0 4.4-3.6 8-8 8H18"/><path d="m23 33-5 5 5 5"/></svg>
           </button>
+          <button class="edit-rail-button" id="stretchLastLineButton" type="button" aria-label="Venytä viimeinen rivi koko leveyteen" aria-pressed="false">↔</button>
         </div>
         <div class="selection-toolbar" id="selectionToolbar" role="toolbar" aria-label="Valittujen nuottien muokkaus" aria-hidden="true">
           <div class="selection-toolbar-row selection-toolbar-main-row">
@@ -542,15 +533,14 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),publishPrintButton=document.querySelector('#publishPrintButton'),publishPdfButton=document.querySelector('#publishPdfButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
     const tuningTransposes={C:0,Bb:-2,Eb:-9,F:-7};
     const clefKeyboardStarts={treble:60,alto:48,bass:36};
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    const LAST_LINE_STRETCH_DEFAULT=1.4,LAST_LINE_STRETCH_MIN=1,LAST_LINE_STRETCH_MAX=100;
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT,lastLineStretchBaseWidth=null,lastLineStretchDrag=null,lastLineStretchLastTap=0,lastLineStretchPreviewFrame=0,lastLineStretchLayoutEpoch=0,lastLineStretchGeometryReady=true,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     const LINE_SPACING_MIN=1,LINE_SPACING_MAX=10,LINE_SPACING_PREVIEW_PX_PER_UNIT=10,LINE_SPACING_PREVIEW_MAX_PIXELS=5000000,LINE_SPACING_VECTOR_PREVIEW_MAX_SYSTEMS=8,STAFF_TOP_MIN=8,STAFF_TOP_MAX=30,STAFF_TOP_DEFAULT=17,STAFF_TOP_PREVIEW_PX_PER_UNIT=10,SLIDER_GRAB_PAD_Y=5,SLIDER_DRAG_EPSILON_PX=.75;
@@ -905,9 +895,8 @@
     function ensureScoreRenderer(){
       if(scoreRenderer)return true;
       if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return false;
-      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,newSystemFromXML:true,stretchLastSystemLine:false});
+      scoreRenderer=new window.opensheetmusicdisplay.OpenSheetMusicDisplay(osmdContainer,{backend:'svg',autoResize:false,pageFormat:'A4_P',drawingParameters:'compacttight',drawTitle:false,drawSubtitle:false,drawComposer:false,drawCredits:false,drawPartNames:false,drawMeasureNumbers:false,newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
       scoreRenderer.setPageFormat('A4_P');
-      if(scoreRenderer.EngravingRules)scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor;
       applyStaffTopRules();
       applyLineSpacingRules();
       return true;
@@ -956,7 +945,7 @@
     function savePdf(){statusMessage('Valitse tulostusikkunassa Tallenna PDF tallentaaksesi tiedoston esimerkiksi Driveen.');window.print()}
     function exportXml(){downloadBlob(new Blob([buildMusicXml()],{type:'application/vnd.recordare.musicxml+xml'}),`${projectFileBaseName()}.musicxml`);statusMessage('MusicXML tallennettu laitteelle.')}
     function buildProjectFile(){
-      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,lastLineStretchFactor,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0}};
+      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0}};
     }
     function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
 
@@ -969,14 +958,14 @@
         while(scoreRenderPending){
           scoreRenderPending=false;
           invalidateLineSpacingRasterCache();
-          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
+          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:stretchLastLine});
           applyStaffTopRules();
           applyLineSpacingRules();
-          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
+          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
           await scoreRenderer.load(buildMusicXml());
           applyStaffTopRules();
-          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
-          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();lastLineStretchGeometryReady=true;renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
+          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
+          scoreRenderer.zoom=1;await scoreRenderer.render();centerMeasureRests();updateScorePagePreview();captureAutomaticTiePlacements();renderSystemBreakMarkers();refreshEditGeometry();refreshWriteGeometry();queueLineSpacingRasterCache();
         }
       }catch(error){
         console.error(error);scorePrompt.hidden=false;scorePrompt.textContent='NUOTTIKUVAA EI VOITU NÄYTTÄÄ';
@@ -1015,7 +1004,7 @@
       const setButton=(button,enabled,active=false)=>{button.disabled=!enabled;button.setAttribute('aria-pressed',String(Boolean(active)))};
       setButton(selectionSlurButton,Boolean(range),Boolean(slur));setButton(selectionSlurFlipButton,Boolean(slur),false);setButton(selectionStemFlipButton,indices.length>0,false);setButton(selectionTieFlipButton,Number.isInteger(tieIndex),Number.isInteger(tieIndex));setButton(selectionStaccatoButton,indices.length>0,allStaccato);setButton(selectionPortatoButton,indices.length>0,allPortato);setButton(selectionAccentButton,indices.length>0,allAccent);setButton(selectionCrescendoButton,Boolean(range),Boolean(crescendo));setButton(selectionDiminuendoButton,Boolean(range),Boolean(diminuendo));
       const activeDynamic=indices.length?(notes[indices[0]].dynamic||''):'';selectionDynamicButtons.forEach(button=>{button.disabled=!indices.length;button.setAttribute('aria-pressed',String(Boolean(indices.length&&button.dataset.dynamic===activeDynamic))) });
-      systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));barlineEditButton.setAttribute('aria-pressed',String(barlineEditModeActive));beamEditButton.setAttribute('aria-pressed',String(beamEditModeActive));endingOneButton.setAttribute('aria-pressed',String(endingModeActive===1));endingTwoButton.setAttribute('aria-pressed',String(endingModeActive===2));
+      systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));barlineEditButton.setAttribute('aria-pressed',String(barlineEditModeActive));beamEditButton.setAttribute('aria-pressed',String(beamEditModeActive));endingOneButton.setAttribute('aria-pressed',String(endingModeActive===1));endingTwoButton.setAttribute('aria-pressed',String(endingModeActive===2));stretchLastLineButton.setAttribute('aria-pressed',String(stretchLastLine));stretchLastLineButton.setAttribute('aria-busy',String(stretchCommandRunning));
     }
     const SELECTION_TOOLBAR_POSITION_KEY='pikakirjoitin-selection-toolbar-position-v1';
     function clampSelectionToolbarPosition(left,top){
@@ -1261,7 +1250,7 @@
       if(e.key==='ArrowUp')next-=step;else if(e.key==='ArrowDown')next+=step;else if(e.key==='PageUp')next-=1;else if(e.key==='PageDown')next+=1;else if(e.key==='Home')next=LINE_SPACING_MIN;else if(e.key==='End')next=LINE_SPACING_MAX;else return;
       e.preventDefault();lineSpacingValue=clamp(next,LINE_SPACING_MIN,LINE_SPACING_MAX);syncLineSpacingSlider();applyLineSpacingRules();renderScore();
     }
-    function refreshEditGeometry(){if(workMode!=='edit'){renderLastLineStretchHandle();return}buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers();renderBarlineMarkers();renderBeamEditMarkers();renderLastLineStretchHandle()}
+    function refreshEditGeometry(){if(workMode!=='edit')return;buildSelectionHitboxes();renderSelectionOverlay();renderSystemBreakMarkers();renderBarlineMarkers();renderBeamEditMarkers()}
     function buildWriteNoteHitboxes(){
       writeNoteHitboxes=[];if(!scoreRenderer)return;
       const measureList=scoreRenderer.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,visited=new Set();
@@ -1301,7 +1290,7 @@
     function deleteWriteNote(){
       const index=writeNoteIndex();if(index<0)return;const note=notes[index];rememberAction({type:'delete',index,note:{...note},slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item}))});clearWriteNoteEdit();notes.splice(index,1);repairTiesAround(Math.max(0,index-1));pruneEditRanges();renderScore();
     }
-    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();scorePage.querySelector('.last-line-stretch-handle')?.setAttribute('hidden','');hideLastLineDragVisuals();endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
+    function clearEditorOverlays(){osmdContainer.querySelector('.note-selection-layer')?.remove();osmdContainer.querySelector('.system-break-markers')?.remove();osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());osmdContainer.querySelector('.barline-edit-markers')?.remove();osmdContainer.querySelector('.beam-edit-markers')?.remove();osmdContainer.querySelector('.ending-range-preview-layer')?.remove();endingDrag=null;closeBarlinePalette();syncSelectionToolbar()}
     function selectInRectangle(rect){selectedNoteIndices.clear();selectionHitboxes.forEach(hitbox=>{if(rectanglesIntersect(rect,hitbox))selectedNoteIndices.add(hitbox.entryIndex)})}
     function selectAtPoint(point){const hits=selectionHitboxes.filter(hitbox=>rectanglesIntersect({left:point.x,right:point.x,top:point.y,bottom:point.y},hitbox)).sort((a,b)=>a.width*a.height-b.width*b.height);selectedNoteIndices.clear();if(hits[0])selectedNoteIndices.add(hits[0].entryIndex)}
     function toggleBooleanForSelection(property,label){const indices=getSelectedNoteIndices();if(!indices.length)return;const enable=!indices.every(index=>Boolean(notes[index][property]));indices.forEach(index=>{notes[index][property]=enable});status.textContent=`${label} ${enable?'lisätty':'poistettu'}`;renderScore()}
@@ -1477,20 +1466,8 @@
       endingModeActive=0;syncSelectionToolbar();renderScore();return true;
     }
 
-    function resetLastLineStretchAfterSystemLayoutChange(){
-      cancelLastLineStretchPreview();
-      lastLineStretchLayoutEpoch+=1;
-      lastLineStretchGeometryReady=false;
-      const drag=lastLineStretchDrag,handle=scorePage.querySelector('.last-line-stretch-handle');
-      if(drag&&handle){try{if(handle.hasPointerCapture?.(drag.pointerId))handle.releasePointerCapture(drag.pointerId)}catch{}}
-      lastLineStretchDrag=null;
-      lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT;
-      lastLineStretchBaseWidth=null;
-      hideLastLineDragVisuals();
-      if(handle){handle.classList.remove('is-dragging');handle.hidden=true}
-    }
-    function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);resetLastLineStretchAfterSystemLayoutChange();renderScore()}
-    function removeSystemBreakAfter(measureIndex){systemBreaks.delete(measureIndex);resetLastLineStretchAfterSystemLayoutChange();renderScore()}
+    function placeSystemBreakAfter(measureIndex){systemBreaks.add(measureIndex);renderScore()}
+    function removeSystemBreakAfter(measureIndex){systemBreaks.delete(measureIndex);renderScore()}
     function renderSystemBreakMarkers(){
       osmdContainer.querySelector('.system-break-markers')?.remove();
       osmdContainer.querySelectorAll('.system-break-candidate-svg').forEach(element=>element.remove());
@@ -1581,142 +1558,7 @@
       });
       osmdContainer.appendChild(layer);
     }
-    function lastSystemStretchGeometry(){
-      if(!scoreRenderer)return null;
-      const boxes=renderedMeasureHitboxes();if(!boxes.length)return null;
-      const last=boxes.at(-1),rowBoxes=boxes.filter(box=>Math.abs(box.top-last.top)<12);if(!rowBoxes.length)return null;
-      const left=Math.min(...rowBoxes.map(box=>box.left)),right=Math.max(...rowBoxes.map(box=>box.right)),width=Math.max(1,right-left);
-      const otherBoxes=boxes.filter(box=>Math.abs(box.top-last.top)>=12),previousRight=otherBoxes.length?Math.max(...otherBoxes.map(box=>box.right)):null;
-      const zoom=Number(scoreRenderer.zoom)||1,rightMargin=(Number(scoreRenderer.EngravingRules?.PageRightMargin)||5)*10*zoom;
-      const fallbackRight=Math.max(right,Math.min(osmdContainer.scrollWidth-4,A4_WIDTH-rightMargin));
-      const fullRight=Math.max(right,fallbackRight,Number.isFinite(previousRight)?previousRight:0);
-      const system=renderedSystemGeometry().at(-1),rowY=Number.isFinite(system?.rowY)?system.rowY:last.top+26;
-      if(!lastLineStretchDrag&&right<fullRight-2&&Number.isFinite(lastLineStretchFactor)&&lastLineStretchFactor>0)lastLineStretchBaseWidth=width/lastLineStretchFactor;
-      if(!Number.isFinite(lastLineStretchBaseWidth)||lastLineStretchBaseWidth<=1)lastLineStretchBaseWidth=width/Math.max(LAST_LINE_STRETCH_MIN,lastLineStretchFactor);
-      return {left,right,width,fullRight,rowY,baseWidth:lastLineStretchBaseWidth};
-    }
-    function ensureLastLineStretchHandle(){
-      let handle=scorePage.querySelector('.last-line-stretch-handle');if(handle)return handle;
-      handle=document.createElement('button');handle.type='button';handle.className='last-line-stretch-handle';handle.setAttribute('aria-label','Vedä viimeisen rivin loppuviivaa vasemmalle tai oikealle. Kaksoisnapauta palauttaaksesi automaattisen leveyden.');handle.title='Vedä loppuviivaa · kaksoisnapauta palauttaaksesi';handle.hidden=true;scorePage.appendChild(handle);
-      handle.addEventListener('pointerdown',beginLastLineStretchDrag);
-      handle.addEventListener('pointermove',moveLastLineStretchDrag);
-      handle.addEventListener('pointerup',event=>finishLastLineStretchDrag(event,false));
-      handle.addEventListener('pointercancel',event=>finishLastLineStretchDrag(event,true));
-      handle.addEventListener('dblclick',event=>{event.preventDefault();event.stopPropagation();resetLastLineStretch()});
-      return handle;
-    }
-    function renderLastLineStretchHandle(){
-      const handle=ensureLastLineStretchHandle();
-      if(workMode!=='edit'||!notes.length||!scoreRenderer||!lastLineStretchGeometryReady||staffTopCommitRunning||lineSpacingCommitRunning){handle.hidden=true;return}
-      const geometry=lastSystemStretchGeometry();if(!geometry){handle.hidden=true;return}
-      const containerRect=osmdContainer.getBoundingClientRect(),pageRect=scorePage.getBoundingClientRect(),scale=scorePageScale||1;
-      const offsetX=(containerRect.left-pageRect.left)/scale+osmdContainer.scrollLeft,offsetY=(containerRect.top-pageRect.top)/scale+osmdContainer.scrollTop;
-      const displayRight=geometry.right;
-      handle.hidden=false;handle.style.left=`${offsetX+displayRight-17}px`;handle.style.top=`${offsetY+geometry.rowY+20-28}px`;
-      const fullWidth=Math.max(1,geometry.fullRight-geometry.left),currentWidth=Math.max(1,displayRight-geometry.left),percent=Math.round(currentWidth/fullWidth*100);
-      handle.setAttribute('aria-valuetext',`${percent} % sivun leveydestä`);
-    }
-    function lastLinePointerContentX(clientX){
-      const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;return (clientX-rect.left)/scale+osmdContainer.scrollLeft;
-    }
-    function ensureLastLineDragVisuals(){
-      let overlay=scorePage.querySelector('.last-line-drag-overlay'),mask=scorePage.querySelector('.last-line-drag-mask');
-      if(!mask){mask=document.createElement('div');mask.className='last-line-drag-mask';scorePage.appendChild(mask)}
-      if(!overlay){overlay=document.createElement('div');overlay.className='last-line-drag-overlay';scorePage.appendChild(overlay)}
-      return {overlay,mask};
-    }
-    function renderLastLineDragVisuals(){
-      const drag=lastLineStretchDrag,{overlay,mask}=ensureLastLineDragVisuals();
-      if(!drag){overlay.classList.remove('is-visible');mask.classList.remove('is-visible');return}
-      const geometry=lastSystemStretchGeometry();if(!geometry)return;
-      const containerRect=osmdContainer.getBoundingClientRect(),pageRect=scorePage.getBoundingClientRect(),scale=scorePageScale||1;
-      const offsetX=(containerRect.left-pageRect.left)/scale+osmdContainer.scrollLeft,offsetY=(containerRect.top-pageRect.top)/scale+osmdContainer.scrollTop;
-      const top=offsetY+geometry.rowY+20-21;
-      mask.style.left=`${offsetX+geometry.right-4}px`;mask.style.top=`${top-2}px`;
-      overlay.style.left=`${offsetX+drag.targetRight-1.5}px`;overlay.style.top=`${top}px`;
-      mask.classList.add('is-visible');overlay.classList.add('is-visible');
-    }
-    function hideLastLineDragVisuals(){
-      const overlay=scorePage.querySelector('.last-line-drag-overlay'),mask=scorePage.querySelector('.last-line-drag-mask');
-      overlay?.classList.remove('is-visible');mask?.classList.remove('is-visible');
-    }
-    function renderLastLineStretchPreview(){
-      if(!lastLineStretchDrag||!scoreRenderer)return;
-      try{
-        const drag=lastLineStretchDrag;if(drag.layoutEpoch!==lastLineStretchLayoutEpoch||!lastLineStretchGeometryReady)return;const targetFactor=clamp((drag.targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
-        const step=Math.max(.0012,Math.abs(targetFactor)*.0025);
-        const candidates=[targetFactor,targetFactor-step,targetFactor+step,targetFactor-step*2,targetFactor+step*2]
-          .map(value=>clamp(value,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX))
-          .filter((value,index,array)=>array.findIndex(other=>Math.abs(other-value)<.00005)===index);
-        let bestFactor=lastLineStretchFactor,bestError=Infinity;
-        for(const candidate of candidates){
-          lastLineStretchFactor=candidate;
-          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
-          applyStaffTopRules();applyLineSpacingRules();
-          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
-          scoreRenderer.updateGraphic?.();scoreRenderer.zoom=1;scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
-          if(!lastLineStretchDrag||lastLineStretchDrag!==drag)return;
-          const geometry=lastSystemStretchGeometry();if(!geometry)continue;
-          const error=Math.abs(drag.targetRight-geometry.right);
-          if(error<bestError){bestError=error;bestFactor=candidate}
-          if(error<=.75)break;
-        }
-        if(Math.abs(lastLineStretchFactor-bestFactor)>=.00005){
-          lastLineStretchFactor=bestFactor;
-          scoreRenderer.setOptions?.({newSystemFromXML:true,stretchLastSystemLine:false});
-          applyStaffTopRules();applyLineSpacingRules();
-          if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=false;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=lastLineStretchFactor}
-          scoreRenderer.updateGraphic?.();scoreRenderer.zoom=1;scoreRenderer.render();centerMeasureRests();updateScorePagePreview();
-        }
-        renderLastLineStretchHandle();renderLastLineDragVisuals();
-      }catch(error){console.error(error)}
-    }
-    function queueLastLineStretchPreview(){
-      if(lastLineStretchPreviewFrame)return;
-      lastLineStretchPreviewFrame=requestAnimationFrame(()=>{lastLineStretchPreviewFrame=0;renderLastLineStretchPreview()});
-    }
-    function cancelLastLineStretchPreview(){if(lastLineStretchPreviewFrame){cancelAnimationFrame(lastLineStretchPreviewFrame);lastLineStretchPreviewFrame=0}}
-    function beginLastLineStretchDrag(event){
-      if(workMode!=='edit'||lastLineStretchDrag||!lastLineStretchGeometryReady||scoreRendering)return;
-      if(event.pointerType==='mouse'&&(event.button!==0||!event.isPrimary))return;
-      const geometry=lastSystemStretchGeometry();if(!geometry)return;
-      event.preventDefault();event.stopPropagation();
-      const baseWidth=Math.max(1,geometry.baseWidth||geometry.width/Math.max(LAST_LINE_STRETCH_MIN,lastLineStretchFactor));
-      const pointerX=lastLinePointerContentX(event.clientX);
-      lastLineStretchDrag={pointerId:event.pointerId,armed:true,layoutEpoch:lastLineStretchLayoutEpoch,startClientX:event.clientX,lastClientX:event.clientX,moved:false,left:geometry.left,fullRight:geometry.fullRight,baseWidth,targetRight:geometry.right,grabOffset:pointerX-geometry.right};
-      lastLineStretchFactor=clamp(geometry.width/baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);
-      event.currentTarget.classList.add('is-dragging');try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}renderLastLineDragVisuals();
-    }
-    function moveLastLineStretchDrag(event){
-      const drag=lastLineStretchDrag;if(!drag||!drag.armed||drag.pointerId!==event.pointerId||drag.layoutEpoch!==lastLineStretchLayoutEpoch||!lastLineStretchGeometryReady)return;
-      if(event.pointerType==='mouse'&&(event.buttons&1)!==1){abortLastLineStretchDrag(event.pointerId);return}
-      event.preventDefault();event.stopPropagation();drag.lastClientX=event.clientX;if(Math.abs(event.clientX-drag.startClientX)>2)drag.moved=true;
-      let targetRight=clamp(lastLinePointerContentX(event.clientX)-(drag.grabOffset||0),drag.left+drag.baseWidth*LAST_LINE_STRETCH_MIN,drag.fullRight);
-      const snapDistance=Math.max(8,14/(scorePageScale||1));if(drag.fullRight-targetRight<=snapDistance)targetRight=drag.fullRight;drag.targetRight=targetRight;
-      renderLastLineDragVisuals();lastLineStretchFactor=clamp((targetRight-drag.left)/drag.baseWidth,LAST_LINE_STRETCH_MIN,LAST_LINE_STRETCH_MAX);queueLastLineStretchPreview();
-    }
-    function abortLastLineStretchDrag(pointerId=null){
-      const drag=lastLineStretchDrag;if(!drag||(pointerId!==null&&drag.pointerId!==pointerId))return;
-      cancelLastLineStretchPreview();
-      const handle=scorePage.querySelector('.last-line-stretch-handle');
-      try{if(handle?.hasPointerCapture?.(drag.pointerId))handle.releasePointerCapture(drag.pointerId)}catch{}
-      handle?.classList.remove('is-dragging');drag.armed=false;lastLineStretchDrag=null;hideLastLineDragVisuals();renderLastLineStretchHandle();
-    }
-    async function finishLastLineStretchDrag(event,cancelled=false){
-      const drag=lastLineStretchDrag;if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();cancelLastLineStretchPreview();const handle=event.currentTarget;if(drag.layoutEpoch!==lastLineStretchLayoutEpoch||!lastLineStretchGeometryReady){try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();renderLastLineStretchHandle();return}
-      if(cancelled){try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();renderScore();return}
-      if(!drag.moved){try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();const now=performance.now();if(now-lastLineStretchLastTap<360){lastLineStretchLastTap=0;resetLastLineStretch();return}lastLineStretchLastTap=now;renderLastLineStretchHandle();return}
-      // Tee yksi viimeinen vakaan OSMD-layoutin valinta juuri irrotuksen tavoitekohtaan.
-      renderLastLineStretchPreview();
-      const settledGeometry=lastSystemStretchGeometry();
-      try{handle.releasePointerCapture(event.pointerId)}catch{}handle.classList.remove('is-dragging');lastLineStretchDrag=null;hideLastLineDragVisuals();
-      status.textContent=settledGeometry&&settledGeometry.right>=drag.fullRight-1?'Viimeinen rivi venytetty täyteen leveyteen':'Viimeisen rivin leveys säädetty';
-      if(settledGeometry&&Number.isFinite(lastLineStretchFactor)&&lastLineStretchFactor>0)lastLineStretchBaseWidth=Math.max(1,(settledGeometry.right-settledGeometry.left)/lastLineStretchFactor);
-      renderLastLineStretchHandle();
-    }
-    function resetLastLineStretch(){
-      if(lastLineStretchDrag)return;cancelLastLineStretchPreview();lastLineStretchFactor=LAST_LINE_STRETCH_DEFAULT;lastLineStretchBaseWidth=null;status.textContent='Viimeisen rivin automaattinen leveys palautettu';renderScore();
-    }
+    async function toggleStretchLastLine(){if(stretchCommandRunning)return;stretchLastLine=!stretchLastLine;stretchCommandRunning=true;syncSelectionToolbar();try{await renderScore();await new Promise(resolve=>requestAnimationFrame(resolve));await renderScore()}finally{stretchCommandRunning=false;syncSelectionToolbar()}}
     function rememberAction(action){
       editHistory.push(action);if(editHistory.length>250)editHistory.shift();
     }
@@ -2209,8 +2051,6 @@
     score.addEventListener('pointerdown',startScoreGesture);
     score.addEventListener('pointermove',moveScoreGesture,{passive:true});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
-    window.addEventListener('pointerup',e=>{const drag=lastLineStretchDrag;if(drag&&drag.pointerId===e.pointerId&&!scorePage.querySelector('.last-line-stretch-handle')?.hasPointerCapture?.(e.pointerId))abortLastLineStretchDrag(e.pointerId)},true);
-    window.addEventListener('pointercancel',e=>abortLastLineStretchDrag(e.pointerId),true);
     score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
     score.addEventListener('keydown',scoreKey);
     selectionSlurButton.addEventListener('click',toggleSlurForSelection);
@@ -2243,6 +2083,7 @@
     endingOneButton.addEventListener('click',()=>toggleEndingMode(1));
     endingTwoButton.addEventListener('click',()=>toggleEndingMode(2));
     barlineChoiceButtons.forEach(button=>button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();applyBarlineStyle(button.dataset.barlineStyle)}));
+    stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
