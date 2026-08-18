@@ -28,3 +28,6 @@ PÄIVITYKSET
 Service worker käyttää verkkoa ensisijaisesti. Kun GitHub Pagesissa on uusi
 versio ja laite on verkossa, uudet resurssit haetaan ja samalla päivitetään
 välimuistiin.
+
+
+HUOM: Tässä versiossa PWA ei tallenna sovellustiedostoja offline-cacheen. Käynnistys vaatii verkkoyhteyden ja tiedostot haetaan aina palvelimelta.

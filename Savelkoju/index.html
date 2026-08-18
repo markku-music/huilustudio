@@ -216,7 +216,7 @@
         banner?.classList.remove('hidden');
       }
     } catch (_) {
-      // Offline tai hetkellinen verkkovirhe: vanha toimiva versio jatkaa normaalisti.
+      // Hetkellinen verkkovirhe: käynnissä oleva versio jatkaa normaalisti.
     } finally {
       checkRunning = false;
     }

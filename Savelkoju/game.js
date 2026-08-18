@@ -42,13 +42,59 @@ async function playFinaleSoundUntilEnd(){
     finaleLightsRunning=false;
   }
 }
-function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);document.documentElement.style.setProperty('--initial-stage-scale',String(scale));stage.style.transform=`translate(-50%,-50%) scale(${scale})`;requestAnimationFrame(()=>document.documentElement.classList.add('stage-ready'));}
-addEventListener('resize',fitStage);fitStage();
+function stageViewportSize(){
+  const vv=window.visualViewport;
+  const width=vv&&Number.isFinite(vv.width)&&vv.width>0?vv.width:(innerWidth||document.documentElement.clientWidth||1536);
+  const height=vv&&Number.isFinite(vv.height)&&vv.height>0?vv.height:(innerHeight||document.documentElement.clientHeight||1024);
+  return {width,height};
+}
+function applyStageScale(width,height){
+  const scale=Math.min(width/1536,height/1024);
+  document.documentElement.style.setProperty('--initial-stage-scale',String(scale));
+  stage.style.transform=`translate(-50%,-50%) scale(${scale})`;
+}
+function fitStage(){
+  const {width,height}=stageViewportSize();
+  applyStageScale(width,height);
+}
+function revealStage(){document.documentElement.classList.add('stage-ready');}
+function stabilizeInitialStage(){
+  const first=stageViewportSize();
+  const landscape=first.width>first.height;
+  if(!landscape){
+    applyStageScale(first.width,first.height);
+    requestAnimationFrame(revealStage);
+    return;
+  }
+
+  let previous=null,stableFrames=0,frames=0;
+  const MAX_FRAMES=30,TOLERANCE=.75;
+  const measure=()=>{
+    const current=stageViewportSize();
+    applyStageScale(current.width,current.height);
+    if(previous&&Math.abs(current.width-previous.width)<=TOLERANCE&&Math.abs(current.height-previous.height)<=TOLERANCE){
+      stableFrames+=1;
+    }else{
+      stableFrames=0;
+    }
+    previous=current;
+    frames+=1;
+    if(stableFrames>=2||frames>=MAX_FRAMES){
+      requestAnimationFrame(()=>{fitStage();revealStage();});
+      return;
+    }
+    requestAnimationFrame(measure);
+  };
+  requestAnimationFrame(measure);
+}
+addEventListener('resize',fitStage);
+stabilizeInitialStage();
 
 if(window.visualViewport){
   let lastViewportHeight=window.visualViewport.height;
   window.visualViewport.addEventListener('resize',()=>{
     const currentHeight=window.visualViewport.height;
+    fitStage();
 
     // Kun näppäimistö sulkeutuu, visual viewport kasvaa selvästi.
     if(currentHeight > lastViewportHeight + 80){
@@ -61,6 +107,10 @@ if(window.visualViewport){
     lastViewportHeight=currentHeight;
   });
 }
+addEventListener('orientationchange',()=>{
+  if(!document.documentElement.classList.contains('stage-ready'))stabilizeInitialStage();
+  else setTimeout(fitStage,80);
+});
 function captureSessionName(){
   const name=window.SavelkojuScoreboard.cleanName(sessionName.value);
   if(!name){
