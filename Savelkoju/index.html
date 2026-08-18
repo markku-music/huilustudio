@@ -27,9 +27,10 @@
 
   <div id="hud" class="panel hidden">
     <div><small>OSUMAT</small><strong><span id="score">0</span>/10</strong></div>
-    <div>
-      <small id="levelNameHud">ENSISÄVELET</small>
-      <span id="heard">MIKROFONI EI OLE PÄÄLLÄ</span>
+    <div id="tuningMeter" class="tuning-meter" role="img" aria-label="Viritysmittari">
+      <div class="tuning-track" aria-hidden="true"></div>
+      <div class="tuning-center" aria-hidden="true"></div>
+      <div id="tuningDot" class="tuning-dot" aria-hidden="true"></div>
     </div>
     <div><small>SOITA</small><strong id="targetNote">A</strong></div>
   </div>
