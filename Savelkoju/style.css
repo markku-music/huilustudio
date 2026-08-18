@@ -2,7 +2,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#83c8e7;font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif;color:var(--ink)}
 button{font:inherit}
-#game{position:fixed;inset:0;overflow:hidden}
+#game{position:fixed;inset:0;overflow:hidden;visibility:hidden}
+html.viewport-ready #game{visibility:visible}
 #stage{position:absolute;left:50%;top:50%;width:1536px;height:1024px;transform-origin:center center;background-position:center;background-size:100% 100%;background-repeat:no-repeat;box-shadow:0 0 60px rgba(0,0,0,.24)}
 #reticle{position:absolute;width:82px;height:82px;border-radius:50%;pointer-events:none;opacity:0;transition:left .2s ease,top .2s ease}
 #reticle:before,#reticle:after{content:"";position:absolute;background:#f5eee0;border:2px solid var(--ink);border-radius:4px}

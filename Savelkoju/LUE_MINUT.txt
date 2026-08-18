@@ -200,3 +200,14 @@ VERSIO 3.5.7 – PWA
 - Standalone-tila poistaa normaalin selainkäyttöliittymän.
 - Paikalliset peliresurssit toimivat välimuistista myös yhteyden katketessa.
 - Firebase-tulostaulu tarvitsee edelleen verkkoyhteyden.
+
+
+VERSIO 3.5.8 – PWA VAKAA VAAKASUUNNAN AVAUS
+- iPadOS:n vaakasuuntaisen ensimmäisen viewport-mittauksen aiheuttama suuri
+  aloitusnäkymä ei enää näy käyttäjälle.
+- Peli odottaa käynnistyksessä, että viewportin leveys- ja korkeustiedot ovat
+  tasaantuneet, laskee näyttämön skaalauksen uudelleen ja näyttää pelin vasta
+  sen jälkeen.
+- Portrait-käynnistys pysyy nopeampana kuin landscape-käynnistys.
+- Service workerin välimuistiversio päivitetty, jotta uusi käynnistyskorjaus
+  tulee varmasti käyttöön.
