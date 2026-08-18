@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-pwa-v8';
+const CACHE_NAME = 'savelkoju-pwa-v9';
 const APP_SHELL = [
   "./",
   "./index.html",

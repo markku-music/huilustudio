@@ -11,6 +11,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
+<style>
+  /* Estä 1536×1024-stagen vilahtaminen ennen ensiskaalausta. */
+  #stage{visibility:hidden!important}
+  html.stage-ready #stage{visibility:visible!important}
+</style>
 <script>
   // Laske stagen ensiskaala ennen ensimmaista maalausta.
   (()=>{
