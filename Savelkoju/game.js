@@ -367,10 +367,10 @@ async function resetAllSemesterScores(){
 
   adminStatus.textContent='Poistetaan kaikkien tasojen tuloksia…';
   try{
-    let total=0;
-    for(const id of [1,2,3]){
-      total+=await window.SavelkojuScoreboard.deleteCurrentSemesterScores(id);
-    }
+    const deletedCounts=await Promise.all(
+      [1,2,3].map(id=>window.SavelkojuScoreboard.deleteCurrentSemesterScores(id))
+    );
+    const total=deletedCounts.reduce((sum,count)=>sum+count,0);
     adminStatus.textContent=`Poistettu yhteensä ${total} tulosta.`;
   }catch(e){
     console.error(e);
