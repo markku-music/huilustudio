@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#eef1f5">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Pikakirjoitin">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
   <title>Pikakirjoitin</title>
   <style>
@@ -277,6 +279,12 @@
       .score-page-shell{position:static;width:210mm!important;height:auto!important;margin:0}
       .score-page{position:relative;width:210mm;min-height:297mm;transform:none!important;box-shadow:none}
     }
+  
+    .pwa-update-banner{position:fixed;z-index:10000;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:min(92vw,560px);padding:10px 12px 10px 16px;border:1px solid #b8c9dc;border-radius:16px;background:#fffffff2;box-shadow:0 10px 30px #26384a2b;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:650 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#203247}
+    .pwa-update-banner[hidden]{display:none!important}
+    .pwa-update-banner button{border:0;border-radius:11px;padding:8px 12px;background:#2f6fb3;color:#fff;font:750 13px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+    .pwa-update-banner button:active{transform:scale(.97)}
+    @media print{.pwa-update-banner{display:none!important}}
   </style>
 </head>
 <body>
@@ -2098,5 +2106,71 @@
     osmdContainer.addEventListener('pointerup',e=>{if(endingDrag){finishEndingDrag(e);return}finishSelectionGesture(e)});
     osmdContainer.addEventListener('pointercancel',e=>{if(endingDrag){finishEndingDrag(e,true);return}finishSelectionGesture(e,true)});
   </script>
+
+  <div class="pwa-update-banner" id="pwaUpdateBanner" role="status" aria-live="polite" hidden>
+    <span>Uusi versio Pikakirjoittimesta on saatavilla.</span>
+    <button id="pwaUpdateButton" type="button">Päivitä nyt</button>
+  </div>
+  <script>
+  (()=>{
+    const banner=document.getElementById('pwaUpdateBanner');
+    const updateButton=document.getElementById('pwaUpdateButton');
+    let baselineIndexHash='';
+    let checking=false;
+
+    async function sha256(text){
+      if(!window.crypto?.subtle)return String(text.length)+':'+text.slice(0,80);
+      const bytes=new TextEncoder().encode(text);
+      const digest=await crypto.subtle.digest('SHA-256',bytes);
+      return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function fetchIndexHash(){
+      const url=new URL('./index.html',location.href);
+      url.searchParams.set('__pwa_check',Date.now().toString());
+      const response=await fetch(url,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      if(!response.ok)throw new Error('Update check failed');
+      return sha256(await response.text());
+    }
+
+    async function checkForUpdate({setBaseline=false}={}){
+      if(checking||!navigator.onLine)return;
+      checking=true;
+      try{
+        const hash=await fetchIndexHash();
+        if(setBaseline||!baselineIndexHash){baselineIndexHash=hash;return}
+        if(hash!==baselineIndexHash)banner.hidden=false;
+      }catch{}
+      finally{checking=false}
+    }
+
+    async function registerPwa(){
+      if(!('serviceWorker' in navigator))return;
+      try{
+        const registration=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});
+        registration.update().catch(()=>{});
+      }catch(error){console.warn('PWA service worker registration failed',error)}
+    }
+
+    updateButton?.addEventListener('click',async()=>{
+      updateButton.disabled=true;
+      updateButton.textContent='Päivitetään…';
+      try{
+        const registration=await navigator.serviceWorker?.getRegistration?.('./');
+        registration?.update?.().catch(()=>{});
+      }catch{}
+      location.reload();
+    });
+
+    window.addEventListener('online',()=>checkForUpdate());
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate()});
+    window.addEventListener('load',async()=>{
+      await registerPwa();
+      await checkForUpdate({setBaseline:true});
+      setInterval(()=>checkForUpdate(),5*60*1000);
+    },{once:true});
+  })();
+  </script>
+
 </body>
 </html>
