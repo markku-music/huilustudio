@@ -254,5 +254,18 @@
 })();
 </script>
 
+
+<div id="micDiag" class="mic-diag" aria-live="polite">
+  <div class="mic-diag-title">MIKKIDIAG</div>
+  <div id="micDiagMode">Tila: …</div>
+  <div id="micDiagTrack">Mikki: …</div>
+  <div id="micDiagContext">AudioContext: …</div>
+  <div id="micDiagAnalyser">Analyser: …</div>
+  <div id="micDiagSignal">Signaali: …</div>
+  <div id="micDiagDb">dB: …</div>
+</div>
+<script>
+(()=>{const q=id=>document.getElementById(id),mode=q('micDiagMode'),track=q('micDiagTrack'),ctx=q('micDiagContext'),an=q('micDiagAnalyser'),sig=q('micDiagSignal'),db=q('micDiagDb');const standalone=()=>window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true;const set=(el,text,ok=null)=>{if(!el)return;el.textContent=text;el.classList.toggle('ok',ok===true);el.classList.toggle('bad',ok===false);};function update(){set(mode,'Tila: '+(standalone()?'KOTIVALIKKO / PWA':'SELAIN'),true);const d=window.__SavelkojuMicDiagnostics?.();if(!d){set(track,'Mikki: ei vielä avattu');set(ctx,'AudioContext: ei vielä avattu');set(an,'Analyser: ei vielä avattu');set(sig,'Signaali: odottaa');set(db,'dB: —');return;}const trackOk=d.trackPresent&&d.trackState==='live'&&d.trackEnabled&&!d.trackMuted;set(track,`Mikki: ${d.trackState} · ${d.trackEnabled?'enabled':'disabled'}${d.trackMuted?' · MUTED':''}`,trackOk);set(ctx,'AudioContext: '+d.contextState,d.contextState==='running');set(an,`Analyser: ${d.analyserPresent?'OK':'PUUTTUU'}${d.sampleRate?' · '+d.sampleRate+' Hz':''}`,d.analyserPresent);set(sig,`Signaali: ${d.signalAlive?'KYLLÄ':'EI'} · peak ${Number(d.peak||0).toFixed(5)}`,d.signalAlive);set(db,'dB: '+(Number.isFinite(d.db)?d.db.toFixed(1):'—')+' · '+(d.engineStatus||''),d.signalAlive);}update();setInterval(update,200);document.addEventListener('visibilitychange',update);window.addEventListener('pageshow',update);})();
+</script>
 </body>
 </html>
