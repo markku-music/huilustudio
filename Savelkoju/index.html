@@ -13,6 +13,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
+<style id="startupBlackDiagnostic">
+html,body{background:#000!important;}
+body:not(.startup-diagnostic-ready)>*{visibility:hidden!important;}
+</style>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -160,5 +164,13 @@
 <script src="pwa-manager.js"></script>
 
 
+
+<script>
+(function(){
+  window.setTimeout(function(){
+    document.body.classList.add('startup-diagnostic-ready');
+  },500);
+})();
+</script>
 </body>
 </html>
