@@ -42,25 +42,12 @@ async function playFinaleSoundUntilEnd(){
     finaleLightsRunning=false;
   }
 }
-function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
-addEventListener('resize',fitStage);fitStage();
-
-if(window.visualViewport){
-  let lastViewportHeight=window.visualViewport.height;
-  window.visualViewport.addEventListener('resize',()=>{
-    const currentHeight=window.visualViewport.height;
-
-    // Kun näppäimistö sulkeutuu, visual viewport kasvaa selvästi.
-    if(currentHeight > lastViewportHeight + 80){
-      setTimeout(()=>{
-        window.scrollTo(0,0);
-        fitStage();
-      },120);
-    }
-
-    lastViewportHeight=currentHeight;
-  });
+function fitStage(){
+  const scale=Math.min(window.innerWidth/1536,window.innerHeight/1024);
+  stage.style.transform=`translate(-50%,-50%) scale(${scale})`;
 }
+window.addEventListener('resize',fitStage);
+fitStage();
 function captureSessionName(){
   const name=window.SavelkojuScoreboard.cleanName(sessionName.value);
   if(!name){
@@ -166,13 +153,31 @@ async function pauseMic(){
     if(engine.audioContext&&engine.audioContext.state==='running')await engine.audioContext.suspend();
   }catch(e){console.warn(e);}
 }
+async function primeMicFromUserGesture(){
+  const e=ensureEngine();
+  try{return await e.prepareAudioContext();}catch(err){console.warn('Mikrofonin AudioContextin avaus:',err);throw err;}
+}
 async function resumeMic(){
   const e=ensureEngine();
-  await e.start();
   try{
+    if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
+    const live=typeof e.hasLiveInput==='function'?e.hasLiveInput():Boolean(e.stream?.getAudioTracks?.().some(track=>track.readyState==='live'));
+    if(e.running&&!live){await e.stop();await e.prepareAudioContext();}
+    await e.start();
     if(e.stream)e.stream.getAudioTracks().forEach(track=>track.enabled=true);
     if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
-  }catch(err){console.warn(err);}
+  }catch(err){console.warn(err);throw err;}
+}
+async function reviveMicAfterVisibility(){
+  if(document.visibilityState!=='visible'||!engine)return;
+  try{
+    if(engine.audioContext&&engine.audioContext.state==='suspended')await engine.audioContext.resume();
+    if(running){
+      const live=typeof engine.hasLiveInput==='function'?engine.hasLiveInput():Boolean(engine.stream?.getAudioTracks?.().some(track=>track.readyState==='live'));
+      if(!live){await engine.stop();await engine.prepareAudioContext();await engine.start();}
+      if(engine.stream)engine.stream.getAudioTracks().forEach(track=>track.enabled=true);
+    }
+  }catch(err){console.warn('Mikrofonin palautus PWA:ssa:',err);}
 }
 async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
 function updateSemesterLabels(){
@@ -367,10 +372,7 @@ async function resetAllSemesterScores(){
 
   adminStatus.textContent='Poistetaan kaikkien tasojen tuloksia…';
   try{
-    let total=0;
-    for(const id of [1,2,3]){
-      total+=await window.SavelkojuScoreboard.deleteCurrentSemesterScores(id);
-    }
+    const total=await window.SavelkojuScoreboard.deleteCurrentSemesterScoresMany([1,2,3]);
     adminStatus.textContent=`Poistettu yhteensä ${total} tulosta.`;
   }catch(e){
     console.error(e);
@@ -383,29 +385,21 @@ async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
 document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{
   if(!captureSessionName())return;
+  const micPrime=primeMicFromUserGesture();
   await unlockGameAudio();
+  await micPrime;
   await startGame(Number(btn.dataset.level));
 }));
-$('againBtn').addEventListener('click',async()=>{await unlockGameAudio();await startGame();});
+$('againBtn').addEventListener('click',async()=>{const micPrime=primeMicFromUserGesture();await unlockGameAudio();await micPrime;await startGame();});
+
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reviveMicAfterVisibility();});
+window.addEventListener('pageshow',()=>{reviveMicAfterVisibility();});
 $('levelsBtn').addEventListener('click',chooseLevels);
 $('changePlayerBtn').addEventListener('click',changePlayer);
 
 function beginNameEntry(){
   levelChooser.classList.add('name-entry-hidden');
 }
-function restoreViewportAfterKeyboard(){
-  // iPad Safari voi jättää visual viewportin hieman väärään kohtaan
-  // virtuaalinäppäimistön sulkeuduttua. Palautetaan sekä scroll että stage.
-  requestAnimationFrame(()=>{
-    window.scrollTo(0,0);
-    fitStage();
-  });
-  setTimeout(()=>{
-    window.scrollTo(0,0);
-    fitStage();
-  },220);
-}
-
 function finishNameEntry(){
   const name=sessionName.value.trim();
   if(!name){
@@ -416,7 +410,6 @@ function finishNameEntry(){
   sessionName.classList.remove('name-needed');
   sessionName.blur();
   levelChooser.classList.remove('name-entry-hidden');
-  restoreViewportAfterKeyboard();
 }
 sessionName.addEventListener('focus',beginNameEntry);
 sessionName.addEventListener('keydown',e=>{
