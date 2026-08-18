@@ -19,3 +19,9 @@ icon-512.png
 Versio 1.1:
 - Korjattu PWA:n vaakasuunnan käynnistyksen viewport-mitoitus.
 - Koko tarkistetaan käynnistyksessä, orientaation vaihtuessa ja palattaessa appiin.
+
+
+Versio 1.2:
+- Estetty vääränkokoisen ensimmäisen ruudun näkyminen vaakatasossa.
+- Sovellus paljastetaan vasta, kun viewport on mitattu kahden animaatiokehyksen ajan.
+- Poistaa vasempaan yläkulmaan ankkuroituvan suuren alkuvälähdyksen.

@@ -9,6 +9,14 @@
   background: #f5f2ea;
 }
 
+.viewport-pending .app {
+  visibility: hidden;
+}
+
+html.viewport-ready .app {
+  visibility: visible;
+}
+
 html, body {
   margin: 0;
   width: 100%;
