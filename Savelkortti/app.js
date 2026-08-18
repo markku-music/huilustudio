@@ -1,6 +1,15 @@
 function updateAppHeight() {
-  const height = window.visualViewport?.height || window.innerHeight;
-  document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
+  const v = window.visualViewport;
+  const w = v?.width || window.innerWidth;
+  const h = v?.height || window.innerHeight;
+  const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+
+  // iPadOS PWA -käynnistysbugi: iOS antaa PWA-tilassa pystyasennon mitat 
+  // käynnistyksen yhteydessä vaikka laite olisi vaakatasossa.
+  // Vaakatasossa korkeus on AINA pienempi kahdesta mitasta, pystytasossa suurempi.
+  const realHeight = isLandscape ? Math.min(w, h) : Math.max(w, h);
+
+  document.documentElement.style.setProperty("--app-height", `${Math.round(realHeight)}px`);
 }
 
 function markViewportReady() {
@@ -17,13 +26,8 @@ function stabilizeViewport() {
 
 function bootViewport() {
   updateAppHeight();
-
-  // Annetaan iOS/iPadOS:lle noin 200ms aikaa löytää oikeat mitat 
-  // ennen kuin sovellus näytetään käyttäjälle.
-  setTimeout(() => {
-    updateAppHeight();
-    markViewportReady();
-  }, 200);
+  markViewportReady();
+  requestAnimationFrame(stabilizeViewport);
 }
 
 window.addEventListener("resize", stabilizeViewport, { passive: true });

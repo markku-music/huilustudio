@@ -17,7 +17,6 @@
 html.viewport-ready .app {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.3s ease-out;
 }
 
 html, body {
@@ -28,7 +27,7 @@ html, body {
 }
 
 body {
-  min-height: var(--app-height, 100svh);
+  min-height: var(--app-height, 100dvh);
   overscroll-behavior: none;
   user-select: none;
 }
@@ -38,7 +37,7 @@ button, .card {
 }
 
 .app {
-  min-height: var(--app-height, 100svh);
+  min-height: var(--app-height, 100dvh);
   padding:
     max(18px, env(safe-area-inset-top))
     max(18px, env(safe-area-inset-right))
@@ -67,7 +66,7 @@ h1 {
 .card {
   align-self: center;
   justify-self: center;
-  width: min(78vw, 460px);
+  width: min(78vw, 460px, 50vh);
   aspect-ratio: 1 / 1;
   border-radius: 36px;
   background: rgba(255,255,255,0.72);
@@ -86,7 +85,7 @@ h1 {
 }
 
 .note {
-  font-size: clamp(96px, 28vw, 190px);
+  font-size: clamp(80px, 22vw, 190px);
   line-height: 0.9;
   font-weight: 780;
   letter-spacing: -0.065em;
@@ -120,7 +119,7 @@ button:active {
 
 @media (max-width: 480px) {
   .card {
-    width: min(84vw, 390px);
+    width: min(84vw, 390px, 50vh);
     border-radius: 30px;
   }
 
