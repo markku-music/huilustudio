@@ -166,31 +166,13 @@ async function pauseMic(){
     if(engine.audioContext&&engine.audioContext.state==='running')await engine.audioContext.suspend();
   }catch(e){console.warn(e);}
 }
-async function primeMicFromUserGesture(){
-  const e=ensureEngine();
-  try{return await e.prepareAudioContext();}catch(err){console.warn('Mikrofonin AudioContextin avaus:',err);throw err;}
-}
 async function resumeMic(){
   const e=ensureEngine();
+  await e.start();
   try{
-    if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
-    const live=typeof e.hasLiveInput==='function'?e.hasLiveInput():Boolean(e.stream?.getAudioTracks?.().some(track=>track.readyState==='live'));
-    if(e.running&&!live){await e.stop();await e.prepareAudioContext();}
-    await e.start();
     if(e.stream)e.stream.getAudioTracks().forEach(track=>track.enabled=true);
     if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
-  }catch(err){console.warn(err);throw err;}
-}
-async function reviveMicAfterVisibility(){
-  if(document.visibilityState!=='visible'||!engine)return;
-  try{
-    if(engine.audioContext&&engine.audioContext.state==='suspended')await engine.audioContext.resume();
-    if(running){
-      const live=typeof engine.hasLiveInput==='function'?engine.hasLiveInput():Boolean(engine.stream?.getAudioTracks?.().some(track=>track.readyState==='live'));
-      if(!live){await engine.stop();await engine.prepareAudioContext();await engine.start();}
-      if(engine.stream)engine.stream.getAudioTracks().forEach(track=>track.enabled=true);
-    }
-  }catch(err){console.warn('Mikrofonin palautus PWA:ssa:',err);}
+  }catch(err){console.warn(err);}
 }
 async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){heardEl.textContent='MIKROFONIA EI SAATU AUKI';alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
 function updateSemesterLabels(){
@@ -385,7 +367,10 @@ async function resetAllSemesterScores(){
 
   adminStatus.textContent='Poistetaan kaikkien tasojen tuloksia…';
   try{
-    const total=await window.SavelkojuScoreboard.deleteCurrentSemesterScoresMany([1,2,3]);
+    let total=0;
+    for(const id of [1,2,3]){
+      total+=await window.SavelkojuScoreboard.deleteCurrentSemesterScores(id);
+    }
     adminStatus.textContent=`Poistettu yhteensä ${total} tulosta.`;
   }catch(e){
     console.error(e);
@@ -398,15 +383,10 @@ async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
 document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{
   if(!captureSessionName())return;
-  const micPrime=primeMicFromUserGesture();
   await unlockGameAudio();
-  await micPrime;
   await startGame(Number(btn.dataset.level));
 }));
-$('againBtn').addEventListener('click',async()=>{const micPrime=primeMicFromUserGesture();await unlockGameAudio();await micPrime;await startGame();});
-
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reviveMicAfterVisibility();});
-window.addEventListener('pageshow',()=>{reviveMicAfterVisibility();});
+$('againBtn').addEventListener('click',async()=>{await unlockGameAudio();await startGame();});
 $('levelsBtn').addEventListener('click',chooseLevels);
 $('changePlayerBtn').addEventListener('click',changePlayer);
 
