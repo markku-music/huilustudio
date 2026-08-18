@@ -42,7 +42,7 @@ async function playFinaleSoundUntilEnd(){
     finaleLightsRunning=false;
   }
 }
-function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
+function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);document.documentElement.style.setProperty('--initial-stage-scale',String(scale));stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
 addEventListener('resize',fitStage);fitStage();
 
 if(window.visualViewport){
