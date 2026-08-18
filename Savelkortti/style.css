@@ -10,11 +10,14 @@
 }
 
 .viewport-pending .app {
+  opacity: 0;
   visibility: hidden;
 }
 
 html.viewport-ready .app {
+  opacity: 1;
   visibility: visible;
+  transition: opacity 0.3s ease-out;
 }
 
 html, body {

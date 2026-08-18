@@ -1,4 +1,3 @@
-
 function updateAppHeight() {
   const height = window.visualViewport?.height || window.innerHeight;
   document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
@@ -19,19 +18,12 @@ function stabilizeViewport() {
 function bootViewport() {
   updateAppHeight();
 
-  requestAnimationFrame(() => {
-    updateAppHeight();
-
-    requestAnimationFrame(() => {
-      updateAppHeight();
-      markViewportReady();
-    });
-  });
-
+  // Annetaan iOS/iPadOS:lle noin 200ms aikaa löytää oikeat mitat 
+  // ennen kuin sovellus näytetään käyttäjälle.
   setTimeout(() => {
     updateAppHeight();
     markViewportReady();
-  }, 120);
+  }, 200);
 }
 
 window.addEventListener("resize", stabilizeViewport, { passive: true });

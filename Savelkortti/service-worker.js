@@ -1,4 +1,4 @@
-const CACHE = "savelkortti-v1.2";
+const CACHE = "savelkortti-v1.3";
 const FILES = [
   "./",
   "./index.html",
