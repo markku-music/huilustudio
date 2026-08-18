@@ -7,15 +7,14 @@
 <title>Sävelkoju</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="apple-touch-startup-image" href="startup-ipad-12.9-landscape.png" media="screen and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
-<link rel="apple-touch-startup-image" href="startup-ipad-12.9-landscape.png">
 <meta name="apple-mobile-web-app-title" content="Sävelkoju">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<style id="startupBlackDiagnostic">
-html,body{background:#000!important;}
-body:not(.startup-diagnostic-ready)>*{visibility:hidden!important;}
+<style id="startupLayoutGuard">
+html,body{background:#83c8e7!important;}
+#game{visibility:hidden!important;}
+body.app-layout-ready #game{visibility:visible!important;}
 </style>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -163,14 +162,5 @@ body:not(.startup-diagnostic-ready)>*{visibility:hidden!important;}
 
 <script src="pwa-manager.js"></script>
 
-
-
-<script>
-(function(){
-  window.setTimeout(function(){
-    document.body.classList.add('startup-diagnostic-ready');
-  },500);
-})();
-</script>
 </body>
 </html>
