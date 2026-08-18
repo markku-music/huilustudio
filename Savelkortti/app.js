@@ -1,3 +1,30 @@
+
+function updateAppHeight() {
+  const height = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
+}
+
+function stabilizeViewport() {
+  updateAppHeight();
+  requestAnimationFrame(updateAppHeight);
+  setTimeout(updateAppHeight, 80);
+  setTimeout(updateAppHeight, 250);
+}
+
+window.addEventListener("resize", stabilizeViewport, { passive: true });
+window.addEventListener("orientationchange", stabilizeViewport, { passive: true });
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", stabilizeViewport, { passive: true });
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) stabilizeViewport();
+});
+
+window.addEventListener("pageshow", stabilizeViewport);
+stabilizeViewport();
+
 const notes = ["C", "C♯", "D♭", "D", "D♯", "E♭", "E", "F", "F♯", "G♭", "G", "G♯", "A♭", "A", "A♯", "B♭", "B"];
 
 const noteEl = document.getElementById("note");

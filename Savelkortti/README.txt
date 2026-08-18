@@ -14,3 +14,8 @@ manifest.webmanifest
 service-worker.js
 icon-192.png
 icon-512.png
+
+
+Versio 1.1:
+- Korjattu PWA:n vaakasuunnan käynnistyksen viewport-mitoitus.
+- Koko tarkistetaan käynnistyksessä, orientaation vaihtuessa ja palattaessa appiin.
