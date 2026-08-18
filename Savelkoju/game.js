@@ -49,57 +49,7 @@ function fitStage(){
 }
 window.addEventListener('resize',fitStage);
 
-function revealAppWhenViewportIsStable(){
-  let lastWidth=-1;
-  let lastHeight=-1;
-  let stableFrames=0;
-  let totalFrames=0;
-  let resizeGeneration=0;
-  let observedGeneration=0;
-
-  const noteResize=()=>{
-    resizeGeneration+=1;
-    stableFrames=0;
-  };
-  window.addEventListener('resize',noteResize);
-
-  const check=()=>{
-    totalFrames+=1;
-    fitStage();
-
-    const width=window.innerWidth;
-    const height=window.innerHeight;
-    const sameSize=Math.abs(width-lastWidth)<1&&Math.abs(height-lastHeight)<1;
-    const sameGeneration=observedGeneration===resizeGeneration;
-
-    if(sameSize&&sameGeneration) stableFrames+=1;
-    else stableFrames=0;
-
-    lastWidth=width;
-    lastHeight=height;
-    observedGeneration=resizeGeneration;
-
-    // Landscape gets a little more settling time because iPadOS may
-    // adjust the standalone viewport a few frames after launch.
-    const requiredStableFrames=width>height?8:3;
-    const maxFrames=40;
-
-    if(stableFrames>=requiredStableFrames||totalFrames>=maxFrames){
-      window.removeEventListener('resize',noteResize);
-      fitStage();
-      requestAnimationFrame(()=>{
-        document.body.classList.add('app-layout-ready');
-      });
-      return;
-    }
-
-    requestAnimationFrame(check);
-  };
-
-  requestAnimationFrame(check);
-}
-
-revealAppWhenViewportIsStable();
+fitStage();
 function captureSessionName(){
   const name=window.SavelkojuScoreboard.cleanName(sessionName.value);
   if(!name){
