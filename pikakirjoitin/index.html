@@ -116,10 +116,6 @@
     .selection-dynamic-button[aria-pressed="true"]{border-color:#8653f6;background:#eee7ff;box-shadow:inset 0 0 0 1px #8653f633}
     .selection-dynamic-button:disabled{opacity:.38;cursor:default}
 .selection-toolbar-dynamics-row .selection-action-button{height:36px}
-    .selection-toolbar-paste-row{display:none;width:100%}
-    .selection-toolbar-paste-row[data-visible="true"]{display:flex}
-    .selection-paste-button{min-width:136px;height:38px;padding:0 14px;border:1px solid #d3c5f7;border-radius:11px;background:#fff;color:#5633ad;font:700 14px/1 system-ui,sans-serif;touch-action:manipulation;cursor:pointer}
-    .selection-paste-button:active{border-color:#8653f6;background:#eee7ff}
     .note-selection-layer{position:absolute;z-index:7;left:0;top:0;pointer-events:none;overflow:visible}
     .note-selection-highlight{position:absolute;border:2px solid #6841d6e0;border-radius:9px;background:#8653f629;box-shadow:0 0 0 2px #ffffff8c}
     .note-selection-marquee{position:absolute;border:2px dashed #7045d0;border-radius:8px;background:#8653f61a}
@@ -130,6 +126,9 @@
     .write-note-context-button:active{background:#eaf3ff}
     .write-note-context-button:disabled{display:none}
     .write-note-context-button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+    .write-paste-end-button{position:absolute;z-index:34;left:50%;bottom:4px;min-width:144px;height:40px;padding:0 16px;border:1px solid #7faada;border-radius:999px;background:#fff;color:#174d83;box-shadow:0 5px 16px #1d47752b;font:750 14px/1 system-ui,-apple-system,sans-serif;transform:translateX(-50%);touch-action:manipulation;cursor:pointer}
+    .write-paste-end-button:active{border-color:#2365aa;background:#e7f2ff}
+    .write-paste-end-button[hidden]{display:none!important}
     .system-break-markers{position:absolute;z-index:8;inset:0 auto auto 0;pointer-events:none}
     .system-break-marker{position:absolute;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #aa8cff;border-radius:50%;background:#f1ebff;color:#5d35b5;box-shadow:0 2px 7px #52309c2e;font-size:20px;font-weight:800;line-height:1;pointer-events:auto;touch-action:manipulation;cursor:pointer}
     .system-break-candidate-marker{position:absolute;width:36px;height:36px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#ffffffc9;color:#765da9;box-shadow:0 1px 5px #52309c26;font:700 23px/1 system-ui,sans-serif;opacity:.88;pointer-events:auto;touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none}
@@ -296,7 +295,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.note-size-panel,.selection-toolbar,.write-note-context,.write-note-highlight,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.note-size-panel,.selection-toolbar,.write-note-context,.write-note-highlight,.write-paste-end-button,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block!important}
       .score-area{display:block!important;padding:0!important}
@@ -453,6 +452,7 @@
             </button>
           </div>
         </div>
+        <button class="write-paste-end-button" id="writePasteEndButton" type="button" aria-label="Liitä valittu jakso kappaleen loppuun" hidden>Liitä loppuun</button>
         <section class="publish-screen" id="publishScreen" aria-label="Julkaisu">
           <div class="publish-header">
             <div class="publish-header-icon" aria-hidden="true">
@@ -548,9 +548,6 @@
             <button class="selection-dynamic-button" type="button" data-dynamic="ff" aria-label="Fortissimo" aria-pressed="false" disabled>ff</button>
             <button class="selection-action-button" id="selectionDiminuendoButton" type="button" aria-label="Lisää tai poista diminuendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m7 10 34 14M7 38l34-14"/></svg></button>
           </div>
-          <div class="selection-toolbar-row selection-toolbar-paste-row" id="selectionPasteRow" data-visible="false">
-            <button class="selection-paste-button" id="selectionPasteEndButton" type="button" aria-label="Liitä valittu jakso kappaleen loppuun">Liitä loppuun</button>
-          </div>
         </div>
         <div class="barline-palette" id="barlinePalette" role="toolbar" aria-label="Tahtiviivan tyyppi" hidden>
           <button class="barline-choice-button" type="button" data-barline-style="normal" aria-label="Normaali tahtiviiva" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M16 3v22" stroke="currentColor" stroke-width="2"/></svg></button>
@@ -577,16 +574,16 @@
 
   <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
-    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8;
+    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),thirtysecondButton=document.querySelector('#thirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),selectionPasteRow=document.querySelector('#selectionPasteRow'),selectionPasteEndButton=document.querySelector('#selectionPasteEndButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writePasteEndButton=document.querySelector('#writePasteEndButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={thirtysecond:1,sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
     const tuningTransposes={C:0,Bb:-2,Eb:-9,F:-7};
     const clefKeyboardStarts={treble:60,alto:48,bass:36};
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     let noteSizePercent=100,noteSizeCommitRunning=false,noteSizeBasePageMargins=null;
@@ -981,10 +978,12 @@
       score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':workMode==='print'?'Julkaisutila. Valitse julkaisuun liittyvä toiminto.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
       selectionToolbar.setAttribute('aria-hidden',String(workMode!=='edit'));
       if(workMode==='edit')syncSelectionToolbar();
+      syncWritePasteEndButton();
     }
     function setWorkMode(mode,e){
       const next=mode==='edit'?'edit':mode==='print'?'print':'write';
       if(next!=='write'&&!notes.length)return;
+      if(workMode==='write'&&next!=='write')clearSelection();
       workMode=next;
       if(next!=='edit')closeNoteSizePanel();
       if(next==='write'&&keyboardPanel.hidden&&e)togglePiano(e);else if(next!=='write')closeKeyboardForWorkMode();
@@ -1123,8 +1122,11 @@
       const setButton=(button,enabled,active=false)=>{button.disabled=!enabled;button.setAttribute('aria-pressed',String(Boolean(active)))};
       setButton(selectionSlurButton,Boolean(range),Boolean(slur));setButton(selectionSlurFlipButton,Boolean(slur),false);setButton(selectionStemFlipButton,indices.length>0,false);setButton(selectionTieFlipButton,Number.isInteger(tieIndex),Number.isInteger(tieIndex));setButton(selectionStaccatoButton,indices.length>0,allStaccato);setButton(selectionPortatoButton,indices.length>0,allPortato);setButton(selectionAccentButton,indices.length>0,allAccent);setButton(selectionCrescendoButton,Boolean(range),Boolean(crescendo));setButton(selectionDiminuendoButton,Boolean(range),Boolean(diminuendo));
       const activeDynamic=indices.length?(notes[indices[0]].dynamic||''):'';selectionDynamicButtons.forEach(button=>{button.disabled=!indices.length;button.setAttribute('aria-pressed',String(Boolean(indices.length&&button.dataset.dynamic===activeDynamic))) });
-      const pasteVisible=Boolean(indices.length&&selectionClipboard?.notes?.length);selectionPasteRow.dataset.visible=String(pasteVisible);selectionPasteEndButton.disabled=!pasteVisible;
       systemBreakButton.setAttribute('aria-pressed',String(systemBreakModeActive));barlineEditButton.setAttribute('aria-pressed',String(barlineEditModeActive));beamEditButton.setAttribute('aria-pressed',String(beamEditModeActive));endingOneButton.setAttribute('aria-pressed',String(endingModeActive===1));endingTwoButton.setAttribute('aria-pressed',String(endingModeActive===2));stretchLastLineButton.setAttribute('aria-pressed',String(stretchLastLine));stretchLastLineButton.setAttribute('aria-busy',String(stretchCommandRunning));
+    }
+    function syncWritePasteEndButton(){
+      if(!writePasteEndButton)return;
+      writePasteEndButton.hidden=!(workMode==='write'&&selectedNoteIndices.size>0&&selectionClipboard?.notes?.length);
     }
     const SELECTION_TOOLBAR_POSITION_KEY='pikakirjoitin-selection-toolbar-position-v1';
     function clampSelectionToolbarPosition(left,top){
@@ -1147,14 +1149,14 @@
     }
     function toggleDynamicForSelection(value){const indices=getSelectedNoteIndices();if(!indices.length)return;const current=notes[indices[0]]?.dynamic||'';applyDynamicForSelection(current===value?'':value)}
     function captureSelectionClipboard(){
-      ensureEntryIds();const indices=getSelectedNoteIndices();if(!indices.length){selectionClipboard=null;syncSelectionToolbar();return null}
+      ensureEntryIds();const indices=getSelectedNoteIndices();if(!indices.length){selectionClipboard=null;syncSelectionToolbar();syncWritePasteEndButton();return null}
       const first=indices[0],last=indices.at(-1),source=notes.slice(first,last+1).map(note=>({...note})),sourceIds=new Map();
       source.forEach((note,offset)=>sourceIds.set(note.id,offset));
       if(source[0])source[0].tieFromPrevious=false;
       const tupletCounts=new Map();source.forEach(note=>{if(note.tupletId)tupletCounts.set(note.tupletId,(tupletCounts.get(note.tupletId)||0)+1)});
       source.forEach(note=>{if(note.tupletId&&tupletCounts.get(note.tupletId)!==notes.filter(item=>item.tupletId===note.tupletId).length)stripTupletMetadata(note)});
       const copiedSlurs=slurs.filter(item=>sourceIds.has(item.startId)&&sourceIds.has(item.endId)).map(item=>({startOffset:sourceIds.get(item.startId),endOffset:sourceIds.get(item.endId),placement:item.placement}));
-      selectionClipboard={notes:source,slurs:copiedSlurs};syncSelectionToolbar();return selectionClipboard;
+      selectionClipboard={notes:source,slurs:copiedSlurs};syncSelectionToolbar();syncWritePasteEndButton();return selectionClipboard;
     }
     function buildPastedSelection(){
       const clip=selectionClipboard;if(!clip?.notes?.length)return null;
@@ -1172,7 +1174,7 @@
       notes.push(...pasted.notes);slurs.push(...pasted.slurs);rememberAction({type:'paste-end',notes:pasted.notes.map(note=>({...note})),slurs:pasted.slurs.map(item=>({...item}))});
       status.textContent=`Liitetty loppuun: ${pasted.notes.length} ${pasted.notes.length===1?'nuotti':'nuottia'}`;renderScore();
     }
-    function clearSelection(){selectedNoteIndices.clear();selectionDrag=null;selectionClipboard=null;renderSelectionOverlay()}
+    function clearSelection(){selectedNoteIndices.clear();selectionDrag=null;selectionClipboard=null;writeSelectionActive=false;writeSelectionCandidate=null;if(writeSelectionHoldTimer){clearTimeout(writeSelectionHoldTimer);writeSelectionHoldTimer=null}renderSelectionOverlay();syncWritePasteEndButton()}
     function rectanglesIntersect(a,b){return a.left<=b.right&&a.right>=b.left&&a.top<=b.bottom&&a.bottom>=b.top}
     function normalizedRectangle(start,end){return {left:Math.min(start.x,end.x),right:Math.max(start.x,end.x),top:Math.min(start.y,end.y),bottom:Math.max(start.y,end.y)}}
     function clientPointToScoreContent(clientX,clientY){
@@ -1220,7 +1222,10 @@
       })))))
     }
     function renderSelectionOverlay(){
-      osmdContainer.querySelector('.note-selection-layer')?.remove();syncSelectionToolbar();if(workMode!=='edit')return;
+      osmdContainer.querySelector('.note-selection-layer')?.remove();
+      if(workMode==='edit')syncSelectionToolbar();else syncWritePasteEndButton();
+      if(workMode!=='edit'&&workMode!=='write')return;
+      if(workMode==='write'&&!writeSelectionActive&&!selectedNoteIndices.size)return;
       const layer=document.createElement('div');layer.className='note-selection-layer';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;
       selectionHitboxes.forEach(hitbox=>{if(!selectedNoteIndices.has(hitbox.entryIndex))return;const highlight=document.createElement('div');highlight.className='note-selection-highlight';highlight.style.left=`${hitbox.left}px`;highlight.style.top=`${hitbox.top}px`;highlight.style.width=`${hitbox.width}px`;highlight.style.height=`${hitbox.height}px`;layer.appendChild(highlight)});
       if(selectionDrag){const rect=normalizedRectangle(selectionDrag.start,selectionDrag.current),marquee=document.createElement('div');marquee.className='note-selection-marquee';marquee.style.left=`${rect.left}px`;marquee.style.top=`${rect.top}px`;marquee.style.width=`${Math.max(1,rect.right-rect.left)}px`;marquee.style.height=`${Math.max(1,rect.bottom-rect.top)}px`;layer.appendChild(marquee)}
@@ -1488,7 +1493,7 @@
     function selectWriteNote(index){
       const note=notes[index];if(workMode!=='write'||!note||note.rest||note.measureRest)return false;writeEditNoteId=note.id;positionWriteNoteContext();return true;
     }
-    function refreshWriteGeometry(){buildWriteNoteHitboxes();if(writeEditNoteId)positionWriteNoteContext()}
+    function refreshWriteGeometry(){buildWriteNoteHitboxes();if(selectedNoteIndices.size||writeSelectionActive){selectionHitboxes=writeNoteHitboxes.map(hit=>({...hit}));renderSelectionOverlay()}else syncWritePasteEndButton();if(writeEditNoteId)positionWriteNoteContext()}
     function toggleWriteNoteAccidental(){
       const index=writeNoteIndex(),note=notes[index];if(index<0||!note||![1,3,6,8,10].includes(mod(note.midi,12)))return;
       const before={...note},currentFlat=automaticUseFlats(note,index,projectData?.keySignature??selectedKeyInfo().fifths,projectData?.keyMode??selectedKeyInfo().mode,projectData?.keyTonic??selectedKeyInfo().tonic);note.accidentalStyle=currentFlat?'sharp':'flat';rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
@@ -2135,7 +2140,12 @@
       }
     }
     function moveScoreTouchLock(e){
-      if(!scoreMultiTouchLocked||workMode!=='write')return;
+      if(workMode!=='write')return;
+      if(writeSelectionActive){
+        if(e.cancelable)e.preventDefault();
+        score.scrollTop=writeSelectionScrollTop;score.scrollLeft=writeSelectionScrollLeft;keepOuterViewportFixed();return;
+      }
+      if(!scoreMultiTouchLocked)return;
       if(e.cancelable)e.preventDefault();
       score.scrollTop=scoreMultiTouchScrollTop;
       score.scrollLeft=scoreMultiTouchScrollLeft;
@@ -2158,11 +2168,36 @@
     function preventScoreNativeGesture(e){
       if(workMode==='write'&&scoreMultiTouchLocked&&e.cancelable)e.preventDefault();
     }
+    function cancelWriteSelectionHold(){
+      if(writeSelectionHoldTimer){clearTimeout(writeSelectionHoldTimer);writeSelectionHoldTimer=null}
+      if(!writeSelectionActive)writeSelectionCandidate=null;
+    }
+    function armWriteSelection(e){
+      if(workMode!=='write'||scorePointers.size!==1||writeSelectionActive)return;
+      const hit=writeNoteHitAtClient(e.clientX,e.clientY);if(!hit)return;
+      writeSelectionCandidate={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:clientPointToScoreContent(e.clientX,e.clientY)};
+      writeSelectionHoldTimer=setTimeout(()=>{
+        const candidate=writeSelectionCandidate;if(!candidate||candidate.pointerId!==e.pointerId||workMode!=='write'||scorePointers.size!==1||scoreGesture!==0||scoreMoved)return;
+        writeSelectionHoldTimer=null;writeSelectionActive=true;writeSelectionScrollTop=score.scrollTop;writeSelectionScrollLeft=score.scrollLeft;clearWriteNoteEdit();selectionHitboxes=writeNoteHitboxes.map(item=>({...item}));selectedNoteIndices.clear();selectionDrag={pointerId:e.pointerId,start:candidate.start,current:candidate.start,moved:false};selectAtPoint(candidate.start);renderSelectionOverlay();status.textContent='Valitse kopioitava alue vetämällä';
+      },WRITE_SELECTION_HOLD_MS);
+    }
+    function finishWriteSelection(e,cancelled=false){
+      if(!writeSelectionActive||!selectionDrag||selectionDrag.pointerId!==e.pointerId)return false;
+      if(e.cancelable)e.preventDefault();
+      selectionDrag.current=contentPointFromPointer(e);
+      if(cancelled){selectedNoteIndices.clear();selectionClipboard=null}else if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));else selectAtPoint(selectionDrag.current);
+      selectionDrag=null;writeSelectionActive=false;writeSelectionCandidate=null;cancelWriteSelectionHold();
+      if(!cancelled)captureSelectionClipboard();
+      renderSelectionOverlay();syncWritePasteEndButton();
+      if(!cancelled&&selectionClipboard?.notes?.length)status.textContent=`Valittu ${selectionClipboard.notes.length} ${selectionClipboard.notes.length===1?'nuotti':'nuottia'}`;
+      return true;
+    }
     function startScoreGesture(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreStartX=e.clientX;scoreStartY=e.clientY;scoreMoved=false}
       scorePointers.add(e.pointerId);
       try{score.setPointerCapture(e.pointerId)}catch{}
+      if(scorePointers.size===1)armWriteSelection(e);else cancelWriteSelectionHold();
       if(scorePointers.size>=3&&scoreGesture!==3){
         if(scoreGesture===2&&scoreUndoneAction)redoChange(scoreUndoneAction);
         scoreGesture=3;scoreUndoneAction=null;clearScore();
@@ -2171,15 +2206,24 @@
       }
     }
     function moveScoreGesture(e){
-      if(!scorePointers.has(e.pointerId)||scoreGesture!==0||scorePointers.size!==1||scoreMoved)return;
-      if(Math.hypot(e.clientX-scoreStartX,e.clientY-scoreStartY)>=SCORE_SCROLL_SLOP)scoreMoved=true;
+      if(!scorePointers.has(e.pointerId)||scoreGesture!==0||scorePointers.size!==1)return;
+      if(writeSelectionActive&&selectionDrag?.pointerId===e.pointerId){
+        if(e.cancelable)e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||Math.hypot(e.clientX-scoreStartX,e.clientY-scoreStartY)>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));score.scrollTop=writeSelectionScrollTop;score.scrollLeft=writeSelectionScrollLeft;renderSelectionOverlay();return;
+      }
+      if(writeSelectionCandidate&&writeSelectionCandidate.pointerId===e.pointerId&&Math.hypot(e.clientX-writeSelectionCandidate.startX,e.clientY-writeSelectionCandidate.startY)>WRITE_SELECTION_MOVE)cancelWriteSelectionHold();
+      if(!scoreMoved&&Math.hypot(e.clientX-scoreStartX,e.clientY-scoreStartY)>=SCORE_SCROLL_SLOP)scoreMoved=true;
     }
     function endScoreGesture(e,cancelled=false){
       if(!scorePointers.has(e.pointerId))return;
-      const singleTap=scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
+      const wasWriteSelection=writeSelectionActive&&selectionDrag?.pointerId===e.pointerId;
+      if(wasWriteSelection)finishWriteSelection(e,cancelled);else cancelWriteSelectionHold();
+      const singleTap=!wasWriteSelection&&scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
       try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
       scorePointers.delete(e.pointerId);
-      if(singleTap&&workMode==='write'){const hit=writeNoteHitAtClient(e.clientX,e.clientY);if(hit)selectWriteNote(hit.entryIndex);else if(writeEditNoteId&&keyboardPanel.hidden)togglePiano(e);else{clearWriteNoteEdit();togglePiano(e)}}
+      if(singleTap&&workMode==='write'){
+        if(selectedNoteIndices.size||selectionClipboard){selectedNoteIndices.clear();selectionClipboard=null;selectionHitboxes=[];renderSelectionOverlay();syncWritePasteEndButton()}
+        const hit=writeNoteHitAtClient(e.clientX,e.clientY);if(hit)selectWriteNote(hit.entryIndex);else if(writeEditNoteId&&keyboardPanel.hidden)togglePiano(e);else{clearWriteNoteEdit();togglePiano(e)}
+      }
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreMoved=false}
     }
     function scoreKey(e){
@@ -2263,7 +2307,7 @@
     score.addEventListener('gesturestart',preventScoreNativeGesture,{passive:false,capture:true});
     score.addEventListener('gesturechange',preventScoreNativeGesture,{passive:false,capture:true});
     score.addEventListener('pointerdown',startScoreGesture);
-    score.addEventListener('pointermove',moveScoreGesture,{passive:true});
+    score.addEventListener('pointermove',moveScoreGesture,{passive:false});
     score.addEventListener('pointerup',e=>endScoreGesture(e));
     score.addEventListener('pointercancel',e=>endScoreGesture(e,true));
     score.addEventListener('keydown',scoreKey);
@@ -2304,8 +2348,8 @@
     endingTwoButton.addEventListener('click',()=>toggleEndingMode(2));
     barlineChoiceButtons.forEach(button=>button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();applyBarlineStyle(button.dataset.barlineStyle)}));
     stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
-    selectionPasteEndButton.addEventListener('pointerdown',event=>event.stopPropagation());
-    selectionPasteEndButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();pasteSelectionToEnd()});
+    writePasteEndButton.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()},{passive:false});
+    writePasteEndButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();pasteSelectionToEnd();syncWritePasteEndButton()});
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
@@ -2315,7 +2359,7 @@
       if(workMode!=='edit')return;if(endingDrag){moveEndingDrag(e);return}if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||Math.hypot(selectionDrag.current.x-selectionDrag.start.x,selectionDrag.current.y-selectionDrag.start.y)>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));renderSelectionOverlay();
     },{passive:false});
     const finishSelectionGesture=(e,cancelled=false)=>{
-      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();if(cancelled){selectedNoteIndices.clear();selectionClipboard=null}else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));else selectAtPoint(selectionDrag.current)}selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}if(!cancelled)captureSelectionClipboard();renderSelectionOverlay();
+      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();if(cancelled){selectedNoteIndices.clear()}else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));else selectAtPoint(selectionDrag.current)}selectionClipboard=null;selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     };
     osmdContainer.addEventListener('pointerup',e=>{if(endingDrag){finishEndingDrag(e);return}finishSelectionGesture(e)});
     osmdContainer.addEventListener('pointercancel',e=>{if(endingDrag){finishEndingDrag(e,true);return}finishSelectionGesture(e,true)});
