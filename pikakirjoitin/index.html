@@ -799,7 +799,14 @@
       const starts=[];let offset=0;for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
       const unit=beamUnit(beats,beatType),connections=[];
       for(let index=0;index<group.length-1;index+=1){
-        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
+        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit;
+        // 1/32 + 1/32 + 1/16 pidetään yhtenä sekapalkkiryhmänä myös iskualueen rajalla.
+        // Muuten automaattinen beat-bucket -jako voi katkaista juuri toisen 1/32:n ja 1/16:n välin.
+        const forceThirtysecondPairIntoSixteenth=Boolean(
+          (left?.duration==='thirtysecond'&&right?.duration==='thirtysecond'&&group[index+2]?.duration==='sixteenth')||
+          (group[index-1]?.duration==='thirtysecond'&&left?.duration==='thirtysecond'&&right?.duration==='sixteenth')
+        );
+        const automatic=leftCandidate&&rightCandidate&&((leftInside&&rightInside&&leftBucket===rightBucket)||forceThirtysecondPairIntoSixteenth),key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
         connections.push({index,key,left,right,leftCandidate,rightCandidate,automatic,connected});
       }
       return {starts,connections};
