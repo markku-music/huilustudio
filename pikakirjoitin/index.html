@@ -799,19 +799,12 @@
       const starts=[];let offset=0;for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
       const unit=beamUnit(beats,beatType),connections=[];
       for(let index=0;index<group.length-1;index+=1){
-        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit;
-        // 1/32 + 1/32 + 1/16 pidetään yhtenä sekapalkkiryhmänä myös iskualueen rajalla.
-        // Muuten automaattinen beat-bucket -jako voi katkaista juuri toisen 1/32:n ja 1/16:n välin.
-        const forceThirtysecondPairIntoSixteenth=Boolean(
-          (left?.duration==='thirtysecond'&&right?.duration==='thirtysecond'&&group[index+2]?.duration==='sixteenth')||
-          (group[index-1]?.duration==='thirtysecond'&&left?.duration==='thirtysecond'&&right?.duration==='sixteenth')
-        );
-        const automatic=leftCandidate&&rightCandidate&&((leftInside&&rightInside&&leftBucket===rightBucket)||forceThirtysecondPairIntoSixteenth),key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
+        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
         connections.push({index,key,left,right,leftCandidate,rightCandidate,automatic,connected});
       }
       return {starts,connections};
     }
-    function measureBeamTags(group,beats,beatType){
+    function measureBeamTags(group,beats,beatType,{osmdCompatible=false}={}){
       const tags=group.map(()=>[]),{starts,connections}=measureBeamConnections(group,beats,beatType);
       let index=0;
       while(index<group.length){
@@ -819,23 +812,29 @@
         const run=[index];
         while(index<group.length-1&&connections[index]?.connected){index+=1;run.push(index)}
         if(run.length>1){
+          // OSMD/VexFlow only needs the primary beam group. It derives the
+          // secondary/tertiary beams from note durations. Supplying explicit
+          // higher-numbered beam "end" tags on a continuing note makes OSMD
+          // interpret them as secondary-beam breaks (notably 32nd+32nd+16th).
           run.forEach((noteIndex,position)=>tags[noteIndex].push([1,position===0?'begin':position===run.length-1?'end':'continue']));
-          let secondary=[];
-          const flushSecondary=()=>{
-            if(secondary.length===1){const noteIndex=secondary[0];tags[noteIndex].push([2,starts[noteIndex]%4===0?'forward hook':'backward hook'])}
-            else secondary.forEach((noteIndex,position)=>tags[noteIndex].push([2,position===0?'begin':position===secondary.length-1?'end':'continue']));
-            secondary=[];
-          };
-          for(const noteIndex of run){if(group[noteIndex].duration==='sixteenth'||group[noteIndex].duration==='thirtysecond')secondary.push(noteIndex);else flushSecondary()}
-          flushSecondary();
-          let tertiary=[];
-          const flushTertiary=()=>{
-            if(tertiary.length===1){const noteIndex=tertiary[0];tags[noteIndex].push([3,starts[noteIndex]%2===0?'forward hook':'backward hook'])}
-            else tertiary.forEach((noteIndex,position)=>tags[noteIndex].push([3,position===0?'begin':position===tertiary.length-1?'end':'continue']));
-            tertiary=[];
-          };
-          for(const noteIndex of run){if(group[noteIndex].duration==='thirtysecond')tertiary.push(noteIndex);else flushTertiary()}
-          flushTertiary();
+          if(!osmdCompatible){
+            let secondary=[];
+            const flushSecondary=()=>{
+              if(secondary.length===1){const noteIndex=secondary[0];tags[noteIndex].push([2,starts[noteIndex]%4===0?'forward hook':'backward hook'])}
+              else secondary.forEach((noteIndex,position)=>tags[noteIndex].push([2,position===0?'begin':position===secondary.length-1?'end':'continue']));
+              secondary=[];
+            };
+            for(const noteIndex of run){if(group[noteIndex].duration==='sixteenth'||group[noteIndex].duration==='thirtysecond')secondary.push(noteIndex);else flushSecondary()}
+            flushSecondary();
+            let tertiary=[];
+            const flushTertiary=()=>{
+              if(tertiary.length===1){const noteIndex=tertiary[0];tags[noteIndex].push([3,starts[noteIndex]%2===0?'forward hook':'backward hook'])}
+              else tertiary.forEach((noteIndex,position)=>tags[noteIndex].push([3,position===0?'begin':position===tertiary.length-1?'end':'continue']));
+              tertiary=[];
+            };
+            for(const noteIndex of run){if(group[noteIndex].duration==='thirtysecond')tertiary.push(noteIndex);else flushTertiary()}
+            flushTertiary();
+          }
         }
         index+=1;
       }
@@ -900,7 +899,7 @@
       if(style==='repeat-end')parts.push('<repeat direction="backward"/>');
       return parts.length?`<barline location="right">${parts.join('')}</barline>`:'';
     }
-    function buildMusicXml(){
+    function buildMusicXml({forRender=false}={}){
       ensureEntryIds();pruneEditRanges();renderedNoteObjectMap=new Map();
       const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:'Pikakirjoitin',title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0},{beats,beatType,capacity,groups,groupCapacities,pickupCapacity}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
       let renderedNoteObjectId=0;
@@ -909,7 +908,7 @@
       pruneEndings(totalMeasures);
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>24</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
-        const beamTags=measureBeamTags(group,beats,beatType),entries=group.length?group.map((note,noteIndex)=>{
+        const beamTags=measureBeamTags(group,beats,beatType,{osmdCompatible:forRender}),entries=group.length?group.map((note,noteIndex)=>{
           const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='thirtysecond'?'32nd':note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*3):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'',timeModification=note.tupletId?'<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>':'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
@@ -1071,7 +1070,7 @@
           applyStaffTopRules();
           applyLineSpacingRules();
           if(scoreRenderer.EngravingRules){scoreRenderer.EngravingRules.StretchLastSystemLine=stretchLastLine;scoreRenderer.EngravingRules.LastSystemMaxScalingFactor=stretchLastLine?100:1.4}
-          await scoreRenderer.load(buildMusicXml());
+          await scoreRenderer.load(buildMusicXml({forRender:true}));
           scoreRenderer.Zoom=noteSizeZoom();
           applyStaffTopRules();
           applyLineSpacingRules();
