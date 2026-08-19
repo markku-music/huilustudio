@@ -799,7 +799,16 @@
       const starts=[];let offset=0;for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
       const unit=beamUnit(beats,beatType),connections=[];
       for(let index=0;index<group.length-1;index+=1){
-        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
+        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit;
+        const previous=index>0?group[index-1]:null,previousBucket=index>0?Math.floor(starts[index-1]/unit):-1;
+        // Täsmäkorjaus: 1/32 + 1/32 + 1/16 kuuluu samaan palkkiryhmään,
+        // kun koko kuvio on saman iskualueen sisällä. Tämä estää OSMD:tä katkaisemasta
+        // yhteisiä 1. ja 2. palkkeja toisen 1/32:n ja 1/16:n välistä.
+        const leadingThirtysecondPairIntoSixteenth=Boolean(
+          index>0&&previous?.duration==='thirtysecond'&&left?.duration==='thirtysecond'&&right?.duration==='sixteenth'&&
+          previousBucket===leftBucket&&leftBucket===rightBucket&&leftInside&&rightInside
+        );
+        const automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket||leadingThirtysecondPairIntoSixteenth,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
         connections.push({index,key,left,right,leftCandidate,rightCandidate,automatic,connected});
       }
       return {starts,connections};
