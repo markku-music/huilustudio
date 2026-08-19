@@ -823,7 +823,13 @@
           flushSecondary();
           let tertiary=[];
           const flushTertiary=()=>{
-            if(tertiary.length===1){const noteIndex=tertiary[0];tags[noteIndex].push([3,starts[noteIndex]%2===0?'forward hook':'backward hook'])}
+            if(tertiary.length===1){
+              const noteIndex=tertiary[0],runPosition=run.indexOf(noteIndex),hasPrevious=runPosition>0,hasNext=runPosition>=0&&runPosition<run.length-1;
+              // Yksittäisen 1/32-nuotin kolmas palkki osoittaa ensisijaisesti muun palkkiryhmän sisään.
+              // Jos 1/32 on kahden 1/16/1/8-nuotin välissä, rytminen 1/16-alijako ratkaisee suunnan.
+              const hook=hasNext&&!hasPrevious?'forward hook':hasPrevious&&!hasNext?'backward hook':starts[noteIndex]%2===0?'forward hook':'backward hook';
+              tags[noteIndex].push([3,hook]);
+            }
             else tertiary.forEach((noteIndex,position)=>tags[noteIndex].push([3,position===0?'begin':position===tertiary.length-1?'end':'continue']));
             tertiary=[];
           };
