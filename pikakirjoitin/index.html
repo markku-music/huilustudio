@@ -46,6 +46,10 @@
     .modifier-button.active,[aria-pressed="true"].modifier-button{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa40,0 2px 5px #0003}
     .thirtysecond-button{position:absolute;z-index:4;left:58px;display:none;width:54px;height:50px;font:850 13px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap}
     .thirtysecond-button.visible{display:grid}
+    .rest-duration-button{position:absolute;z-index:4;display:none;width:54px;height:50px;font:850 13px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap;pointer-events:none}
+    .rest-duration-button.visible{display:grid}
+    #restSixteenthButton{left:58px}
+    #restThirtysecondButton{left:112px}
     .modifier-button[aria-pressed="true"]{border-color:#9dcbff;background:#2873c5;color:#fff;box-shadow:inset 0 2px 5px #0b3c7355,0 0 0 2px #73b4fa}
     .modifier-drag-handle{width:46px;height:24px;display:grid;place-items:center;padding:0;border:1px solid #687685;border-radius:8px;background:#343b45;color:#cbd5e0;touch-action:none;cursor:ns-resize}
     .modifier-drag-handle:active{background:#465260;color:#fff}
@@ -488,7 +492,9 @@
           <button class="modifier-button" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen nuotti" aria-pressed="false"><img class="modifier-icon" src="assets/dotted-quarter-note.svg" alt="" aria-hidden="true" draggable="false"></button>
           <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti" aria-pressed="false"><img class="modifier-icon" src="assets/double-crochet.svg" alt="" aria-hidden="true" draggable="false"></button>
           <button class="modifier-button thirtysecond-button" id="thirtysecondButton" type="button" data-modifier="thirtysecond" aria-label="Pidä pohjassa: kolmaskymmeneskahtasosanuotti" aria-pressed="false" tabindex="-1">1/32</button>
-          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false"><img class="modifier-icon" src="assets/rest.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko; liu'uta 1/16- tai 1/32-taukoon" aria-pressed="false"><img class="modifier-icon" src="assets/rest.svg" alt="" aria-hidden="true" draggable="false"></button>
+          <button class="modifier-button rest-duration-button" id="restSixteenthButton" type="button" aria-label="Kuudestoistaosatauko" aria-pressed="false" tabindex="-1">1/16</button>
+          <button class="modifier-button rest-duration-button" id="restThirtysecondButton" type="button" aria-label="Kolmaskymmeneskahtasosatauko" aria-pressed="false" tabindex="-1">1/32</button>
           <div class="modifier-divider" aria-hidden="true"></div>
           <button class="modifier-button triplet-button" id="tripletButton" type="button" aria-label="Trioli: seuraavat kolme nuottia" aria-pressed="false">
             <svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">3</text></svg>
@@ -575,7 +581,7 @@
   <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),thirtysecondButton=document.querySelector('#thirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writePasteEndButton=document.querySelector('#writePasteEndButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -1955,10 +1961,13 @@
     function hideThirtysecondButton(){
       thirtysecondButton.classList.remove('visible','active');thirtysecondButton.setAttribute('aria-pressed','false');
     }
+    function hideRestDurationButtons(){
+      for(const button of [restSixteenthButton,restThirtysecondButton]){button.classList.remove('visible','active');button.setAttribute('aria-pressed','false')}
+    }
     function clearModifier(){
       const button=activeModifierButton,pointerId=modifierPointerId;
       if(button){button.classList.remove('active');button.setAttribute('aria-pressed','false');try{if(pointerId!==null&&button.hasPointerCapture(pointerId))button.releasePointerCapture(pointerId)}catch{}}
-      hideThirtysecondButton();modifierPointerId=null;activeModifier=null;activeModifierButton=null;
+      hideThirtysecondButton();hideRestDurationButtons();modifierPointerId=null;activeModifier=null;activeModifierButton=null;
     }
     function startModifier(e){
       const button=e.target.closest('.modifier-button');
@@ -1975,14 +1984,29 @@
       e.preventDefault();e.stopPropagation();
       modifierPointerId=e.pointerId;activeModifier=button.dataset.modifier;activeModifierButton=button;button.setAttribute('aria-pressed','true');
       if(activeModifier==='sixteenth'){thirtysecondButton.style.top=button.offsetTop+'px';thirtysecondButton.classList.add('visible')}
+      if(activeModifier==='rest'){
+        restSixteenthButton.style.top=button.offsetTop+'px';restThirtysecondButton.style.top=button.offsetTop+'px';
+        restSixteenthButton.classList.add('visible');restThirtysecondButton.classList.add('visible');
+      }
       try{button.setPointerCapture(e.pointerId)}catch{}
     }
     function moveModifier(e){
-      if(e.pointerId!==modifierPointerId||activeModifierButton?.dataset.modifier!=='sixteenth')return;
+      if(e.pointerId!==modifierPointerId)return;
+      const source=activeModifierButton?.dataset.modifier;
+      if(source!=='sixteenth'&&source!=='rest')return;
       e.preventDefault();e.stopPropagation();
-      const rect=thirtysecondButton.getBoundingClientRect(),inside=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom;
-      activeModifier=inside?'thirtysecond':'sixteenth';
-      thirtysecondButton.classList.toggle('active',inside);thirtysecondButton.setAttribute('aria-pressed',inside?'true':'false');
+      if(source==='sixteenth'){
+        const rect=thirtysecondButton.getBoundingClientRect(),inside=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom;
+        activeModifier=inside?'thirtysecond':'sixteenth';
+        thirtysecondButton.classList.toggle('active',inside);thirtysecondButton.setAttribute('aria-pressed',inside?'true':'false');
+        return;
+      }
+      const r16=restSixteenthButton.getBoundingClientRect(),r32=restThirtysecondButton.getBoundingClientRect();
+      const in16=e.clientX>=r16.left&&e.clientX<=r16.right&&e.clientY>=r16.top&&e.clientY<=r16.bottom;
+      const in32=e.clientX>=r32.left&&e.clientX<=r32.right&&e.clientY>=r32.top&&e.clientY<=r32.bottom;
+      activeModifier=in32?'rest-thirtysecond':in16?'rest-sixteenth':'rest';
+      restSixteenthButton.classList.toggle('active',in16);restSixteenthButton.setAttribute('aria-pressed',in16?'true':'false');
+      restThirtysecondButton.classList.toggle('active',in32);restThirtysecondButton.setAttribute('aria-pressed',in32?'true':'false');
     }
     function endModifier(e){
       if(e.pointerId!==modifierPointerId)return;
@@ -2042,7 +2066,7 @@
       if(!audio||audio.state!=='running'){status.textContent='Audio: suspended';return}
       if(activeId!==null)return;
       activeId=e.pointerId;activeKey=key;key.classList.add('active');
-      const modifier=activeModifier,duration=modifier==='thirtysecond'?'thirtysecond':modifier==='sixteenth'?'sixteenth':'quarter',dotted=modifier==='dot',rest=modifier==='rest';
+      const modifier=activeModifier,duration=(modifier==='thirtysecond'||modifier==='rest-thirtysecond')?'thirtysecond':(modifier==='sixteenth'||modifier==='rest-sixteenth')?'sixteenth':'quarter',dotted=modifier==='dot',rest=modifier==='rest'||modifier==='rest-sixteenth'||modifier==='rest-thirtysecond';
       noteStartX=e.clientX;noteStartY=e.clientY;noteSwipeThreshold=clamp(keyboardViewport.clientHeight*.12,24,48);noteGestureLocked=duration==='sixteenth'||duration==='thirtysecond';
       try{piano.setPointerCapture(e.pointerId)}catch{}
       const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+currentTranspose(),t=audio.currentTime,editIndex=writeNoteIndex();
