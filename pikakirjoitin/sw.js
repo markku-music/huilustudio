@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.28-32nd-osmd-beamfix3';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.29-copy-paste-end';
 const APP_SHELL = [
   './',
   './index.html',
