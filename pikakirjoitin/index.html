@@ -799,16 +799,7 @@
       const starts=[];let offset=0;for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
       const unit=beamUnit(beats,beatType),connections=[];
       for(let index=0;index<group.length-1;index+=1){
-        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit;
-        const previous=index>0?group[index-1]:null,previousBucket=index>0?Math.floor(starts[index-1]/unit):-1;
-        // Täsmäkorjaus: 1/32 + 1/32 + 1/16 kuuluu samaan palkkiryhmään,
-        // kun koko kuvio on saman iskualueen sisällä. Tämä estää OSMD:tä katkaisemasta
-        // yhteisiä 1. ja 2. palkkeja toisen 1/32:n ja 1/16:n välistä.
-        const leadingThirtysecondPairIntoSixteenth=Boolean(
-          index>0&&previous?.duration==='thirtysecond'&&left?.duration==='thirtysecond'&&right?.duration==='sixteenth'&&
-          previousBucket===leftBucket&&leftBucket===rightBucket&&leftInside&&rightInside
-        );
-        const automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket||leadingThirtysecondPairIntoSixteenth,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
+        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
         connections.push({index,key,left,right,leftCandidate,rightCandidate,automatic,connected});
       }
       return {starts,connections};
@@ -832,13 +823,7 @@
           flushSecondary();
           let tertiary=[];
           const flushTertiary=()=>{
-            if(tertiary.length===1){
-              const noteIndex=tertiary[0],runPosition=run.indexOf(noteIndex),hasPrevious=runPosition>0,hasNext=runPosition>=0&&runPosition<run.length-1;
-              // Yksittäisen 1/32-nuotin kolmas palkki osoittaa ensisijaisesti muun palkkiryhmän sisään.
-              // Jos 1/32 on kahden 1/16/1/8-nuotin välissä, rytminen 1/16-alijako ratkaisee suunnan.
-              const hook=hasNext&&!hasPrevious?'forward hook':hasPrevious&&!hasNext?'backward hook':starts[noteIndex]%2===0?'forward hook':'backward hook';
-              tags[noteIndex].push([3,hook]);
-            }
+            if(tertiary.length===1){const noteIndex=tertiary[0];tags[noteIndex].push([3,starts[noteIndex]%2===0?'forward hook':'backward hook'])}
             else tertiary.forEach((noteIndex,position)=>tags[noteIndex].push([3,position===0?'begin':position===tertiary.length-1?'end':'continue']));
             tertiary=[];
           };
