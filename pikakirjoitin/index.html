@@ -1912,10 +1912,19 @@
       const note=notes[index];if(workMode!=='write'||!note||note.rest||note.measureRest)return false;writeEditNoteId=note.id;positionWriteNoteContext();return true;
     }
     function refreshWriteGeometry(){buildWriteNoteHitboxes();if(selectedNoteIndices.size||writeSelectionActive){selectionHitboxes=writeNoteHitboxes.map(hit=>({...hit}));renderSelectionOverlay()}else syncWritePasteEndButton();if(writeEditNoteId)positionWriteNoteContext()}
+    function keySignatureAlterForStep(step,fifths=projectData?.keySignature??selectedKeyInfo().fifths){
+      const count=Math.abs(Number(fifths)||0),order=Number(fifths)>0?['F','C','G','D','A','E','B']:['B','E','A','D','G','C','F'];
+      return order.slice(0,count).includes(step)?(Number(fifths)>0?1:-1):0;
+    }
     function setWriteNoteAccidental(alter){
       const index=writeNoteIndex(),note=notes[index];if(index<0||!note)return;
-      const value=clamp(Number(alter)||0,-1,1),before={...note},spelling=noteSpellingParts(note,index);
-      note.spellingStep=spelling.step;note.spellingOctave=spelling.octave;note.spellingAlter=value;note.spellingManual=true;note.accidentalStyle=value<0?'flat':value>0?'sharp':'natural';note.midi=midiFromSpelling(spelling.step,spelling.octave,value);
+      const value=clamp(Number(alter)||0,-1,1),before={...note},spelling=noteSpellingParts(note,index),turnOff=Boolean(note.spellingManual)&&Number(spelling.alter)===value;
+      note.spellingStep=spelling.step;note.spellingOctave=spelling.octave;
+      if(turnOff){
+        const defaultAlter=keySignatureAlterForStep(spelling.step);note.spellingAlter=defaultAlter;note.spellingManual=false;delete note.accidentalStyle;note.midi=midiFromSpelling(spelling.step,spelling.octave,defaultAlter);
+      }else{
+        note.spellingAlter=value;note.spellingManual=true;note.accidentalStyle=value<0?'flat':value>0?'sharp':'natural';note.midi=midiFromSpelling(spelling.step,spelling.octave,value);
+      }
       repairTiesAround(index);rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
     }
     function repairTiesAround(index){

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.53-note-buttons';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.54-accidental-toggle';
 const APP_SHELL = [
   './',
   './index.html',
