@@ -2055,6 +2055,59 @@
       const note={id:createEntryId(),midi,duration,dotted,doubleDotted,rest,measureRest:false,tieFromPrevious:consumeTie(midi,rest)};applyPendingTriplet(note);const action={type:'add',note:{...note}};
       notes.push(note);rememberAction(action);renderScore();return {note,action};
     }
+    const spillDurationShapes=[
+      {units:56,duration:'whole',doubleDotted:true},{units:48,duration:'whole',dotted:true},{units:32,duration:'whole'},
+      {units:28,duration:'half',doubleDotted:true},{units:24,duration:'half',dotted:true},{units:16,duration:'half'},
+      {units:14,duration:'quarter',doubleDotted:true},{units:12,duration:'quarter',dotted:true},{units:8,duration:'quarter'},
+      {units:7,duration:'eighth',doubleDotted:true},{units:6,duration:'eighth',dotted:true},{units:4,duration:'eighth'},
+      {units:3.5,duration:'sixteenth',doubleDotted:true},{units:3,duration:'sixteenth',dotted:true},{units:2,duration:'sixteenth'},
+      {units:1.75,duration:'thirtysecond',doubleDotted:true},{units:1.5,duration:'thirtysecond',dotted:true},{units:1,duration:'thirtysecond'}
+    ];
+    function measureStateBeforeNoteIndex(targetIndex){
+      const [beats,beatType]=timeSignatureParts(projectData?.timeSignature||timeSignatureSelect.value),capacity=beats*32/beatType,rawPickup=Number(projectData?.pickupDuration??pickupSelect.value)||0,pickupCapacity=rawPickup>0&&rawPickup<capacity?rawPickup:0;
+      let currentCapacity=pickupCapacity||capacity,used=0,hasEntries=false;
+      for(let index=0;index<targetIndex;index+=1){
+        const note=notes[index];
+        if(note?.measureRest){currentCapacity=capacity;used=0;hasEntries=false;continue}
+        const duration=noteDurationValue(note);
+        if(hasEntries&&used+duration>currentCapacity+1e-7){currentCapacity=capacity;used=0;hasEntries=false}
+        used+=duration;hasEntries=true;
+      }
+      if(hasEntries&&used>=currentCapacity-1e-7){currentCapacity=capacity;used=0;hasEntries=false}
+      return {capacity,currentCapacity,used,hasEntries,remaining:Math.max(0,currentCapacity-used)};
+    }
+    function spillDurationPieces(units){
+      const target=Math.round(Number(units)*4);if(!Number.isFinite(target)||target<=0||Math.abs(target/4-units)>1e-7)return null;
+      const shapes=spillDurationShapes.map(shape=>({...shape,ticks:Math.round(shape.units*4)})).filter(shape=>shape.ticks<=target);
+      const best=Array(target+1).fill(null);best[0]=[];
+      for(let ticks=1;ticks<=target;ticks+=1){
+        for(const shape of shapes){
+          if(shape.ticks>ticks||!best[ticks-shape.ticks])continue;
+          const candidate=[...best[ticks-shape.ticks],shape];
+          if(!best[ticks]||candidate.length<best[ticks].length)best[ticks]=candidate;
+        }
+      }
+      return best[target]?.slice().sort((a,b)=>b.units-a.units).map(({duration,dotted=false,doubleDotted=false})=>({duration,dotted,doubleDotted}))||null;
+    }
+    function splitOverflowingActiveEntry(){
+      if(!activeNote||activeNote.tupletId||activeReplacingExisting||activeNoteAction?.type!=='add')return false;
+      const index=notes.findIndex(note=>note.id===activeNote.id);if(index<0||index!==notes.length-1)return false;
+      const state=measureStateBeforeNoteIndex(index),total=noteDurationValue(activeNote);
+      if(!state.hasEntries||state.remaining<=1e-7||total<=state.remaining+1e-7)return false;
+      let left=total,first=true;const chunks=[];
+      while(left>1e-7){const room=first?state.remaining:state.capacity,amount=Math.min(room,left),pieces=spillDurationPieces(amount);if(!pieces?.length)return false;chunks.push(...pieces);left-=amount;first=false}
+      if(chunks.length<2)return false;
+      const original={...activeNote},fragments=chunks.map((shape,fragmentIndex)=>{
+        const fragment={...original,...shape,id:fragmentIndex===0?original.id:createEntryId(),measureRest:false};
+        if(fragmentIndex>0)fragment.tieFromPrevious=!fragment.rest;
+        else if(fragment.rest)fragment.tieFromPrevious=false;
+        return fragment;
+      });
+      notes.splice(index,1,...fragments);
+      const historyIndex=editHistory.lastIndexOf(activeNoteAction);if(historyIndex>=0)editHistory.splice(historyIndex,1);
+      const action={type:'add-overflow',notes:fragments.map(note=>({...note}))};rememberAction(action);activeNote=fragments[0];activeNoteAction=action;
+      renderScore();return true;
+    }
     function clearLongPress(){
       if(longPressTimer===null)return;
       clearTimeout(longPressTimer);longPressTimer=null;
@@ -2068,7 +2121,7 @@
       const action=editHistory.pop();
       if(!action)return null;
       if(action.type==='add'){const removed=notes.pop();if(removed?.tupletId&&tripletArmed&&removed.tupletId===tripletGroupId){tripletCount=Math.max(0,tripletCount-1);syncTupletButtonState()}}
-      else if(action.type==='add-triplet'||action.type==='add-tuplet'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id))}
+      else if(action.type==='add-triplet'||action.type==='add-tuplet'||action.type==='add-overflow'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id))}
       else if(action.type==='paste-end'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id));slurs=slurs.filter(item=>!ids.has(item.startId)&&!ids.has(item.endId))}
       else if(action.type==='delete'){notes.splice(clamp(action.index,0,notes.length),0,{...action.note});slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}))}
       else if(action.type==='delete-selection')restoreWriteDeleteSnapshot(action.before)
@@ -2080,7 +2133,7 @@
     function redoChange(action){
       if(!action)return;
       if(action.type==='add'){notes.push({...action.note});if(action.note?.tupletId&&tripletArmed&&action.note.tupletId===tripletGroupId)tripletCount=Math.max(tripletCount,(action.note.tupletIndex||0)+1)}
-      else if(action.type==='add-triplet'||action.type==='add-tuplet')notes.push(...(action.notes||[]).map(note=>({...note})));
+      else if(action.type==='add-triplet'||action.type==='add-tuplet'||action.type==='add-overflow')notes.push(...(action.notes||[]).map(note=>({...note})));
       else if(action.type==='paste-end'){notes.push(...(action.notes||[]).map(note=>({...note})));slurs.push(...(action.slurs||[]).map(item=>({...item})))}
       else if(action.type==='delete'){const index=notes.findIndex(note=>note.id===action.note.id);if(index>=0)notes.splice(index,1);pruneEditRanges()}
       else if(action.type==='delete-selection')restoreWriteDeleteSnapshot(action.after)
@@ -2399,7 +2452,7 @@
       if(activeNoteSounds){const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06)}
       activeKey.classList.remove('active');if(activeNoteSounds&&soundingKey)soundingKey.classList.add('sounding-resting');
       try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
-      finalizeActiveTupletEntry();const replaced=activeReplacingExisting,finishedTupletId=completedTupletId;completedTupletId=null;if(finishedTupletId)collapseCompletedTripletHistory(finishedTupletId);activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
+      const tupletOk=finalizeActiveTupletEntry();if(tupletOk)splitOverflowingActiveEntry();const replaced=activeReplacingExisting,finishedTupletId=completedTupletId;completedTupletId=null;if(finishedTupletId)collapseCompletedTripletHistory(finishedTupletId);activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
     }
 
     function syncScrollThumb(){
