@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.57-edit-plus-buttons';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.58-zoom-guard';
 const APP_SHELL = [
   './',
   './index.html',

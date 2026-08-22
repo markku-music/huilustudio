@@ -17,8 +17,9 @@
   <style>
     *{box-sizing:border-box}
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
-    html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
     body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
+    .app{touch-action:manipulation}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
     .app{position:fixed;inset:0;width:100%;height:auto;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
     p{margin:0;color:#586474;font-size:14px}
@@ -46,7 +47,7 @@
     .app[data-work-mode="write"] .score-title,.app[data-work-mode="write"] .score-tempo,.app[data-work-mode="write"] .score-composer{pointer-events:auto;cursor:text;touch-action:manipulation}
     .app[data-work-mode="write"] .score-tempo.header-empty::before{content:"Tempoteksti";opacity:.28}
     .app[data-work-mode="write"] .score-composer.header-empty::before{content:"Säveltäjä";opacity:.28;font-style:italic}
-    .header-inline-editor{position:absolute;z-index:24;margin:0;box-sizing:border-box;border:1.5px solid #2365aa;border-radius:6px;background:#fffffff7;color:#18202a;box-shadow:0 3px 10px #1c273526;outline:none;padding:1px 4px;resize:none;overflow:hidden;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+    .header-inline-editor{position:absolute;z-index:24;margin:0;box-sizing:border-box;border:1.5px solid #2365aa;border-radius:6px;background:#fffffff7;color:#18202a;box-shadow:0 3px 10px #1c273526;outline:none;padding:1px 4px;resize:none;overflow:hidden;-webkit-user-select:text;user-select:text;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%;font-size:16px}
     .header-title-handle{left:0}
     .header-tempo-handle{left:6px}
     .header-composer-handle{right:6px}
@@ -1226,7 +1227,7 @@
     function finishHeaderInlineEdit(commit=true){
       const state=activeHeaderEditor;if(!state)return;
       activeHeaderEditor=null;
-      const {editor,element,info}=state;
+      const {editor,element,info,scoreScrollTop,scoreScrollLeft}=state;
       const value=commit?editor.value.trim():info.value;
       editor.remove();element.style.visibility='';
       if(commit&&projectData){
@@ -1237,6 +1238,8 @@
         invalidatePublishFiles();
       }
       syncHeaderTextPresentation();applyHeaderPositions();
+      score.scrollTop=scoreScrollTop;score.scrollLeft=scoreScrollLeft;keepOuterViewportFixed();
+      requestAnimationFrame(()=>{score.scrollTop=scoreScrollTop;score.scrollLeft=scoreScrollLeft;keepOuterViewportFixed();});
     }
     function startHeaderInlineEdit(e){
       if(workMode!=='write'||!projectData)return;
@@ -1249,9 +1252,9 @@
       const editor=document.createElement(isTitle?'textarea':'input');
       editor.className='header-inline-editor';editor.value=info.value;editor.placeholder=info.placeholder;
       editor.setAttribute('aria-label',info.placeholder);editor.autocomplete='off';editor.spellcheck=true;
-      const left=(rect.left-pageRect.left)/scale,top=(rect.top-pageRect.top)/scale,width=rect.width/scale,height=Math.max(rect.height/scale,isTitle?46:28);
-      Object.assign(editor.style,{left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`,fontFamily:style.fontFamily,fontSize:style.fontSize,fontWeight:style.fontWeight,fontStyle:style.fontStyle,lineHeight:style.lineHeight,letterSpacing:style.letterSpacing,textAlign:style.textAlign,color:style.color});
-      scorePage.appendChild(editor);element.style.visibility='hidden';activeHeaderEditor={editor,element,info};
+      const left=(rect.left-pageRect.left)/scale,top=(rect.top-pageRect.top)/scale,width=rect.width/scale,height=Math.max(rect.height/scale,isTitle?46:28),sourceFontSize=Number.parseFloat(style.fontSize)||16,editorFontSize=Math.max(16,sourceFontSize),scoreScrollTop=score.scrollTop,scoreScrollLeft=score.scrollLeft,frozenScale=scorePageScale||scale;
+      Object.assign(editor.style,{left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`,fontFamily:style.fontFamily,fontSize:`${editorFontSize}px`,fontWeight:style.fontWeight,fontStyle:style.fontStyle,lineHeight:style.lineHeight,letterSpacing:style.letterSpacing,textAlign:style.textAlign,color:style.color});
+      scorePage.appendChild(editor);element.style.visibility='hidden';activeHeaderEditor={editor,element,info,scoreScrollTop,scoreScrollLeft,frozenScale};
       editor.addEventListener('pointerdown',event=>event.stopPropagation());
       editor.addEventListener('keydown',event=>{
         if(event.key==='Escape'){event.preventDefault();finishHeaderInlineEdit(false);return}
@@ -1260,6 +1263,8 @@
       editor.addEventListener('blur',()=>{if(activeHeaderEditor?.editor===editor)finishHeaderInlineEdit(true)});
       editor.focus({preventScroll:true});
       editor.setSelectionRange?.(editor.value.length,editor.value.length);
+      const restoreHeaderEditViewport=()=>{if(activeHeaderEditor?.editor!==editor)return;score.scrollTop=scoreScrollTop;score.scrollLeft=scoreScrollLeft;keepOuterViewportFixed();};
+      restoreHeaderEditViewport();requestAnimationFrame(restoreHeaderEditViewport);setTimeout(restoreHeaderEditViewport,80);
     }
     function startHeaderDrag(e){
       if(workMode!=='edit'||!projectData)return;
@@ -1286,7 +1291,7 @@
       const {handle,key,startOffset}=headerDrag;ensureHeaderPositions()[key]=startOffset;applyHeaderPositions();handle.classList.remove('dragging');try{handle.releasePointerCapture?.(e.pointerId)}catch{}headerDrag=null;
     }
     function updateScorePagePreview(){
-      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);scorePageScale=scale;
+      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,computedScale=clamp(Math.min(widthScale,heightScale),.42,1.28),scale=activeHeaderEditor?.frozenScale||computedScale,contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);scorePageScale=scale;
       scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';if(writeEditNoteId)requestAnimationFrame(positionWriteNoteContext);
     }
     function closeKeyboardForWorkMode(){
