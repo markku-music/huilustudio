@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.55-accidental-state';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.56-selection-actions';
 const APP_SHELL = [
   './',
   './index.html',

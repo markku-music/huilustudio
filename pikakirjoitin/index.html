@@ -3006,9 +3006,11 @@
     barlineChoiceButtons.forEach(button=>button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();applyBarlineStyle(button.dataset.barlineStyle)}));
     stretchLastLineButton.addEventListener('click',toggleStretchLastLine);
     writePasteEndButton.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()},{passive:false});
-    writePasteEndButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();pasteSelectionToEnd();syncWritePasteEndButton()});
+    writePasteEndButton.addEventListener('pointerup',event=>{event.preventDefault();event.stopPropagation();pasteSelectionToEnd();syncWritePasteEndButton()},{passive:false});
+    writePasteEndButton.addEventListener('click',event=>{if(event.detail!==0)return;event.preventDefault();event.stopPropagation();pasteSelectionToEnd();syncWritePasteEndButton()});
     writeSelectionDeleteButton.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()},{passive:false});
-    writeSelectionDeleteButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();deleteWriteSelection()});
+    writeSelectionDeleteButton.addEventListener('pointerup',event=>{event.preventDefault();event.stopPropagation();deleteWriteSelection()},{passive:false});
+    writeSelectionDeleteButton.addEventListener('click',event=>{if(event.detail!==0)return;event.preventDefault();event.stopPropagation();deleteWriteSelection()});
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
