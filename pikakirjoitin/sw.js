@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.39-tie-overflow';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.40-thumb-guide';
 const APP_SHELL = [
   './',
   './index.html',

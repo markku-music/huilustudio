@@ -317,6 +317,39 @@
     @media (max-width:900px){.publish-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.publish-grid-three .publish-card:first-child{width:calc(50% - 6px)}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:16px}.publish-title{font-size:28px}.publish-card{min-height:188px;padding:18px 14px;gap:10px}.publish-card-icon{width:72px;height:72px}.publish-card-icon svg{width:40px;height:40px}.publish-card-title{font-size:20px}.publish-card-desc{font-size:13px}}
     @media (max-width:560px){.publish-grid{grid-template-columns:1fr}.publish-grid-three .publish-card:first-child{grid-column:auto;width:100%}.publish-header{flex-direction:column;gap:10px}.publish-card{min-height:174px;padding:18px}.publish-card-title{font-size:20px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
+    /* Peukalopalkin ohjekuvatila: index.html?peukalopalkki=ohje */
+    body.thumb-guide-mode{position:fixed;inset:0;overflow:hidden;background:#eef1f5}
+    body.thumb-guide-mode .orientation-blocker,
+    body.thumb-guide-mode .project-modal,
+    body.thumb-guide-mode .mode-tabs,
+    body.thumb-guide-mode .keyboard-panel,
+    body.thumb-guide-mode .edit-rail,
+    body.thumb-guide-mode .note-size-panel,
+    body.thumb-guide-mode .selection-toolbar,
+    body.thumb-guide-mode .write-note-context,
+    body.thumb-guide-mode .write-note-highlight,
+    body.thumb-guide-mode .write-paste-end-button,
+    body.thumb-guide-mode .write-selection-actions,
+    body.thumb-guide-mode .system-break-markers,
+    body.thumb-guide-mode .system-break-candidate-marker,
+    body.thumb-guide-mode .system-break-candidate-svg,
+    body.thumb-guide-mode .barline-edit-markers,
+    body.thumb-guide-mode .beam-edit-markers,
+    body.thumb-guide-mode .barline-palette,
+    body.thumb-guide-mode .ending-range-preview-layer,
+    body.thumb-guide-mode .note-selection-layer,
+    body.thumb-guide-mode .tuplet-warning,
+    body.thumb-guide-mode .publish-screen,
+    body.thumb-guide-mode #status{display:none!important}
+    body.thumb-guide-mode .app{display:block!important;position:fixed;inset:0;width:100%;height:100%;padding:0;overflow:visible;background:#eef1f5}
+    body.thumb-guide-mode .workspace{display:block!important;position:fixed;inset:0;overflow:visible}
+    body.thumb-guide-mode .score-area{display:block!important;position:fixed;inset:0;padding:0;overflow:visible}
+    body.thumb-guide-mode .score{display:none!important}
+    body.thumb-guide-mode .modifier-rail{position:absolute;top:18px!important;left:18px!important;transform:none!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;transition:none!important}
+    body.thumb-guide-mode .double-dot-button,
+    body.thumb-guide-mode .thirtysecond-button,
+    body.thumb-guide-mode .rest-duration-button,
+    body.thumb-guide-mode .tuplet-choice-button{display:grid!important;visibility:visible!important;opacity:1!important}
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
@@ -2621,12 +2654,33 @@
       window.location.reload();
     }
 
+    function activateThumbGuideMode(){
+      const params=new URLSearchParams(window.location.search);
+      if(params.get('peukalopalkki')!=='ohje')return false;
+      document.body.classList.add('thumb-guide-mode');
+      projectModal.hidden=true;
+      app.inert=false;app.removeAttribute('aria-hidden');
+      modifierRail.setAttribute('aria-hidden','false');
+      const dotButton=modifierRail.querySelector('[data-modifier="dot"]');
+      const sixteenthMain=modifierRail.querySelector('[data-modifier="sixteenth"]');
+      const restMain=modifierRail.querySelector('[data-modifier="rest"]');
+      const place=(button,source)=>{if(button&&source){button.style.top=source.offsetTop+'px';button.classList.add('visible');button.setAttribute('aria-hidden','false')}};
+      place(doubleDotButton,dotButton);
+      place(thirtysecondButton,sixteenthMain);
+      place(restSixteenthButton,restMain);
+      place(restThirtysecondButton,restMain);
+      place(quintupletButton,tripletButton);
+      place(sextupletButton,tripletButton);
+      return true;
+    }
+
     restoreNotationSettings();restoreThemePreference();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
     buildKeyboard();
     applyNotationSettings();
     syncWorkModeUI();
     syncSelectionToolbar();
-    requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls()});
+    const thumbGuideMode=activateThumbGuideMode();
+    requestAnimationFrame(()=>{if(!thumbGuideMode)positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls();if(thumbGuideMode)activateThumbGuideMode()});
     newProjectButton.addEventListener('click',startNewProject);
     newProjectStartButton.addEventListener('click',focusNewProjectStart);
     openProjectButton.addEventListener('click',chooseProjectFile);
