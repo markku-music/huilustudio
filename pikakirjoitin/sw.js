@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.34-tuplet-beaming-slur';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.36-sextuplet-min-one-beam';
 const APP_SHELL = [
   './',
   './index.html',
