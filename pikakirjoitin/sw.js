@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.32-open-project-common-cut-time';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.32-theme-tuplets-double-dot';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,6 +14,12 @@ const APP_SHELL = [
   './assets/clef-treble.svg',
   './assets/dotted-quarter-note.svg',
   './assets/double-crochet.svg',
+  './assets/1_4_dot.svg',
+  './assets/1_4_double_dot.svg',
+  './assets/1_16_note.svg',
+  './assets/1_16_rest.svg',
+  './assets/1_32_note.svg',
+  './assets/1_32_rest.svg',
   './assets/ending-1.svg',
   './assets/ending-2.svg',
   './assets/pickup-dotted-half.svg',
