@@ -1903,7 +1903,7 @@
     function positionWriteNoteContext(){
       const index=writeNoteIndex(),hit=writeNoteHitboxes.find(box=>box.entryIndex===index);if(workMode!=='write'||index<0||!hit){clearWriteNoteEdit();return}
       writeEditHighlight?.remove();const highlight=document.createElement('div');highlight.className='write-note-highlight';highlight.style.left=`${hit.left}px`;highlight.style.top=`${hit.top}px`;highlight.style.width=`${hit.width}px`;highlight.style.height=`${hit.height}px`;scorePage.appendChild(highlight);writeEditHighlight=highlight;highlight.addEventListener('pointerdown',startWritePitchDrag,{passive:false});highlight.addEventListener('pointermove',moveWritePitchDrag,{passive:false});highlight.addEventListener('pointerup',e=>endWritePitchDrag(e,false),{passive:false});highlight.addEventListener('pointercancel',e=>endWritePitchDrag(e,true),{passive:false});
-      const note=notes[index],spelling=noteSpellingParts(note,index);writeNoteAccidentalButtons.forEach(button=>button.setAttribute('aria-pressed',String(note.spellingManual&&Number(button.dataset.alter)===Number(spelling.alter))));
+      const note=notes[index],spelling=noteSpellingParts(note,index),activeAlter=currentWriteNoteAccidental(note,index,spelling);writeNoteAccidentalButtons.forEach(button=>button.setAttribute('aria-pressed',String(activeAlter!==null&&Number(button.dataset.alter)===Number(activeAlter))));
       writeNoteContext.hidden=false;const scale=scorePageScale||1,shellLeft=scorePageShell.offsetLeft,shellTop=scorePageShell.offsetTop,toolbarWidth=writeNoteContext.offsetWidth||204,toolbarHeight=writeNoteContext.offsetHeight||52,scoreHeight=Math.max(score.clientHeight,score.scrollHeight);
       let left=shellLeft+(hit.left+hit.width/2)*scale-toolbarWidth/2,top=shellTop+hit.top*scale-toolbarHeight-7;
       if(top<score.scrollTop+6)top=shellTop+hit.bottom*scale+7;left=clamp(left,score.scrollLeft+6,score.scrollLeft+score.clientWidth-toolbarWidth-6);top=clamp(top,score.scrollTop+6,Math.max(score.scrollTop+6,scoreHeight-toolbarHeight-6));writeNoteContext.style.left=`${left}px`;writeNoteContext.style.top=`${top}px`;
@@ -1916,9 +1916,15 @@
       const count=Math.abs(Number(fifths)||0),order=Number(fifths)>0?['F','C','G','D','A','E','B']:['B','E','A','D','G','C','F'];
       return order.slice(0,count).includes(step)?(Number(fifths)>0?1:-1):0;
     }
+    function currentWriteNoteAccidental(note,index,spelling=noteSpellingParts(note,index)){
+      if(!note||note.rest||note.measureRest)return null;
+      const alter=Number(spelling.alter)||0,defaultAlter=keySignatureAlterForStep(spelling.step);
+      if(note.spellingManual)return alter;
+      return alter!==defaultAlter?alter:null;
+    }
     function setWriteNoteAccidental(alter){
       const index=writeNoteIndex(),note=notes[index];if(index<0||!note)return;
-      const value=clamp(Number(alter)||0,-1,1),before={...note},spelling=noteSpellingParts(note,index),turnOff=Boolean(note.spellingManual)&&Number(spelling.alter)===value;
+      const value=clamp(Number(alter)||0,-1,1),before={...note},spelling=noteSpellingParts(note,index),activeAlter=currentWriteNoteAccidental(note,index,spelling),turnOff=activeAlter!==null&&Number(activeAlter)===value;
       note.spellingStep=spelling.step;note.spellingOctave=spelling.octave;
       if(turnOff){
         const defaultAlter=keySignatureAlterForStep(spelling.step);note.spellingAlter=defaultAlter;note.spellingManual=false;delete note.accidentalStyle;note.midi=midiFromSpelling(spelling.step,spelling.octave,defaultAlter);
