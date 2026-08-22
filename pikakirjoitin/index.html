@@ -217,6 +217,11 @@
     .project-modal{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));background:#17202bd9;overflow:auto}
     .project-modal[hidden]{display:none}
     .project-card{width:min(660px,100%);max-height:100%;overflow:auto;padding:clamp(20px,4vw,32px);border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
+    .project-start-actions{display:flex;gap:8px;margin:0 0 14px}
+    .project-start-action{flex:1;min-height:38px;padding:7px 12px;border:1px solid #aebbc9;border-radius:9px;background:#fff;color:#263342;font-size:12px;font-weight:850;letter-spacing:.03em;touch-action:manipulation;cursor:pointer}
+    .project-start-action[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
+    .project-start-action:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
+    .project-file-input{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none}
     .project-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .field{display:grid}
     .field.wide{grid-column:1/-1}
@@ -257,6 +262,8 @@
     .meter-wheel-card::before{content:'';position:absolute;left:50%;top:50%;width:68%;height:68%;border:1px solid #c8d3df;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
     .meter-wheel-close{position:absolute;z-index:7;top:50%;left:50%;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #c4cfdb;border-radius:50%;background:#fff;color:#4e5c6c;font-size:20px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 2px 6px #1c27351c;cursor:pointer}
     .meter-wheel-slot{position:absolute;z-index:3;width:58px;height:58px;display:grid;place-items:center;padding:0;border:1px solid #aebbc9;border-radius:50%;background:#fff;color:#263342;box-shadow:0 2px 5px #1c27351f;font-size:12px;font-weight:850;line-height:1;transform:translate(-50%,-50%);touch-action:manipulation;cursor:pointer}
+    .cut-time-symbol{position:relative;display:inline-grid;place-items:center;min-width:.8em;font-family:Georgia,"Times New Roman",serif;font-size:1.35em;font-weight:700;line-height:1}
+    .cut-time-symbol::after{content:'';position:absolute;left:50%;top:-.08em;bottom:-.08em;width:1.5px;background:currentColor;transform:translateX(-50%)}
     .meter-wheel-slot[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa55,0 2px 6px #1c27352b}
     .meter-wheel-slot:focus-visible,.meter-wheel-close:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .pickup-control{grid-column:1/-1;min-height:48px;display:flex;align-items:center;gap:10px;min-width:0}
@@ -326,6 +333,11 @@
 
   <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
     <form class="project-card" id="projectForm">
+      <div class="project-start-actions" role="group" aria-label="Projektin aloitustapa">
+        <button class="project-start-action" id="newProjectStartButton" type="button" aria-pressed="true">UUSI NUOTTI</button>
+        <button class="project-start-action" id="openProjectButton" type="button" aria-pressed="false">AVAA PROJEKTI</button>
+      </div>
+      <input class="project-file-input" id="projectFileInput" type="file" accept=".pikakirjoitin,application/json" tabindex="-1" aria-hidden="true">
       <div class="project-grid">
         <label class="field wide" for="titleInput">
           <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
@@ -377,7 +389,9 @@
             <option value="2/4">2/4</option>
             <option value="3/4">3/4</option>
             <option value="4/4" selected>4/4</option>
+            <option value="C">C</option>
             <option value="2/2">2/2</option>
+            <option value="cutC">Cut C</option>
             <option value="3/8">3/8</option>
             <option value="6/8">6/8</option>
             <option value="9/8">9/8</option>
@@ -581,7 +595,7 @@
   <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writePasteEndButton=document.querySelector('#writePasteEndButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -679,17 +693,30 @@
     }
     function keyWheelBackdrop(e){if(e.target===keyWheelPopover)closeKeyWheel()}
     function keyWheelKey(e){if(e.key==='Escape'&&!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}}
-    const meterWheelData=['2/4','3/4','4/4','2/2','3/8','6/8','9/8','12/8'];
+    const meterWheelData=['2/4','3/4','4/4','C','2/2','cutC','3/8','6/8','9/8','12/8'];
+    function timeSignatureParts(value=timeSignatureSelect.value){
+      if(value==='C')return [4,4];
+      if(value==='cutC')return [2,2];
+      const [beats,beatType]=String(value||'4/4').split('/').map(Number);
+      return [Number.isFinite(beats)&&beats>0?beats:4,Number.isFinite(beatType)&&beatType>0?beatType:4];
+    }
+    function timeSignatureSymbolAttribute(value){return value==='C'?' symbol="common"':value==='cutC'?' symbol="cut"':''}
+    function meterAriaLabel(value){return value==='C'?'C-tahtiosoitus, 4/4':value==='cutC'?'Cut C -tahtiosoitus, 2/2':`Tahtiosoitus ${value}`}
+    function renderMeterLabel(element,value){
+      element.replaceChildren();
+      if(value==='cutC'){const symbol=document.createElement('span');symbol.className='cut-time-symbol';symbol.textContent='C';element.appendChild(symbol);return}
+      element.textContent=value==='C'?'C':value;
+    }
     function syncMeterPicker(){
       const value=timeSignatureSelect.value||'4/4';
-      meterTriggerValue.textContent=value;
+      renderMeterLabel(meterTriggerValue,value);
       meterWheelSlots.querySelectorAll('.meter-wheel-slot').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.meter===value)));
     }
     function buildMeterWheel(){
       meterWheelSlots.replaceChildren();
       meterWheelData.forEach((value,index)=>{
-        const angle=(index*45-90)*Math.PI/180,button=document.createElement('button');
-        button.type='button';button.className='meter-wheel-slot';button.dataset.meter=value;button.textContent=value;button.setAttribute('aria-label',`Tahtiosoitus ${value}`);button.setAttribute('aria-pressed','false');
+        const angle=(index*(360/meterWheelData.length)-90)*Math.PI/180,button=document.createElement('button');
+        button.type='button';button.className='meter-wheel-slot';button.dataset.meter=value;renderMeterLabel(button,value);button.setAttribute('aria-label',meterAriaLabel(value));button.setAttribute('aria-pressed','false');
         button.style.left=`${50+Math.cos(angle)*37}%`;button.style.top=`${50+Math.sin(angle)*37}%`;meterWheelSlots.appendChild(button);
       });
       syncMeterPicker();
@@ -713,7 +740,7 @@
       if(!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}
     }
     function timeSignatureCapacity(value=timeSignatureSelect.value){
-      const [beats,beatType]=String(value||'4/4').split('/').map(Number);
+      const [beats,beatType]=timeSignatureParts(value);
       return beats*32/beatType;
     }
     function gcd(a,b){while(b){[a,b]=[b,a%b]}return Math.abs(a)||1}
@@ -724,7 +751,9 @@
       '2/4':[4,8,12],
       '3/4':[4,8,12,16],
       '4/4':[4,8,12,16,24],
+      'C':[4,8,12,16,24],
       '2/2':[8,12,16,24],
+      'cutC':[8,12,16,24],
       '3/8':[4,8],
       '6/8':[4,8,12],
       '9/8':[4,8,12,24],
@@ -851,7 +880,7 @@
       return tags.map(beams=>beams.map(([number,value])=>`<beam number="${number}">${value}</beam>`).join(''));
     }
     function measureData(){
-      const [beats,beatType]=(projectData?.timeSignature||timeSignatureSelect.value).split('/').map(Number),capacity=beats*32/beatType,rawPickup=Number(projectData?.pickupDuration??pickupSelect.value)||0,pickupCapacity=rawPickup>0&&rawPickup<capacity?rawPickup:0,groups=[[]],groupCapacities=[pickupCapacity||capacity];
+      const [beats,beatType]=timeSignatureParts(projectData?.timeSignature||timeSignatureSelect.value),capacity=beats*32/beatType,rawPickup=Number(projectData?.pickupDuration??pickupSelect.value)||0,pickupCapacity=rawPickup>0&&rawPickup<capacity?rawPickup:0,groups=[[]],groupCapacities=[pickupCapacity||capacity];
       let used=0;
       const pushGroup=()=>{groups.push([]);groupCapacities.push(capacity);used=0};
       for(const note of notes){
@@ -917,7 +946,7 @@
       [...barlineStyles.keys()].forEach(boundary=>{if(boundary<0||boundary>totalMeasures)barlineStyles.delete(boundary)});
       pruneEndings(totalMeasures);
       const measures=groups.map((group,index)=>{
-        const attributes=index===0?`<attributes><divisions>24</divisions><key><fifths>${data.keySignature}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
+        const attributes=index===0?`<attributes><divisions>24</divisions><key><fifths>${data.keySignature}</fifths></key><time${timeSignatureSymbolAttribute(data.timeSignature)}><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
         const beamTags=measureBeamTags(group,beats,beatType,{osmdCompatible:forRender}),entries=group.length?group.map((note,noteIndex)=>{
           const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='thirtysecond'?'32nd':note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*3):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest&&note.dotted?'<dot/>':'',timeModification=note.tupletId?'<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>':'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
@@ -1067,6 +1096,43 @@
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
     function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
+    function nextIdFromItems(items,prefix){
+      let maximum=0;
+      for(const item of items||[]){const raw=prefix==='tuplet'?item?.tupletId:item?.id,match=String(raw||'').match(new RegExp(`^${prefix}-(\\d+)$`));if(match)maximum=Math.max(maximum,Number(match[1])||0)}
+      return maximum+1;
+    }
+    function projectKeyOption(data){
+      return [...keySignatureSelect.options].find(option=>+option.value===+(data?.keySignature??0)&&(option.dataset.mode||'major')===(data?.keyMode||'major')&&(option.dataset.tonic||'C')===(data?.keyTonic||'C'))||[...keySignatureSelect.options].find(option=>+option.value===+(data?.keySignature??0));
+    }
+    async function loadProjectFile(file){
+      if(!file)return;
+      let payload;
+      try{payload=JSON.parse(await file.text())}catch{throw new Error('Projektitiedostoa ei voitu lukea.')}
+      if(payload?.format!=='pikakirjoitin-project'||!payload.projectData||!Array.isArray(payload.notes))throw new Error('Tiedosto ei ole Pikakirjoitin-projekti.');
+      closeKeyboardForWorkMode();setTieArmed(false);setTripletArmed(false);clearWriteNoteEdit();
+      const notation=payload.notation||{},loadedProject={...payload.projectData};
+      const tuning=notation.tuning||loadedProject.tuning||'C';tuningSelect.value=Object.hasOwn(tuningTransposes,tuning)?tuning:'C';
+      const clef=notation.clef||loadedProject.clef||'treble';clefSelect.value=Object.hasOwn(clefKeyboardStarts,clef)?clef:'treble';
+      const keyOption=projectKeyOption(loadedProject);if(keyOption)keySignatureSelect.selectedIndex=keyOption.index;
+      const meter=notation.timeSignature||loadedProject.timeSignature||'4/4';timeSignatureSelect.value=[...timeSignatureSelect.options].some(option=>option.value===meter)?meter:'4/4';
+      pickupSelect.value=String(Number(notation.pickupDuration??loadedProject.pickupDuration)||0);syncPickupOptions();
+      projectData={...loadedProject,tuning:tuningSelect.value,clef:clefSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,transpose:tuningTransposes[tuningSelect.value]||0};
+      const keyInfo=selectedKeyInfo();projectData.keySignature=keyInfo.fifths;projectData.keyMode=keyInfo.mode;projectData.keyTonic=keyInfo.tonic;projectData.keySignatureName=selectedText(keySignatureSelect);
+      notes=payload.notes.map(note=>({...note}));slurs=Array.isArray(payload.slurs)?payload.slurs.map(item=>({...item})):[];hairpins=Array.isArray(payload.hairpins)?payload.hairpins.map(item=>({...item})):[];endings=Array.isArray(payload.endings)?payload.endings.map(item=>({...item})):[];
+      systemBreaks=new Set(Array.isArray(payload.systemBreaks)?payload.systemBreaks:[]);barlineStyles=new Map(Array.isArray(payload.barlineStyles)?payload.barlineStyles:[]);beamOverrides=new Map(Array.isArray(payload.beamOverrides)?payload.beamOverrides:[]);
+      staffTopValue=clamp(Number(payload.staffTopValue)||STAFF_TOP_DEFAULT,STAFF_TOP_MIN,STAFF_TOP_MAX);lineSpacingValue=clamp(Number(payload.lineSpacingValue)||5,LINE_SPACING_MIN,LINE_SPACING_MAX);noteSizePercent=clamp(Number(payload.noteSizePercent??notation.noteSizePercent)||NOTE_SIZE_DEFAULT,NOTE_SIZE_MIN,NOTE_SIZE_MAX);stretchLastLine=Boolean(payload.stretchLastLine);
+      nextEntryId=nextIdFromItems(notes,'entry');nextTupletId=nextIdFromItems(notes,'tuplet');ensureEntryIds();pruneEditRanges();
+      editHistory=[];scoreUndoneAction=null;selectedNoteIndices.clear();selectionClipboard=null;workMode='write';
+      titleInput.value=projectData.title||'';composerInput.value=projectData.composer||'';tempoInput.value=projectData.tempoText||'';
+      scoreTitle.textContent=projectData.title||'Nimetön kappale';scoreTempo.textContent=projectData.tempoText||'';scoreTempo.hidden=!scoreTempo.textContent;scoreComposer.textContent=projectData.composer||'';scoreComposer.hidden=!scoreComposer.textContent;
+      syncNotationChoices();syncKeyPicker();syncMeterPicker();syncPickupButtons();buildKeyboard();applyNotationSettings();syncWorkModeUI();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls();
+      projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');await renderScore();requestAnimationFrame(()=>{updateScorePagePreview();score.focus()});statusMessage(`Projekti avattu: ${projectData.title||file.name}`);
+    }
+    function chooseProjectFile(e){e?.preventDefault();projectFileInput.value='';projectFileInput.click()}
+    async function projectFileChosen(){
+      const file=projectFileInput.files?.[0];if(!file)return;
+      try{await loadProjectFile(file)}catch(error){console.error(error);statusMessage(error?.message||'Projektin avaaminen epäonnistui.');window.alert(error?.message||'Projektin avaaminen epäonnistui.')}finally{projectFileInput.value=''}
+    }
 
     async function renderScore(){
       invalidatePublishFiles();
@@ -1876,6 +1942,7 @@
     function showProjectModal(){
       syncNotationChoices();syncKeyPicker();syncMeterPicker();projectSaveButton.hidden=false;projectSaveButton.textContent='TALLENNA';projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
     }
+    function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
     function editProjectFromTitle(e){
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
       if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
@@ -2275,6 +2342,9 @@
     syncSelectionToolbar();
     requestAnimationFrame(()=>{positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls()});
     newProjectButton.addEventListener('click',startNewProject);
+    newProjectStartButton.addEventListener('click',focusNewProjectStart);
+    openProjectButton.addEventListener('click',chooseProjectFile);
+    projectFileInput.addEventListener('change',projectFileChosen);
     modeTabs.addEventListener('pointerup',activateWorkMode);
     modeTabs.addEventListener('keydown',activateWorkMode);
     tuningChoices.addEventListener('click',chooseNotationSetting);

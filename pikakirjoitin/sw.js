@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.31-short-rest-branch';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.32-open-project-common-cut-time';
 const APP_SHELL = [
   './',
   './index.html',
