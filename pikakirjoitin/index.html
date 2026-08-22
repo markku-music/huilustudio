@@ -43,7 +43,7 @@
     .header-drag-handle{position:absolute;z-index:18;width:40px;height:40px;display:none;place-items:center;padding:0;border:1px solid #b7c5d4;border-radius:12px;background:#fffffff0;color:#53677d;box-shadow:0 3px 10px #1c273526;font:700 21px/1 system-ui,-apple-system,sans-serif;touch-action:none;-webkit-touch-callout:none;user-select:none;cursor:ns-resize}
     .header-drag-handle:active,.header-drag-handle.dragging{border-color:#2365aa;background:#e9f3ff;color:#174d83;box-shadow:0 4px 12px #1c273533,inset 0 0 0 1px #2365aa44}
     .header-drag-handle[hidden]{display:none!important}
-    .header-title-handle{right:10px}
+    .header-title-handle{left:0}
     .header-tempo-handle{left:6px}
     .header-composer-handle{right:6px}
     #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
@@ -1168,9 +1168,15 @@
       projectData.headerPositions=normalizedHeaderPositions(projectData.headerPositions);
       return projectData.headerPositions;
     }
+    function titleTextRightOnPage(){
+      const range=document.createRange();range.selectNodeContents(scoreTitle);
+      const textRect=range.getBoundingClientRect(),pageRect=scorePage.getBoundingClientRect(),scale=scorePageScale||1;
+      return (textRect.right-pageRect.left)/scale;
+    }
     function syncHeaderDragHandles(){
-      const positions=normalizedHeaderPositions();
+      const positions=normalizedHeaderPositions(),titleRight=titleTextRightOnPage();
       titleDragHandle.style.top=`${HEADER_BASE_Y.title+positions.title+1}px`;
+      titleDragHandle.style.left=`${clamp(titleRight+8,8,A4_WIDTH-48)}px`;
       tempoDragHandle.style.top=`${HEADER_BASE_Y.tempo+positions.tempo-10}px`;
       composerDragHandle.style.top=`${HEADER_BASE_Y.composer+positions.composer-10}px`;
       tempoDragHandle.hidden=scoreTempo.hidden;composerDragHandle.hidden=scoreComposer.hidden;
