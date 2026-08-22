@@ -2033,8 +2033,9 @@
         const markerX=state.connected?midX:noteMidX,markerY=state.connected?(midY+(beamSide==='down'?10:-10)):noteMidY;
         const editableConnected=state.minimumLevel>0?state.fullConnected:state.connected;
         marker.type='button';marker.className=`beam-edit-marker${editableConnected?' is-connected':''}`;marker.dataset.beamAction=editableConnected?'cut':'glue';marker.dataset.beamSide=beamSide;marker.style.left=`${markerX}px`;marker.style.top=`${markerY}px`;marker.style.transform='translate(-50%,-50%)';marker.setAttribute('aria-label',editableConnected?'Katkaise palkki tästä':'Yhdistä palkki tästä');marker.title=editableConnected?'Katkaise palkki':'Yhdistä palkki';
-        marker.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()});
-        marker.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();toggleBeamConnection(state)});layer.appendChild(marker);
+        marker.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()},{passive:false});
+        marker.addEventListener('pointerup',event=>{event.preventDefault();event.stopPropagation();toggleBeamConnection(state)},{passive:false});
+        marker.addEventListener('click',event=>{if(event.detail!==0)return;event.preventDefault();event.stopPropagation();toggleBeamConnection(state)});layer.appendChild(marker);
       });
       osmdContainer.appendChild(layer);
     }
@@ -2203,8 +2204,14 @@
         const maximumLeft=Math.max(4,osmdContainer.scrollWidth-40);
         marker.style.left=`${clamp(left-markerOffset,4,maximumLeft)}px`;
         marker.style.top=`${Math.max(4,top-(candidate?40:34))}px`;
-        marker.addEventListener('pointerdown',event=>event.stopPropagation());
+        marker.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation()},{passive:false});
+        marker.addEventListener('pointerup',event=>{
+          event.preventDefault();
+          event.stopPropagation();
+          if(candidate)placeSystemBreakAfter(measureIndex);else removeSystemBreakAfter(measureIndex);
+        },{passive:false});
         marker.addEventListener('click',event=>{
+          if(event.detail!==0)return;
           event.preventDefault();
           event.stopPropagation();
           if(candidate)placeSystemBreakAfter(measureIndex);else removeSystemBreakAfter(measureIndex);
@@ -3012,7 +3019,7 @@
     writeSelectionDeleteButton.addEventListener('pointerup',event=>{event.preventDefault();event.stopPropagation();deleteWriteSelection()},{passive:false});
     writeSelectionDeleteButton.addEventListener('click',event=>{if(event.detail!==0)return;event.preventDefault();event.stopPropagation();deleteWriteSelection()});
     osmdContainer.addEventListener('pointerdown',e=>{
-      if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
+      if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
       e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
