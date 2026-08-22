@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.42-tahtilaji-svg';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.46-fraunces-source-sans';
 const APP_SHELL = [
   './',
   './index.html',

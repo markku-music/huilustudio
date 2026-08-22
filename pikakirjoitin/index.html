@@ -9,6 +9,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;1,500&family=Source+Sans+3:wght@400&display=swap" rel="stylesheet">
   <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
   <title>Pikakirjoitin</title>
   <style>
@@ -33,10 +36,10 @@
     .score:focus-visible{outline:none}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538;outline:none;border:none}
-    .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-size:25px;font-weight:750;line-height:1.15;touch-action:manipulation;cursor:pointer}
-    .score-info-row{position:absolute;z-index:6;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;font-weight:650;line-height:1.2;pointer-events:none}
-    .score-tempo{grid-column:1;min-width:0;text-align:left;overflow-wrap:anywhere}
-    .score-composer{grid-column:2;min-width:0;text-align:right;overflow-wrap:anywhere}
+    .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-size:25px;font-optical-sizing:auto;font-weight:600;letter-spacing:.01em;line-height:1.15;touch-action:manipulation;cursor:pointer}
+    .score-info-row{position:absolute;z-index:6;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;line-height:1.2;pointer-events:none}
+    .score-tempo{grid-column:1;min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500}
+    .score-composer{grid-column:2;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400}
     #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
     .score-prompt{display:none!important}
