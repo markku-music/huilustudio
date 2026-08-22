@@ -43,6 +43,10 @@
     .header-drag-handle{position:absolute;z-index:18;width:40px;height:40px;display:none;place-items:center;padding:0;border:1px solid #b7c5d4;border-radius:12px;background:#fffffff0;color:#53677d;box-shadow:0 3px 10px #1c273526;font:700 21px/1 system-ui,-apple-system,sans-serif;touch-action:none;-webkit-touch-callout:none;user-select:none;cursor:ns-resize}
     .header-drag-handle:active,.header-drag-handle.dragging{border-color:#2365aa;background:#e9f3ff;color:#174d83;box-shadow:0 4px 12px #1c273533,inset 0 0 0 1px #2365aa44}
     .header-drag-handle[hidden]{display:none!important}
+    .app[data-work-mode="write"] .score-title,.app[data-work-mode="write"] .score-tempo,.app[data-work-mode="write"] .score-composer{pointer-events:auto;cursor:text;touch-action:manipulation}
+    .app[data-work-mode="write"] .score-tempo.header-empty::before{content:"Tempoteksti";opacity:.28}
+    .app[data-work-mode="write"] .score-composer.header-empty::before{content:"Säveltäjä";opacity:.28;font-style:italic}
+    .header-inline-editor{position:absolute;z-index:24;margin:0;box-sizing:border-box;border:1.5px solid #2365aa;border-radius:6px;background:#fffffff7;color:#18202a;box-shadow:0 3px 10px #1c273526;outline:none;padding:1px 4px;resize:none;overflow:hidden;-webkit-user-select:text;user-select:text;touch-action:manipulation}
     .header-title-handle{left:0}
     .header-tempo-handle{left:6px}
     .header-composer-handle{right:6px}
@@ -528,10 +532,10 @@
         <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
           <div class="score-page-shell" id="scorePageShell">
             <div class="score-page" id="scorePage">
-              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen tietoja">Nimetön kappale</span>
+              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen nimeä">Nimetön kappale</span>
               <div class="score-info-row" aria-label="Kappaleen tempo ja säveltäjä">
-                <span class="score-tempo" id="scoreTempo" hidden></span>
-                <span class="score-composer" id="scoreComposer" hidden></span>
+                <span class="score-tempo" id="scoreTempo" role="button" tabindex="0" aria-label="Muokkaa tempotekstiä" hidden></span>
+                <span class="score-composer" id="scoreComposer" role="button" tabindex="0" aria-label="Muokkaa säveltäjää" hidden></span>
               </div>
               <button class="header-drag-handle header-title-handle" id="titleDragHandle" type="button" data-header-target="title" aria-label="Siirrä kappaleen nimeä pystysuunnassa">↕</button>
               <button class="header-drag-handle header-tempo-handle" id="tempoDragHandle" type="button" data-header-target="tempo" aria-label="Siirrä tempotekstiä pystysuunnassa" hidden>↕</button>
@@ -1188,6 +1192,57 @@
       scoreComposer.style.top=`${positions.composer}px`;
       syncHeaderDragHandles();
     }
+    let activeHeaderEditor=null;
+    function syncHeaderTextPresentation(){
+      const tempoText=(projectData?.tempoText??scoreTempo.textContent??'').trim(),composerText=(projectData?.composer??scoreComposer.textContent??'').trim();
+      scoreTempo.textContent=tempoText;scoreComposer.textContent=composerText;
+      scoreTempo.classList.toggle('header-empty',!tempoText);scoreComposer.classList.toggle('header-empty',!composerText);
+      scoreTempo.hidden=!tempoText&&workMode!=='write';scoreComposer.hidden=!composerText&&workMode!=='write';
+      syncHeaderDragHandles();
+    }
+    function headerFieldInfo(element){
+      if(element===scoreTitle)return {key:'title',input:titleInput,value:projectData?.title||'',placeholder:'Kappaleen nimi'};
+      if(element===scoreTempo)return {key:'tempoText',input:tempoInput,value:projectData?.tempoText||'',placeholder:'Tempoteksti'};
+      if(element===scoreComposer)return {key:'composer',input:composerInput,value:projectData?.composer||'',placeholder:'Säveltäjä'};
+      return null;
+    }
+    function finishHeaderInlineEdit(commit=true){
+      const state=activeHeaderEditor;if(!state)return;
+      activeHeaderEditor=null;
+      const {editor,element,info}=state;
+      const value=commit?editor.value.trim():info.value;
+      editor.remove();element.style.visibility='';
+      if(commit&&projectData){
+        projectData[info.key]=value;info.input.value=value;
+        if(info.key==='title')scoreTitle.textContent=value||'Nimetön kappale';
+        else if(info.key==='tempoText')scoreTempo.textContent=value;
+        else scoreComposer.textContent=value;
+        invalidatePublishFiles();
+      }
+      syncHeaderTextPresentation();applyHeaderPositions();
+    }
+    function startHeaderInlineEdit(e){
+      if(workMode!=='write'||!projectData)return;
+      if(e.type==='pointerdown'){e.stopPropagation();return}
+      if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
+      e.preventDefault();e.stopPropagation();
+      if(activeHeaderEditor)finishHeaderInlineEdit(true);
+      const element=e.currentTarget,info=headerFieldInfo(element);if(!info)return;
+      const pageRect=scorePage.getBoundingClientRect(),rect=element.getBoundingClientRect(),scale=scorePageScale||1,style=getComputedStyle(element),isTitle=element===scoreTitle;
+      const editor=document.createElement(isTitle?'textarea':'input');
+      editor.className='header-inline-editor';editor.value=info.value;editor.placeholder=info.placeholder;
+      editor.setAttribute('aria-label',info.placeholder);editor.autocomplete='off';editor.spellcheck=true;
+      const left=(rect.left-pageRect.left)/scale,top=(rect.top-pageRect.top)/scale,width=rect.width/scale,height=Math.max(rect.height/scale,isTitle?46:28);
+      Object.assign(editor.style,{left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`,fontFamily:style.fontFamily,fontSize:style.fontSize,fontWeight:style.fontWeight,fontStyle:style.fontStyle,lineHeight:style.lineHeight,letterSpacing:style.letterSpacing,textAlign:style.textAlign,color:style.color});
+      scorePage.appendChild(editor);element.style.visibility='hidden';activeHeaderEditor={editor,element,info};
+      editor.addEventListener('pointerdown',event=>event.stopPropagation());
+      editor.addEventListener('keydown',event=>{
+        if(event.key==='Escape'){event.preventDefault();finishHeaderInlineEdit(false);return}
+        if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();finishHeaderInlineEdit(true)}
+      });
+      editor.addEventListener('blur',()=>{if(activeHeaderEditor?.editor===editor)finishHeaderInlineEdit(true)});
+      requestAnimationFrame(()=>{editor.focus();editor.setSelectionRange?.(editor.value.length,editor.value.length)});
+    }
     function startHeaderDrag(e){
       if(workMode!=='edit'||!projectData)return;
       if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -1227,13 +1282,15 @@
       editModeButton.disabled=!hasNotes;printModeButton.disabled=!hasNotes;
       modes.forEach(([button,mode])=>button.setAttribute('aria-pressed',String(workMode===mode)));
       app.dataset.workMode=workMode;
-      scoreTitle.tabIndex=workMode==='edit'?-1:0;syncHeaderDragHandles();
+      syncHeaderTextPresentation();
+      scoreTitle.tabIndex=workMode==='write'?0:-1;scoreTempo.tabIndex=workMode==='write'?0:-1;scoreComposer.tabIndex=workMode==='write'?0:-1;syncHeaderDragHandles();
       score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':workMode==='print'?'Julkaisutila. Valitse julkaisuun liittyvä toiminto.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
       selectionToolbar.setAttribute('aria-hidden',String(workMode!=='edit'));
       if(workMode==='edit')syncSelectionToolbar();
       syncWritePasteEndButton();
     }
     function setWorkMode(mode,e){
+      if(activeHeaderEditor)finishHeaderInlineEdit(true);
       const next=mode==='edit'?'edit':mode==='print'?'print':'write';
       if(next!=='write'&&!notes.length)return;
       if(workMode==='write'&&next!=='write'&&tripletArmed&&currentTupletHasEntries()){showTupletWarning('Kirjoita tupletti loppuun');return}
@@ -1347,7 +1404,7 @@
       themeSelect.value=projectData.themeId||currentThemeId();
       applyTheme(themeSelect.value);
       saveThemePreference();
-      scoreTitle.textContent=projectData.title||'Nimetön kappale';scoreTempo.textContent=projectData.tempoText||'';scoreTempo.hidden=!scoreTempo.textContent;scoreComposer.textContent=projectData.composer||'';scoreComposer.hidden=!scoreComposer.textContent;applyHeaderPositions();
+      scoreTitle.textContent=projectData.title||'Nimetön kappale';scoreTempo.textContent=projectData.tempoText||'';scoreComposer.textContent=projectData.composer||'';syncHeaderTextPresentation();applyHeaderPositions();
       syncNotationChoices();syncKeyPicker();syncMeterPicker();syncPickupButtons();buildKeyboard();applyNotationSettings();syncWorkModeUI();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls();
       projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');await renderScore();requestAnimationFrame(()=>{updateScorePagePreview();score.focus()});statusMessage(`Projekti avattu: ${projectData.title||file.name}`);
     }
@@ -2320,16 +2377,11 @@
       if(clefButton)clefSelect.value=clefButton.dataset.clef;
       syncNotationChoices();
     }
-    function showProjectModal(){
-      syncNotationChoices();syncKeyPicker();syncMeterPicker();projectSaveButton.hidden=false;projectSaveButton.textContent='TALLENNA';projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>titleInput.focus());
+    function showProjectModal(focusField='title'){
+      const focusTarget=focusField==='composer'?composerInput:focusField==='tempo'?tempoInput:titleInput;
+      syncNotationChoices();syncKeyPicker();syncMeterPicker();projectSaveButton.hidden=false;projectSaveButton.textContent='TALLENNA';projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>focusTarget.focus());
     }
     function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
-    function editProjectFromTitle(e){
-      if(workMode==='edit')return;
-      if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
-      if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
-      e.preventDefault();e.stopPropagation();showProjectModal();
-    }
     function applyProjectData(){
       saveNotationSettings();
       const headerPositions=normalizedHeaderPositions(projectData?.headerPositions),keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0,headerPositions};
@@ -2337,8 +2389,7 @@
       applyTheme(projectData.themeId);
       syncNotationChoices();
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
-      scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
-      scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;applyHeaderPositions();
+      scoreTempo.textContent=projectData.tempoText;scoreComposer.textContent=projectData.composer;syncHeaderTextPresentation();applyHeaderPositions();
       buildKeyboard();applyNotationSettings();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');score.focus();
       renderScore();
       requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForClef()});
@@ -2800,8 +2851,11 @@
     publishProjectButton?.addEventListener('click',saveProjectFile);
     projectForm.addEventListener('submit',saveProject);
     themeSelect?.addEventListener('change',()=>{applyTheme(currentThemeId());saveThemePreference();if(projectData){projectData.themeId=currentThemeId();}});
-    scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
-    scoreTitle.addEventListener('keydown',editProjectFromTitle);
+    [scoreTitle,scoreTempo,scoreComposer].forEach(element=>{
+      element.addEventListener('pointerdown',startHeaderInlineEdit);
+      element.addEventListener('click',startHeaderInlineEdit);
+      element.addEventListener('keydown',startHeaderInlineEdit);
+    });
     [titleDragHandle,tempoDragHandle,composerDragHandle].forEach(handle=>{
       handle.addEventListener('pointerdown',startHeaderDrag);
       handle.addEventListener('pointermove',moveHeaderDrag,{passive:false});
