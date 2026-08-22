@@ -2939,8 +2939,8 @@
     restoreSelectionToolbarPosition();
     writeNoteContext.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()},{passive:false});
     writeNoteContext.addEventListener('pointerup',e=>e.stopPropagation());
-    writeNoteAccidentalButtons.forEach(button=>button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setWriteNoteAccidental(Number(button.dataset.alter))}));
-    writeNoteDeleteButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();deleteWriteNote()});
+    writeNoteAccidentalButtons.forEach(button=>button.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();setWriteNoteAccidental(Number(button.dataset.alter))},{passive:false}));
+    writeNoteDeleteButton.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();deleteWriteNote()},{passive:false});
     score.addEventListener('scroll',()=>{if(writeEditNoteId)positionWriteNoteContext();if(!barlinePalette.hidden)closeBarlinePalette()},{passive:true});
     score.addEventListener('touchstart',startScoreTouchLock,{passive:false,capture:true});
     score.addEventListener('touchmove',moveScoreTouchLock,{passive:false,capture:true});
