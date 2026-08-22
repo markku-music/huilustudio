@@ -15,9 +15,6 @@
   <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
   <title>Pikakirjoitin</title>
   <style>
-    @font-face{font-family:"Fraunces Local";src:url("fonts/Fraunces[SOFT,WONK,opsz,wght].ttf") format("truetype");font-style:normal;font-weight:100 900;font-display:swap}
-    @font-face{font-family:"Fraunces Local";src:url("fonts/Fraunces-Italic[SOFT,WONK,opsz,wght].ttf") format("truetype");font-style:italic;font-weight:100 900;font-display:swap}
-    @font-face{font-family:"Source Sans 3 Local";src:url("fonts/SourceSans3[wght].ttf") format("truetype");font-style:normal;font-weight:200 900;font-display:swap}
     *{box-sizing:border-box}
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
     html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
@@ -39,11 +36,10 @@
     .score:focus-visible{outline:none}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538;outline:none;border:none}
-    .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-family:"Fraunces Local","Fraunces",Georgia,"Times New Roman",serif;font-size:25px;font-optical-sizing:auto;font-weight:600;letter-spacing:.01em;line-height:1.15;touch-action:manipulation;cursor:pointer}
-    .score-info-row{position:absolute;z-index:6;inset:0;color:#263342;font-size:15px;line-height:1.2;pointer-events:none}
-    .score-tempo{position:absolute;top:104px;left:50px;right:calc(50% + 18px);min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces Local","Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500;pointer-events:none;touch-action:auto;cursor:default}
-    .score-composer{position:absolute;top:104px;left:calc(50% + 18px);right:50px;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3 Local","Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400;pointer-events:none;touch-action:auto;cursor:default}
-    .score-title.is-dragging,.score-tempo.is-dragging,.score-composer.is-dragging{cursor:ns-resize;outline:1px dashed #8ba4bf;outline-offset:3px}
+    .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-size:25px;font-optical-sizing:auto;font-weight:600;letter-spacing:.01em;line-height:1.15;touch-action:manipulation;cursor:pointer}
+    .score-info-row{position:absolute;z-index:6;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;line-height:1.2;pointer-events:none}
+    .score-tempo{grid-column:1;min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500}
+    .score-composer{grid-column:2;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400}
     #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
     .score-prompt{display:none!important}
@@ -182,9 +178,9 @@
     .barline-choice-button:disabled{opacity:.25;cursor:default}
     .app[data-work-mode="edit"] .score-area{padding-left:78px}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
-    .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:pan-y}
-    .app[data-work-mode="edit"] .score-title,.app[data-work-mode="edit"] .score-tempo,.app[data-work-mode="edit"] .score-composer{pointer-events:auto;touch-action:none;cursor:ns-resize}
-    .app[data-work-mode="edit"] .score-info-row{top:0}
+    .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:none}
+    .app[data-work-mode="edit"] .score-title{top:76px;pointer-events:none}
+    .app[data-work-mode="edit"] .score-info-row{top:130px}
     .app[data-work-mode="edit"] .score{cursor:default}
     .publish-screen{display:none;width:min(1120px,100%);margin:0 auto;padding:24px 8px 8px}
     .publish-header{display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:24px;text-align:center}
@@ -525,10 +521,10 @@
         <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
           <div class="score-page-shell" id="scorePageShell">
             <div class="score-page" id="scorePage">
-              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Raahaa kappaleen nimeä pystysuunnassa. Napauta muokataksesi kappaleen tietoja.">Nimetön kappale</span>
+              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen tietoja">Nimetön kappale</span>
               <div class="score-info-row" aria-label="Kappaleen tempo ja säveltäjä">
-                <span class="score-tempo" id="scoreTempo" aria-label="Raahaa tempotekstiä pystysuunnassa" hidden></span>
-                <span class="score-composer" id="scoreComposer" aria-label="Raahaa säveltäjän nimeä pystysuunnassa" hidden></span>
+                <span class="score-tempo" id="scoreTempo" hidden></span>
+                <span class="score-composer" id="scoreComposer" hidden></span>
               </div>
               <div id="osmdContainer" aria-hidden="true"></div>
               <span class="score-prompt" id="scorePrompt" hidden></span>
@@ -695,8 +691,6 @@
     document.head.appendChild(themeStyleTag);
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,tripletBaseUnits=null,nextTupletId=1,completedTupletId=null,tupletWarningTimer=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
-    const HEADER_POSITION_DEFAULTS={title:28,tempo:104,composer:104},HEADER_DRAG_SLOP=4;
-    let headerPositions={...HEADER_POSITION_DEFAULTS},headerDrag=null;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     let noteSizePercent=100,noteSizeCommitRunning=false,noteSizeBasePageMargins=null;
@@ -710,57 +704,6 @@
     function currentTranspose(){return projectData?.transpose??tuningTransposes[tuningSelect.value]??0}
     function currentClef(){return projectData?.clef||clefSelect.value||'treble'}
     function capitalize(value){return value.charAt(0).toUpperCase()+value.slice(1)}
-    function normalizeHeaderPositions(value){
-      const source=value||{};
-      return {
-        title:clamp(Number.isFinite(Number(source.title))?Number(source.title):HEADER_POSITION_DEFAULTS.title,0,A4_HEIGHT-40),
-        tempo:clamp(Number.isFinite(Number(source.tempo))?Number(source.tempo):HEADER_POSITION_DEFAULTS.tempo,0,A4_HEIGHT-30),
-        composer:clamp(Number.isFinite(Number(source.composer))?Number(source.composer):HEADER_POSITION_DEFAULTS.composer,0,A4_HEIGHT-30)
-      };
-    }
-    function applyHeaderPositions(){
-      scoreTitle.style.top=`${headerPositions.title}px`;
-      scoreTempo.style.top=`${headerPositions.tempo}px`;
-      scoreComposer.style.top=`${headerPositions.composer}px`;
-    }
-    function persistHeaderPositions(){if(projectData)projectData.headerPositions={...headerPositions}}
-    function headerDragKey(target){return target===scoreTitle?'title':target===scoreTempo?'tempo':target===scoreComposer?'composer':null}
-    function startHeaderDrag(e){
-      if(workMode!=='edit')return;
-      if(e.pointerType==='mouse'&&e.button!==0)return;
-      const key=headerDragKey(e.currentTarget);if(!key)return;
-      e.preventDefault();e.stopPropagation();
-      headerDrag={pointerId:e.pointerId,key,target:e.currentTarget,startClientY:e.clientY,startTop:headerPositions[key],moved:false};
-      try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}
-    }
-    function moveHeaderDrag(e){
-      if(!headerDrag||headerDrag.pointerId!==e.pointerId)return;
-      e.preventDefault();e.stopPropagation();
-      const screenDelta=e.clientY-headerDrag.startClientY;
-      if(!headerDrag.moved&&Math.abs(screenDelta)>=HEADER_DRAG_SLOP){headerDrag.moved=true;headerDrag.target.classList.add('is-dragging')}
-      if(!headerDrag.moved)return;
-      const pageDelta=screenDelta/Math.max(.01,scorePageScale||1);
-      headerPositions[headerDrag.key]=clamp(headerDrag.startTop+pageDelta,0,A4_HEIGHT-(headerDrag.key==='title'?40:30));
-      applyHeaderPositions();
-    }
-    function endHeaderDrag(e){
-      if(!headerDrag||headerDrag.pointerId!==e.pointerId)return;
-      e.preventDefault();e.stopPropagation();
-      // Pointermove can occasionally be skipped on touch devices. Check the
-      // final pointer position too, so an intended drag never becomes a tap.
-      if(e.type==='pointerup'&&!headerDrag.moved){
-        const screenDelta=e.clientY-headerDrag.startClientY;
-        if(Math.abs(screenDelta)>=HEADER_DRAG_SLOP){
-          headerDrag.moved=true;headerDrag.target.classList.add('is-dragging');
-          const pageDelta=screenDelta/Math.max(.01,scorePageScale||1);
-          headerPositions[headerDrag.key]=clamp(headerDrag.startTop+pageDelta,0,A4_HEIGHT-(headerDrag.key==='title'?40:30));
-          applyHeaderPositions();
-        }
-      }
-      const drag=headerDrag;headerDrag=null;drag.target.classList.remove('is-dragging');
-      try{drag.target.releasePointerCapture(e.pointerId)}catch{}
-      if(drag.moved){persistHeaderPositions();invalidatePublishFiles();statusMessage('Tekstin pystysijainti tallennettu projektiin.');return}
-    }
     function pitchDisplay(midi,useFlats=false){
       const name=(useFlats?flatPitchNames:sharpPitchNames)[mod(midi,12)],octave=Math.floor(midi/12)-1;
       if(octave<=0)return 'subkontra-'+capitalize(name);
@@ -1222,9 +1165,6 @@
       app.dataset.workMode=workMode;
       score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':workMode==='print'?'Julkaisutila. Valitse julkaisuun liittyvä toiminto.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
       selectionToolbar.setAttribute('aria-hidden',String(workMode!=='edit'));
-      scoreTitle.setAttribute('aria-label',workMode==='edit'?'Raahaa kappaleen nimeä pystysuunnassa.':workMode==='write'?'Napauta muokataksesi kappaleen tietoja.':'Kappaleen nimi.');
-      scoreTempo.setAttribute('aria-label',workMode==='edit'?'Raahaa tempotekstiä pystysuunnassa.':'Tempoteksti.');
-      scoreComposer.setAttribute('aria-label',workMode==='edit'?'Raahaa säveltäjän nimeä pystysuunnassa.':'Säveltäjä.');
       if(workMode==='edit')syncSelectionToolbar();
       syncWritePasteEndButton();
     }
@@ -1279,8 +1219,8 @@
       return lines;
     }
     function drawPublicationHeader(ctx){
-      const title=(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim(),tempo=(scoreTempo.textContent||projectData?.tempoText||'').trim(),composer=(scoreComposer.textContent||projectData?.composer||'').trim(),titleTop=headerPositions.title,tempoTop=headerPositions.tempo,composerTop=headerPositions.composer;
-      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font='600 25px "Fraunces Local","Fraunces",Georgia,serif';wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';if(tempo){ctx.font='italic 500 15px "Fraunces Local","Fraunces",Georgia,serif';ctx.textAlign='left';ctx.fillText(tempo,50,tempoTop)}if(composer){ctx.font='400 15px "Source Sans 3 Local","Source Sans 3",sans-serif';ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,composerTop)}ctx.restore();
+      const title=(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim(),tempo=(scoreTempo.textContent||projectData?.tempoText||'').trim(),composer=(scoreComposer.textContent||projectData?.composer||'').trim(),titleStyle=getComputedStyle(scoreTitle),infoStyle=getComputedStyle(scoreTempo.parentElement),titleTop=Number.parseFloat(titleStyle.top)||28,infoTop=Number.parseFloat(infoStyle.top)||104;
+      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font='750 25px system-ui,-apple-system,sans-serif';wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';ctx.font='650 15px system-ui,-apple-system,sans-serif';if(tempo){ctx.textAlign='left';ctx.fillText(tempo,50,infoTop)}if(composer){ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,infoTop)}ctx.restore();
     }
     function canvasBlob(canvas,type='image/png',quality){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF-sivun kuvan luominen epäonnistui.')),type,quality))}
     async function publicationPagePng(svg,pageIndex){
@@ -1307,7 +1247,7 @@
     }
     function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFile(file,{title:`${projectData?.title||'Nuotti'} – MusicXML`,text:'Pikakirjoittimen MusicXML-tiedosto.',successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
     function buildProjectFile(){
-      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData,headerPositions:{...headerPositions}}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,headerPositions:{...headerPositions},notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
+      return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
     function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
     function nextIdFromItems(items,prefix){
@@ -1331,9 +1271,7 @@
       const keyOption=projectKeyOption(loadedProject);if(keyOption)keySignatureSelect.selectedIndex=keyOption.index;
       const meter=notation.timeSignature||loadedProject.timeSignature||'4/4';timeSignatureSelect.value=[...timeSignatureSelect.options].some(option=>option.value===meter)?meter:'4/4';
       pickupSelect.value=String(Number(notation.pickupDuration??loadedProject.pickupDuration)||0);syncPickupOptions();
-      headerPositions=normalizeHeaderPositions(payload.headerPositions||loadedProject.headerPositions);
-      projectData={...loadedProject,headerPositions:{...headerPositions},tuning:tuningSelect.value,clef:clefSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,transpose:tuningTransposes[tuningSelect.value]||0};
-      applyHeaderPositions();
+      projectData={...loadedProject,tuning:tuningSelect.value,clef:clefSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,transpose:tuningTransposes[tuningSelect.value]||0};
       const keyInfo=selectedKeyInfo();projectData.keySignature=keyInfo.fifths;projectData.keyMode=keyInfo.mode;projectData.keyTonic=keyInfo.tonic;projectData.keySignatureName=selectedText(keySignatureSelect);
       notes=payload.notes.map(note=>({...note}));slurs=Array.isArray(payload.slurs)?payload.slurs.map(item=>({...item})):[];hairpins=Array.isArray(payload.hairpins)?payload.hairpins.map(item=>({...item})):[];endings=Array.isArray(payload.endings)?payload.endings.map(item=>({...item})):[];
       systemBreaks=new Set(Array.isArray(payload.systemBreaks)?payload.systemBreaks:[]);barlineStyles=new Map(Array.isArray(payload.barlineStyles)?payload.barlineStyles:[]);beamOverrides=new Map(Array.isArray(payload.beamOverrides)?payload.beamOverrides:[]);
@@ -2322,14 +2260,13 @@
     }
     function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
     function editProjectFromTitle(e){
-      if(workMode!=='write')return;
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
       if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
       e.preventDefault();e.stopPropagation();showProjectModal();
     }
     function applyProjectData(){
       saveNotationSettings();
-      const keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0,headerPositions:{...headerPositions}};
+      const keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0};
       saveThemePreference();
       applyTheme(projectData.themeId);
       syncNotationChoices();
@@ -2770,7 +2707,6 @@
     applyNotationSettings();
     syncWorkModeUI();
     syncSelectionToolbar();
-    applyHeaderPositions();
     const thumbGuideMode=activateThumbGuideMode();
     requestAnimationFrame(()=>{if(!thumbGuideMode)positionModifierRail();updateScorePagePreview();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls();if(thumbGuideMode)activateThumbGuideMode()});
     newProjectButton.addEventListener('click',startNewProject);
@@ -2797,13 +2733,7 @@
     publishProjectButton?.addEventListener('click',saveProjectFile);
     projectForm.addEventListener('submit',saveProject);
     themeSelect?.addEventListener('change',()=>{applyTheme(currentThemeId());saveThemePreference();if(projectData){projectData.themeId=currentThemeId();}});
-    [scoreTitle,scoreTempo,scoreComposer].forEach(element=>{
-      element.addEventListener('pointerdown',startHeaderDrag);
-      element.addEventListener('pointermove',moveHeaderDrag,{passive:false});
-      element.addEventListener('pointerup',endHeaderDrag);
-      element.addEventListener('pointercancel',endHeaderDrag);
-    });
-    scoreTitle.addEventListener('click',editProjectFromTitle);
+    scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
     modifierRail.addEventListener('pointerdown',startModifier);
     modifierRail.addEventListener('pointermove',moveModifier,{passive:false});
@@ -2888,50 +2818,13 @@
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
-      e.stopPropagation();
-      const start=contentPointFromPointer(e);
-      selectionDrag={pointerId:e.pointerId,start,current:start,moved:false,mode:'pending',startClientX:e.clientX,startClientY:e.clientY};
+      e.preventDefault();e.stopPropagation();const start=contentPointFromPointer(e);selectionDrag={pointerId:e.pointerId,start,current:start,moved:false};selectedNoteIndices.clear();try{osmdContainer.setPointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     },{passive:false});
     osmdContainer.addEventListener('pointermove',e=>{
-      if(workMode!=='edit')return;
-      if(endingDrag){moveEndingDrag(e);return}
-      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;
-      const dx=e.clientX-selectionDrag.startClientX,dy=e.clientY-selectionDrag.startClientY,distance=Math.hypot(dx,dy);
-      if(selectionDrag.mode==='pending'){
-        if(distance<SCORE_SCROLL_SLOP)return;
-        selectionDrag.moved=true;
-        if(Math.abs(dy)>=Math.abs(dx)){
-          selectionDrag.mode='scroll';
-          return;
-        }
-        selectionDrag.mode='select';
-        selectedNoteIndices.clear();selectionClipboard=null;
-        try{osmdContainer.setPointerCapture(e.pointerId)}catch{}
-      }
-      if(selectionDrag.mode==='scroll')return;
-      e.preventDefault();e.stopPropagation();
-      selectionDrag.current=contentPointFromPointer(e);
-      selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));
-      renderSelectionOverlay();
+      if(workMode!=='edit')return;if(endingDrag){moveEndingDrag(e);return}if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||Math.hypot(selectionDrag.current.x-selectionDrag.start.x,selectionDrag.current.y-selectionDrag.start.y)>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));renderSelectionOverlay();
     },{passive:false});
     const finishSelectionGesture=(e,cancelled=false)=>{
-      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;
-      const drag=selectionDrag;selectionDrag=null;
-      if(drag.mode==='scroll'){
-        try{if(osmdContainer.hasPointerCapture(e.pointerId))osmdContainer.releasePointerCapture(e.pointerId)}catch{}
-        return;
-      }
-      if(cancelled){
-        try{if(osmdContainer.hasPointerCapture(e.pointerId))osmdContainer.releasePointerCapture(e.pointerId)}catch{}
-        if(drag.mode==='select'){selectedNoteIndices.clear();selectionClipboard=null;renderSelectionOverlay()}
-        return;
-      }
-      e.preventDefault();e.stopPropagation();
-      drag.current=contentPointFromPointer(e);
-      if(drag.mode==='select')selectInRectangle(normalizedRectangle(drag.start,drag.current));else selectAtPoint(drag.current);
-      selectionClipboard=null;
-      try{if(osmdContainer.hasPointerCapture(e.pointerId))osmdContainer.releasePointerCapture(e.pointerId)}catch{}
-      renderSelectionOverlay();
+      if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();if(cancelled){selectedNoteIndices.clear()}else{selectionDrag.current=contentPointFromPointer(e);if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));else selectAtPoint(selectionDrag.current)}selectionClipboard=null;selectionDrag=null;try{osmdContainer.releasePointerCapture(e.pointerId)}catch{}renderSelectionOverlay();
     };
     osmdContainer.addEventListener('pointerup',e=>{if(endingDrag){finishEndingDrag(e);return}finishSelectionGesture(e)});
     osmdContainer.addEventListener('pointercancel',e=>{if(endingDrag){finishEndingDrag(e,true);return}finishSelectionGesture(e,true)});
