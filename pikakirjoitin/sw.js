@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.48-fontit-raahaus';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.49-tekstiraahaus-muokkaa';
 const APP_SHELL = [
   './',
   './index.html',

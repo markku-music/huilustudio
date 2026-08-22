@@ -39,10 +39,10 @@
     .score:focus-visible{outline:none}
     .score-page-shell{position:relative;margin:0 auto;flex:none}
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538;outline:none;border:none}
-    .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-family:"Fraunces Local","Fraunces",Georgia,"Times New Roman",serif;font-size:25px;font-optical-sizing:auto;font-weight:600;letter-spacing:.01em;line-height:1.15;touch-action:none;cursor:ns-resize}
+    .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-family:"Fraunces Local","Fraunces",Georgia,"Times New Roman",serif;font-size:25px;font-optical-sizing:auto;font-weight:600;letter-spacing:.01em;line-height:1.15;touch-action:manipulation;cursor:pointer}
     .score-info-row{position:absolute;z-index:6;inset:0;color:#263342;font-size:15px;line-height:1.2;pointer-events:none}
-    .score-tempo{position:absolute;top:104px;left:50px;right:calc(50% + 18px);min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces Local","Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500;pointer-events:auto;touch-action:none;cursor:ns-resize}
-    .score-composer{position:absolute;top:104px;left:calc(50% + 18px);right:50px;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3 Local","Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400;pointer-events:auto;touch-action:none;cursor:ns-resize}
+    .score-tempo{position:absolute;top:104px;left:50px;right:calc(50% + 18px);min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces Local","Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500;pointer-events:none;touch-action:auto;cursor:default}
+    .score-composer{position:absolute;top:104px;left:calc(50% + 18px);right:50px;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3 Local","Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400;pointer-events:none;touch-action:auto;cursor:default}
     .score-title.is-dragging,.score-tempo.is-dragging,.score-composer.is-dragging{cursor:ns-resize;outline:1px dashed #8ba4bf;outline-offset:3px}
     #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
@@ -183,8 +183,8 @@
     .app[data-work-mode="edit"] .score-area{padding-left:78px}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
     .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:none}
-    .app[data-work-mode="edit"] .score-title{top:76px;pointer-events:none}
-    .app[data-work-mode="edit"] .score-info-row{top:130px}
+    .app[data-work-mode="edit"] .score-title,.app[data-work-mode="edit"] .score-tempo,.app[data-work-mode="edit"] .score-composer{pointer-events:auto;touch-action:none;cursor:ns-resize}
+    .app[data-work-mode="edit"] .score-info-row{top:0}
     .app[data-work-mode="edit"] .score{cursor:default}
     .publish-screen{display:none;width:min(1120px,100%);margin:0 auto;padding:24px 8px 8px}
     .publish-header{display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:24px;text-align:center}
@@ -726,6 +726,7 @@
     function persistHeaderPositions(){if(projectData)projectData.headerPositions={...headerPositions}}
     function headerDragKey(target){return target===scoreTitle?'title':target===scoreTempo?'tempo':target===scoreComposer?'composer':null}
     function startHeaderDrag(e){
+      if(workMode!=='edit')return;
       if(e.pointerType==='mouse'&&e.button!==0)return;
       const key=headerDragKey(e.currentTarget);if(!key)return;
       e.preventDefault();e.stopPropagation();
@@ -759,7 +760,6 @@
       const drag=headerDrag;headerDrag=null;drag.target.classList.remove('is-dragging');
       try{drag.target.releasePointerCapture(e.pointerId)}catch{}
       if(drag.moved){persistHeaderPositions();invalidatePublishFiles();statusMessage('Tekstin pystysijainti tallennettu projektiin.');return}
-      if(e.type==='pointerup'&&drag.key==='title')showProjectModal();
     }
     function pitchDisplay(midi,useFlats=false){
       const name=(useFlats?flatPitchNames:sharpPitchNames)[mod(midi,12)],octave=Math.floor(midi/12)-1;
@@ -1222,6 +1222,9 @@
       app.dataset.workMode=workMode;
       score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':workMode==='print'?'Julkaisutila. Valitse julkaisuun liittyvä toiminto.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
       selectionToolbar.setAttribute('aria-hidden',String(workMode!=='edit'));
+      scoreTitle.setAttribute('aria-label',workMode==='edit'?'Raahaa kappaleen nimeä pystysuunnassa.':workMode==='write'?'Napauta muokataksesi kappaleen tietoja.':'Kappaleen nimi.');
+      scoreTempo.setAttribute('aria-label',workMode==='edit'?'Raahaa tempotekstiä pystysuunnassa.':'Tempoteksti.');
+      scoreComposer.setAttribute('aria-label',workMode==='edit'?'Raahaa säveltäjän nimeä pystysuunnassa.':'Säveltäjä.');
       if(workMode==='edit')syncSelectionToolbar();
       syncWritePasteEndButton();
     }
@@ -2319,6 +2322,7 @@
     }
     function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
     function editProjectFromTitle(e){
+      if(workMode!=='write')return;
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
       if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
       e.preventDefault();e.stopPropagation();showProjectModal();
@@ -2799,6 +2803,7 @@
       element.addEventListener('pointerup',endHeaderDrag);
       element.addEventListener('pointercancel',endHeaderDrag);
     });
+    scoreTitle.addEventListener('click',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
     modifierRail.addEventListener('pointerdown',startModifier);
     modifierRail.addEventListener('pointermove',moveModifier,{passive:false});
