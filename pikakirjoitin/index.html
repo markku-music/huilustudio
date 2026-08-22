@@ -1223,7 +1223,7 @@
     }
     function startHeaderInlineEdit(e){
       if(workMode!=='write'||!projectData)return;
-      if(e.type==='pointerdown'){e.stopPropagation();return}
+      if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
       if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
       e.preventDefault();e.stopPropagation();
       if(activeHeaderEditor)finishHeaderInlineEdit(true);
@@ -1241,7 +1241,8 @@
         if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();finishHeaderInlineEdit(true)}
       });
       editor.addEventListener('blur',()=>{if(activeHeaderEditor?.editor===editor)finishHeaderInlineEdit(true)});
-      requestAnimationFrame(()=>{editor.focus();editor.setSelectionRange?.(editor.value.length,editor.value.length)});
+      editor.focus({preventScroll:true});
+      editor.setSelectionRange?.(editor.value.length,editor.value.length);
     }
     function startHeaderDrag(e){
       if(workMode!=='edit'||!projectData)return;
@@ -2853,7 +2854,6 @@
     themeSelect?.addEventListener('change',()=>{applyTheme(currentThemeId());saveThemePreference();if(projectData){projectData.themeId=currentThemeId();}});
     [scoreTitle,scoreTempo,scoreComposer].forEach(element=>{
       element.addEventListener('pointerdown',startHeaderInlineEdit);
-      element.addEventListener('click',startHeaderInlineEdit);
       element.addEventListener('keydown',startHeaderInlineEdit);
     });
     [titleDragHandle,tempoDragHandle,composerDragHandle].forEach(handle=>{

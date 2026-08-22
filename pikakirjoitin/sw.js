@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.50-inline-header-edit';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.51-inline-header-one-tap';
 const APP_SHELL = [
   './',
   './index.html',
