@@ -2344,9 +2344,12 @@
       }
       if(modifierPointerId!==null)return;
       e.preventDefault();e.stopPropagation();
-      modifierPointerId=e.pointerId;activeModifier=button===tripletButton?'tuplet-3':button.dataset.modifier;activeModifierButton=button;button.setAttribute('aria-pressed','true');
+      modifierPointerId=e.pointerId;activeModifier=button===tripletButton?(tripletArmed?`tuplet-${tripletSize}`:'tuplet-3'):button.dataset.modifier;activeModifierButton=button;button.setAttribute('aria-pressed','true');
       if(button===tripletButton){
         quintupletButton.style.top=button.offsetTop+'px';sextupletButton.style.top=button.offsetTop+'px';quintupletButton.classList.add('visible');sextupletButton.classList.add('visible');
+        const currentSize=tripletArmed?tripletSize:3;
+        quintupletButton.classList.toggle('active',currentSize===5);quintupletButton.setAttribute('aria-pressed',currentSize===5?'true':'false');
+        sextupletButton.classList.toggle('active',currentSize===6);sextupletButton.setAttribute('aria-pressed',currentSize===6?'true':'false');
       }
       if(activeModifier==='dot'){doubleDotButton.style.top=button.offsetTop+'px';doubleDotButton.classList.add('visible')}
       if(activeModifier==='sixteenth'){thirtysecondButton.style.top=button.offsetTop+'px';thirtysecondButton.classList.add('visible')}
@@ -2368,9 +2371,9 @@
         return;
       }
       if(source==='tuplet'){
-        const r5=quintupletButton.getBoundingClientRect(),r6=sextupletButton.getBoundingClientRect();
-        const in5=e.clientX>=r5.left&&e.clientX<=r5.right&&e.clientY>=r5.top&&e.clientY<=r5.bottom,in6=e.clientX>=r6.left&&e.clientX<=r6.right&&e.clientY>=r6.top&&e.clientY<=r6.bottom;
-        activeModifier=in6?'tuplet-6':in5?'tuplet-5':'tuplet-3';
+        const r3=tripletButton.getBoundingClientRect(),r5=quintupletButton.getBoundingClientRect(),r6=sextupletButton.getBoundingClientRect();
+        const in3=e.clientX>=r3.left&&e.clientX<=r3.right&&e.clientY>=r3.top&&e.clientY<=r3.bottom,in5=e.clientX>=r5.left&&e.clientX<=r5.right&&e.clientY>=r5.top&&e.clientY<=r5.bottom,in6=e.clientX>=r6.left&&e.clientX<=r6.right&&e.clientY>=r6.top&&e.clientY<=r6.bottom;
+        activeModifier=in6?'tuplet-6':in5?'tuplet-5':(tripletArmed?`tuplet-${tripletSize}`:'tuplet-3');
         quintupletButton.classList.toggle('active',in5);quintupletButton.setAttribute('aria-pressed',in5?'true':'false');
         sextupletButton.classList.toggle('active',in6);sextupletButton.setAttribute('aria-pressed',in6?'true':'false');
         return;

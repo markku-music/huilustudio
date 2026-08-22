@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.40-thumb-guide';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.41-tuplet-toggle';
 const APP_SHELL = [
   './',
   './index.html',
