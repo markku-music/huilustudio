@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.46-fraunces-source-sans';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.47-text-handles';
 const APP_SHELL = [
   './',
   './index.html',

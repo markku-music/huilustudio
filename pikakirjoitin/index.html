@@ -38,8 +38,14 @@
     .score-page{position:absolute;top:0;left:0;width:794px;min-height:1123px;transform-origin:top left;background:#fff;box-shadow:0 4px 16px #1c273538;outline:none;border:none}
     .score-title{position:absolute;z-index:6;top:28px;left:50px;right:50px;display:block;max-height:58px;overflow:hidden;text-align:center;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-size:25px;font-optical-sizing:auto;font-weight:600;letter-spacing:.01em;line-height:1.15;touch-action:manipulation;cursor:pointer}
     .score-info-row{position:absolute;z-index:6;top:104px;left:50px;right:50px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:baseline;gap:36px;color:#263342;font-size:15px;line-height:1.2;pointer-events:none}
-    .score-tempo{grid-column:1;min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500}
-    .score-composer{grid-column:2;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400}
+    .score-tempo{position:relative;top:0;grid-column:1;min-width:0;text-align:left;overflow-wrap:anywhere;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-optical-sizing:auto;font-style:italic;font-weight:500}
+    .score-composer{position:relative;top:0;grid-column:2;min-width:0;text-align:right;overflow-wrap:anywhere;font-family:"Source Sans 3",system-ui,-apple-system,sans-serif;font-weight:400}
+    .header-drag-handle{position:absolute;z-index:18;width:40px;height:40px;display:none;place-items:center;padding:0;border:1px solid #b7c5d4;border-radius:12px;background:#fffffff0;color:#53677d;box-shadow:0 3px 10px #1c273526;font:700 21px/1 system-ui,-apple-system,sans-serif;touch-action:none;-webkit-touch-callout:none;user-select:none;cursor:ns-resize}
+    .header-drag-handle:active,.header-drag-handle.dragging{border-color:#2365aa;background:#e9f3ff;color:#174d83;box-shadow:0 4px 12px #1c273533,inset 0 0 0 1px #2365aa44}
+    .header-drag-handle[hidden]{display:none!important}
+    .header-title-handle{right:10px}
+    .header-tempo-handle{left:6px}
+    .header-composer-handle{right:6px}
     #osmdContainer{position:relative;width:100%;min-height:1123px;pointer-events:none}
     #osmdContainer svg{display:block;max-width:100%}
     .score-prompt{display:none!important}
@@ -179,8 +185,8 @@
     .app[data-work-mode="edit"] .score-area{padding-left:78px}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
     .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:none}
-    .app[data-work-mode="edit"] .score-title{top:76px;pointer-events:none}
-    .app[data-work-mode="edit"] .score-info-row{top:130px}
+    .app[data-work-mode="edit"] .score-title{pointer-events:none}
+    .app[data-work-mode="edit"] .header-drag-handle{display:grid}
     .app[data-work-mode="edit"] .score{cursor:default}
     .publish-screen{display:none;width:min(1120px,100%);margin:0 auto;padding:24px 8px 8px}
     .publish-header{display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:24px;text-align:center}
@@ -369,6 +375,7 @@
       .score{display:block!important;width:210mm;min-height:0;overflow:visible;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
       .score-page-shell{position:static;width:210mm!important;height:auto!important;margin:0}
       .score-page{position:relative;width:210mm;min-height:297mm;transform:none!important;box-shadow:none}
+      .header-drag-handle{display:none!important}
     }
   
     .pwa-update-banner{position:fixed;z-index:10000;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:min(92vw,560px);padding:10px 12px 10px 16px;border:1px solid #b8c9dc;border-radius:16px;background:#fffffff2;box-shadow:0 10px 30px #26384a2b;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:650 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#203247}
@@ -526,6 +533,9 @@
                 <span class="score-tempo" id="scoreTempo" hidden></span>
                 <span class="score-composer" id="scoreComposer" hidden></span>
               </div>
+              <button class="header-drag-handle header-title-handle" id="titleDragHandle" type="button" data-header-target="title" aria-label="Siirrä kappaleen nimeä pystysuunnassa">↕</button>
+              <button class="header-drag-handle header-tempo-handle" id="tempoDragHandle" type="button" data-header-target="tempo" aria-label="Siirrä tempotekstiä pystysuunnassa" hidden>↕</button>
+              <button class="header-drag-handle header-composer-handle" id="composerDragHandle" type="button" data-header-target="composer" aria-label="Siirrä säveltäjää pystysuunnassa" hidden>↕</button>
               <div id="osmdContainer" aria-hidden="true"></div>
               <span class="score-prompt" id="scorePrompt" hidden></span>
             </div>
@@ -671,7 +681,7 @@
   <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),tupletWarning=document.querySelector('#tupletWarning'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),titleDragHandle=document.querySelector('#titleDragHandle'),tempoDragHandle=document.querySelector('#tempoDragHandle'),composerDragHandle=document.querySelector('#composerDragHandle'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),tupletWarning=document.querySelector('#tupletWarning'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -689,7 +699,7 @@
     const themeStyleTag=document.createElement('style');
     themeStyleTag.id='dynamicThemeStyle';
     document.head.appendChild(themeStyleTag);
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,tripletBaseUnits=null,nextTupletId=1,completedTupletId=null,tupletWarningTimer=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,tripletBaseUnits=null,nextTupletId=1,completedTupletId=null,tupletWarningTimer=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write',headerDrag=null;
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
@@ -1148,6 +1158,54 @@
       applyLineSpacingRules();
       return true;
     }
+    const HEADER_BASE_Y={title:28,tempo:104,composer:104},HEADER_MIN_Y=8,HEADER_MAX_Y=280;
+    function normalizedHeaderPositions(source=projectData?.headerPositions){
+      const value=source&&typeof source==='object'?source:{};
+      return {title:Number(value.title)||0,tempo:Number(value.tempo)||0,composer:Number(value.composer)||0};
+    }
+    function ensureHeaderPositions(){
+      if(!projectData)return normalizedHeaderPositions();
+      projectData.headerPositions=normalizedHeaderPositions(projectData.headerPositions);
+      return projectData.headerPositions;
+    }
+    function syncHeaderDragHandles(){
+      const positions=normalizedHeaderPositions();
+      titleDragHandle.style.top=`${HEADER_BASE_Y.title+positions.title+1}px`;
+      tempoDragHandle.style.top=`${HEADER_BASE_Y.tempo+positions.tempo-10}px`;
+      composerDragHandle.style.top=`${HEADER_BASE_Y.composer+positions.composer-10}px`;
+      tempoDragHandle.hidden=scoreTempo.hidden;composerDragHandle.hidden=scoreComposer.hidden;
+    }
+    function applyHeaderPositions(){
+      const positions=normalizedHeaderPositions();
+      scoreTitle.style.top=`${HEADER_BASE_Y.title+positions.title}px`;
+      scoreTempo.style.top=`${positions.tempo}px`;
+      scoreComposer.style.top=`${positions.composer}px`;
+      syncHeaderDragHandles();
+    }
+    function startHeaderDrag(e){
+      if(workMode!=='edit'||!projectData)return;
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      const handle=e.currentTarget,key=handle.dataset.headerTarget;if(!HEADER_BASE_Y[key])return;
+      e.preventDefault();e.stopPropagation();
+      const positions=ensureHeaderPositions();
+      headerDrag={pointerId:e.pointerId,key,startClientY:e.clientY,startOffset:positions[key],handle};
+      handle.classList.add('dragging');handle.setPointerCapture?.(e.pointerId);
+    }
+    function moveHeaderDrag(e){
+      if(!headerDrag||e.pointerId!==headerDrag.pointerId)return;
+      e.preventDefault();e.stopPropagation();
+      const {key,startClientY,startOffset}=headerDrag,scale=scorePageScale||1,base=HEADER_BASE_Y[key],delta=(e.clientY-startClientY)/scale,offset=clamp(startOffset+delta,HEADER_MIN_Y-base,HEADER_MAX_Y-base);
+      ensureHeaderPositions()[key]=Math.round(offset*10)/10;applyHeaderPositions();
+    }
+    function endHeaderDrag(e){
+      if(!headerDrag||e.pointerId!==headerDrag.pointerId)return;
+      moveHeaderDrag(e);
+      const {handle}=headerDrag;handle.classList.remove('dragging');try{handle.releasePointerCapture?.(e.pointerId)}catch{}headerDrag=null;invalidatePublishFiles();
+    }
+    function cancelHeaderDrag(e){
+      if(!headerDrag||e.pointerId!==headerDrag.pointerId)return;
+      const {handle,key,startOffset}=headerDrag;ensureHeaderPositions()[key]=startOffset;applyHeaderPositions();handle.classList.remove('dragging');try{handle.releasePointerCapture?.(e.pointerId)}catch{}headerDrag=null;
+    }
     function updateScorePagePreview(){
       const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,scale=clamp(Math.min(widthScale,heightScale),.42,1.28),contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);scorePageScale=scale;
       scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';if(writeEditNoteId)requestAnimationFrame(positionWriteNoteContext);
@@ -1163,6 +1221,7 @@
       editModeButton.disabled=!hasNotes;printModeButton.disabled=!hasNotes;
       modes.forEach(([button,mode])=>button.setAttribute('aria-pressed',String(workMode===mode)));
       app.dataset.workMode=workMode;
+      scoreTitle.tabIndex=workMode==='edit'?-1:0;syncHeaderDragHandles();
       score.setAttribute('aria-label',workMode==='write'?'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.':workMode==='print'?'Julkaisutila. Valitse julkaisuun liittyvä toiminto.':'Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua.');
       selectionToolbar.setAttribute('aria-hidden',String(workMode!=='edit'));
       if(workMode==='edit')syncSelectionToolbar();
@@ -1219,8 +1278,8 @@
       return lines;
     }
     function drawPublicationHeader(ctx){
-      const title=(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim(),tempo=(scoreTempo.textContent||projectData?.tempoText||'').trim(),composer=(scoreComposer.textContent||projectData?.composer||'').trim(),titleStyle=getComputedStyle(scoreTitle),infoStyle=getComputedStyle(scoreTempo.parentElement),titleTop=Number.parseFloat(titleStyle.top)||28,infoTop=Number.parseFloat(infoStyle.top)||104;
-      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font='750 25px system-ui,-apple-system,sans-serif';wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';ctx.font='650 15px system-ui,-apple-system,sans-serif';if(tempo){ctx.textAlign='left';ctx.fillText(tempo,50,infoTop)}if(composer){ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,infoTop)}ctx.restore();
+      const title=(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim(),tempo=(scoreTempo.textContent||projectData?.tempoText||'').trim(),composer=(scoreComposer.textContent||projectData?.composer||'').trim(),titleStyle=getComputedStyle(scoreTitle),infoStyle=getComputedStyle(scoreTempo.parentElement),tempoStyle=getComputedStyle(scoreTempo),composerStyle=getComputedStyle(scoreComposer),titleTop=Number.parseFloat(titleStyle.top)||28,infoTop=Number.parseFloat(infoStyle.top)||104,tempoTop=infoTop+(Number.parseFloat(tempoStyle.top)||0),composerTop=infoTop+(Number.parseFloat(composerStyle.top)||0);
+      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font='750 25px system-ui,-apple-system,sans-serif';wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';ctx.font='650 15px system-ui,-apple-system,sans-serif';if(tempo){ctx.textAlign='left';ctx.fillText(tempo,50,tempoTop)}if(composer){ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,composerTop)}ctx.restore();
     }
     function canvasBlob(canvas,type='image/png',quality){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF-sivun kuvan luominen epäonnistui.')),type,quality))}
     async function publicationPagePng(svg,pageIndex){
@@ -1282,7 +1341,7 @@
       themeSelect.value=projectData.themeId||currentThemeId();
       applyTheme(themeSelect.value);
       saveThemePreference();
-      scoreTitle.textContent=projectData.title||'Nimetön kappale';scoreTempo.textContent=projectData.tempoText||'';scoreTempo.hidden=!scoreTempo.textContent;scoreComposer.textContent=projectData.composer||'';scoreComposer.hidden=!scoreComposer.textContent;
+      scoreTitle.textContent=projectData.title||'Nimetön kappale';scoreTempo.textContent=projectData.tempoText||'';scoreTempo.hidden=!scoreTempo.textContent;scoreComposer.textContent=projectData.composer||'';scoreComposer.hidden=!scoreComposer.textContent;applyHeaderPositions();
       syncNotationChoices();syncKeyPicker();syncMeterPicker();syncPickupButtons();buildKeyboard();applyNotationSettings();syncWorkModeUI();syncStaffTopSlider();syncLineSpacingSlider();syncNoteSizeControls();
       projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');await renderScore();requestAnimationFrame(()=>{updateScorePagePreview();score.focus()});statusMessage(`Projekti avattu: ${projectData.title||file.name}`);
     }
@@ -2260,19 +2319,20 @@
     }
     function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
     function editProjectFromTitle(e){
+      if(workMode==='edit')return;
       if(e.type==='pointerdown'&&e.pointerType==='mouse'&&e.button!==0)return;
       if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;
       e.preventDefault();e.stopPropagation();showProjectModal();
     }
     function applyProjectData(){
       saveNotationSettings();
-      const keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0};
+      const headerPositions=normalizedHeaderPositions(projectData?.headerPositions),keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0,headerPositions};
       saveThemePreference();
       applyTheme(projectData.themeId);
       syncNotationChoices();
       scoreTitle.textContent=projectData.title||'Nimetön kappale';
       scoreTempo.textContent=projectData.tempoText;scoreTempo.hidden=!projectData.tempoText;
-      scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;
+      scoreComposer.textContent=projectData.composer;scoreComposer.hidden=!projectData.composer;applyHeaderPositions();
       buildKeyboard();applyNotationSettings();projectModal.hidden=true;app.inert=false;app.removeAttribute('aria-hidden');score.focus();
       renderScore();
       requestAnimationFrame(()=>{updateScorePagePreview();if(!keyboardPanel.hidden)positionKeyboardForClef()});
@@ -2705,6 +2765,7 @@
     restoreNotationSettings();restoreThemePreference();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
     buildKeyboard();
     applyNotationSettings();
+    applyHeaderPositions();
     syncWorkModeUI();
     syncSelectionToolbar();
     const thumbGuideMode=activateThumbGuideMode();
@@ -2735,6 +2796,12 @@
     themeSelect?.addEventListener('change',()=>{applyTheme(currentThemeId());saveThemePreference();if(projectData){projectData.themeId=currentThemeId();}});
     scoreTitle.addEventListener('pointerdown',editProjectFromTitle);
     scoreTitle.addEventListener('keydown',editProjectFromTitle);
+    [titleDragHandle,tempoDragHandle,composerDragHandle].forEach(handle=>{
+      handle.addEventListener('pointerdown',startHeaderDrag);
+      handle.addEventListener('pointermove',moveHeaderDrag,{passive:false});
+      handle.addEventListener('pointerup',endHeaderDrag);
+      handle.addEventListener('pointercancel',cancelHeaderDrag);
+    });
     modifierRail.addEventListener('pointerdown',startModifier);
     modifierRail.addEventListener('pointermove',moveModifier,{passive:false});
     modifierDragHandle.addEventListener('pointerdown',startModifierDrag);
