@@ -278,6 +278,10 @@
     .meter-wheel-slot{position:absolute;z-index:3;width:58px;height:58px;display:grid;place-items:center;padding:0;border:1px solid #aebbc9;border-radius:50%;background:#fff;color:#263342;box-shadow:0 2px 5px #1c27351f;font-size:12px;font-weight:850;line-height:1;transform:translate(-50%,-50%);touch-action:manipulation;cursor:pointer}
     .cut-time-symbol{position:relative;display:inline-grid;place-items:center;min-width:.8em;font-family:Georgia,"Times New Roman",serif;font-size:1.35em;font-weight:700;line-height:1}
     .cut-time-symbol::after{content:'';position:absolute;left:50%;top:-.08em;bottom:-.08em;width:1.5px;background:currentColor;transform:translateX(-50%)}
+    .meter-symbol-image{display:block;width:24px;height:30px;object-fit:contain;pointer-events:none}
+    .meter-symbol-image.cut{height:34px}
+    .meter-trigger-value .meter-symbol-image{width:22px;height:26px}
+    .meter-trigger-value .meter-symbol-image.cut{height:29px}
     .meter-wheel-slot[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa55,0 2px 6px #1c27352b}
     .meter-wheel-slot:focus-visible,.meter-wheel-close:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
     .pickup-control{grid-column:1/-1;min-height:48px;display:flex;align-items:center;gap:10px;min-width:0}
@@ -782,8 +786,14 @@
     function meterAriaLabel(value){return value==='C'?'C-tahtiosoitus, 4/4':value==='cutC'?'Cut C -tahtiosoitus, 2/2':`Tahtiosoitus ${value}`}
     function renderMeterLabel(element,value){
       element.replaceChildren();
-      if(value==='cutC'){const symbol=document.createElement('span');symbol.className='cut-time-symbol';symbol.textContent='C';element.appendChild(symbol);return}
-      element.textContent=value==='C'?'C':value;
+      if(value==='C'||value==='cutC'){
+        const symbol=document.createElement('img');
+        symbol.className=`meter-symbol-image ${value==='cutC'?'cut':'common'}`;
+        symbol.src=value==='C'?'assets/Common_time.svg':'assets/Alla_breve.svg';
+        symbol.alt='';symbol.setAttribute('aria-hidden','true');
+        element.appendChild(symbol);return;
+      }
+      element.textContent=value;
     }
     function syncMeterPicker(){
       const value=timeSignatureSelect.value||'4/4';

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.41-tuplet-toggle';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.42-tahtilaji-svg';
 const APP_SHELL = [
   './',
   './index.html',
@@ -20,6 +20,8 @@ const APP_SHELL = [
   './assets/1_16_rest.svg',
   './assets/1_32_note.svg',
   './assets/1_32_rest.svg',
+  './assets/Common_time.svg',
+  './assets/Alla_breve.svg',
   './assets/ending-1.svg',
   './assets/ending-2.svg',
   './assets/pickup-dotted-half.svg',
