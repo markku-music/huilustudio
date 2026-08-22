@@ -145,11 +145,13 @@
     .note-selection-layer{position:absolute;z-index:7;left:0;top:0;pointer-events:none;overflow:visible}
     .note-selection-highlight{position:absolute;border:2px solid #6841d6e0;border-radius:9px;background:#8653f629;box-shadow:0 0 0 2px #ffffff8c}
     .note-selection-marquee{position:absolute;border:2px dashed #7045d0;border-radius:8px;background:#8653f61a}
-    .write-note-highlight{position:absolute;z-index:9;border:2px solid #2f73c9;border-radius:9px;background:#4d93e41f;box-shadow:0 0 0 2px #ffffff9c;pointer-events:none}
+    .write-note-highlight{position:absolute;z-index:9;border:2px solid #2f73c9;border-radius:9px;background:#4d93e41f;box-shadow:0 0 0 2px #ffffff9c;pointer-events:auto;touch-action:none;cursor:ns-resize}
+    .write-note-highlight.dragging{background:#4d93e433;border-color:#174d83;box-shadow:0 0 0 3px #ffffffcc,0 3px 10px #174d8340}
     .write-note-context{position:absolute;z-index:24;display:flex;align-items:center;gap:6px;padding:5px;border:1px solid #a9bfd9;border-radius:13px;background:#fffffff5;box-shadow:0 7px 20px #1e47772e;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none;-webkit-user-select:none;user-select:none}
     .write-note-context[hidden]{display:none}
     .write-note-context-button{width:42px;height:42px;display:grid;place-items:center;padding:0;border:1px solid #b9cbe0;border-radius:10px;background:#fff;color:#285f9f;font:800 18px/1 system-ui,sans-serif;touch-action:manipulation;cursor:pointer}
     .write-note-context-button:active{background:#eaf3ff}
+    .write-note-context-button[aria-pressed="true"]{border-color:#2f73c9;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2f73c944}
     .write-note-context-button:disabled{display:none}
     .write-note-context-button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
     .write-selection-actions{position:absolute;z-index:34;display:flex;align-items:center;gap:6px;padding:5px;border:1px solid #a9bfd9;border-radius:13px;background:#fffffff5;box-shadow:0 7px 20px #1e47772e;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none;-webkit-user-select:none;user-select:none}
@@ -545,7 +547,9 @@
             </div>
           </div>
           <div class="write-note-context" id="writeNoteContext" role="toolbar" aria-label="Valitun nuotin pikakorjaus" hidden>
-            <button class="write-note-context-button" id="writeNoteAccidentalButton" type="button" aria-label="Vaihda enharmoninen kirjoitusasu">♯/♭</button>
+            <button class="write-note-context-button" id="writeNoteFlatButton" type="button" data-alter="-1" aria-label="Alennusmerkki">♭</button>
+            <button class="write-note-context-button" id="writeNoteNaturalButton" type="button" data-alter="0" aria-label="Palautusmerkki">♮</button>
+            <button class="write-note-context-button" id="writeNoteSharpButton" type="button" data-alter="1" aria-label="Ylennysmerkki">♯</button>
             <button class="write-note-context-button" id="writeNoteDeleteButton" type="button" aria-label="Poista nuotti">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
             </button>
@@ -686,7 +690,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),titleDragHandle=document.querySelector('#titleDragHandle'),tempoDragHandle=document.querySelector('#tempoDragHandle'),composerDragHandle=document.querySelector('#composerDragHandle'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),tupletWarning=document.querySelector('#tupletWarning'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteFlatButton=document.querySelector('#writeNoteFlatButton'),writeNoteNaturalButton=document.querySelector('#writeNoteNaturalButton'),writeNoteSharpButton=document.querySelector('#writeNoteSharpButton'),writeNoteAccidentalButtons=[writeNoteFlatButton,writeNoteNaturalButton,writeNoteSharpButton],writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={thirtysecond:1,sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -704,7 +708,7 @@
     themeStyleTag.id='dynamicThemeStyle';
     document.head.appendChild(themeStyleTag);
     let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,tripletBaseUnits=null,nextTupletId=1,completedTupletId=null,tupletWarningTimer=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write',headerDrag=null;
-    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
+    let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,writePitchDrag=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
     let noteSizePercent=100,noteSizeCommitRunning=false,noteSizeBasePageMargins=null;
@@ -910,6 +914,19 @@
       'D':['C',1],'G':['F',1],'C':['B',0],'F':['E',0],'Bb':['A',0],'Eb':['D',0],'Ab':['G',0]
     };
     const naturalPitchClass={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+    const diatonicSteps=['C','D','E','F','G','A','B'];
+    function midiFromSpelling(step,octave,alter=0){return (Number(octave)+1)*12+naturalPitchClass[step]+Number(alter||0)}
+    function noteSpellingParts(note,index,keyInfo={fifths:projectData?.keySignature??selectedKeyInfo().fifths,mode:projectData?.keyMode??selectedKeyInfo().mode,tonic:projectData?.keyTonic??selectedKeyInfo().tonic}){
+      if(note?.spellingStep&&diatonicSteps.includes(note.spellingStep)&&Number.isFinite(Number(note.spellingOctave))&&Number.isFinite(Number(note.spellingAlter)))return {step:note.spellingStep,octave:Number(note.spellingOctave),alter:Number(note.spellingAlter)};
+      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]];
+      let pitch;if(!note?.accidentalStyle)pitch=leadingToneSpelling(note,keyInfo);
+      if(!pitch)pitch=(automaticUseFlats(note,index,keyInfo.fifths,keyInfo.mode,keyInfo.tonic)?flats:sharps)[mod(note.midi,12)];
+      const octave=(note.midi-naturalPitchClass[pitch[0]]-pitch[1])/12-1;return {step:pitch[0],octave,alter:pitch[1]};
+    }
+    function shiftedSpelling(spelling,steps){
+      const start=Number(spelling.octave)*7+diatonicSteps.indexOf(spelling.step),target=start+Number(steps||0),octave=Math.floor(target/7),step=diatonicSteps[mod(target,7)];
+      return {step,octave,alter:Number(spelling.alter)||0};
+    }
     function leadingToneSpelling(note,keyInfo){
       if(!note||keyInfo?.mode!=='minor')return null;
       const spelling=minorLeadingSpellings[keyInfo.tonic];
@@ -929,12 +946,12 @@
       return false;
     }
     function musicXmlPitch(note,index,keyInfo){
-      const sharps=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]],flats=[['C',0],['D',-1],['D',0],['E',-1],['E',0],['F',0],['G',-1],['G',0],['A',-1],['A',0],['B',-1],['B',0]];
-      let pitch;
-      if(!note?.accidentalStyle)pitch=leadingToneSpelling(note,keyInfo);
-      if(!pitch)pitch=(automaticUseFlats(note,index,keyInfo.fifths,keyInfo.mode,keyInfo.tonic)?flats:sharps)[mod(note.midi,12)];
-      const octave=(note.midi-naturalPitchClass[pitch[0]]-pitch[1])/12-1;
-      return `<pitch><step>${pitch[0]}</step>${pitch[1]?`<alter>${pitch[1]}</alter>`:''}<octave>${octave}</octave></pitch>`;
+      const pitch=noteSpellingParts(note,index,keyInfo);
+      return `<pitch><step>${pitch.step}</step>${pitch.alter?`<alter>${pitch.alter}</alter>`:''}<octave>${pitch.octave}</octave></pitch>`;
+    }
+    function musicXmlAccidental(note){
+      if(!note?.spellingManual)return '';
+      const value=Number(note.spellingAlter);return value<0?'<accidental>flat</accidental>':value>0?'<accidental>sharp</accidental>':'<accidental>natural</accidental>';
     }
     function musicXmlRest(note,clefName){
       if(note.duration!=='whole')return '<rest/>';
@@ -1115,14 +1132,14 @@
       const measures=groups.map((group,index)=>{
         const attributes=index===0?`<attributes><divisions>480</divisions><key><fifths>${data.keySignature}</fifths></key><time${timeSignatureSymbolAttribute(data.timeSignature)}><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>${clef[0]}</sign><line>${clef[1]}</line></clef></attributes>`:'',measureCapacity=groupCapacities[index]||capacity;
         const beamTags=measureBeamTags(group,beats,beatType,{osmdCompatible:forRender}),entries=group.length?group.map((note,noteIndex)=>{
-          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='thirtysecond'?'32nd':note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*60):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest?(note.doubleDotted?'<dot/><dot/>':note.dotted?'<dot/>':''):'',tupletActual=note.tupletId?tupletActualNotes(note):0,tupletNormal=tupletActual?tupletNormalNotes(tupletActual):0,timeModification=note.tupletId?`<time-modification><actual-notes>${tupletActual}</actual-notes><normal-notes>${tupletNormal}</normal-notes></time-modification>`:'';
+          const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='thirtysecond'?'32nd':note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*60):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest?(note.doubleDotted?'<dot/><dot/>':note.dotted?'<dot/>':''):'',tupletActual=note.tupletId?tupletActualNotes(note):0,tupletNormal=tupletActual?tupletNormalNotes(tupletActual):0,timeModification=note.tupletId?`<time-modification><actual-notes>${tupletActual}</actual-notes><normal-notes>${tupletNormal}</normal-notes></time-modification>`:'',accidentalXml=note.rest?'':musicXmlAccidental(note);
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
           const tupletPlacement=note.tupletId?tupletPlacementForId(note.tupletId):'above',tupletBound=note.tupletId?tupletBounds.get(note.tupletId):null,tupletNotation=note.tupletId&&tupletBound?.firstId===note.id?`<tuplet type="start" number="1" bracket="yes" show-number="actual" placement="${tupletPlacement}"/>`:note.tupletId&&tupletBound?.lastId===note.id?'<tuplet type="stop" number="1"/>':'';
           const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(item=>`<slur type="start" number="${item.number}"${placement(item.placement)}/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations||tupletNotation?`<notations>${tiedXml}${slurXml}${articulations}${tupletNotation}</notations>`:'';
           const before=`${wedgeDirectionsXml(decorations.hairpinStarts)}${dynamicDirectionXml(note.dynamic)}`,after=wedgeDirectionsXml(decorations.hairpinStops,true);
           const stemXml=!measureRest&&(note.stemDirection==='up'||note.stemDirection==='down')?`<stem>${note.stemDirection}</stem>`:'';
-          return `${before}<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${timeModification}${stemXml}${beamTags[noteIndex]}${notations}</note>${after}`;
+          return `${before}<note>${content}<duration>${duration}</duration>${tieXml}<voice>1</voice>${typeXml}${dot}${accidentalXml}${timeModification}${stemXml}${beamTags[noteIndex]}${notations}</note>${after}`;
         }).join(''):(renderedNoteObjectId+=1,`<note print-object="no"><rest${pickupCapacity&&index===0?'':' measure="yes"'}/><duration>${Math.round(measureCapacity*60)}</duration><voice>1</voice></note>`);
         const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'',measureNumber=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'',leftBarline=leftBarlineXml(index),rightBarline=rightBarlineXml(index+1,totalMeasures);
         return `<measure number="${measureNumber}"${implicit}>${systemBreak}${attributes}${leftBarline}${entries}${rightBarline}</measure>`;
@@ -1841,7 +1858,7 @@
         const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el;if(!element||visited.has(element))return;visited.add(element);
         const rect=element.getBoundingClientRect?.();if(!rect||!rect.width||!rect.height)return;
         const paddingX=11,paddingY=9,left=(rect.left-containerRect.left)/scale-paddingX,top=(rect.top-containerRect.top)/scale-paddingY,width=Math.max(36,rect.width/scale+paddingX*2),height=Math.max(38,rect.height/scale+paddingY*2);
-        writeNoteHitboxes.push({entryIndex:index,id:note.id,left,top,right:left+width,bottom:top+height,width,height});
+        const staffSpacing=Number(vexNote?.getStave?.()?.getSpacingBetweenLines?.())||10;writeNoteHitboxes.push({entryIndex:index,id:note.id,left,top,right:left+width,bottom:top+height,width,height,sourceElement:element,staffStepPx:Math.max(3,staffSpacing/2)});
       })))))
     }
     function writeNoteIndex(){return writeEditNoteId?notes.findIndex(note=>note.id===writeEditNoteId):-1}
@@ -1849,12 +1866,45 @@
       const rect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1,point={x:(clientX-rect.left)/scale,y:(clientY-rect.top)/scale};
       return writeNoteHitboxes.filter(box=>point.x>=box.left&&point.x<=box.right&&point.y>=box.top&&point.y<=box.bottom).sort((a,b)=>a.width*a.height-b.width*b.height)[0]||null;
     }
-    function clearWriteNoteEdit(){writeEditNoteId=null;writeEditHighlight?.remove();writeEditHighlight=null;writeNoteContext.hidden=true}
+    function restoreWritePitchPreview(){
+      if(!writePitchDrag)return;const {sourceElement,originalTransform,highlight}=writePitchDrag;
+      if(sourceElement){if(originalTransform===null)sourceElement.removeAttribute('transform');else sourceElement.setAttribute('transform',originalTransform)}
+      if(highlight){highlight.style.transform='';highlight.classList.remove('dragging')}
+    }
+    function cancelWritePitchDrag(){restoreWritePitchPreview();writePitchDrag=null}
+    function startWritePitchDrag(e){
+      if(workMode!=='write'||writePitchDrag)return;const index=writeNoteIndex(),hit=writeNoteHitboxes.find(box=>box.entryIndex===index),note=notes[index];if(index<0||!hit||!note)return;
+      if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();e.stopPropagation();cancelWriteSelectionHold();
+      const spelling=noteSpellingParts(note,index),sourceElement=hit.sourceElement||null,originalTransform=sourceElement?.getAttribute('transform')??null;
+      writePitchDrag={pointerId:e.pointerId,index,id:note.id,before:{...note},startClientY:e.clientY,steps:0,spelling,hit,sourceElement,originalTransform,highlight:e.currentTarget};
+      e.currentTarget.classList.add('dragging');try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}
+    }
+    function moveWritePitchDrag(e){
+      if(!writePitchDrag||writePitchDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();
+      const scale=scorePageScale||1,stepPx=writePitchDrag.hit.staffStepPx||5,dy=(e.clientY-writePitchDrag.startClientY)/scale;let steps=Math.round(-dy/stepPx);
+      let target=shiftedSpelling(writePitchDrag.spelling,steps),midi=midiFromSpelling(target.step,target.octave,target.alter);
+      while(midi<0&&steps<0){steps+=1;target=shiftedSpelling(writePitchDrag.spelling,steps);midi=midiFromSpelling(target.step,target.octave,target.alter)}
+      while(midi>127&&steps>0){steps-=1;target=shiftedSpelling(writePitchDrag.spelling,steps);midi=midiFromSpelling(target.step,target.octave,target.alter)}
+      if(steps===writePitchDrag.steps)return;writePitchDrag.steps=steps;const previewDy=-steps*stepPx;
+      writePitchDrag.highlight.style.transform=`translateY(${previewDy}px)`;
+      if(writePitchDrag.sourceElement){const base=writePitchDrag.originalTransform||'';writePitchDrag.sourceElement.setAttribute('transform',`${base}${base?' ':''}translate(0 ${previewDy})`)}
+      const accidental=target.alter<0?'♭':target.alter>0?'♯':'',name=target.step==='B'?'H':target.step;status.textContent=`${name}${accidental}${target.octave}`;
+    }
+    function endWritePitchDrag(e,cancelled=false){
+      if(!writePitchDrag||writePitchDrag.pointerId!==e.pointerId)return;e.preventDefault();e.stopPropagation();
+      const drag=writePitchDrag;restoreWritePitchPreview();try{drag.highlight.releasePointerCapture?.(e.pointerId)}catch{}writePitchDrag=null;
+      if(cancelled||!drag.steps){positionWriteNoteContext();return}
+      const index=notes.findIndex(note=>note.id===drag.id),note=notes[index];if(index<0||!note)return;const target=shiftedSpelling(drag.spelling,drag.steps),midi=midiFromSpelling(target.step,target.octave,target.alter);
+      note.spellingStep=target.step;note.spellingOctave=target.octave;note.spellingAlter=target.alter;note.spellingManual=Boolean(drag.before.spellingManual);note.midi=midi;
+      if(target.alter<0)note.accidentalStyle='flat';else if(target.alter>0)note.accidentalStyle='sharp';else delete note.accidentalStyle;
+      repairTiesAround(index);rememberAction({type:'update-note',id:note.id,before:drag.before,after:{...note}});renderScore();
+    }
+    function clearWriteNoteEdit(){cancelWritePitchDrag();writeEditNoteId=null;writeEditHighlight?.remove();writeEditHighlight=null;writeNoteContext.hidden=true}
     function positionWriteNoteContext(){
       const index=writeNoteIndex(),hit=writeNoteHitboxes.find(box=>box.entryIndex===index);if(workMode!=='write'||index<0||!hit){clearWriteNoteEdit();return}
-      writeEditHighlight?.remove();const highlight=document.createElement('div');highlight.className='write-note-highlight';highlight.style.left=`${hit.left}px`;highlight.style.top=`${hit.top}px`;highlight.style.width=`${hit.width}px`;highlight.style.height=`${hit.height}px`;scorePage.appendChild(highlight);writeEditHighlight=highlight;
-      const note=notes[index],isChromatic=[1,3,6,8,10].includes(mod(note.midi,12));writeNoteAccidentalButton.disabled=!isChromatic;writeNoteAccidentalButton.setAttribute('aria-label',automaticUseFlats(note,index,projectData?.keySignature??selectedKeyInfo().fifths,projectData?.keyMode??selectedKeyInfo().mode,projectData?.keyTonic??selectedKeyInfo().tonic)?'Kirjoita sama sävel ylennettynä':'Kirjoita sama sävel alennettuna');
-      writeNoteContext.hidden=false;const scale=scorePageScale||1,shellLeft=scorePageShell.offsetLeft,shellTop=scorePageShell.offsetTop,toolbarWidth=writeNoteContext.offsetWidth||96,toolbarHeight=writeNoteContext.offsetHeight||52,scoreHeight=Math.max(score.clientHeight,score.scrollHeight);
+      writeEditHighlight?.remove();const highlight=document.createElement('div');highlight.className='write-note-highlight';highlight.style.left=`${hit.left}px`;highlight.style.top=`${hit.top}px`;highlight.style.width=`${hit.width}px`;highlight.style.height=`${hit.height}px`;scorePage.appendChild(highlight);writeEditHighlight=highlight;highlight.addEventListener('pointerdown',startWritePitchDrag,{passive:false});highlight.addEventListener('pointermove',moveWritePitchDrag,{passive:false});highlight.addEventListener('pointerup',e=>endWritePitchDrag(e,false),{passive:false});highlight.addEventListener('pointercancel',e=>endWritePitchDrag(e,true),{passive:false});
+      const note=notes[index],spelling=noteSpellingParts(note,index);writeNoteAccidentalButtons.forEach(button=>button.setAttribute('aria-pressed',String(note.spellingManual&&Number(button.dataset.alter)===Number(spelling.alter))));
+      writeNoteContext.hidden=false;const scale=scorePageScale||1,shellLeft=scorePageShell.offsetLeft,shellTop=scorePageShell.offsetTop,toolbarWidth=writeNoteContext.offsetWidth||204,toolbarHeight=writeNoteContext.offsetHeight||52,scoreHeight=Math.max(score.clientHeight,score.scrollHeight);
       let left=shellLeft+(hit.left+hit.width/2)*scale-toolbarWidth/2,top=shellTop+hit.top*scale-toolbarHeight-7;
       if(top<score.scrollTop+6)top=shellTop+hit.bottom*scale+7;left=clamp(left,score.scrollLeft+6,score.scrollLeft+score.clientWidth-toolbarWidth-6);top=clamp(top,score.scrollTop+6,Math.max(score.scrollTop+6,scoreHeight-toolbarHeight-6));writeNoteContext.style.left=`${left}px`;writeNoteContext.style.top=`${top}px`;
     }
@@ -1862,9 +1912,11 @@
       const note=notes[index];if(workMode!=='write'||!note||note.rest||note.measureRest)return false;writeEditNoteId=note.id;positionWriteNoteContext();return true;
     }
     function refreshWriteGeometry(){buildWriteNoteHitboxes();if(selectedNoteIndices.size||writeSelectionActive){selectionHitboxes=writeNoteHitboxes.map(hit=>({...hit}));renderSelectionOverlay()}else syncWritePasteEndButton();if(writeEditNoteId)positionWriteNoteContext()}
-    function toggleWriteNoteAccidental(){
-      const index=writeNoteIndex(),note=notes[index];if(index<0||!note||![1,3,6,8,10].includes(mod(note.midi,12)))return;
-      const before={...note},currentFlat=automaticUseFlats(note,index,projectData?.keySignature??selectedKeyInfo().fifths,projectData?.keyMode??selectedKeyInfo().mode,projectData?.keyTonic??selectedKeyInfo().tonic);note.accidentalStyle=currentFlat?'sharp':'flat';rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
+    function setWriteNoteAccidental(alter){
+      const index=writeNoteIndex(),note=notes[index];if(index<0||!note)return;
+      const value=clamp(Number(alter)||0,-1,1),before={...note},spelling=noteSpellingParts(note,index);
+      note.spellingStep=spelling.step;note.spellingOctave=spelling.octave;note.spellingAlter=value;note.spellingManual=true;note.accidentalStyle=value<0?'flat':value>0?'sharp':'natural';note.midi=midiFromSpelling(spelling.step,spelling.octave,value);
+      repairTiesAround(index);rememberAction({type:'update-note',id:note.id,before,after:{...note}});renderScore();
     }
     function repairTiesAround(index){
       const note=notes[index],previous=notes[index-1],next=notes[index+1];if(note?.tieFromPrevious&&(!previous||previous.rest||note.rest||previous.midi!==note.midi))note.tieFromPrevious=false;if(next?.tieFromPrevious&&(!note||note.rest||next.rest||note.midi!==next.midi))next.tieFromPrevious=false;
@@ -2604,7 +2656,7 @@
       const writtenMidi=+key.dataset.midi,soundingMidi=writtenMidi+currentTranspose(),t=audio.currentTime,editIndex=writeNoteIndex();
       activeReplacingExisting=editIndex>=0;
       if(activeReplacingExisting){
-        const existing=notes[editIndex],before={...existing};existing.midi=writtenMidi;existing.duration=duration;existing.dotted=dotted;existing.doubleDotted=doubleDotted;existing.rest=rest;existing.measureRest=false;delete existing.accidentalStyle;repairTiesAround(editIndex);const action={type:'update-note',id:existing.id,before,after:{...existing}};rememberAction(action);activeNote=existing;activeNoteAction=action;renderScore();
+        const existing=notes[editIndex],before={...existing};existing.midi=writtenMidi;existing.duration=duration;existing.dotted=dotted;existing.doubleDotted=doubleDotted;existing.rest=rest;existing.measureRest=false;delete existing.accidentalStyle;delete existing.spellingStep;delete existing.spellingOctave;delete existing.spellingAlter;delete existing.spellingManual;repairTiesAround(editIndex);const action={type:'update-note',id:existing.id,before,after:{...existing}};rememberAction(action);activeNote=existing;activeNoteAction=action;renderScore();
       }else{const created=addScoreNote(writtenMidi,{duration,dotted,doubleDotted,rest});activeNote=created.note;activeNoteAction=created.action}
       if(!noteGestureLocked)longPressTimer=setTimeout(()=>{
         longPressTimer=null;
@@ -2887,7 +2939,7 @@
     restoreSelectionToolbarPosition();
     writeNoteContext.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()},{passive:false});
     writeNoteContext.addEventListener('pointerup',e=>e.stopPropagation());
-    writeNoteAccidentalButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleWriteNoteAccidental()});
+    writeNoteAccidentalButtons.forEach(button=>button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setWriteNoteAccidental(Number(button.dataset.alter))}));
     writeNoteDeleteButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();deleteWriteNote()});
     score.addEventListener('scroll',()=>{if(writeEditNoteId)positionWriteNoteContext();if(!barlinePalette.hidden)closeBarlinePalette()},{passive:true});
     score.addEventListener('touchstart',startScoreTouchLock,{passive:false,capture:true});
