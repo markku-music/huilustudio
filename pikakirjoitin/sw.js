@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.37-tuplet-capacity-rest-beam';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.38-write-selection-actions';
 const APP_SHELL = [
   './',
   './index.html',
