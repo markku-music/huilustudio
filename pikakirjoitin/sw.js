@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.58-zoom-guard';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.59-write-selection-stability';
 const APP_SHELL = [
   './',
   './index.html',

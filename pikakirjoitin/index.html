@@ -2853,13 +2853,26 @@
       const wasWriteSelection=writeSelectionActive&&selectionDrag?.pointerId===e.pointerId;
       if(wasWriteSelection)finishWriteSelection(e,cancelled);else cancelWriteSelectionHold();
       const singleTap=!wasWriteSelection&&scorePointers.size===1&&scoreGesture===0&&!scoreMoved&&!cancelled;
-      try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
       scorePointers.delete(e.pointerId);
+      try{if(score.hasPointerCapture(e.pointerId))score.releasePointerCapture(e.pointerId)}catch{}
       if(singleTap&&workMode==='write'){
         if(selectedNoteIndices.size||selectionClipboard){selectedNoteIndices.clear();selectionClipboard=null;selectionHitboxes=[];renderSelectionOverlay();syncWritePasteEndButton()}
         const hit=writeNoteHitAtClient(e.clientX,e.clientY);if(hit)selectWriteNote(hit.entryIndex);else if(writeEditNoteId&&keyboardPanel.hidden)togglePiano(e);else{clearWriteNoteEdit();togglePiano(e)}
       }
-      if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreMoved=false}
+      if(!scorePointers.size){
+        scoreGesture=0;scoreUndoneAction=null;scoreMoved=false;cancelWriteSelectionHold();
+        if(writeSelectionActive){writeSelectionActive=false;selectionDrag=null;writeSelectionCandidate=null;selectedNoteIndices.clear();selectionClipboard=null;selectionHitboxes=[];renderSelectionOverlay();syncWritePasteEndButton()}
+      }
+    }
+    function finishWritePointerFallback(e,cancelled=false){
+      if(writePitchDrag?.pointerId===e.pointerId)endWritePitchDrag(e,cancelled);
+      if(scorePointers.has(e.pointerId))endScoreGesture(e,cancelled);
+    }
+    function resetTransientWritePointers(){
+      cancelWriteSelectionHold();writeSelectionCandidate=null;
+      if(writeSelectionActive){writeSelectionActive=false;selectionDrag=null;selectedNoteIndices.clear();selectionClipboard=null;selectionHitboxes=[];renderSelectionOverlay();syncWritePasteEndButton()}
+      cancelWritePitchDrag();scorePointers.clear();scoreGesture=0;scoreUndoneAction=null;scoreMoved=false;
+      scoreTouchIds.clear();scoreMultiTouchLocked=false;scoreMultiTouchScrollTop=0;scoreMultiTouchScrollLeft=0;
     }
     function scoreKey(e){
       if(workMode!=='write'||(e.key!=='Enter'&&e.key!==' '))return;
@@ -2953,6 +2966,10 @@
     window.addEventListener('pointercancel',stopNote);
     window.addEventListener('pointerup',endModifier);
     window.addEventListener('pointercancel',endModifier);
+    window.addEventListener('pointerup',e=>finishWritePointerFallback(e,false),{passive:false});
+    window.addEventListener('pointercancel',e=>finishWritePointerFallback(e,true),{passive:false});
+    window.addEventListener('blur',resetTransientWritePointers);
+    window.addEventListener('pagehide',resetTransientWritePointers);
     keyboardScrollRail.addEventListener('pointerdown',startScroll);
     keyboardScrollRail.addEventListener('pointermove',moveScroll);
     keyboardScrollRail.addEventListener('pointerup',endScroll);
@@ -3094,7 +3111,7 @@
     });
 
     window.addEventListener('online',()=>checkForUpdate());
-    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate()});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')resetTransientWritePointers();else checkForUpdate()});
     window.addEventListener('load',async()=>{
       await registerPwa();
       await checkForUpdate({setBaseline:true});
