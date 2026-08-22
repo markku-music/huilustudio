@@ -56,6 +56,13 @@
     .tuplet-choice-button.visible{display:grid}
     #quintupletButton{left:58px}
     #sextupletButton{left:112px}
+    .sextuplet-beam-button{position:absolute;z-index:4;display:none;width:62px;height:50px;padding:2px;pointer-events:none}
+    .sextuplet-beam-button.visible{display:grid}
+    #sextupletBeamAllButton{left:166px}
+    #sextupletBeamThreeThreeButton{left:228px}
+    #sextupletBeamTwoTwoTwoButton{left:290px}
+    .sextuplet-beam-button svg{display:block;width:52px;height:30px;pointer-events:none}
+    .sextuplet-beam-button svg g{fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
     .modifier-button[aria-pressed="true"]{border-color:#9dcbff;background:#2873c5;color:#fff;box-shadow:inset 0 2px 5px #0b3c7355,0 0 0 2px #73b4fa}
     .modifier-drag-handle{width:46px;height:24px;display:grid;place-items:center;padding:0;border:1px solid #687685;border-radius:8px;background:#343b45;color:#cbd5e0;touch-action:none;cursor:ns-resize}
     .modifier-drag-handle:active{background:#465260;color:#fff}
@@ -534,7 +541,10 @@
             <svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text id="tupletButtonNumber" x="18" y="17" text-anchor="middle">3</text></svg>
           </button>
           <button class="modifier-button tuplet-choice-button" id="quintupletButton" type="button" aria-label="Kvintoli: seuraavat viisi nuottia tai taukoa" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">5</text></svg></button>
-          <button class="modifier-button tuplet-choice-button" id="sextupletButton" type="button" aria-label="Sekstoli: seuraavat kuusi nuottia tai taukoa" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">6</text></svg></button>
+          <button class="modifier-button tuplet-choice-button" id="sextupletButton" type="button" aria-label="Sekstoli: seuraavat kuusi nuottia tai taukoa; liu'uta palkitusvaihtoehtoon" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">6</text></svg></button>
+          <button class="modifier-button sextuplet-beam-button" id="sextupletBeamAllButton" type="button" data-sextuplet-beam="all" aria-label="Sekstolin palkitus: kaikki kuusi yhteen" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 54 30" aria-hidden="true"><g><path d="M6 24V9M14 24V9M22 24V9M30 24V9M38 24V9M46 24V9"/><path d="M6 9H46M6 13H46"/></g></svg></button>
+          <button class="modifier-button sextuplet-beam-button" id="sextupletBeamThreeThreeButton" type="button" data-sextuplet-beam="3-3" aria-label="Sekstolin palkitus: kolme plus kolme" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 54 30" aria-hidden="true"><g><path d="M5 24V9M13 24V9M21 24V9M33 24V9M41 24V9M49 24V9"/><path d="M5 9H21M5 13H21M33 9H49M33 13H49"/></g></svg></button>
+          <button class="modifier-button sextuplet-beam-button" id="sextupletBeamTwoTwoTwoButton" type="button" data-sextuplet-beam="2-2-2" aria-label="Sekstolin palkitus: kaksi plus kaksi plus kaksi" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 54 30" aria-hidden="true"><g><path d="M5 24V9M12 24V9M23 24V9M30 24V9M41 24V9M48 24V9"/><path d="M5 9H12M5 13H12M23 9H30M23 13H30M41 9H48M41 13H48"/></g></svg></button>
           <button class="modifier-button tie-button" id="tieButton" type="button" aria-label="Yhdyskaari seuraavaan saman sävelen nuottiin" aria-pressed="false">
             <img class="custom-tool-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
           </button>
@@ -616,8 +626,8 @@
 
   <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
-    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',SEXTUPLET_BEAM_KEY='pikakirjoitin.sextupletBeamPattern',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),sextupletBeamAllButton=document.querySelector('#sextupletBeamAllButton'),sextupletBeamThreeThreeButton=document.querySelector('#sextupletBeamThreeThreeButton'),sextupletBeamTwoTwoTwoButton=document.querySelector('#sextupletBeamTwoTwoTwoButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writePasteEndButton=document.querySelector('#writePasteEndButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -635,7 +645,7 @@
     const themeStyleTag=document.createElement('style');
     themeStyleTag.id='dynamicThemeStyle';
     document.head.appendChild(themeStyleTag);
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletBeamPattern='all',sextupletBeamPattern='3-3',tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
@@ -870,11 +880,23 @@
     }
     function beamPairKey(left,right){return left?.id&&right?.id?`${left.id}|${right.id}`:''}
     function isManualBeamable(note){return Boolean(note&&!note.rest&&!note.measureRest&&(note.duration==='eighth'||note.duration==='sixteenth'||note.duration==='thirtysecond'))}
+    function tupletFixedBeamConnection(left,right){
+      if(!left?.tupletId||left.tupletId!==right?.tupletId||!isManualBeamable(left)||!isManualBeamable(right))return null;
+      const leftIndex=Number(left.tupletIndex),rightIndex=Number(right.tupletIndex);if(!Number.isInteger(leftIndex)||rightIndex!==leftIndex+1)return false;
+      const size=tupletActualNotes(left);
+      if(size===6&&left.duration==='sixteenth'&&right.duration==='sixteenth'){
+        const pattern=left.tupletBeamPattern||right.tupletBeamPattern||'3-3';
+        if(pattern==='3-3')return leftIndex!==2;
+        if(pattern==='2-2-2')return leftIndex!==1&&leftIndex!==3;
+        return true;
+      }
+      return true;
+    }
     function measureBeamConnections(group,beats,beatType){
       const starts=[];let offset=0;for(const note of group){starts.push(offset);offset+=noteDurationValue(note)}
       const unit=beamUnit(beats,beatType),connections=[];
       for(let index=0;index<group.length-1;index+=1){
-        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,automatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
+        const left=group[index],right=group[index+1],leftCandidate=isManualBeamable(left),rightCandidate=isManualBeamable(right),leftBucket=Math.floor(starts[index]/unit),rightBucket=Math.floor(starts[index+1]/unit),leftInside=starts[index]+noteDurationValue(left)<=(leftBucket+1)*unit,rightInside=starts[index+1]+noteDurationValue(right)<=(rightBucket+1)*unit,metricAutomatic=leftCandidate&&rightCandidate&&leftInside&&rightInside&&leftBucket===rightBucket,tupletAutomatic=tupletFixedBeamConnection(left,right),automatic=tupletAutomatic===null?metricAutomatic:tupletAutomatic,key=beamPairKey(left,right),override=key&&beamOverrides.has(key)?beamOverrides.get(key):null,connected=leftCandidate&&rightCandidate&&(override===null?automatic:Boolean(override));
         connections.push({index,key,left,right,leftCandidate,rightCandidate,automatic,connected});
       }
       return {starts,connections};
@@ -987,7 +1009,7 @@
           const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='thirtysecond'?'32nd':note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*60):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest?(note.doubleDotted?'<dot/><dot/>':note.dotted?'<dot/>':''):'',tupletActual=note.tupletId?tupletActualNotes(note):0,tupletNormal=tupletActual?tupletNormalNotes(tupletActual):0,timeModification=note.tupletId?`<time-modification><actual-notes>${tupletActual}</actual-notes><normal-notes>${tupletNormal}</normal-notes></time-modification>`:'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
-          const tupletNotation=note.tupletId&&note.tupletIndex===0?'<tuplet type="start" number="1" bracket="yes" show-number="actual"/>':note.tupletId&&note.tupletIndex===tupletActual-1?'<tuplet type="stop" number="1"/>':'';
+          const tupletPlacement=note.tupletId?tupletPlacementForId(note.tupletId):'above',tupletNotation=note.tupletId&&note.tupletIndex===0?`<tuplet type="start" number="1" bracket="yes" show-number="actual" placement="${tupletPlacement}"/>`:note.tupletId&&note.tupletIndex===tupletActual-1?'<tuplet type="stop" number="1"/>':'';
           const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(item=>`<slur type="start" number="${item.number}"${placement(item.placement)}/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations||tupletNotation?`<notations>${tiedXml}${slurXml}${articulations}${tupletNotation}</notations>`:'';
           const before=`${wedgeDirectionsXml(decorations.hairpinStarts)}${dynamicDirectionXml(note.dynamic)}`,after=wedgeDirectionsXml(decorations.hairpinStops,true);
           const stemXml=!measureRest&&(note.stemDirection==='up'||note.stemDirection==='down')?`<stem>${note.stemDirection}</stem>`:'';
@@ -1631,8 +1653,17 @@
       }
       return Number(notes[index]?.midi)>=71?'down':'up';
     }
+    function tupletPlacementForId(tupletId){
+      const indices=[];for(let index=0;index<notes.length;index+=1)if(notes[index]?.tupletId===tupletId&&!notes[index].rest&&!notes[index].measureRest)indices.push(index);
+      if(!indices.length)return 'above';let up=0,down=0;for(const index of indices){const note=notes[index],direction=note.stemDirection==='up'||note.stemDirection==='down'?note.stemDirection:(Number(note.midi)>=71?'down':'up');if(direction==='down')down+=1;else up+=1}
+      return down>up?'below':'above';
+    }
+    function selectionTupletId(range=getSelectionRange()){
+      if(!range)return null;const id=notes[range.first]?.tupletId;if(!id)return null;for(let index=range.first;index<=range.last;index+=1)if(notes[index]?.tupletId!==id)return null;return id;
+    }
     function automaticSlurPlacement(range=getSelectionRange()){
-      if(!range)return 'above';const directions=[];for(let index=range.first;index<=range.last;index+=1)if(isEditableNote(index))directions.push(notes[index].stemDirection==='up'||notes[index].stemDirection==='down'?notes[index].stemDirection:renderedStemDirection(index));
+      if(!range)return 'above';const tupletId=selectionTupletId(range);if(tupletId){const tupletSide=tupletPlacementForId(tupletId);return tupletSide==='above'?'below':'above'}
+      const directions=[];for(let index=range.first;index<=range.last;index+=1)if(isEditableNote(index))directions.push(notes[index].stemDirection==='up'||notes[index].stemDirection==='down'?notes[index].stemDirection:renderedStemDirection(index));
       return directions.length&&directions.every(direction=>direction==='up')?'below':'above';
     }
     function toggleSlurForSelection(){const range=getSelectionRange();if(!range)return;const existing=findSelectionSlur(range);if(existing)slurs=slurs.filter(item=>item!==existing);else slurs.push({startId:range.startId,endId:range.endId,placement:automaticSlurPlacement(range)});renderScore()}
@@ -1876,7 +1907,7 @@
     function setTieArmed(value){
       tieArmed=Boolean(value);tieButton.setAttribute('aria-pressed',String(tieArmed));
     }
-    function stripTupletMetadata(note){delete note.tupletId;delete note.tupletIndex;delete note.tupletSize;return note}
+    function stripTupletMetadata(note){delete note.tupletId;delete note.tupletIndex;delete note.tupletSize;delete note.tupletBeamPattern;return note}
     function cancelPendingTriplet(){
       if(!tripletGroupId||tripletCount<=0)return false;
       let changed=false;
@@ -1884,12 +1915,15 @@
       editHistory.forEach(action=>{if(action.type==='add'&&action.note?.tupletId===tripletGroupId)action.note={...stripTupletMetadata({...action.note})}});
       return changed;
     }
-    function setTripletArmed(value,{cancelPending=true,size=tripletSize}={}){
-      const next=Boolean(value),nextSize=[3,5,6].includes(Number(size))?Number(size):3,sizeChanged=tripletArmed&&tripletSize!==nextSize;
-      if((!next||sizeChanged)&&tripletArmed&&cancelPending){const changed=cancelPendingTriplet();if(changed)renderScore()}
-      if(sizeChanged){tripletGroupId=null;tripletCount=0}
-      tripletArmed=next;tripletSize=next?nextSize:3;
-      if(next){if(!tripletGroupId){tripletGroupId=`tuplet-${nextTupletId++}`;tripletCount=0}}
+    function normalizeSextupletBeamPattern(value){return ['all','3-3','2-2-2'].includes(value)?value:'3-3'}
+    function restoreSextupletBeamPattern(){try{sextupletBeamPattern=normalizeSextupletBeamPattern(localStorage.getItem(SEXTUPLET_BEAM_KEY)||'3-3')}catch{sextupletBeamPattern='3-3'}}
+    function saveSextupletBeamPattern(value){const pattern=normalizeSextupletBeamPattern(value);sextupletBeamPattern=pattern;try{localStorage.setItem(SEXTUPLET_BEAM_KEY,pattern)}catch{}return pattern}
+    function setTripletArmed(value,{cancelPending=true,size=tripletSize,beamPattern=(Number(size)===6?sextupletBeamPattern:'all')}={}){
+      const next=Boolean(value),nextSize=[3,5,6].includes(Number(size))?Number(size):3,nextPattern=nextSize===6?normalizeSextupletBeamPattern(beamPattern):'all',sizeChanged=tripletArmed&&tripletSize!==nextSize,patternChanged=tripletArmed&&tripletSize===6&&nextSize===6&&tripletBeamPattern!==nextPattern;
+      if((!next||sizeChanged||patternChanged)&&tripletArmed&&cancelPending){const changed=cancelPendingTriplet();if(changed)renderScore()}
+      if(sizeChanged||patternChanged){tripletGroupId=null;tripletCount=0}
+      tripletArmed=next;tripletSize=next?nextSize:3;tripletBeamPattern=next?nextPattern:tripletBeamPattern;
+      if(next){if(nextSize===6)tripletBeamPattern=saveSextupletBeamPattern(nextPattern);if(!tripletGroupId){tripletGroupId=`tuplet-${nextTupletId++}`;tripletCount=0}}
       else{tripletGroupId=null;tripletCount=0}
       tripletButton.setAttribute('aria-pressed',String(tripletArmed));
       if(tupletButtonNumber)tupletButtonNumber.textContent=String(tripletArmed?tripletSize:3);
@@ -1898,9 +1932,9 @@
     function applyPendingTriplet(note){
       if(!tripletArmed)return null;
       if(!tripletGroupId)tripletGroupId=`tuplet-${nextTupletId++}`;
-      const id=tripletGroupId;note.tupletId=id;note.tupletIndex=tripletCount;note.tupletSize=tripletSize;tripletCount+=1;
+      const id=tripletGroupId;note.tupletId=id;note.tupletIndex=tripletCount;note.tupletSize=tripletSize;note.tupletBeamPattern=tripletSize===6?tripletBeamPattern:'all';tripletCount+=1;
       tripletButton.setAttribute('aria-label',`${tripletSize===3?'Trioli':tripletSize===5?'Kvintoli':'Sekstoli'} aktiivinen: ${tripletCount}/${tripletSize}`);
-      if(tripletCount>=tripletSize){completedTupletId=id;setTripletArmed(false,{cancelPending:false,size:tripletSize});return id}
+      if(tripletCount>=tripletSize){completedTupletId=id;setTripletArmed(false,{cancelPending:false,size:tripletSize,beamPattern:tripletBeamPattern});return id}
       return null;
     }
     function collapseCompletedTripletHistory(id){
@@ -2105,8 +2139,10 @@
     function hideDoubleDotButton(){
       doubleDotButton.classList.remove('visible','active');doubleDotButton.setAttribute('aria-pressed','false');
     }
+    function hideSextupletBeamButtons(){for(const button of [sextupletBeamAllButton,sextupletBeamThreeThreeButton,sextupletBeamTwoTwoTwoButton]){button.classList.remove('visible','active');button.setAttribute('aria-pressed','false')}}
+    function showSextupletBeamButtons(top){for(const button of [sextupletBeamAllButton,sextupletBeamThreeThreeButton,sextupletBeamTwoTwoTwoButton]){button.style.top=top+'px';button.classList.add('visible')}}
     function hideTupletChoiceButtons(){
-      for(const button of [quintupletButton,sextupletButton]){button.classList.remove('visible','active');button.setAttribute('aria-pressed','false')}
+      for(const button of [quintupletButton,sextupletButton]){button.classList.remove('visible','active');button.setAttribute('aria-pressed','false')}hideSextupletBeamButtons();
     }
     function hideRestDurationButtons(){
       for(const button of [restSixteenthButton,restThirtysecondButton]){button.classList.remove('visible','active');button.setAttribute('aria-pressed','false')}
@@ -2151,9 +2187,13 @@
       if(source==='tuplet'){
         const r5=quintupletButton.getBoundingClientRect(),r6=sextupletButton.getBoundingClientRect();
         const in5=e.clientX>=r5.left&&e.clientX<=r5.right&&e.clientY>=r5.top&&e.clientY<=r5.bottom,in6=e.clientX>=r6.left&&e.clientX<=r6.right&&e.clientY>=r6.top&&e.clientY<=r6.bottom;
-        activeModifier=in6?'tuplet-6':in5?'tuplet-5':'tuplet-3';
+        if(in6||sextupletBeamAllButton.classList.contains('visible'))showSextupletBeamButtons(activeModifierButton.offsetTop);
+        const beamButtons=[sextupletBeamAllButton,sextupletBeamThreeThreeButton,sextupletBeamTwoTwoTwoButton],beamHit=beamButtons.find(button=>{if(!button.classList.contains('visible'))return false;const rect=button.getBoundingClientRect();return e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom});
+        const lastBeamRect=sextupletBeamTwoTwoTwoButton.getBoundingClientRect(),beamRowActive=sextupletBeamAllButton.classList.contains('visible')&&e.clientY>=r6.top&&e.clientY<=r6.bottom&&e.clientX>=r6.left&&e.clientX<=lastBeamRect.right,beamPattern=beamHit?.dataset.sextupletBeam||null;
+        activeModifier=beamPattern?`tuplet-6-${beamPattern}`:(in6||beamRowActive)?`tuplet-6-${normalizeSextupletBeamPattern(sextupletBeamPattern)}`:in5?'tuplet-5':'tuplet-3';
         quintupletButton.classList.toggle('active',in5);quintupletButton.setAttribute('aria-pressed',in5?'true':'false');
-        sextupletButton.classList.toggle('active',in6);sextupletButton.setAttribute('aria-pressed',in6?'true':'false');
+        const sextupletActive=in6||beamRowActive||Boolean(beamPattern);sextupletButton.classList.toggle('active',sextupletActive);sextupletButton.setAttribute('aria-pressed',sextupletActive?'true':'false');
+        beamButtons.forEach(button=>{const active=beamPattern?button===beamHit:(sextupletActive&&button.dataset.sextupletBeam===normalizeSextupletBeamPattern(sextupletBeamPattern));button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false')});
         return;
       }
       if(source==='sixteenth'){
@@ -2173,8 +2213,8 @@
       if(e.pointerId!==modifierPointerId)return;
       const source=activeModifierButton?.dataset.modifier,selected=activeModifier;
       if(source==='tuplet'){
-        const size=selected==='tuplet-6'?6:selected==='tuplet-5'?5:3,turnOff=tripletArmed&&tripletSize===size;
-        clearModifier();setTripletArmed(!turnOff,{size});return;
+        const isSix=String(selected||'').startsWith('tuplet-6'),size=isSix?6:selected==='tuplet-5'?5:3,beamPattern=isSix?normalizeSextupletBeamPattern(String(selected).replace(/^tuplet-6-?/,'' )||sextupletBeamPattern):'all',turnOff=tripletArmed&&tripletSize===size&&(size!==6||tripletBeamPattern===beamPattern);
+        clearModifier();setTripletArmed(!turnOff,{size,beamPattern});return;
       }
       clearModifier();
     }
@@ -2434,7 +2474,7 @@
       window.location.reload();
     }
 
-    restoreNotationSettings();restoreThemePreference();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
+    restoreNotationSettings();restoreThemePreference();restoreModifierPosition();restoreSextupletBeamPattern();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
     buildKeyboard();
     applyNotationSettings();
     syncWorkModeUI();

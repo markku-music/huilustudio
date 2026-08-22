@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.32-theme-tuplets-double-dot';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.34-tuplet-beaming-slur';
 const APP_SHELL = [
   './',
   './index.html',
