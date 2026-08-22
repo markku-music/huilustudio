@@ -68,6 +68,8 @@
     .triplet-button svg,.tuplet-choice-button svg{display:block;width:34px;height:30px;pointer-events:none}
     .triplet-button svg path,.tuplet-choice-button svg path{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
     .triplet-button svg text,.tuplet-choice-button svg text{fill:currentColor;font:800 14px/1 system-ui,-apple-system,sans-serif}
+    .triplet-button.tuplet-warning-flash{animation:tupletWarnFlash .46s ease}
+    @keyframes tupletWarnFlash{0%,100%{filter:none}35%{border-color:#d59a24;background:#fff0b8;color:#6a4800;box-shadow:0 0 0 3px #e2ac3747,0 2px 5px #0003}70%{border-color:#d59a24;background:#ffe39a;color:#6a4800}}
     .tie-button .custom-tool-icon{display:block;width:38px;height:38px;object-fit:contain;pointer-events:none}
     .modifier-button[aria-pressed="true"] .custom-tool-icon{filter:brightness(0) invert(1)}
     .edit-rail{position:fixed;z-index:26;left:max(8px,env(safe-area-inset-left));bottom:max(20px,calc(env(safe-area-inset-bottom) + 20px));width:58px;display:none;flex-direction:column;gap:10px;padding:8px;border:1px solid #d0d9e6;border-radius:20px;background:#ffffffed;box-shadow:0 8px 24px #1c273526;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);contain:layout paint}
@@ -215,6 +217,9 @@
     .black.active{background:#2869b8}
     .key.sounding-note::after{content:'';position:absolute;z-index:5;top:14px;left:50%;width:12px;height:12px;transform:translateX(-50%);border:2px solid #fff;border-radius:50%;background:#e2212d;box-shadow:0 1px 5px #0008;pointer-events:none;transition:opacity .16s ease}
     .key.sounding-resting::after{opacity:.48}
+    .tuplet-warning{position:fixed;z-index:70;left:68px;max-width:min(330px,calc(100vw - 84px));padding:9px 12px;border:1px solid #d7a43a;border-radius:11px;background:#fff8df;color:#5b430f;box-shadow:0 7px 20px #4a361d2b;font-size:13px;font-weight:800;line-height:1.25;opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease;pointer-events:none}
+    .tuplet-warning.visible{opacity:1;transform:translateY(0)}
+    .tuplet-warning[hidden]{display:none!important}
     #status{position:fixed;left:0;bottom:0;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0;pointer-events:none}
     .orientation-blocker{display:none;position:fixed;inset:0;z-index:1000;padding:28px;place-items:center;background:#eef1f5;text-align:center}
     .orientation-card{max-width:430px;padding:34px 28px;border:1px solid #ced7e2;border-radius:18px;background:#fff;box-shadow:0 16px 42px #1c273526}
@@ -314,7 +319,7 @@
     @page{size:A4 portrait;margin:0}
     @media print{
       html,body{position:static;width:210mm;height:auto;overflow:visible;background:#fff}
-      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.note-size-panel,.selection-toolbar,.write-note-context,.write-note-highlight,.write-paste-end-button,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,#status,.score-prompt,.publish-screen{display:none!important}
+      .orientation-blocker,.mode-tabs,.keyboard-panel,.modifier-rail,.edit-rail,.note-size-panel,.selection-toolbar,.write-note-context,.write-note-highlight,.write-paste-end-button,.system-break-markers,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-markers,.beam-edit-markers,.barline-palette,.ending-range-preview-layer,.note-selection-layer,.tuplet-warning,#status,.score-prompt,.publish-screen{display:none!important}
       .app{position:static;display:block!important;width:210mm;height:auto;padding:0;background:#fff}
       .workspace{display:block!important}
       .score-area{display:block!important;padding:0!important}
@@ -611,13 +616,14 @@
         </div>
       </div>
     </div>
+    <div class="tuplet-warning" id="tupletWarning" role="status" aria-live="polite" hidden></div>
     <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
   </main>
 
   <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
-    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
+    const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),tupletWarning=document.querySelector('#tupletWarning'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
     const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteAccidentalButton=document.querySelector('#writeNoteAccidentalButton'),writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writePasteEndButton=document.querySelector('#writePasteEndButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
@@ -635,7 +641,7 @@
     const themeStyleTag=document.createElement('style');
     themeStyleTag.id='dynamicThemeStyle';
     document.head.appendChild(themeStyleTag);
-    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,nextTupletId=1,completedTupletId=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
+    let audio,osc,gain,started=false,activeId=null,activeKey=null,activeNote=null,activeNoteAction=null,activeNoteSounds=false,noteStartX=0,noteStartY=0,noteSwipeThreshold=28,noteGestureLocked=false,longPressTimer=null,modifierPointerId=null,activeModifier=null,activeModifierButton=null,modifierDragPointerId=null,modifierDragStartY=0,modifierDragStartTop=0,modifierYRatio=1,tieArmed=false,tripletArmed=false,tripletSize=3,tripletGroupId=null,tripletCount=0,tripletBaseUnits=null,nextTupletId=1,completedTupletId=null,tupletWarningTimer=null,scrollPointerId=null,scrollGrabOffset=0,projectData=null,needsInstrumentPosition=true,notes=[],editHistory=[],scoreRenderer=null,scoreRendering=false,scoreRenderPending=false,scoreGesture=0,scoreUndoneAction=null,scoreStartX=0,scoreStartY=0,scoreMoved=false,keyboardMinMidi=DEFAULT_MIN_MIDI,keyboardMaxMidi=DEFAULT_MAX_MIDI,soundingKey=null,workMode='write';
     let slurs=[],hairpins=[],systemBreaks=new Set(),systemBreakModeActive=false,barlineStyles=new Map(),barlineEditModeActive=false,barlineActiveBoundary=null,beamOverrides=new Map(),beamEditModeActive=false,endings=[],endingModeActive=0,endingDrag=null,stretchLastLine=false,stretchCommandRunning=false,nextEntryId=1,selectedNoteIndices=new Set(),selectionHitboxes=[],writeNoteHitboxes=[],writeEditNoteId=null,writeEditHighlight=null,activeReplacingExisting=false,selectionDrag=null,selectionToolbarDrag=null,selectionClipboard=null,writeSelectionCandidate=null,writeSelectionHoldTimer=null,writeSelectionActive=false,writeSelectionScrollTop=0,writeSelectionScrollLeft=0,renderedNoteObjectMap=new Map(),scorePageScale=1;
     let lineSpacingValue=5,lineSpacingPointerId=null,lineSpacingDragStartValue=5,lineSpacingDragStartClientY=0,lineSpacingDragMoved=false,lineSpacingPreview=null,lineSpacingCommitRunning=false,lineSpacingPreviewFrame=0,lineSpacingPreviewPendingValue=5,lineSpacingRasterCache=null,lineSpacingRasterCachePromise=null,lineSpacingRasterGeneration=0;
     let staffTopValue=17,staffTopPointerId=null,staffTopDragStartValue=17,staffTopDragStartClientY=0,staffTopDragMoved=false,staffTopPreview=null,staffTopCommitRunning=false,staffTopPreviewFrame=0,staffTopPreviewPendingValue=17;
@@ -859,28 +865,50 @@
     }
     function tupletActualNotes(note){const size=Number(note?.tupletSize)||3;return size===5||size===6?size:3}
     function tupletNormalNotes(size){return size===5?4:size===6?4:2}
+    function nominalNoteDurationValue(note){
+      const base=noteDurations[note?.duration]||noteDurations.quarter;
+      return note?.doubleDotted?base*1.75:note?.dotted?base*1.5:base;
+    }
     function noteDurationValue(note){
-      const base=noteDurations[note.duration]||noteDurations.quarter,dotted=note.doubleDotted?base*1.75:note.dotted?base*1.5:base;
-      if(!note.tupletId)return dotted;
-      const actual=tupletActualNotes(note),normal=tupletNormalNotes(actual);return dotted*normal/actual;
+      const nominal=nominalNoteDurationValue(note);
+      if(!note.tupletId)return nominal;
+      const actual=tupletActualNotes(note),normal=tupletNormalNotes(actual);return nominal*normal/actual;
     }
     function musicXmlDurationValue(note){return Math.round(noteDurationValue(note)*60)}
+    function tupletBaseUnitsForNote(note){
+      const stored=Number(note?.tupletBaseUnits);if(Number.isFinite(stored)&&stored>0)return stored;
+      if(!note?.tupletId)return null;
+      const first=notes.filter(item=>item?.tupletId===note.tupletId).sort((a,b)=>(Number(a.tupletIndex)||0)-(Number(b.tupletIndex)||0))[0];
+      return first?nominalNoteDurationValue(first):null;
+    }
+    function isProtectedSextuplet(note){
+      const base=tupletBaseUnitsForNote(note);
+      return Boolean(note?.tupletId&&Number(note.tupletSize)===6&&Number.isFinite(base)&&base<=2+1e-7);
+    }
     function beamUnit(beats,beatType){
       return beatType===8&&beats%3===0?12:32/beatType;
     }
     function beamPairKey(left,right){return left?.id&&right?.id?`${left.id}|${right.id}`:''}
-    function isManualBeamable(note){return Boolean(note&&!note.rest&&!note.measureRest&&(note.duration==='eighth'||note.duration==='sixteenth'||note.duration==='thirtysecond'))}
-    function beamLevelCount(note){return note?.duration==='thirtysecond'?3:note?.duration==='sixteenth'?2:note?.duration==='eighth'?1:0}
+    function isManualBeamable(note){
+      if(!note||note.measureRest)return false;
+      if(note.rest&&isProtectedSextuplet(note))return true;
+      return Boolean(!note.rest&&(note.duration==='eighth'||note.duration==='sixteenth'||note.duration==='thirtysecond'));
+    }
+    function beamLevelCount(note){
+      const normal=note?.duration==='thirtysecond'?3:note?.duration==='sixteenth'?2:note?.duration==='eighth'?1:0;
+      return note?.rest&&isProtectedSextuplet(note)?Math.max(1,normal):normal;
+    }
     function tupletFixedBeamConnection(left,right){
       if(!left?.tupletId||left.tupletId!==right?.tupletId||!isManualBeamable(left)||!isManualBeamable(right))return null;
       const leftIndex=Number(left.tupletIndex),rightIndex=Number(right.tupletIndex);
       if(!Number.isInteger(leftIndex)||rightIndex!==leftIndex+1)return false;
       // Triolit, kvintolit ja sekstolit palkitetaan oletuksena yhtenä ryhmänä.
+      // Suojatussa 1/16- tai 1/32-sekstolissa myös sisäinen tauko kuuluu ensimmäiseen palkkiin.
       return true;
     }
     function sextupletProtectedMinimum(left,right,maxLevel){
-      if(maxLevel<2||!left?.tupletId||left.tupletId!==right?.tupletId)return 0;
-      if(Number(left.tupletSize)!==6||Number(right.tupletSize)!==6)return 0;
+      if(maxLevel<1||!left?.tupletId||left.tupletId!==right?.tupletId)return 0;
+      if(!isProtectedSextuplet(left)||!isProtectedSextuplet(right))return 0;
       const leftIndex=Number(left.tupletIndex),rightIndex=Number(right.tupletIndex);
       return Number.isInteger(leftIndex)&&rightIndex===leftIndex+1?1:0;
     }
@@ -1000,7 +1028,8 @@
     }
     function buildMusicXml({forRender=false}={}){
       ensureEntryIds();pruneEditRanges();renderedNoteObjectMap=new Map();
-      const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:'Pikakirjoitin',title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0},{beats,beatType,capacity,groups,groupCapacities,pickupCapacity}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index]));
+      const fallbackKey=selectedKeyInfo(),data=projectData||{instrumentName:'Pikakirjoitin',title:'',composer:'',tempoText:'',keySignature:fallbackKey.fifths,keyMode:fallbackKey.mode,keyTonic:fallbackKey.tonic,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0},{beats,beatType,capacity,groups,groupCapacities,pickupCapacity}=measureData(),clef={treble:['G',2],alto:['C',3],bass:['F',4]}[data.clef]||['G',2],noteIndices=new Map(notes.map((note,index)=>[note,index])),tupletBounds=new Map();
+      notes.forEach(note=>{if(!note?.tupletId)return;const bound=tupletBounds.get(note.tupletId)||{firstId:note.id,lastId:note.id};bound.lastId=note.id;tupletBounds.set(note.tupletId,bound)});
       let renderedNoteObjectId=0;
       const totalMeasures=groups.length;
       [...barlineStyles.keys()].forEach(boundary=>{if(boundary<0||boundary>totalMeasures)barlineStyles.delete(boundary)});
@@ -1011,7 +1040,7 @@
           const sourceIndex=noteIndices.get(note),measureRest=Boolean(note.measureRest),type=note.duration==='thirtysecond'?'32nd':note.duration==='sixteenth'?'16th':Object.hasOwn(noteDurations,note.duration)?note.duration:'quarter',duration=measureRest?Math.round(measureCapacity*60):musicXmlDurationValue(note),content=note.rest?musicXmlRest(note,data.clef):musicXmlPitch(note,sourceIndex,{fifths:data.keySignature,mode:data.keyMode||'major',tonic:data.keyTonic||'C'}),typeXml=measureRest?'<type>whole</type>':`<type>${type}</type>`,dot=!measureRest?(note.doubleDotted?'<dot/><dot/>':note.dotted?'<dot/>':''):'',tupletActual=note.tupletId?tupletActualNotes(note):0,tupletNormal=tupletActual?tupletNormalNotes(tupletActual):0,timeModification=note.tupletId?`<time-modification><actual-notes>${tupletActual}</actual-notes><normal-notes>${tupletNormal}</normal-notes></time-modification>`:'';
           renderedNoteObjectMap.set(renderedNoteObjectId,sourceIndex);renderedNoteObjectId+=1;
           const tieStop=Boolean(note.tieFromPrevious),tieStart=Boolean(notes[sourceIndex+1]?.tieFromPrevious),startPlacement=note.tiePlacement,stopPlacement=notes[sourceIndex-1]?.tiePlacement,tieXml=`${tieStop?'<tie type="stop"/>':''}${tieStart?'<tie type="start"/>':''}`,placement=value=>value==='above'||value==='below'?` placement="${value}"`:'',tiedXml=`${tieStop?`<tied type="stop"${placement(stopPlacement)}/>`:''}${tieStart?`<tied type="start"${placement(startPlacement)}/>`:''}`;
-          const tupletPlacement=note.tupletId?tupletPlacementForId(note.tupletId):'above',tupletNotation=note.tupletId&&note.tupletIndex===0?`<tuplet type="start" number="1" bracket="yes" show-number="actual" placement="${tupletPlacement}"/>`:note.tupletId&&note.tupletIndex===tupletActual-1?'<tuplet type="stop" number="1"/>':'';
+          const tupletPlacement=note.tupletId?tupletPlacementForId(note.tupletId):'above',tupletBound=note.tupletId?tupletBounds.get(note.tupletId):null,tupletNotation=note.tupletId&&tupletBound?.firstId===note.id?`<tuplet type="start" number="1" bracket="yes" show-number="actual" placement="${tupletPlacement}"/>`:note.tupletId&&tupletBound?.lastId===note.id?'<tuplet type="stop" number="1"/>':'';
           const decorations=editRangeDecorations(note),slurXml=`${decorations.slurStops.map(number=>`<slur type="stop" number="${number}"/>`).join('')}${decorations.slurStarts.map(item=>`<slur type="start" number="${item.number}"${placement(item.placement)}/>`).join('')}`,articulationItems=`${note.staccato?'<staccato/>':''}${note.portato?'<tenuto/>':''}${note.accent?'<accent/>':''}`,articulations=articulationItems?`<articulations>${articulationItems}</articulations>`:'',notations=tiedXml||slurXml||articulations||tupletNotation?`<notations>${tiedXml}${slurXml}${articulations}${tupletNotation}</notations>`:'';
           const before=`${wedgeDirectionsXml(decorations.hairpinStarts)}${dynamicDirectionXml(note.dynamic)}`,after=wedgeDirectionsXml(decorations.hairpinStops,true);
           const stemXml=!measureRest&&(note.stemDirection==='up'||note.stemDirection==='down')?`<stem>${note.stemDirection}</stem>`:'';
@@ -1078,6 +1107,7 @@
     function setWorkMode(mode,e){
       const next=mode==='edit'?'edit':mode==='print'?'print':'write';
       if(next!=='write'&&!notes.length)return;
+      if(workMode==='write'&&next!=='write'&&tripletArmed&&currentTupletHasEntries()){showTupletWarning('Kirjoita tupletti loppuun');return}
       if(workMode==='write'&&next!=='write')clearSelection();
       workMode=next;
       if(next!=='edit')closeNoteSizePanel();
@@ -1705,6 +1735,17 @@
       }
       return null;
     }
+    function renderedEntryHitbox(index){
+      const measureList=scoreRenderer?.GraphicSheet?.MeasureList||[],containerRect=osmdContainer.getBoundingClientRect(),scale=scorePageScale||1;
+      for(const measureGroup of measureList)for(const measure of measureGroup||[])for(const staffEntry of measure?.staffEntries||[])for(const voiceEntry of staffEntry?.graphicalVoiceEntries||[])for(const graphicalNote of voiceEntry?.notes||[]){
+        const objectId=graphicalNote?.sourceNote?.NoteToGraphicalNoteObjectId;if(renderedNoteObjectMap.get(objectId)!==index)continue;
+        const vexRef=graphicalNote.vfnote,vexNote=Array.isArray(vexRef)?vexRef[0]:vexRef,element=vexNote?.attrs?.el||voiceEntry?.mVexFlowStaveNote?.attrs?.el;
+        const rect=element?.getBoundingClientRect?.();if(!rect||!rect.width||!rect.height)continue;
+        const paddingX=7,paddingY=5,left=(rect.left-containerRect.left)/scale-paddingX,top=(rect.top-containerRect.top)/scale-paddingY,width=Math.max(28,rect.width/scale+paddingX*2),height=Math.max(30,rect.height/scale+paddingY*2);
+        return {entryIndex:index,left,top,right:left+width,bottom:top+height,width,height};
+      }
+      return null;
+    }
     function beamMarkerAnchor(hitbox,index){
       const exact=renderedBeamStemAnchor(index);if(exact)return exact;const direction=notes[index]?.stemDirection==='up'||notes[index]?.stemDirection==='down'?notes[index].stemDirection:renderedStemDirection(index),x=hitbox.left+hitbox.width/2,y=direction==='down'?hitbox.bottom-7:hitbox.top+7;return {x,y,direction};
     }
@@ -1713,7 +1754,7 @@
       if(workMode!=='edit'||!beamEditModeActive||!scoreRenderer)return;
       const hitByIndex=new Map(selectionHitboxes.map(hit=>[hit.entryIndex,hit])),layer=document.createElement('div');layer.className='beam-edit-markers';layer.style.width=`${osmdContainer.scrollWidth}px`;layer.style.height=`${osmdContainer.scrollHeight}px`;
       beamPairStates().forEach(state=>{
-        const leftHit=hitByIndex.get(state.leftIndex),rightHit=hitByIndex.get(state.rightIndex);if(!leftHit||!rightHit)return;
+        const leftHit=hitByIndex.get(state.leftIndex)||renderedEntryHitbox(state.leftIndex),rightHit=hitByIndex.get(state.rightIndex)||renderedEntryHitbox(state.rightIndex);if(!leftHit||!rightHit)return;
         const left=beamMarkerAnchor(leftHit,state.leftIndex),right=beamMarkerAnchor(rightHit,state.rightIndex),x1=left.x,x2=right.x;if(x2<=x1+8)return;
         let y1=left.y,y2=right.y;if(left.direction!==right.direction){const upper=Math.min(leftHit.top,rightHit.top)+7;y1=upper;y2=upper}
         const dx=x2-x1,dy=y2-y1,marker=document.createElement('button'),midX=(x1+x2)/2,midY=(y1+y2)/2,beamSide=left.direction===right.direction?left.direction:(left.direction||right.direction||'up');
@@ -1917,39 +1958,71 @@
     function setTieArmed(value){
       tieArmed=Boolean(value);tieButton.setAttribute('aria-pressed',String(tieArmed));
     }
-    function stripTupletMetadata(note){delete note.tupletId;delete note.tupletIndex;delete note.tupletSize;delete note.tupletBeamPattern;return note}
+    function stripTupletMetadata(note){delete note.tupletId;delete note.tupletIndex;delete note.tupletSize;delete note.tupletBaseUnits;delete note.tupletBeamPattern;return note}
+    function currentTupletNotes(){return tripletGroupId?notes.filter(note=>note?.tupletId===tripletGroupId).sort((a,b)=>(Number(a.tupletIndex)||0)-(Number(b.tupletIndex)||0)):[]}
+    function currentTupletHasEntries(){return currentTupletNotes().length>0}
+    function currentTupletTargetUnits(){return tripletBaseUnits&&tripletSize?tripletBaseUnits*tripletSize:null}
+    function currentTupletUsedUnits(excludeId=null){return currentTupletNotes().reduce((sum,note)=>sum+(note.id===excludeId?0:nominalNoteDurationValue(note)),0)}
+    function currentTupletRemainingUnits(excludeId=null){const target=currentTupletTargetUnits();return target===null?null:Math.max(0,target-currentTupletUsedUnits(excludeId))}
+    function formatTupletUnits(units){
+      const rounded=Math.round(units*1000)/1000,common=new Map([[1,'1/32'],[2,'1/16'],[4,'1/8'],[8,'1/4'],[16,'1/2'],[32,'1/1']]);if(common.has(rounded))return common.get(rounded);
+      const scaled=Math.round(rounded*2),denominator=64,divisor=gcd(Math.abs(scaled),denominator);return `${scaled/divisor}/${denominator/divisor}`;
+    }
+    function showTupletWarning(message){
+      status.textContent=message;tripletButton.classList.remove('tuplet-warning-flash');void tripletButton.offsetWidth;tripletButton.classList.add('tuplet-warning-flash');setTimeout(()=>tripletButton.classList.remove('tuplet-warning-flash'),500);if(!tupletWarning)return;clearTimeout(tupletWarningTimer);tupletWarning.textContent=message;
+      const railRect=modifierRail.getBoundingClientRect(),buttonRect=tripletButton.getBoundingClientRect(),top=clamp(buttonRect.top+buttonRect.height/2-18,42,window.innerHeight-70);tupletWarning.style.left=`${Math.max(68,railRect.right+8)}px`;tupletWarning.style.top=`${top}px`;tupletWarning.hidden=false;
+      requestAnimationFrame(()=>tupletWarning.classList.add('visible'));tupletWarningTimer=setTimeout(()=>{tupletWarning.classList.remove('visible');setTimeout(()=>{if(!tupletWarning.classList.contains('visible'))tupletWarning.hidden=true},140)},1450);
+    }
+    function syncTupletButtonState(){
+      tripletButton.setAttribute('aria-pressed',String(tripletArmed));if(tupletButtonNumber)tupletButtonNumber.textContent=String(tripletArmed?tripletSize:3);
+      if(!tripletArmed){tripletButton.setAttribute('aria-label','Trioli: seuraavat kolme nuottia tai taukoa; liu\'uta kvintoliin tai sekstoliin');return}
+      const name=tripletSize===3?'Trioli':tripletSize===5?'Kvintoli':'Sekstoli',remaining=currentTupletRemainingUnits();tripletButton.setAttribute('aria-label',remaining===null?`${name} aktiivinen`: `${name} aktiivinen, jäljellä ${formatTupletUnits(remaining)}`);
+    }
+    function setCurrentTupletBaseUnits(value){
+      const base=Number(value);if(!Number.isFinite(base)||base<=0)return;tripletBaseUnits=base;
+      notes.forEach(note=>{if(note.tupletId===tripletGroupId)note.tupletBaseUnits=base});
+      editHistory.forEach(action=>{if(action.type==='add'&&action.note?.tupletId===tripletGroupId)action.note={...action.note,tupletBaseUnits:base}});
+    }
     function cancelPendingTriplet(){
-      if(!tripletGroupId||tripletCount<=0)return false;
-      let changed=false;
+      if(!tripletGroupId||!currentTupletHasEntries())return false;let changed=false;
       notes.forEach(note=>{if(note.tupletId===tripletGroupId){stripTupletMetadata(note);changed=true}});
-      editHistory.forEach(action=>{if(action.type==='add'&&action.note?.tupletId===tripletGroupId)action.note={...stripTupletMetadata({...action.note})}});
-      return changed;
+      editHistory.forEach(action=>{if(action.type==='add'&&action.note?.tupletId===tripletGroupId)action.note={...stripTupletMetadata({...action.note})}});return changed;
     }
     function setTripletArmed(value,{cancelPending=true,size=tripletSize}={}){
       const next=Boolean(value),nextSize=[3,5,6].includes(Number(size))?Number(size):3,sizeChanged=tripletArmed&&tripletSize!==nextSize;
       if((!next||sizeChanged)&&tripletArmed&&cancelPending){const changed=cancelPendingTriplet();if(changed)renderScore()}
-      if(sizeChanged){tripletGroupId=null;tripletCount=0}
+      if(sizeChanged){tripletGroupId=null;tripletCount=0;tripletBaseUnits=null}
       tripletArmed=next;tripletSize=next?nextSize:3;
-      if(next){if(!tripletGroupId){tripletGroupId=`tuplet-${nextTupletId++}`;tripletCount=0}}
-      else{tripletGroupId=null;tripletCount=0}
-      tripletButton.setAttribute('aria-pressed',String(tripletArmed));
-      if(tupletButtonNumber)tupletButtonNumber.textContent=String(tripletArmed?tripletSize:3);
-      tripletButton.setAttribute('aria-label',tripletArmed?`${tripletSize===3?'Trioli':tripletSize===5?'Kvintoli':'Sekstoli'} aktiivinen: ${tripletCount}/${tripletSize}`:'Trioli: seuraavat kolme nuottia tai taukoa; liu\'uta kvintoliin tai sekstoliin');
+      if(next){if(!tripletGroupId){tripletGroupId=`tuplet-${nextTupletId++}`;tripletCount=0;tripletBaseUnits=null}}
+      else{tripletGroupId=null;tripletCount=0;tripletBaseUnits=null}
+      syncTupletButtonState();
     }
     function applyPendingTriplet(note){
-      if(!tripletArmed)return null;
-      if(!tripletGroupId)tripletGroupId=`tuplet-${nextTupletId++}`;
-      const id=tripletGroupId;note.tupletId=id;note.tupletIndex=tripletCount;note.tupletSize=tripletSize;tripletCount+=1;
-      tripletButton.setAttribute('aria-label',`${tripletSize===3?'Trioli':tripletSize===5?'Kvintoli':'Sekstoli'} aktiivinen: ${tripletCount}/${tripletSize}`);
-      if(tripletCount>=tripletSize){completedTupletId=id;setTripletArmed(false,{cancelPending:false,size:tripletSize});return id}
-      return null;
+      if(!tripletArmed)return null;if(!tripletGroupId)tripletGroupId=`tuplet-${nextTupletId++}`;
+      note.tupletId=tripletGroupId;note.tupletIndex=tripletCount;note.tupletSize=tripletSize;if(tripletBaseUnits)note.tupletBaseUnits=tripletBaseUnits;tripletCount+=1;syncTupletButtonState();return tripletGroupId;
+    }
+    function rollbackActiveTupletEntry(){
+      if(!activeNote||activeNote?.tupletId!==tripletGroupId)return;
+      if(activeNoteAction?.type==='add'){const index=notes.findIndex(note=>note.id===activeNote.id);if(index>=0)notes.splice(index,1);const historyIndex=editHistory.lastIndexOf(activeNoteAction);if(historyIndex>=0)editHistory.splice(historyIndex,1);tripletCount=Math.max(0,tripletCount-1)}
+      else if(activeNoteAction?.type==='update-note'){const index=notes.findIndex(note=>note.id===activeNote.id);if(index>=0)notes[index]={...activeNoteAction.before};activeNote=notes[index];activeNoteAction.after={...activeNoteAction.before}}
+      syncTupletButtonState();renderScore();
+    }
+    function candidateFitsCurrentTuplet(note,{duration=note?.duration,dotted=note?.dotted,doubleDotted=note?.doubleDotted}={}){
+      if(!tripletArmed||!tripletGroupId||note?.tupletId!==tripletGroupId||tripletBaseUnits===null)return true;
+      const remaining=currentTupletRemainingUnits(note.id),candidate=nominalNoteDurationValue({...note,duration,dotted,doubleDotted});return candidate<=remaining+1e-7;
+    }
+    function finalizeActiveTupletEntry(){
+      if(!activeNote?.tupletId||!tripletArmed||activeNote.tupletId!==tripletGroupId)return true;
+      if(tripletBaseUnits===null)setCurrentTupletBaseUnits(nominalNoteDurationValue(activeNote));
+      const remainingBefore=currentTupletRemainingUnits(activeNote.id),candidate=nominalNoteDurationValue(activeNote);
+      if(candidate>remainingBefore+1e-7){const message=`Ei mahdu tuplettiin · jäljellä ${formatTupletUnits(remainingBefore)}`;rollbackActiveTupletEntry();showTupletWarning(message);return false}
+      activeNote.tupletBaseUnits=tripletBaseUnits;if(activeNoteAction?.type==='add')activeNoteAction.note={...activeNote};else if(activeNoteAction?.type==='update-note')activeNoteAction.after={...activeNote};
+      const remaining=currentTupletRemainingUnits();if(remaining<=1e-7){const id=tripletGroupId,finishedSize=tripletSize;completedTupletId=id;setTripletArmed(false,{cancelPending:false,size:finishedSize});return true}
+      syncTupletButtonState();return true;
     }
     function collapseCompletedTripletHistory(id){
-      if(!id)return;
-      const groupNotes=notes.filter(note=>note.tupletId===id).sort((a,b)=>a.tupletIndex-b.tupletIndex),expected=groupNotes.length?tupletActualNotes(groupNotes[0]):0;
-      if(!expected||groupNotes.length!==expected)return;
-      const ids=new Set(groupNotes.map(note=>note.id)),kept=[];
-      for(const action of editHistory){if(action.type==='add'&&ids.has(action.note?.id))continue;kept.push(action)}
+      if(!id)return;const groupNotes=notes.filter(note=>note.tupletId===id).sort((a,b)=>(Number(a.tupletIndex)||0)-(Number(b.tupletIndex)||0));if(!groupNotes.length)return;
+      const ids=new Set(groupNotes.map(note=>note.id)),kept=[];for(const action of editHistory){if(action.type==='add'&&ids.has(action.note?.id))continue;kept.push(action)}
       kept.push({type:'add-tuplet',notes:groupNotes.map(note=>({...note}))});editHistory=kept.slice(-250);
     }
     function consumeTie(midi,rest){
@@ -1966,18 +2039,14 @@
       clearTimeout(longPressTimer);longPressTimer=null;
     }
     function setActiveNoteDuration(duration){
-      if(!activeNote)return;
-      const measureRest=duration==='whole'&&activeNote.rest&&!activeNote.tupletId;
-      if(activeNote.duration===duration&&activeNote.measureRest===measureRest)return;
-      activeNote.duration=duration;activeNote.measureRest=measureRest;
-      if(activeNoteAction?.type==='add'){activeNoteAction.note.duration=duration;activeNoteAction.note.measureRest=measureRest}
-      else if(activeNoteAction?.type==='update-note')activeNoteAction.after={...activeNote};
-      renderScore();
+      if(!activeNote)return;const measureRest=duration==='whole'&&activeNote.rest&&!activeNote.tupletId;if(activeNote.duration===duration&&activeNote.measureRest===measureRest)return;
+      if(!candidateFitsCurrentTuplet(activeNote,{duration})){const remaining=currentTupletRemainingUnits(activeNote.id);showTupletWarning(`Ei mahdu tuplettiin · jäljellä ${formatTupletUnits(remaining)}`);return}
+      activeNote.duration=duration;activeNote.measureRest=measureRest;if(activeNoteAction?.type==='add'){activeNoteAction.note.duration=duration;activeNoteAction.note.measureRest=measureRest}else if(activeNoteAction?.type==='update-note')activeNoteAction.after={...activeNote};renderScore();
     }
     function undoLastChange(){
       const action=editHistory.pop();
       if(!action)return null;
-      if(action.type==='add'){const removed=notes.pop();if(removed?.tupletId&&tripletArmed&&removed.tupletId===tripletGroupId)tripletCount=Math.max(0,tripletCount-1)}
+      if(action.type==='add'){const removed=notes.pop();if(removed?.tupletId&&tripletArmed&&removed.tupletId===tripletGroupId){tripletCount=Math.max(0,tripletCount-1);syncTupletButtonState()}}
       else if(action.type==='add-triplet'||action.type==='add-tuplet'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id))}
       else if(action.type==='paste-end'){const ids=new Set((action.notes||[]).map(note=>note.id));notes=notes.filter(note=>!ids.has(note.id));slurs=slurs.filter(item=>!ids.has(item.startId)&&!ids.has(item.endId))}
       else if(action.type==='delete'){notes.splice(clamp(action.index,0,notes.length),0,{...action.note});slurs=(action.slurs||[]).map(item=>({...item}));hairpins=(action.hairpins||[]).map(item=>({...item}))}
@@ -2214,8 +2283,9 @@
       if(e.pointerId!==modifierPointerId)return;
       const source=activeModifierButton?.dataset.modifier,selected=activeModifier;
       if(source==='tuplet'){
-        const size=selected==='tuplet-6'?6:selected==='tuplet-5'?5:3,turnOff=tripletArmed&&tripletSize===size;
-        clearModifier();setTripletArmed(!turnOff,{size});return;
+        const size=selected==='tuplet-6'?6:selected==='tuplet-5'?5:3,turnOff=tripletArmed&&tripletSize===size;clearModifier();
+        if(tripletArmed&&currentTupletHasEntries()&&(turnOff||tripletSize!==size)){showTupletWarning('Kirjoita tupletti loppuun');return}
+        setTripletArmed(!turnOff,{size});return;
       }
       clearModifier();
     }
@@ -2257,7 +2327,7 @@
     function togglePiano(e){
       if(e.pointerType==='mouse'&&e.button!==0)return;
       e.preventDefault();
-      if(!keyboardPanel.hidden){clearModifier();setTieArmed(false);setTripletArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
+      if(!keyboardPanel.hidden){if(tripletArmed&&currentTupletHasEntries()){showTupletWarning('Kirjoita tupletti loppuun');return}clearModifier();setTieArmed(false);setTripletArmed(false);cancelModifierDrag();app.classList.remove('keyboard-open');modifierRail.setAttribute('aria-hidden','true');keyboardPanel.hidden=true;score.setAttribute('aria-expanded','false');requestAnimationFrame(updateScorePagePreview);return}
       if(!audio||audio.state==='closed')buildAudio();
       if(!started){osc.start();started=true}
       const done=()=>{
@@ -2306,7 +2376,7 @@
       if(activeNoteSounds){const t=audio.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.06)}
       activeKey.classList.remove('active');if(activeNoteSounds&&soundingKey)soundingKey.classList.add('sounding-resting');
       try{if(piano.hasPointerCapture(e.pointerId))piano.releasePointerCapture(e.pointerId)}catch{}
-      const replaced=activeReplacingExisting,finishedTupletId=completedTupletId;completedTupletId=null;if(finishedTupletId)collapseCompletedTripletHistory(finishedTupletId);activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
+      finalizeActiveTupletEntry();const replaced=activeReplacingExisting,finishedTupletId=completedTupletId;completedTupletId=null;if(finishedTupletId)collapseCompletedTripletHistory(finishedTupletId);activeId=null;activeKey=null;activeNote=null;activeNoteAction=null;activeNoteSounds=false;noteGestureLocked=false;activeReplacingExisting=false;if(replaced)clearWriteNoteEdit();
     }
 
     function syncScrollThumb(){
