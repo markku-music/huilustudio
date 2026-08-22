@@ -745,10 +745,21 @@
     function endHeaderDrag(e){
       if(!headerDrag||headerDrag.pointerId!==e.pointerId)return;
       e.preventDefault();e.stopPropagation();
+      // Pointermove can occasionally be skipped on touch devices. Check the
+      // final pointer position too, so an intended drag never becomes a tap.
+      if(e.type==='pointerup'&&!headerDrag.moved){
+        const screenDelta=e.clientY-headerDrag.startClientY;
+        if(Math.abs(screenDelta)>=HEADER_DRAG_SLOP){
+          headerDrag.moved=true;headerDrag.target.classList.add('is-dragging');
+          const pageDelta=screenDelta/Math.max(.01,scorePageScale||1);
+          headerPositions[headerDrag.key]=clamp(headerDrag.startTop+pageDelta,0,A4_HEIGHT-(headerDrag.key==='title'?40:30));
+          applyHeaderPositions();
+        }
+      }
       const drag=headerDrag;headerDrag=null;drag.target.classList.remove('is-dragging');
       try{drag.target.releasePointerCapture(e.pointerId)}catch{}
       if(drag.moved){persistHeaderPositions();invalidatePublishFiles();statusMessage('Tekstin pystysijainti tallennettu projektiin.');return}
-      if(drag.key==='title')showProjectModal();
+      if(e.type==='pointerup'&&drag.key==='title')showProjectModal();
     }
     function pitchDisplay(midi,useFlats=false){
       const name=(useFlats?flatPitchNames:sharpPitchNames)[mod(midi,12)],octave=Math.floor(midi/12)-1;
