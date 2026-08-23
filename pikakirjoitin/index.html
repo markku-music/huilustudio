@@ -1143,7 +1143,7 @@
         const systemBreak=index>0&&systemBreaks.has(index)?'<print new-system="yes"/>':'',measureNumber=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'',leftBarline=leftBarlineXml(index),rightBarline=rightBarlineXml(index+1,totalMeasures);
         return `<measure number="${measureNumber}"${implicit}>${systemBreak}${attributes}${leftBarline}${entries}${rightBarline}</measure>`;
       }).join('');
-      return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name>${escapeXml(data.instrumentName)}</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
+      return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>${escapeXml(data.title||'Nimetön kappale')}</work-title></work><movement-title></movement-title><identification>${data.composer?`<creator type="composer">${escapeXml(data.composer)}</creator>`:''}</identification><part-list><score-part id="P1"><part-name print-object="no"></part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
     }
     function centerMeasureRests(){
       const measureList=scoreRenderer?.GraphicSheet?.MeasureList;

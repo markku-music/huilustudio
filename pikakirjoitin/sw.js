@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.64-pdf-xml';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.65-dorico-xml';
 const APP_SHELL = [
   './',
   './index.html',
