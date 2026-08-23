@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset=utf-8><script src="vendor/osmd.min.js"></script><style>#osmdContainer{width:1000px}</style></head><body><div id=osmdContainer></div><script type=module>
+import {ScoreRenderer} from './js/score-renderer.js';
+const r=new ScoreRenderer(document.querySelector('#osmdContainer'));
+r.setSettings({keySignature:0,keyMode:'major',timeSignature:'4/4',clef:'treble'});
+const notes=[]; for(let i=0;i<16;i++) notes.push({id:'note-'+(i+1),midi:60+(i%8),duration:'quarter'});
+await r.render(notes); document.body.dataset.done='yes';
+</script></body></html>

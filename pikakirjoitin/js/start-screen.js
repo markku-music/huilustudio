@@ -130,6 +130,7 @@ export class StartScreen {
 
   #currentThemeId(){ return THEME_DEFINITIONS[this.#els.themeSelect.value]?this.#els.themeSelect.value:'kupari'; }
   #applyTheme(id){ const t=THEME_DEFINITIONS[id]||THEME_DEFINITIONS.kupari; this.#themeStyle.textContent=`
+    :root{--pk-selection-color:${t.accent};}
     body,.app{background:${t.appBg};}
     .project-start-action[aria-pressed="true"],.notation-choice[aria-pressed="true"],.pickup-choice[aria-pressed="true"],.key-wheel-slot[aria-pressed="true"],.meter-wheel-slot[aria-pressed="true"]{border-color:${t.accent};background:${t.accentSoft};color:${t.accentText};box-shadow:inset 0 0 0 1px ${t.accent}55;}
     .start-button,.keyboard-scroll-thumb{background:${t.panel};color:${t.panelText};}

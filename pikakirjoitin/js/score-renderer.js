@@ -12,6 +12,7 @@ export class ScoreRenderer {
   #resizeObserver = null;
   #resizeTimer = 0;
   #lastMarginWidth = 0;
+  #renderListeners = new Set();
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
     this.#container = container;
@@ -41,6 +42,11 @@ export class ScoreRenderer {
 
   setSettings(settings) {
     this.#settings = { ...settings };
+  }
+
+  subscribeRendered(listener) {
+    this.#renderListeners.add(listener);
+    return () => this.#renderListeners.delete(listener);
   }
 
   render(notes) {
@@ -90,6 +96,14 @@ export class ScoreRenderer {
         await this.#osmd.load(buildMusicXml(notes, this.#settings));
         this.#applyPageMargins();
         await this.#osmd.render();
+        const snapshot = {
+          notes: notes.map(note => ({ ...note })),
+          settings: { ...this.#settings }
+        };
+        // render() on valmis: SVG on jo DOM:ssa. Ilmoitetaan juuri tämän
+        // renderikierroksen data synkronisesti, jotta nopea seuraava renderi
+        // ei ehdi vaihtaa nuottikuvaa ennen kartoitusta.
+        for (const listener of this.#renderListeners) listener(snapshot);
       }
     } catch (error) {
       console.error('Nuottikuvan renderöinti epäonnistui:', error);
