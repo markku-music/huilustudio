@@ -19,9 +19,8 @@
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
     html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
     body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
-    .app{touch-action:manipulation}
     button,input,select{font:inherit;-webkit-tap-highlight-color:transparent}
-    .app{position:fixed;inset:0;width:100%;height:auto;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
+    .app{position:fixed;touch-action:manipulation;inset:0;width:100%;height:auto;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);background:#eef1f5}
     p{margin:0;color:#586474;font-size:14px}
     .mode-tabs{position:fixed;z-index:40;top:0;left:50%;width:min(452px,calc(100% - 24px));height:34px;display:flex;align-items:flex-start;gap:4px;transform:translateX(-50%);pointer-events:auto}
     .new-project-tab{flex:0 0 58px;height:30px;padding:0 7px;border:1px solid #536b82;border-top:0;border-radius:0 0 10px 10px;background:#5b7187;color:#fff;box-shadow:0 3px 8px #1c27352b;font-size:9px;font-weight:850;letter-spacing:.055em;white-space:nowrap;touch-action:manipulation;-webkit-touch-callout:none;cursor:pointer}
@@ -798,7 +797,6 @@
       if(keyWheelPopover.hidden)return;keyWheelPopover.hidden=true;keyTrigger.setAttribute('aria-expanded','false');keyTrigger.focus();
     }
     function keyWheelBackdrop(e){if(e.target===keyWheelPopover)closeKeyWheel()}
-    function keyWheelKey(e){if(e.key==='Escape'&&!keyWheelPopover.hidden){e.preventDefault();closeKeyWheel()}}
     const meterWheelData=['2/4','3/4','4/4','C','2/2','cutC','3/8','6/8','9/8','12/8'];
     function timeSignatureParts(value=timeSignatureSelect.value){
       if(value==='C')return [4,4];
@@ -1638,10 +1636,6 @@
       const delta=value-STAFF_TOP_DEFAULT;
       staffTopSlider.setAttribute('aria-valuetext',Math.abs(delta)<.01?'Nykyinen aloituskorkeus':delta>0?`Viivastot ${Math.round(delta*10)} px alempana`:`Viivastot ${Math.round(-delta*10)} px ylempänä`);
     }
-    function staffTopValueFromClientY(clientY){
-      const rect=staffTopSlider.getBoundingClientRect(),thumbHeight=staffTopThumb.offsetHeight,top=rect.top+10+thumbHeight/2,bottom=rect.bottom-10-thumbHeight/2,ratio=clamp((clientY-top)/Math.max(1,bottom-top),0,1);
-      return STAFF_TOP_MIN+ratio*(STAFF_TOP_MAX-STAFF_TOP_MIN);
-    }
     function applyLineSpacingRules(){
       if(!scoreRenderer?.EngravingRules)return;
       const compensatedValue=lineSpacingValue/noteSizeZoom();
@@ -1655,10 +1649,6 @@
       lineSpacingFill.style.height=`${ratio*100}%`;
       lineSpacingSlider.setAttribute('aria-valuenow',String(Number(value.toFixed(2))));
       lineSpacingSlider.setAttribute('aria-valuetext',value<=LINE_SPACING_MIN+.01?'Nykyinen riviväli':`${Math.round(100+(value-LINE_SPACING_MIN)*50)} %`);
-    }
-    function lineSpacingValueFromClientY(clientY){
-      const rect=lineSpacingSlider.getBoundingClientRect(),thumbHeight=lineSpacingThumb.offsetHeight,top=rect.top+10+thumbHeight/2,bottom=rect.bottom-10-thumbHeight/2,ratio=clamp((clientY-top)/Math.max(1,bottom-top),0,1);
-      return LINE_SPACING_MIN+ratio*(LINE_SPACING_MAX-LINE_SPACING_MIN);
     }
     function renderedSystemGeometry(){
       if(!scoreRenderer)return[];
@@ -1700,7 +1690,6 @@
       systems.sort((a,b)=>a.rowY-b.rowY);
       return systems.filter((item,index,array)=>index===0||Math.abs(item.rowY-array[index-1].rowY)>2);
     }
-    function renderedSystemRowYs(){return renderedSystemGeometry().map(item=>item.rowY)}
     function lineSpacingSeparators(systems,totalHeight){
       const separators=[];
       for(let i=0;i<systems.length-1;i++){
@@ -2457,10 +2446,6 @@
       if(clefButton)clefSelect.value=clefButton.dataset.clef;
       syncNotationChoices();
     }
-    function showProjectModal(focusField='title'){
-      const focusTarget=focusField==='composer'?composerInput:focusField==='tempo'?tempoInput:titleInput;
-      syncNotationChoices();syncKeyPicker();syncMeterPicker();projectSaveButton.hidden=false;projectSaveButton.textContent='TALLENNA';projectModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>focusTarget.focus());
-    }
     function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
     function applyProjectData(){
       saveNotationSettings();
@@ -2593,8 +2578,8 @@
         return;
       }
       if(source==='tuplet'){
-        const r3=tripletButton.getBoundingClientRect(),r5=quintupletButton.getBoundingClientRect(),r6=sextupletButton.getBoundingClientRect();
-        const in3=e.clientX>=r3.left&&e.clientX<=r3.right&&e.clientY>=r3.top&&e.clientY<=r3.bottom,in5=e.clientX>=r5.left&&e.clientX<=r5.right&&e.clientY>=r5.top&&e.clientY<=r5.bottom,in6=e.clientX>=r6.left&&e.clientX<=r6.right&&e.clientY>=r6.top&&e.clientY<=r6.bottom;
+        const r5=quintupletButton.getBoundingClientRect(),r6=sextupletButton.getBoundingClientRect();
+        const in5=e.clientX>=r5.left&&e.clientX<=r5.right&&e.clientY>=r5.top&&e.clientY<=r5.bottom,in6=e.clientX>=r6.left&&e.clientX<=r6.right&&e.clientY>=r6.top&&e.clientY<=r6.bottom;
         activeModifier=in6?'tuplet-6':in5?'tuplet-5':(tripletArmed?`tuplet-${tripletSize}`:'tuplet-3');
         quintupletButton.classList.toggle('active',in5);quintupletButton.setAttribute('aria-pressed',in5?'true':'false');
         sextupletButton.classList.toggle('active',in6);sextupletButton.setAttribute('aria-pressed',in6?'true':'false');

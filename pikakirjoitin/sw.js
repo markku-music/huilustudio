@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.59-write-selection-stability';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.60-cleanup';
 const APP_SHELL = [
   './',
   './index.html',
@@ -22,6 +22,14 @@ const APP_SHELL = [
   './assets/1_32_rest.svg',
   './assets/Common_time.svg',
   './assets/Alla_breve.svg',
+  './assets/time-2-4.svg',
+  './assets/time-3-4.svg',
+  './assets/time-4-4.svg',
+  './assets/time-2-2.svg',
+  './assets/time-3-8.svg',
+  './assets/time-6-8.svg',
+  './assets/time-9-8.svg',
+  './assets/time-12-8.svg',
   './assets/ending-1.svg',
   './assets/ending-2.svg',
   './assets/pickup-dotted-half.svg',
