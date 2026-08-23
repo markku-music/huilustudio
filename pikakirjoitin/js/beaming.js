@@ -1,19 +1,24 @@
 /**
  * Automaattinen palkitus Pikakirjoitin 2:lle.
  *
- * Tavalliset rytmit seuraavat iskualoja. Tupletit käyttävät vanhan
- * Pikakirjoittimen periaatetta: samaan tuplettiin kuuluvat peräkkäiset
- * palkitettavat tapahtumat pidetään yhtenä palkkiryhmänä riippumatta
- * metrisestä iskualasta. Lyhyessä 1/16- tai 1/32-sekstolissa myös sisäinen
- * tauko voi kuulua ensimmäiseen palkkitasoon.
+ * Periaate on siirretty Pikakirjoitin 1.x:n vakaasta palkituslogiikasta:
+ * - tavallisissa tahtilajeissa palkkiryhmä ei ylitä iskualaa
+ * - 6/8, 9/8, 12/8 jne. ryhmitellään pisteellisen neljäsosan iskuihin
+ * - 1/8, 1/16 ja 1/32 voivat kuulua samaan palkkiryhmään
+ * - tauko katkaisee tavallisen palkkiryhmän
+ *
+ * Moduuli ei tunne OSMD:n DOM-rakennetta eikä ScoreModelia. Se käsittelee
+ * measure-layout.js:n tuottamia tahdin segmenttejä.
  */
 
 function beamUnit(beats, beatType) {
+  // Sisäinen rytmiyksikkö: 1/32 = 1, 1/16 = 2, 1/8 = 4, 1/4 = 8.
+  // Yhdistetyissä kahdeksasosatahtilajeissa isku = pisteellinen 1/4 = 12.
   return beatType === 8 && beats % 3 === 0 ? 12 : 32 / beatType;
 }
 
-function visualBeamLevel(note) {
-  if (!note) return 0;
+function beamLevelCount(note) {
+  if (!note || note.kind === 'rest') return 0;
   if (note.type === '64th') return 4;
   if (note.type === '32nd') return 3;
   if (note.type === '16th') return 2;
@@ -21,27 +26,8 @@ function visualBeamLevel(note) {
   return 0;
 }
 
-function isProtectedSextuplet(note) {
-  const base = Number(note?.tupletBaseUnits);
-  return Boolean(note?.tupletId && Number(note.tupletSize) === 6 && Number.isFinite(base) && base <= 2 + 1e-7);
-}
-
-function beamLevelCount(note) {
-  const level = visualBeamLevel(note);
-  if (note?.kind === 'rest') return isProtectedSextuplet(note) ? Math.max(1, level) : 0;
-  return level;
-}
-
 function isBeamable(note) {
   return beamLevelCount(note) > 0;
-}
-
-function tupletFixedConnection(left, right) {
-  if (!left?.tupletId || left.tupletId !== right?.tupletId || !isBeamable(left) || !isBeamable(right)) return null;
-  const leftIndex = Number(left.tupletIndex);
-  const rightIndex = Number(right.tupletIndex);
-  if (!Number.isInteger(leftIndex) || rightIndex !== leftIndex + 1) return false;
-  return true;
 }
 
 function measureConnections(notes, beats, beatType) {
@@ -60,37 +46,15 @@ function measureConnections(notes, beats, beatType) {
     const right = notes[index + 1];
     const leftLevel = beamLevelCount(left);
     const rightLevel = beamLevelCount(right);
-    const leftBucket = Math.floor((starts[index] + 1e-7) / unit);
-    const rightBucket = Math.floor((starts[index + 1] + 1e-7) / unit);
+    const leftBucket = Math.floor(starts[index] / unit);
+    const rightBucket = Math.floor(starts[index + 1] / unit);
     const leftInside = starts[index] + (Number(left.duration) || 0) <= (leftBucket + 1) * unit + 1e-7;
     const rightInside = starts[index + 1] + (Number(right.duration) || 0) <= (rightBucket + 1) * unit + 1e-7;
-    const metricAutomatic = isBeamable(left)
+    const automatic = isBeamable(left)
       && isBeamable(right)
       && leftInside
       && rightInside
       && leftBucket === rightBucket;
-    const tupletAutomatic = tupletFixedConnection(left, right);
-
-    // Manuaalinen palkkiryhmä menee automatiikan edelle. Jos jompikumpi
-    // tapahtuma kuuluu manuaaliseen ryhmään, yhteys syntyy vain saman ryhmän
-    // sisällä. Näin valinta ei vahingossa ime viereistä automaattisesti
-    // palkitettavaa nuottia mukaansa. Tauko katkaisee ryhmän luonnostaan.
-    const leftManual = left?.manualBeamGroup || null;
-    const rightManual = right?.manualBeamGroup || null;
-    const hasManualBoundary = Boolean(leftManual || rightManual);
-    const manualAutomatic = Boolean(
-      leftManual && rightManual && leftManual === rightManual && isBeamable(left) && isBeamable(right)
-    );
-
-    // Yksittäisen nuotin käsin asetettu katkaisu on aina kova raja sen
-    // edellisen tapahtuman ja tämän nuotin välissä. Se voittaa sekä metrisen,
-    // tupletti- että manuaalisen palkkiryhmän.
-    const forcedBreakBeforeRight = Boolean(right?.manualBeamBreakBefore);
-    const automatic = forcedBreakBeforeRight
-      ? false
-      : (hasManualBoundary
-        ? manualAutomatic
-        : (tupletAutomatic === null ? metricAutomatic : tupletAutomatic));
 
     connections.push({
       index,
@@ -128,12 +92,14 @@ function addBeamLevelRuns(tags, notes, starts, connections, level) {
           value: position === 0 ? 'begin' : position === run.length - 1 ? 'end' : 'continue'
         });
       });
-    } else if (level > 1 && notes[run[0]]?.kind !== 'rest') {
+    } else if (level > 1) {
+      // Yksittäinen alempi palkkitaso tarvitsee hookin. Suunta määräytyy
+      // rytmipaikan mukaan samalla periaatteella kuin Pikakirjoitin 1.x:ssä.
       const noteIndex = run[0];
       const subdivision = level === 2 ? 4 : level === 3 ? 2 : 1;
       tags[noteIndex].push({
         number: level,
-        value: Math.abs(starts[noteIndex] % subdivision) < 1e-7 ? 'forward hook' : 'backward hook'
+        value: starts[noteIndex] % subdivision === 0 ? 'forward hook' : 'backward hook'
       });
     }
 
@@ -141,6 +107,16 @@ function addBeamLevelRuns(tags, notes, starts, connections, level) {
   }
 }
 
+/**
+ * Palauttaa jokaiselle tahdin tapahtumalle MusicXML beam -tunnisteiden datan.
+ *
+ * osmdCompatible=true jäljittelee vanhan Pikakirjoittimen renderöintipolkua:
+ * OSMD:lle annetaan ensimmäinen palkkitaso eksplisiittisesti ja se johtaa
+ * lyhyempien aika-arvojen alemmat palkit nuotin type-arvosta itse.
+ *
+ * Kun myöhemmin teemme varsinaisen MusicXML-exportin, voidaan käyttää
+ * osmdCompatible=false ja kirjoittaa kaikki palkkitasot eksplisiittisesti.
+ */
 export function beamTagsForMeasure(notes, beats, beatType, { osmdCompatible = true } = {}) {
   const tags = notes.map(() => []);
   const { starts, connections } = measureConnections(notes, beats, beatType);
@@ -157,5 +133,7 @@ export function beamTagsForMeasure(notes, beats, beatType, { osmdCompatible = tr
 }
 
 export function beamTagsXml(tags = []) {
-  return tags.map(({ number, value }) => `<beam number="${number}">${value}</beam>`).join('');
+  return tags
+    .map(({ number, value }) => `<beam number="${number}">${value}</beam>`)
+    .join('');
 }

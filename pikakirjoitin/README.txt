@@ -1,24 +1,19 @@
-Pikakirjoitin 2 Core 0.26 – Etumerkkieditointi
+Pikakirjoitin 2 Core 0.22 – Kokotauko ja multirest
 
-Pohja: Core 0.25 Nuottieditointi korkeus + aika.
+Pikakirjoitin 2 Core 0.19 – Sidekaari
 
-Lisätty valitun nuotin ♭/♯-painikkeisiin kaksitoiminen logiikka:
-- diatoninen/naturaali nuotti + ♯ = sama kirjain ylennettynä, soiva korkeus +1/2 askelta
-- diatoninen/naturaali nuotti + ♭ = sama kirjain alennettuna, soiva korkeus -1/2 askelta
-- vastakkaisella etumerkillä kirjoitettu nuotti vaihtuu enharmonisesti ilman soivan korkeuden muutosta
-  esim. Ges -> ♯ -> Fis ja Fis -> ♭ -> Ges
-- jo samalla etumerkillä oleva nuotti ei muutu
-- kaksoisylennyksiä ja kaksoisalennuksia ei luoda
-- tarkka kirjoitusasu (esim. Cb, Fb, B#, E#) säilytetään MusicXML:ään asti
-- ↑/↓ ja koskettimella tehtävä uusi korkeus palauttavat kirjoitusasun sävellajin normaaliin logiikkaan
-- Undo/Redo käsittelee jokaisen etumerkkimuutoksen yhtenä editointina
+Lisätty vasemman reunan peukalopalkki, jossa on aluksi pisteellinen ja tauko.
+Painikkeet toimivat momentary-modifioijina: toiminto on aktiivinen vain niin kauan kuin nappia pidetään pohjassa.
+Samaa pohjassa olevaa nappia voi vetää pystysuunnassa, jolloin koko palkki siirtyy; paikka tallentuu selaimen localStorageen.
+Piste toimii myös 1/32-ajalla: MusicXML-divisions on nostettu 16:een, mutta Pikakirjoittimen sisäinen rytmiasteikko on säilytetty ennallaan.
+Tauko käyttää koskettimiston normaalia aika-arvoelettä, mutta ei soita ääntä.
 
-Muut 0.25:n ominaisuudet säilyvät.
+0.19: Peukalopalkkiin lisätty vanhan Pikakirjoittimen kertakäyttöinen sidekaari. Napauta sidekaari aktiiviseksi; seuraava saman sävelen nuotti sidotaan edelliseen ja tila sammuu. Tauko/eri sävel kuluttaa tilan ilman sidettä. Sidekaaripainikkeesta voi edelleen siirtää palkkia pystysuunnassa vetämällä.
 
+0.20: Kokotauko palautettu tahditauoksi (measure rest). Useat perakkaiset kokotauot muodostavat kukin oman tahdin vakaasti.
 
-Core 0.27: Aluevalinnan Kopioi loppuun ja manuaalinen Palkita yhteen.
+0.21: Sävellajin mukainen enharmoninen kirjoitusasu.
+Alennusmerkkisissä sävellajeissa mustat koskettimet kirjoitetaan alennuksina,
+ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään erikseen.
 
-0.28: Yksittäisen nuotin editoriin lisätty palkin katkaisu ennen valittua nuottia. Katkaisu on Undo/Redo-tallennettava ja voittaa automaattisen, tupletti- ja manuaalisen palkituksen kyseisessä rajassa.
-
-
-0.28.1: Yksittäisen nuotin työkalupalkista poistettu ylös/alas-nuolet. Erilliset ♭/♯-napit on koottu yhdeksi ♭♯-napiksi. Napautus vaihtaa saman työkalupalkin sisällön näkymään ♭ | ♯ | ← ilman erillistä popupia, joten valinta mahtuu myös ensimmäisen nuottirivin kohdalla. 0.28:n etumerkki- ja enharmoninen logiikka säilyy muuttumattomana.
+0.22: Tauko + koskettimen pitkä painallus luo aina täyden tahdin kokotauon. Peräkkäiset kokotauot muodostavat eksplisiittisen MusicXML-multirestin (2, 3, 4...), ja OSMD:n oma automaattinen multirest-arvaus on pois käytöstä.

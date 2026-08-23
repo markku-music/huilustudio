@@ -144,9 +144,7 @@ button { font: inherit; }
 .thumb-rail.is-dragging { cursor: ns-resize; }
 
 .thumb-modifier,
-.thumb-toggle,
-.thumb-tuplet,
-.thumb-tuplet-choice {
+.thumb-toggle {
   width: 46px;
   height: 50px;
   display: grid;
@@ -174,11 +172,7 @@ button { font: inherit; }
 .thumb-modifier.active,
 .thumb-modifier[aria-pressed="true"],
 .thumb-toggle.active,
-.thumb-toggle[aria-pressed="true"],
-.thumb-tuplet.active,
-.thumb-tuplet[aria-pressed="true"],
-.thumb-tuplet-choice.active,
-.thumb-tuplet-choice[aria-pressed="true"] {
+.thumb-toggle[aria-pressed="true"] {
   border-color: var(--pk-selection-color);
   background: var(--pk-selection-color);
   color: #fff;
@@ -191,60 +185,6 @@ button { font: inherit; }
 .thumb-toggle[aria-pressed="true"] img {
   filter: brightness(0) invert(1);
 }
-
-
-.thumb-tuplet svg,
-.thumb-tuplet-choice svg {
-  display: block;
-  width: 36px;
-  height: 30px;
-  pointer-events: none;
-  overflow: visible;
-}
-.thumb-tuplet svg path,
-.thumb-tuplet-choice svg path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.thumb-tuplet svg text,
-.thumb-tuplet-choice svg text {
-  fill: currentColor;
-  font: 800 14px/1 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-}
-.thumb-tuplet-choice {
-  position: absolute;
-  z-index: 4;
-  display: none;
-  pointer-events: none;
-}
-.thumb-tuplet-choice.visible { display: grid; }
-#quintupletButton { left: 58px; }
-#sextupletButton { left: 112px; }
-
-.tuplet-warning {
-  position: fixed;
-  z-index: 74;
-  left: 68px;
-  max-width: min(330px, calc(100vw - 84px));
-  padding: 9px 12px;
-  border: 1px solid #d7a43a;
-  border-radius: 11px;
-  background: #fff8df;
-  color: #5b430f;
-  box-shadow: 0 7px 20px rgba(74,54,29,.17);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.25;
-  opacity: 0;
-  transform: translateY(3px);
-  transition: opacity .12s ease, transform .12s ease;
-  pointer-events: none;
-}
-.tuplet-warning.visible { opacity: 1; transform: translateY(0); }
-.tuplet-warning[hidden] { display: none !important; }
 
 .keyboard-panel {
   flex: 0 0 clamp(230px, 31dvh, 360px);
@@ -472,112 +412,3 @@ button { font: inherit; }
 @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}}
 
 .tie-thumb-button img { width: 36px; height: 36px; }
-
-/* Kelluva nuottieditori. Näytetään vain valinnan yhteydessä ja ankkuroidaan
-   valintakohdistimen tapahtuman yläpuolelle. */
-.pk-selection-editor {
-  position: fixed;
-  z-index: 95;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px;
-  transform: translateX(-50%);
-  border: 1px solid rgba(76, 86, 98, .88);
-  border-radius: 12px;
-  background: rgba(31, 36, 42, .96);
-  box-shadow: 0 7px 20px rgba(15, 22, 30, .26);
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.pk-selection-editor[hidden] { display: none; }
-
-.pk-selection-editor button {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid #5d6874;
-  border-radius: 9px;
-  background: #2c3239;
-  color: #f5f7f9;
-  font-size: 25px;
-  font-weight: 650;
-  line-height: 1;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.pk-selection-editor button:active:not(:disabled) {
-  transform: translateY(1px);
-  background: #3a424c;
-}
-
-.pk-selection-editor button:disabled { opacity: .25; }
-
-.pk-selection-editor button.is-delete {
-  color: #fff;
-}
-
-.pk-selection-editor button svg {
-  width: 23px;
-  height: 23px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-
-/* Aluevalinnan lisätoiminnot: kopioi loppuun ja manuaalinen palkitus. */
-.pk-selection-editor button.is-range-action {
-  width: 46px;
-}
-.pk-selection-editor button.is-range-action svg {
-  width: 27px;
-  height: 24px;
-}
-.pk-selection-editor button.is-beam svg {
-  stroke-width: 1.6;
-}
-
-
-/* Yksittäisen nuotin palkin katkaisu ennen valittua nuottia. */
-.pk-selection-editor button.is-beam-break svg {
-  width: 28px;
-  height: 23px;
-  stroke-width: 1.6;
-}
-.pk-selection-editor button.is-beam-break .beam-cut-mark {
-  stroke-width: 2.2;
-}
-.pk-selection-editor button.is-beam-break[aria-pressed="true"] {
-  border-color: var(--pk-selection-color);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px var(--pk-selection-color);
-}
-
-
-/* 0.28.1: kompakti yhden nuotin etumerkkivalinta.
-   Valinta korvaa saman työkalupalkin sisällön, joten mitään popupia ei
-   tarvitse mahduttaa ensimmäisen nuottirivin yläpuolelle. */
-.pk-selection-editor button.is-accidental-menu {
-  font-size: 20px;
-  font-family: Georgia, "Times New Roman", serif;
-  letter-spacing: -3px;
-  padding-right: 3px;
-}
-.pk-selection-editor button.is-accidental-choice {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 27px;
-}
-.pk-selection-editor button.is-editor-back {
-  font-size: 23px;
-  font-weight: 750;
-}
-.pk-selection-editor button[hidden] { display: none; }

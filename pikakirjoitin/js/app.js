@@ -5,9 +5,6 @@ import { PianoKeyboard } from './keyboard.js';
 import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
-import { TupletController } from './tuplet-controller.js';
-import { SelectionEditor } from './selection-editor.js';
-import { applyAccidental } from './pitch-spelling.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -22,160 +19,38 @@ const selection=new ScoreRangeSelection({
 });
 renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
 let settings={transpose:0,keyboardStartMidi:60};
-let thumbState={dot:false,rest:false,tie:false,tuplet:0};
-let warningTimer=0;
-let keyboardEditAction=null;
+let thumbState={dot:false,rest:false,tie:false};
 
 model.subscribe(notes=>renderer.render(notes));
 
-function selectedExistingIds() {
-  return selection.selectedIds.filter(id => model.getEntry(id));
-}
-
-function editSelectedNotes(updater) {
-  const ids=selectedExistingIds();
-  if(!ids.length) return false;
-  return model.updateEntries(ids,(entry,index,all)=>{
-    if(entry.kind!=='note') return null;
-    return updater(entry,index,all);
-  });
-}
-
-const selectionEditor=new SelectionEditor({
-  onFlat:()=>editSelectedNotes((entry,index,all)=>applyAccidental(entry.midi,'flat',{index,notes:all,settings})),
-  onSharp:()=>editSelectedNotes((entry,index,all)=>applyAccidental(entry.midi,'sharp',{index,notes:all,settings})),
-  onDelete:()=>{
-    const ids=selectedExistingIds();
-    if(!ids.length)return;
-    if(model.deleteEntries(ids)){
-      selection.clear();
-      tuplet.syncFromModel();
-    }
-  },
-  onCopyToEnd:()=>{
-    const ids=selectedExistingIds();
-    if(ids.length<2)return;
-    const copied=model.copyEntriesToEnd(ids);
-    if(copied.length) tuplet.syncFromModel();
-  },
-  onBeam:()=>{
-    const ids=selectedExistingIds();
-    if(ids.length<2)return;
-    model.toggleManualBeamGroup(ids);
-  },
-  onBeamBreak:()=>{
-    const ids=selectedExistingIds();
-    if(ids.length!==1)return;
-    model.toggleBeamBreakBefore(ids[0]);
-  }
-});
-
-selection.subscribe(state=>{
-  const entries=state.selectedIds.map(id=>model.getEntry(id)).filter(Boolean);
-  const noteCount=entries.filter(entry=>entry.kind==='note').length;
-  const singleEntry=entries.length===1?entries[0]:null;
-  selectionEditor.update({
-    visible:Boolean(entries.length && state.anchor),
-    x:state.anchor?.x||0,
-    staffTop:state.anchor?.staffTop||0,
-    staffBottom:state.anchor?.staffBottom||0,
-    noteCount,
-    selectionCount:entries.length,
-    selectionKey:state.selectedIds.join('|'),
-    beamBreakEnabled:Boolean(singleEntry && model.canToggleBeamBreakBefore(singleEntry.id)),
-    beamBreakActive:Boolean(singleEntry?.manualBeamBreakBefore)
-  });
-});
-
-const warning=document.querySelector('#tupletWarning');
-function showTupletWarning(message){
-  if(!warning)return;
-  window.clearTimeout(warningTimer);
-  warning.textContent=message;
-  const tripletRect=document.querySelector('#tripletButton')?.getBoundingClientRect();
-  warning.style.top=`${Math.max(42,Math.min(window.innerHeight-70,(tripletRect?.top||70)+8))}px`;
-  warning.hidden=false;
-  requestAnimationFrame(()=>warning.classList.add('visible'));
-  warningTimer=window.setTimeout(()=>{
-    warning.classList.remove('visible');
-    window.setTimeout(()=>{if(!warning.classList.contains('visible'))warning.hidden=true;},150);
-  },1450);
-}
-
-let thumbRail;
-const tuplet=new TupletController({
-  model,
-  onStateChange:state=>thumbRail?.setTuplet(state.active?state.size:0),
-  onWarning:showTupletWarning
-});
-
-thumbRail=new ThumbRail({
+const thumbRail=new ThumbRail({
   rail:document.querySelector('#thumbRail'),
   boundsElement:document.querySelector('#scoreViewport'),
-  onChange:state=>{ thumbState=state; },
-  onTupletRequest:size=>tuplet.request(size)
+  onChange:state=>{ thumbState=state; }
 });
 
 const keyboard=new PianoKeyboard({
   piano:document.querySelector('#piano'),whiteKeys:document.querySelector('#whiteKeys'),viewport:document.querySelector('#keyboardViewport'),
   rail:document.querySelector('#keyboardScrollRail'),track:document.querySelector('#keyboardScrollTrack'),thumb:document.querySelector('#keyboardScrollThumb'),
   onStart:(midi,duration)=>{
-    const selectedIds=selectedExistingIds();
-    if(selectedIds.length){
-      model.beginAction();
-      const singleNote = selectedIds.length === 1 ? model.getEntry(selectedIds[0]) : null;
-      keyboardEditAction={ids:[...selectedIds],singleNote:Boolean(singleNote?.kind==='note')};
-
-      if(singleNote?.kind==='note'){
-        // Yksittäisen valitun nuotin editoinnissa kosketin määrää korkeuden
-        // ja kosketinele aika-arvon. Uuden korkeuden kirjoitusasu palautetaan
-        // sävellajin normaaliin enharmoniseen logiikkaan.
-        model.updateEntries(selectedIds,{
-          midi:Number(midi),
-          duration,
-          spellingPreference:null,
-          spellingOverride:null
-        });
-        return { id:selectedIds[0], sound:true };
-      }
-
-      // Aluevalinnassa kosketinele voi edelleen muuttaa yhteistä aika-arvoa,
-      // mutta yhtä kosketinta ei tulkita koko alueen yhteiseksi sävelkorkeudeksi.
-      model.updateEntries(selectedIds,{duration});
-      return { id:selectedIds[0], sound:false };
-    }
-
     model.beginAction();
     const tieWasArmed=Boolean(thumbState.tie);
+    // Vanhan Pikakirjoittimen logiikka: sidekaari on kertakäyttöinen.
+    // Se kulutetaan heti seuraavaan syötettyyn tapahtumaan.
     if(tieWasArmed) thumbRail.setToggle('tie',false);
-    const tupletMeta=tuplet.metadataForNewEntry();
     if(thumbState.rest){
-      return { id:model.addRest({duration,dotted:thumbState.dot,tuplet:tupletMeta}), sound:false };
+      return { id:model.addRest({duration,dotted:thumbState.dot}), sound:false };
     }
     const previous=model.notes.at(-1);
     const tieFromPrevious=Boolean(tieWasArmed && previous?.kind==='note' && Number(previous.midi)===Number(midi));
-    return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious,tuplet:tupletMeta}), sound:true };
+    return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious}), sound:true };
   },
-  onDuration:(id,duration)=>{
-    if(keyboardEditAction) model.updateEntries(keyboardEditAction.ids,{duration});
-    else model.setDuration(id,duration);
-  },
+  onDuration:(id,duration)=>model.setDuration(id,duration),
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),
   onSoundStop:()=>audio.noteOff(),
-  onFinish:id=>{
-    if(keyboardEditAction){
-      model.endAction();
-      keyboardEditAction=null;
-      return;
-    }
-    const result=tuplet.finishEntry(id);
-    if(!result.ok){ model.cancelAction(); return; }
-    model.endAction();
-    if(result.completed && result.historyGroup){
-      model.collapseRecentActions(result.historyGroup.actionCount,result.historyGroup.beforeSnapshot);
-    }
-  }
+  onFinish:()=>model.endAction()
 });
+
 
 const undoButton=document.querySelector('#undoButton');
 const redoButton=document.querySelector('#redoButton');
@@ -186,10 +61,10 @@ model.subscribeHistory(({canUndo,canRedo})=>{
 });
 
 undoButton.addEventListener('click',()=>{
-  if(model.undo()){ selection.clear(); tuplet.syncFromModel(); }
+  if(model.undo()) selection.clear();
 });
 redoButton.addEventListener('click',()=>{
-  if(model.redo()){ selection.clear(); tuplet.syncFromModel(); }
+  if(model.redo()) selection.clear();
 });
 
 new StartScreen({
@@ -203,3 +78,5 @@ new StartScreen({
 });
 
 // Nuottialueen pystyscrollaus on edelleen täysin natiivi.
+// Paperilla: kosketus tapahtumaan valitsee heti, vaakaveto laajentaa valintaa,
+// pystysuuntainen veto jää selaimen natiiviksi scrollaukseksi.

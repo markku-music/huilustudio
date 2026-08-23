@@ -149,19 +149,12 @@ export class ScoreRangeSelection {
   #gesture = null;
   #cursor = null;
   #cursorTarget = null;
-  #listeners = new Set();
 
   constructor({ viewport, container }) {
     this.#viewport = viewport;
     this.#container = container;
     this.#createCursor();
     this.#bind();
-  }
-
-  subscribe(listener) {
-    this.#listeners.add(listener);
-    listener(this.#selectionState());
-    return () => this.#listeners.delete(listener);
   }
 
   refresh({ notes = [], settings = {} } = {}) {
@@ -191,7 +184,6 @@ export class ScoreRangeSelection {
     }
     this.#paint();
     this.#restoreCursorFromTarget();
-    this.#emitChange();
   }
 
   get selectedIds() { return [...this.#selectedIds]; }
@@ -201,7 +193,6 @@ export class ScoreRangeSelection {
     this.#cursorTarget = null;
     this.#paint();
     this.#hideCursor();
-    this.#emitChange();
   }
 
   #bind() {
@@ -209,11 +200,6 @@ export class ScoreRangeSelection {
     this.#viewport.addEventListener('pointermove', ev => this.#pointerMove(ev));
     this.#viewport.addEventListener('pointerup', ev => this.#pointerUp(ev));
     this.#viewport.addEventListener('pointercancel', ev => this.#pointerCancel(ev));
-    this.#viewport.addEventListener('scroll', () => {
-      if (!this.#selectedIds.size) return;
-      this.#restoreCursorFromTarget();
-      this.#emitChange();
-    }, { passive:true });
   }
 
   #pointerDown(ev) {
@@ -381,7 +367,6 @@ export class ScoreRangeSelection {
     this.#selectedIds = new Set([event.sourceId]);
     this.#paint();
     this.#showCursor(event.band, event);
-    this.#emitChange();
   }
 
   #selectBetweenEvents(band, startEvent, endEvent) {
@@ -397,7 +382,6 @@ export class ScoreRangeSelection {
     this.#selectedIds = ids;
     this.#paint();
     this.#showCursor(band, endEvent);
-    this.#emitChange();
   }
 
   #snapshotSelection() {
@@ -413,7 +397,6 @@ export class ScoreRangeSelection {
     this.#cursorTarget = snapshot.cursorTarget ? { ...snapshot.cursorTarget } : null;
     this.#paint();
     this.#restoreCursorFromTarget();
-    this.#emitChange();
   }
 
   #createCursor() {
@@ -428,13 +411,8 @@ export class ScoreRangeSelection {
   #showCursor(band, event) {
     if (!this.#cursor || !band || !event) return;
     this.#cursorTarget = { sourceId:event.sourceId, segmentIndex:event.segmentIndex };
-    const rect = event.element?.getBoundingClientRect?.() || event.rect;
-    const x = rect ? rectCenterX(rect) : event.x;
-    const y = rect ? rectCenterY(rect) : event.y;
-    const deltaY = y - event.y;
-    const originalStaffTop = Number.isFinite(band.staffTop) ? band.staffTop : band.top + STAFF_EXTRA_Y;
-    const staffTop = originalStaffTop + deltaY;
-    this.#cursor.style.left = `${x}px`;
+    const staffTop = Number.isFinite(band.staffTop) ? band.staffTop : band.top + STAFF_EXTRA_Y;
+    this.#cursor.style.left = `${event.x}px`;
     this.#cursor.style.top = `${Math.max(2, staffTop - 24)}px`;
     this.#cursor.classList.add('is-visible');
   }
@@ -459,33 +437,6 @@ export class ScoreRangeSelection {
 
   #hideCursor() {
     this.#cursor?.classList.remove('is-visible');
-  }
-
-  #selectionState() {
-    const ids = [...this.#selectedIds];
-    let target = null;
-    if (this.#cursorTarget) {
-      target = this.#events.find(event => event.sourceId === this.#cursorTarget.sourceId && event.segmentIndex === this.#cursorTarget.segmentIndex)
-        || this.#events.find(event => event.sourceId === this.#cursorTarget.sourceId);
-    }
-    if (!target && ids.length) target = this.#events.find(event => this.#selectedIds.has(event.sourceId));
-
-    let anchor = null;
-    if (target?.band) {
-      const rect = target.element?.getBoundingClientRect?.() || target.rect;
-      const x = rect ? rectCenterX(rect) : target.x;
-      const y = rect ? rectCenterY(rect) : target.y;
-      const deltaY = y - target.y;
-      const top = (Number.isFinite(target.band.staffTop) ? target.band.staffTop : target.band.top + STAFF_EXTRA_Y) + deltaY;
-      const bottom = (Number.isFinite(target.band.staffBottom) ? target.band.staffBottom : target.band.bottom - STAFF_EXTRA_Y) + deltaY;
-      anchor = { x, staffTop:top, staffBottom:bottom, sourceId:target.sourceId };
-    }
-    return { selectedIds:ids, count:ids.length, anchor };
-  }
-
-  #emitChange() {
-    const state = this.#selectionState();
-    for (const listener of this.#listeners) listener(state);
   }
 
   #paint() {

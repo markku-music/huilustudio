@@ -3,18 +3,20 @@ export class ScoreModel {
   #listeners = new Set();
   #historyListeners = new Set();
   #nextId = 1;
-  #nextGroupId = 1;
   #undoStack = [];
   #redoStack = [];
   #transactionSnapshot = null;
 
-  get notes() { return this.#cloneNotes(this.#notes); }
-  get canUndo() { return this.#undoStack.length > 0; }
-  get canRedo() { return this.#redoStack.length > 0; }
+  get notes() {
+    return this.#cloneNotes(this.#notes);
+  }
 
-  getEntry(id) {
-    const entry = this.#notes.find(item => item.id === id);
-    return entry ? { ...entry } : null;
+  get canUndo() {
+    return this.#undoStack.length > 0;
+  }
+
+  get canRedo() {
+    return this.#redoStack.length > 0;
   }
 
   subscribe(listener) {
@@ -51,7 +53,7 @@ export class ScoreModel {
     this.#emitHistory();
   }
 
-  addNote({ midi, duration = 'quarter', dotted = false, tieFromPrevious = false, tuplet = null }) {
+  addNote({ midi, duration = 'quarter', dotted = false, tieFromPrevious = false }) {
     this.#recordStandaloneMutation();
     const note = {
       id: `note-${this.#nextId++}`,
@@ -59,10 +61,7 @@ export class ScoreModel {
       midi: Number(midi),
       duration,
       dotted: Boolean(dotted),
-      tieFromPrevious: Boolean(tieFromPrevious),
-      spellingPreference: null,
-      spellingOverride: null,
-      ...this.#tupletFields(tuplet)
+      tieFromPrevious: Boolean(tieFromPrevious)
     };
     this.#notes.push(note);
     this.#emit();
@@ -70,16 +69,14 @@ export class ScoreModel {
     return note.id;
   }
 
-  addRest({ duration = 'quarter', dotted = false, tuplet = null } = {}) {
+  addRest({ duration = 'quarter', dotted = false } = {}) {
     this.#recordStandaloneMutation();
-    const tupletFields = this.#tupletFields(tuplet);
     const rest = {
       id: `rest-${this.#nextId++}`,
       kind: 'rest',
       duration,
       dotted: Boolean(dotted),
-      measureRest: duration === 'whole' && !Boolean(dotted) && !tupletFields.tupletId,
-      ...tupletFields
+      measureRest: duration === 'whole' && !Boolean(dotted)
     };
     this.#notes.push(rest);
     this.#emit();
@@ -92,146 +89,11 @@ export class ScoreModel {
     if (!note || note.duration === duration) return;
     this.#recordStandaloneMutation();
     note.duration = duration;
-    if (note.kind === 'rest') note.measureRest = duration === 'whole' && !Boolean(note.dotted) && !note.tupletId;
+    if (note.kind === 'rest') {
+      note.measureRest = duration === 'whole' && !Boolean(note.dotted);
+    }
     this.#emit();
     this.#finishStandaloneMutation();
-  }
-
-  updateEntry(id, patch = {}) {
-    const note = this.#notes.find(item => item.id === id);
-    if (!note) return false;
-    const cleanPatch = { ...patch };
-    this.#recordStandaloneMutation();
-    Object.assign(note, cleanPatch);
-    if (note.kind === 'rest') note.measureRest = note.duration === 'whole' && !Boolean(note.dotted) && !note.tupletId;
-    this.#emit();
-    this.#finishStandaloneMutation();
-    return true;
-  }
-
-  updateEntries(ids, updater) {
-    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
-    if (!wanted.size) return false;
-    const before = this.notes;
-    let changed = false;
-    this.#recordStandaloneMutation();
-
-    this.#notes = this.#notes.map((entry, index) => {
-      if (!wanted.has(entry.id)) return entry;
-      const patch = typeof updater === 'function'
-        ? updater({ ...entry }, index, before.map(item => ({ ...item })))
-        : updater;
-      if (!patch || typeof patch !== 'object') return entry;
-      const next = { ...entry, ...patch };
-      if (next.kind === 'rest') next.measureRest = next.duration === 'whole' && !Boolean(next.dotted) && !next.tupletId;
-      if (JSON.stringify(next) !== JSON.stringify(entry)) changed = true;
-      return next;
-    });
-
-    if (changed) this.#emit();
-    this.#finishStandaloneMutation();
-    return changed;
-  }
-
-  deleteEntries(ids) {
-    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
-    if (!wanted.size) return false;
-    const beforeLength = this.#notes.length;
-    this.#recordStandaloneMutation();
-    this.#notes = this.#notes.filter(entry => !wanted.has(entry.id));
-    const changed = this.#notes.length !== beforeLength;
-    if (changed) this.#emit();
-    this.#finishStandaloneMutation();
-    return changed;
-  }
-
-  copyEntriesToEnd(ids) {
-    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
-    const indexed = this.#notes.map((entry, index) => ({ entry, index })).filter(({ entry }) => wanted.has(entry.id));
-    if (!indexed.length) return [];
-
-    this.#recordStandaloneMutation();
-
-    const selectedOriginalIndexes = new Set(indexed.map(item => item.index));
-    const tupletMap = new Map();
-    const beamMap = new Map();
-    const newIds = [];
-
-    const cloneGroupId = (map, oldId, prefix) => {
-      if (!oldId) return null;
-      if (!map.has(oldId)) map.set(oldId, `${prefix}-${this.#nextGroupId++}`);
-      return map.get(oldId);
-    };
-
-    const copies = indexed.map(({ entry, index }) => {
-      const copy = this.#cloneNotes([entry])[0];
-      copy.id = `${entry.kind === 'rest' ? 'rest' : 'note'}-${this.#nextId++}`;
-      newIds.push(copy.id);
-
-      // Käsin tehty side säilyy vain, jos myös sen edellinen looginen tapahtuma
-      // kuuluu kopioituun jaksoon. Kopio ei siis koskaan sido itseään vahingossa
-      // alkuperäisen musiikin viimeiseen nuottiin.
-      if (copy.tieFromPrevious) copy.tieFromPrevious = selectedOriginalIndexes.has(index - 1);
-
-      if (copy.tupletId) copy.tupletId = cloneGroupId(tupletMap, copy.tupletId, 'copy-tuplet');
-      if (copy.manualBeamGroup) copy.manualBeamGroup = cloneGroupId(beamMap, copy.manualBeamGroup, 'copy-beam');
-      return copy;
-    });
-
-    this.#notes.push(...copies);
-    this.#emit();
-    this.#finishStandaloneMutation();
-    return newIds;
-  }
-
-  toggleManualBeamGroup(ids) {
-    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
-    const beamableDurations = new Set(['eighth', 'sixteenth', 'thirty-second']);
-    const candidates = this.#notes.filter(entry =>
-      wanted.has(entry.id) && entry.kind === 'note' && beamableDurations.has(entry.duration)
-    );
-    if (candidates.length < 2) return { changed: false, active: false };
-
-    const shared = candidates[0].manualBeamGroup || null;
-    const alreadyGrouped = Boolean(shared && candidates.every(entry => entry.manualBeamGroup === shared));
-    const nextGroup = alreadyGrouped ? null : `beam-${this.#nextGroupId++}`;
-
-    this.#recordStandaloneMutation();
-    candidates.forEach((entry, index) => {
-      entry.manualBeamGroup = nextGroup;
-      // Kun käyttäjä nimenomaan yhdistää alueen palkiksi, sen sisäiset aiemmat
-      // katkaisurajat poistetaan. Ensimmäisen nuotin mahdollinen katkaisu
-      // edelliseen, valinnan ulkopuoliseen nuottiin säilytetään.
-      if (nextGroup && index > 0) entry.manualBeamBreakBefore = false;
-    });
-    this.#emit();
-    this.#finishStandaloneMutation();
-    return { changed: true, active: !alreadyGrouped, groupId: nextGroup };
-  }
-
-  canToggleBeamBreakBefore(id) {
-    const beamableDurations = new Set(['eighth', 'sixteenth', 'thirty-second']);
-    const index = this.#notes.findIndex(entry => entry.id === id);
-    if (index <= 0) return false;
-    const current = this.#notes[index];
-    const previous = this.#notes[index - 1];
-    return Boolean(
-      current?.kind === 'note' && previous?.kind === 'note'
-      && beamableDurations.has(current.duration)
-      && beamableDurations.has(previous.duration)
-    );
-  }
-
-  toggleBeamBreakBefore(id) {
-    if (!this.canToggleBeamBreakBefore(id)) return { changed: false, active: false };
-    const note = this.#notes.find(entry => entry.id === id);
-    if (!note) return { changed: false, active: false };
-
-    this.#recordStandaloneMutation();
-    note.manualBeamBreakBefore = !Boolean(note.manualBeamBreakBefore);
-    this.#emit();
-    this.#finishStandaloneMutation();
-    return { changed: true, active: Boolean(note.manualBeamBreakBefore) };
   }
 
   undo() {
@@ -248,18 +110,6 @@ export class ScoreModel {
     this.#undoStack.push(this.notes);
     this.#notes = this.#cloneNotes(this.#redoStack.pop());
     this.#emit();
-    this.#emitHistory();
-    return true;
-  }
-
-  // Vanhan Pikakirjoittimen tapaan valmis tupletti on yksi Undo/Redo-tapahtuma,
-  // vaikka sen nuotit kirjoitetaan yksitellen.
-  collapseRecentActions(actionCount, beforeSnapshot) {
-    if (this.#transactionSnapshot) return false;
-    const count = Math.max(1, Math.min(Number(actionCount) || 1, this.#undoStack.length));
-    this.#undoStack.splice(this.#undoStack.length - count, count);
-    this.#undoStack.push(this.#cloneNotes(beforeSnapshot || []));
-    this.#redoStack = [];
     this.#emitHistory();
     return true;
   }
@@ -281,20 +131,13 @@ export class ScoreModel {
     this.#emitHistory();
   }
 
-  #tupletFields(tuplet) {
-    if (!tuplet?.tupletId) return {};
-    const fields = {
-      tupletId: String(tuplet.tupletId),
-      tupletIndex: Number(tuplet.tupletIndex) || 0,
-      tupletSize: [3,5,6].includes(Number(tuplet.tupletSize)) ? Number(tuplet.tupletSize) : 3,
-      tupletNormalNotes: Number(tuplet.tupletNormalNotes) || (Number(tuplet.tupletSize) === 5 || Number(tuplet.tupletSize) === 6 ? 4 : 2)
-    };
-    if (Number.isFinite(Number(tuplet.tupletBaseUnits)) && Number(tuplet.tupletBaseUnits) > 0) fields.tupletBaseUnits = Number(tuplet.tupletBaseUnits);
-    return fields;
+  #cloneNotes(notes) {
+    return notes.map(note => ({ ...note }));
   }
 
-  #cloneNotes(notes) { return notes.map(note => ({ ...note })); }
-  #sameNotes(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  #sameNotes(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
 
   #emit() {
     const snapshot = this.notes;
