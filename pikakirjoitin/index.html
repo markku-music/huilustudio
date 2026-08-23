@@ -194,23 +194,20 @@
     .app[data-work-mode="edit"] .score-title{pointer-events:none}
     .app[data-work-mode="edit"] .header-drag-handle{display:grid}
     .app[data-work-mode="edit"] .score{cursor:default}
-    .publish-screen{display:none;width:min(1120px,100%);margin:0 auto;padding:24px 8px 8px}
-    .publish-header{display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:24px;text-align:center}
-    .publish-header-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:#e9f2ff;color:#2365aa;box-shadow:0 8px 18px #2b5d9d1a,inset 0 0 0 1px #c6daf7}
-    .publish-header-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-    .publish-header-text{display:flex;flex-direction:column;gap:4px}
-    .publish-title{font-size:32px;font-weight:850;letter-spacing:.01em;color:#172434}
-    .publish-subtitle{font-size:15px;color:#5f6f82}
-    .publish-grid{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:18px}
-    .publish-grid-three .publish-card:first-child{grid-column:1/-1;width:calc(50% - 9px);justify-self:center}
-    .publish-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:220px;padding:26px 22px;border:1px solid #d6e0ea;border-radius:28px;background:#fff;box-shadow:0 12px 30px #1d283612;color:#172434;text-align:center;cursor:pointer;touch-action:manipulation;transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease,background .14s ease}
+    .publish-screen{display:none;width:min(1120px,100%);margin:0 auto;padding:28px 10px 10px}
+    .publish-header{display:flex;align-items:center;justify-content:center;margin-bottom:28px;text-align:center}
+    .publish-header-text{display:flex;flex-direction:column;gap:5px}
+    .publish-title{font-size:31px;font-weight:850;letter-spacing:.055em;color:#172434}
+    .publish-subtitle{font-size:14px;color:#6b7888}
+    .publish-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:980px;margin:0 auto}
+    .publish-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:270px;padding:24px 18px;border:1px solid #d6e0ea;border-radius:28px;background:#fff;box-shadow:0 12px 30px #1d283612;color:#172434;text-align:center;cursor:pointer;touch-action:manipulation;transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease,background .14s ease}
     .publish-card:hover,.publish-card:focus-visible{transform:translateY(-2px);border-color:#8cb2e6;box-shadow:0 16px 34px #1d28361b;background:#fbfdff;outline:none}
     .publish-card:active{transform:translateY(0) scale(.985)}
     .publish-card:disabled{cursor:wait;opacity:.58;transform:none;box-shadow:0 8px 20px #1d28360d}
-    .publish-card-icon{width:88px;height:88px;display:grid;place-items:center;border-radius:24px;background:#edf4ff;color:#2365aa;box-shadow:inset 0 0 0 1px #cfe0fa}
-    .publish-card-icon svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-    .publish-card-title{font-size:23px;font-weight:850;color:#172434}
-    .publish-card-desc{max-width:22ch;font-size:15px;line-height:1.35;color:#617286}
+    .publish-card-icon{width:122px;height:122px;display:grid;place-items:center;background:transparent!important;color:inherit!important;box-shadow:none!important}
+    .publish-card-icon img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+    .publish-card-title{font-size:21px;font-weight:850;letter-spacing:.045em;color:#172434}
+    .publish-card-desc{min-height:20px;max-width:22ch;font-size:14px;line-height:1.35;color:#617286}
     .app[data-work-mode="print"] .score-area{display:flex;align-items:center;justify-content:center;padding:34px 18px 18px}
     .app[data-work-mode="print"] .score{display:none}
     .app[data-work-mode="print"] .publish-screen{display:block}
@@ -335,8 +332,8 @@
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.new-project-tab{flex-basis:50px;padding:0 4px;font-size:8px}.mode-tab{padding:0 4px;font-size:8px}}
-    @media (max-width:900px){.publish-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.publish-grid-three .publish-card:first-child{width:calc(50% - 6px)}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:16px}.publish-title{font-size:28px}.publish-card{min-height:188px;padding:18px 14px;gap:10px}.publish-card-icon{width:72px;height:72px}.publish-card-icon svg{width:40px;height:40px}.publish-card-title{font-size:20px}.publish-card-desc{font-size:13px}}
-    @media (max-width:560px){.publish-grid{grid-template-columns:1fr}.publish-grid-three .publish-card:first-child{grid-column:auto;width:100%}.publish-header{flex-direction:column;gap:10px}.publish-card{min-height:174px;padding:18px}.publish-card-title{font-size:20px}}
+    @media (max-width:900px){.publish-grid{gap:12px}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:18px}.publish-title{font-size:28px}.publish-card{min-height:220px;padding:18px 12px;gap:9px}.publish-card-icon{width:98px;height:98px}.publish-card-title{font-size:18px}.publish-card-desc{font-size:13px}}
+    @media (max-width:620px){.publish-grid{grid-template-columns:1fr}.publish-card{min-height:170px;padding:16px}.publish-card-icon{width:86px;height:86px}.publish-card-title{font-size:19px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     /* Peukalopalkin ohjekuvatila: index.html?peukalopalkki=ohje */
     body.thumb-guide-mode{position:fixed;inset:0;overflow:hidden;background:#eef1f5}
@@ -563,29 +560,26 @@
         </div>
         <section class="publish-screen" id="publishScreen" aria-label="Julkaisu">
           <div class="publish-header">
-            <div class="publish-header-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M5 20h14"></path></svg>
-            </div>
             <div class="publish-header-text">
-              <div class="publish-title">Julkaise</div>
-              <div class="publish-subtitle">Valitse mitä haluat tehdä valmiille nuotille.</div>
+              <div class="publish-title">JULKAISE</div>
+              <div class="publish-subtitle">Valitse toiminto.</div>
             </div>
           </div>
-          <div class="publish-grid publish-grid-three">
-            <button class="publish-card" id="publishShareButton" type="button" aria-label="Tulosta, tallenna tai lähetä PDF ja MusicXML" aria-busy="true" disabled>
-              <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.7M8.3 13.1l7.4 4.7"></path></svg></div>
-              <div class="publish-card-title">PDF + MusicXML – tallenna tai lähetä</div>
-              <div class="publish-card-desc">PDF ja MusicXML avautuvat yhdessä jakoikkunaan. Valitse Drive, Tiedostot tai muu kohde.</div>
+          <div class="publish-grid">
+            <button class="publish-card" id="publishShareButton" type="button" aria-label="Tallenna PDF ja MusicXML" aria-busy="true" disabled>
+              <div class="publish-card-icon" aria-hidden="true"><img src="assets/Tallenna.svg" alt="" draggable="false"></div>
+              <div class="publish-card-title">TALLENNA</div>
+              <div class="publish-card-desc">PDF + MusicXML</div>
             </button>
-            <button class="publish-card" id="publishXmlButton" type="button" aria-label="Export XML">
-              <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M8 16l2-2-2-2"></path><path d="M12 12h2"></path><path d="m17 12-2 2 2 2"></path></svg></div>
-              <div class="publish-card-title">Export XML</div>
-              <div class="publish-card-desc">Vie MusicXML-tiedosto Doricoon tai muuhun nuotinkirjoitusohjelmaan.</div>
+            <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta nuotti">
+              <div class="publish-card-icon" aria-hidden="true"><img src="assets/Tulostin.svg" alt="" draggable="false"></div>
+              <div class="publish-card-title">TULOSTA</div>
+              <div class="publish-card-desc">Tulosta nuotti</div>
             </button>
             <button class="publish-card" id="publishProjectButton" type="button" aria-label="Tallenna projekti">
-              <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4"></path><path d="M9 18h6"></path></svg></div>
-              <div class="publish-card-title">Tallenna projekti</div>
-              <div class="publish-card-desc">Tallenna muokattava Pikakirjoitin-projekti myöhempää avaamista varten.</div>
+              <div class="publish-card-icon" aria-hidden="true"><img src="assets/USB.svg" alt="" draggable="false"></div>
+              <div class="publish-card-title">PROJEKTI</div>
+              <div class="publish-card-desc">Muokattava tiedosto</div>
             </button>
           </div>
         </section>
@@ -690,7 +684,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),titleDragHandle=document.querySelector('#titleDragHandle'),tempoDragHandle=document.querySelector('#tempoDragHandle'),composerDragHandle=document.querySelector('#composerDragHandle'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),tupletWarning=document.querySelector('#tupletWarning'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteFlatButton=document.querySelector('#writeNoteFlatButton'),writeNoteNaturalButton=document.querySelector('#writeNoteNaturalButton'),writeNoteSharpButton=document.querySelector('#writeNoteSharpButton'),writeNoteAccidentalButtons=[writeNoteFlatButton,writeNoteNaturalButton,writeNoteSharpButton],writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteFlatButton=document.querySelector('#writeNoteFlatButton'),writeNoteNaturalButton=document.querySelector('#writeNoteNaturalButton'),writeNoteSharpButton=document.querySelector('#writeNoteSharpButton'),writeNoteAccidentalButtons=[writeNoteFlatButton,writeNoteNaturalButton,writeNoteSharpButton],writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishPrintButton=document.querySelector('#publishPrintButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={thirtysecond:1,sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -1407,7 +1401,7 @@
       const xmlFile=new File([buildMusicXml()],`${baseName}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:now});
       shareOrDownloadFiles([pdfFile,xmlFile],{successMessage:'PDF ja MusicXML annettu jakoikkunaan.',fallbackMessage:'PDF ja MusicXML ladattu laitteelle.'});
     }
-    function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFiles([file],{successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
+    function printScore(){statusMessage('Avataan tulostus…');window.print()}
     function buildProjectFile(){
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
@@ -2944,7 +2938,7 @@
     timeSignatureSelect.addEventListener('change',()=>{syncMeterPicker();syncPickupOptions()});
     pickupChoices.addEventListener('click',choosePickup);
     publishShareButton?.addEventListener('click',sharePdf);
-    publishXmlButton?.addEventListener('click',exportXml);
+    publishPrintButton?.addEventListener('click',printScore);
     publishProjectButton?.addEventListener('click',saveProjectFile);
     projectForm.addEventListener('submit',saveProject);
     themeSelect?.addEventListener('change',()=>{applyTheme(currentThemeId());saveThemePreference();if(projectData){projectData.themeId=currentThemeId();}});

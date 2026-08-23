@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.65-dorico-xml';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.66-julkaise-ikonit';
 const APP_SHELL = [
   './',
   './index.html',
@@ -43,7 +43,10 @@ const APP_SHELL = [
   './assets/repeat.svg',
   './assets/rest.svg',
   './assets/slur.svg',
-  './assets/tie.svg'
+  './assets/tie.svg',
+  './assets/Tallenna.svg',
+  './assets/Tulostin.svg',
+  './assets/USB.svg'
 ];
 
 self.addEventListener('install', event => {
