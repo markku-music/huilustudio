@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.70-julkaise-ikonit-jarjestys';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.71-ipad-tulostus-yksi-sivu';
 const APP_SHELL = [
   './',
   './index.html',
