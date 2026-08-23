@@ -1,9 +1,26 @@
-Pikakirjoitin 2 Core 0.4 — Audio esilämmitys
+Pikakirjoitin 2 Core 0.1
+========================
 
-Muutos 0.3 -> 0.4:
-- AudioContext + oscillator + gain rakennetaan valmiiksi sovelluksen käynnistyessä.
-- Oscillator käynnistetään hiljaisena heti; iOS saa jättää AudioContextin suspended-tilaan.
-- Ensimmäisen koskettimen pointerdown kutsuu AudioEngine.noteOn() ENNEN ScoreModel/OSMD-työtä.
-- Ensimmäinen käyttäjäele tekee context.resume()-kutsun mahdollisimman aikaisin.
-- Ensimmäisen nuotin gain avataan, kun context on running.
-- Muu kirjoitus-, OSMD- ja scrollauslogiikka on ennallaan.
+Tarkoitus
+---------
+Puhdas kirjoitusydin, jossa on vain:
+- OSMD-nuottipaperi
+- viiden oktaavin koskettimisto
+- koskettimiston vaakasiirto
+- perusnuottien syöttö
+
+Koskettimiston eleet
+--------------------
+- napautus: neljäsosanuotti
+- veto alas: kahdeksasosanuotti
+- veto ylös: puolinuotti
+- pitkä painallus: kokonuotti
+
+Nuottipaperi
+------------
+Nuottipaperilla ei ole JavaScript-eleitä. Yhden sormen pystysuuntainen vieritys
+on kokonaan selaimen/iPadOS:n natiivia scrollausta.
+
+Tässä versiossa EI ole Muokkaa-, Julkaise-, projekti-, PDF-, MusicXML-export-,
+peukalopalkki-, sävellaji-, tahtiosoitus- tai soitinasetuksia.
+Perusasetukset ovat G-avain, C-duuri ja 4/4.

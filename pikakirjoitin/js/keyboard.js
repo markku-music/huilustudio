@@ -36,13 +36,13 @@ export class PianoKeyboard {
   #thumb;
   #onStart;
   #onDuration;
-  #onSoundStart;
-  #onSoundStop;
   #active = null;
   #scrollPointerId = null;
   #scrollGrabOffset = 0;
+  #audioContext = null;
+  #voice = null;
 
-  constructor({ piano, whiteKeys, viewport, rail, track, thumb, onStart, onDuration, onSoundStart, onSoundStop }) {
+  constructor({ piano, whiteKeys, viewport, rail, track, thumb, onStart, onDuration }) {
     this.#piano = piano;
     this.#whiteKeys = whiteKeys;
     this.#viewport = viewport;
@@ -51,8 +51,6 @@ export class PianoKeyboard {
     this.#thumb = thumb;
     this.#onStart = onStart;
     this.#onDuration = onDuration;
-    this.#onSoundStart = onSoundStart;
-    this.#onSoundStop = onSoundStop;
 
     this.#buildKeys();
     this.#bindNoteGestures();
@@ -106,16 +104,8 @@ export class PianoKeyboard {
     event.preventDefault();
 
     const midi = Number(key.dataset.midi);
-
-    // Audio saa käyttäjäeleen ensimmäisenä. Tämä on erityisen tärkeää iOS:ssa:
-    // context.resume() käynnistyy ennen ScoreModel/OSMD-renderöinnin työtä.
-    this.#onSoundStart?.(midi);
-
     const noteId = this.#onStart?.(midi, 'quarter');
-    if (!noteId) {
-      this.#onSoundStop?.();
-      return;
-    }
+    if (!noteId) return;
 
     key.classList.add('active');
     const threshold = clamp(this.#viewport.clientHeight * 0.12, 24, 48);
@@ -132,6 +122,7 @@ export class PianoKeyboard {
     };
 
     try { this.#piano.setPointerCapture(event.pointerId); } catch {}
+    this.#startAudio(midi);
 
     this.#active.timer = window.setTimeout(() => {
       const active = this.#active;
@@ -163,7 +154,7 @@ export class PianoKeyboard {
 
     this.#clearLongPress();
     active.key.classList.remove('active');
-    this.#onSoundStop?.();
+    this.#stopAudio();
     try {
       if (this.#piano.hasPointerCapture(event.pointerId)) this.#piano.releasePointerCapture(event.pointerId);
     } catch {}
@@ -174,6 +165,49 @@ export class PianoKeyboard {
     if (!this.#active?.timer) return;
     clearTimeout(this.#active.timer);
     this.#active.timer = null;
+  }
+
+  async #ensureAudio() {
+    if (!this.#audioContext || this.#audioContext.state === 'closed') {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return null;
+      this.#audioContext = new AudioContext({ latencyHint: 'interactive' });
+    }
+    if (this.#audioContext.state !== 'running') {
+      try { await this.#audioContext.resume(); } catch {}
+    }
+    return this.#audioContext;
+  }
+
+  #startAudio(midi) {
+    void this.#ensureAudio().then(context => {
+      if (!context || !this.#active) return;
+      this.#stopAudio();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const now = context.currentTime;
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(440 * Math.pow(2, (midi - 69) / 12), now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.16, now + 0.012);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(now);
+      this.#voice = { oscillator, gain };
+    });
+  }
+
+  #stopAudio() {
+    const voice = this.#voice;
+    const context = this.#audioContext;
+    if (!voice || !context) return;
+    const now = context.currentTime;
+    try {
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
+      voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+      voice.oscillator.stop(now + 0.07);
+    } catch {}
+    this.#voice = null;
   }
 
   #bindScrollRail() {
