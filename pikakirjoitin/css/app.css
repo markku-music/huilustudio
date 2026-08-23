@@ -447,9 +447,11 @@ button { font: inherit; }
 .pk-selection-editor button:active { transform: translateY(1px); }
 .pk-selection-editor button:disabled { opacity: .34; cursor: default; }
 .pk-selection-editor .pk-enharmonic-icon {
-  font: 800 18px/1 Georgia, "Times New Roman", serif;
-  letter-spacing: -2px;
-  transform: translateX(-1px);
+  display: block;
+  width: 28px;
+  height: 26px;
+  object-fit: contain;
+  pointer-events: none;
 }
 .pk-selection-editor svg {
   width: 22px;

@@ -9,7 +9,7 @@ export class SelectionEditor {
     root.setAttribute('aria-label', 'Valitun nuotin muokkaus');
     root.innerHTML = `
       <button type="button" data-action="enharmonic" aria-label="Enharmoninen vaihto" title="Enharmoninen vaihto">
-        <span class="pk-enharmonic-icon" aria-hidden="true">♯↔♭</span>
+        <img class="pk-enharmonic-icon" src="assets/Enharmoninen.svg" alt="" aria-hidden="true">
       </button>
       <button type="button" data-action="delete" aria-label="Poista nuotti" title="Poista nuotti" class="is-delete">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5l1-2h4l1 2m3 0-1 16H7L6 5"/></svg>
