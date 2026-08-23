@@ -10,6 +10,8 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
+  <script async defer src="https://apis.google.com/js/api.js"></script>
   <title>Pikakirjoitin</title>
   <style>
     @font-face{font-family:"Fraunces";src:url("fonts/Fraunces-Variable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
@@ -211,6 +213,28 @@
     .publish-card-icon svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
     .publish-card-title{font-size:23px;font-weight:850;color:#172434}
     .publish-card-desc{max-width:22ch;font-size:15px;line-height:1.35;color:#617286}
+    .drive-save-panel{display:grid;grid-template-columns:minmax(220px,1fr) auto;align-items:center;gap:12px 18px;width:min(760px,100%);margin:0 auto 18px;padding:18px;border:1px solid #ccd9e7;border-radius:22px;background:#fff;box-shadow:0 10px 26px #1d283612}
+    .drive-save-main{min-height:74px;padding:0 26px;border:1px solid #2365aa;border-radius:18px;background:#2365aa;color:#fff;box-shadow:0 10px 22px #2365aa2c;font-size:22px;font-weight:850;letter-spacing:.02em;cursor:pointer;touch-action:manipulation}
+    .drive-save-main:active{transform:scale(.985)}
+    .drive-save-main:disabled{opacity:.55;cursor:wait;transform:none}
+    .drive-xml-option{display:flex;align-items:center;gap:9px;min-height:44px;padding:0 4px;color:#263342;font-size:15px;font-weight:700;white-space:nowrap;cursor:pointer}
+    .drive-xml-option input{width:22px;height:22px;margin:0;accent-color:#2365aa}
+    .drive-save-destination{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px 10px;flex-wrap:wrap;color:#5f6f82;font-size:13px}
+    .drive-folder-label{max-width:min(520px,80vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .drive-inline-button{min-height:34px;padding:0 11px;border:1px solid #b8c8d9;border-radius:10px;background:#f8fbff;color:#31506f;font-size:12px;font-weight:750;cursor:pointer;touch-action:manipulation}
+    .drive-inline-button:active{transform:scale(.97)}
+    .drive-modal{position:fixed;inset:0;z-index:980;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));background:#17202bd9;overflow:auto}
+    .drive-modal[hidden]{display:none}
+    .drive-settings-card{width:min(660px,100%);max-height:100%;overflow:auto;padding:26px;border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
+    .drive-settings-card h2{margin:0 0 8px;font-size:25px;color:#172434}
+    .drive-settings-card p{margin:0 0 18px;line-height:1.45}
+    .drive-settings-grid{display:grid;gap:12px}
+    .drive-settings-field{display:grid;gap:6px;color:#34485e;font-size:13px;font-weight:750}
+    .drive-settings-field input{width:100%;height:46px;padding:0 12px;border:1px solid #b9c6d4;border-radius:11px;background:#fff;color:#172434;font-size:16px;user-select:text;-webkit-user-select:text}
+    .drive-settings-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+    .drive-settings-actions button{min-height:42px;padding:0 16px;border:1px solid #aebdcd;border-radius:11px;background:#f7f9fc;color:#263342;font-weight:800;cursor:pointer}
+    .drive-settings-actions .primary{border-color:#2365aa;background:#2365aa;color:#fff}
+    .drive-settings-help{margin-top:16px!important;padding-top:14px;border-top:1px solid #e0e7ef;color:#66788b!important;font-size:12px!important}
     .app[data-work-mode="print"] .score-area{display:flex;align-items:center;justify-content:center;padding:34px 18px 18px}
     .app[data-work-mode="print"] .score{display:none}
     .app[data-work-mode="print"] .publish-screen{display:block}
@@ -336,7 +360,7 @@
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.new-project-tab{flex-basis:50px;padding:0 4px;font-size:8px}.mode-tab{padding:0 4px;font-size:8px}}
     @media (max-width:900px){.publish-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.publish-grid-three .publish-card:first-child{width:calc(50% - 6px)}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:16px}.publish-title{font-size:28px}.publish-card{min-height:188px;padding:18px 14px;gap:10px}.publish-card-icon{width:72px;height:72px}.publish-card-icon svg{width:40px;height:40px}.publish-card-title{font-size:20px}.publish-card-desc{font-size:13px}}
-    @media (max-width:560px){.publish-grid{grid-template-columns:1fr}.publish-grid-three .publish-card:first-child{grid-column:auto;width:100%}.publish-header{flex-direction:column;gap:10px}.publish-card{min-height:174px;padding:18px}.publish-card-title{font-size:20px}}
+    @media (max-width:560px){.publish-grid{grid-template-columns:1fr}.publish-grid-three .publish-card:first-child{grid-column:auto;width:100%}.publish-header{flex-direction:column;gap:10px}.publish-card{min-height:174px;padding:18px}.publish-card-title{font-size:20px}.drive-save-panel{grid-template-columns:1fr;gap:10px;padding:14px}.drive-save-main{min-height:66px;font-size:20px}.drive-xml-option{justify-content:center}.drive-save-destination{grid-column:1}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     /* Peukalopalkin ohjekuvatila: index.html?peukalopalkki=ohje */
     body.thumb-guide-mode{position:fixed;inset:0;overflow:hidden;background:#eef1f5}
@@ -397,6 +421,29 @@
       <span class="orientation-icon" aria-hidden="true">↻</span>
       <h2>Käännä tabletti pystyasentoon</h2>
       <p>Pikakirjoitin on suunniteltu käytettäväksi portrait-asennossa.</p>
+    </div>
+  </div>
+
+  <div class="drive-modal" id="driveSettingsModal" role="dialog" aria-modal="true" aria-label="Google Drive -asetukset" hidden>
+    <div class="drive-settings-card">
+      <h2>Google Drive -asetukset</h2>
+      <p>Nämä tiedot syötetään vain kerran. Pikakirjoitin tallentaa ne tälle laitteelle ja käyttää Google Drivea suoraan.</p>
+      <div class="drive-settings-grid">
+        <label class="drive-settings-field">OAuth Client ID
+          <input id="driveClientIdInput" type="text" autocomplete="off" spellcheck="false" placeholder="...apps.googleusercontent.com">
+        </label>
+        <label class="drive-settings-field">API key
+          <input id="driveApiKeyInput" type="text" autocomplete="off" spellcheck="false" placeholder="AIza...">
+        </label>
+        <label class="drive-settings-field">Google Cloud -projektinumero (App ID)
+          <input id="driveAppIdInput" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="esim. 123456789012">
+        </label>
+      </div>
+      <div class="drive-settings-actions">
+        <button id="driveSettingsCancelButton" type="button">Peruuta</button>
+        <button class="primary" id="driveSettingsSaveButton" type="button">Tallenna asetukset</button>
+      </div>
+      <p class="drive-settings-help">Google Cloudissa pitää olla käytössä Google Drive API ja Google Picker API. OAuth-asiakastyypiksi valitaan Web application ja GitHub Pages -osoitteen origin lisätään sallittuihin JavaScript-origineihin. Käytetty oikeus on drive.file, joten Pikakirjoitin saa käsitellä vain sen kanssa valittuja tai sen luomia Drive-kohteita.</p>
     </div>
   </div>
 
@@ -571,6 +618,15 @@
               <div class="publish-subtitle">Valitse mitä haluat tehdä valmiille nuotille.</div>
             </div>
           </div>
+          <div class="drive-save-panel" aria-label="Google Drive -tallennus">
+            <button class="drive-save-main" id="publishDriveButton" type="button">TALLENNA DRIVEEN</button>
+            <label class="drive-xml-option"><input id="publishDriveXmlCheckbox" type="checkbox"><span>Tallenna myös MusicXML</span></label>
+            <div class="drive-save-destination">
+              <span class="drive-folder-label" id="driveFolderLabel">Drive-kansiota ei ole valittu</span>
+              <button class="drive-inline-button" id="driveFolderButton" type="button">Valitse kansio</button>
+              <button class="drive-inline-button" id="driveSettingsButton" type="button">Drive-asetukset</button>
+            </div>
+          </div>
           <div class="publish-grid publish-grid-three">
             <button class="publish-card" id="publishShareButton" type="button" aria-label="Tulosta, tallenna tai lähetä PDF" aria-busy="true" disabled>
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.7M8.3 13.1l7.4 4.7"></path></svg></div>
@@ -690,7 +746,7 @@
   <script>
     const A4_WIDTH=794,A4_HEIGHT=1123,A4_VISIBLE_FRACTION=.62,DEFAULT_MIN_MIDI=36,DEFAULT_MAX_MIDI=95,WHITE_COUNT=35,BLACK_WIDTH=.62,TUNING_KEY='pikakirjoitin.tuning',CLEF_KEY='pikakirjoitin.clef',THEME_KEY='pikakirjoitin.theme',MODIFIER_Y_KEY='pikakirjoitin.modifierY',LONG_PRESS_MS=500,LONG_PRESS_MOVE=14,SCORE_SCROLL_SLOP=8,WRITE_SELECTION_HOLD_MS=420,WRITE_SELECTION_MOVE=12;
     const piano=document.querySelector('#piano'),whiteKeys=document.querySelector('#whiteKeys'),keyboardPanel=document.querySelector('#keyboardPanel'),keyboardViewport=document.querySelector('#keyboardViewport'),keyboardScrollRail=document.querySelector('#keyboardScrollRail'),keyboardScrollTrack=document.querySelector('#keyboardScrollTrack'),keyboardScrollThumb=document.querySelector('#keyboardScrollThumb'),scoreArea=document.querySelector('.score-area'),modifierRail=document.querySelector('#modifierRail'),modifierDragHandle=document.querySelector('#modifierDragHandle'),doubleDotButton=document.querySelector('#doubleDotButton'),thirtysecondButton=document.querySelector('#thirtysecondButton'),restSixteenthButton=document.querySelector('#restSixteenthButton'),restThirtysecondButton=document.querySelector('#restThirtysecondButton'),tripletButton=document.querySelector('#tripletButton'),quintupletButton=document.querySelector('#quintupletButton'),sextupletButton=document.querySelector('#sextupletButton'),tupletButtonNumber=document.querySelector('#tupletButtonNumber'),tieButton=document.querySelector('#tieButton'),modeTabs=document.querySelector('#modeTabs'),newProjectButton=document.querySelector('#newProjectButton'),writeModeButton=document.querySelector('#writeModeButton'),editModeButton=document.querySelector('#editModeButton'),printModeButton=document.querySelector('#printModeButton'),tuningSelect=document.querySelector('#tuningSelect'),tuningChoices=document.querySelector('#tuningChoices'),clefSelect=document.querySelector('#clefSelect'),clefChoices=document.querySelector('#clefChoices'),projectSaveButton=document.querySelector('#projectSaveButton'),projectModal=document.querySelector('#projectModal'),projectForm=document.querySelector('#projectForm'),newProjectStartButton=document.querySelector('#newProjectStartButton'),openProjectButton=document.querySelector('#openProjectButton'),projectFileInput=document.querySelector('#projectFileInput'),app=document.querySelector('#app'),titleInput=document.querySelector('#titleInput'),composerInput=document.querySelector('#composerInput'),tempoInput=document.querySelector('#tempoInput'),themeSelect=document.querySelector('#themeSelect'),keySignatureSelect=document.querySelector('#keySignatureSelect'),keyTrigger=document.querySelector('#keyTrigger'),keyTriggerValue=document.querySelector('#keyTriggerValue'),keyWheelPopover=document.querySelector('#keyWheelPopover'),keyWheelCard=document.querySelector('#keyWheelCard'),keyWheelSlots=document.querySelector('#keyWheelSlots'),keyWheelClose=document.querySelector('#keyWheelClose'),meterTrigger=document.querySelector('#meterTrigger'),meterTriggerValue=document.querySelector('#meterTriggerValue'),meterWheelPopover=document.querySelector('#meterWheelPopover'),meterWheelCard=document.querySelector('#meterWheelCard'),meterWheelSlots=document.querySelector('#meterWheelSlots'),meterWheelClose=document.querySelector('#meterWheelClose'),timeSignatureSelect=document.querySelector('#timeSignatureSelect'),pickupSelect=document.querySelector('#pickupSelect'),pickupChoices=document.querySelector('#pickupChoices'),scoreTitle=document.querySelector('#scoreTitle'),scoreTempo=document.querySelector('#scoreTempo'),scoreComposer=document.querySelector('#scoreComposer'),titleDragHandle=document.querySelector('#titleDragHandle'),tempoDragHandle=document.querySelector('#tempoDragHandle'),composerDragHandle=document.querySelector('#composerDragHandle'),scorePageShell=document.querySelector('#scorePageShell'),scorePage=document.querySelector('#scorePage'),osmdContainer=document.querySelector('#osmdContainer'),scorePrompt=document.querySelector('#scorePrompt'),score=document.querySelector('#score'),tupletWarning=document.querySelector('#tupletWarning'),status=document.querySelector('#status'),AC=window.AudioContext||window.webkitAudioContext;
-    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteFlatButton=document.querySelector('#writeNoteFlatButton'),writeNoteNaturalButton=document.querySelector('#writeNoteNaturalButton'),writeNoteSharpButton=document.querySelector('#writeNoteSharpButton'),writeNoteAccidentalButtons=[writeNoteFlatButton,writeNoteNaturalButton,writeNoteSharpButton],writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishProjectButton=document.querySelector('#publishProjectButton');
+    const writeNoteContext=document.querySelector('#writeNoteContext'),writeNoteFlatButton=document.querySelector('#writeNoteFlatButton'),writeNoteNaturalButton=document.querySelector('#writeNoteNaturalButton'),writeNoteSharpButton=document.querySelector('#writeNoteSharpButton'),writeNoteAccidentalButtons=[writeNoteFlatButton,writeNoteNaturalButton,writeNoteSharpButton],writeNoteDeleteButton=document.querySelector('#writeNoteDeleteButton'),selectionToolbar=document.querySelector('#selectionToolbar'),selectionToolbarDragHandle=document.querySelector('#selectionToolbarDragHandle'),selectionSlurButton=document.querySelector('#selectionSlurButton'),selectionSlurFlipButton=document.querySelector('#selectionSlurFlipButton'),selectionStemFlipButton=document.querySelector('#selectionStemFlipButton'),selectionTieFlipButton=document.querySelector('#selectionTieFlipButton'),selectionStaccatoButton=document.querySelector('#selectionStaccatoButton'),selectionPortatoButton=document.querySelector('#selectionPortatoButton'),selectionAccentButton=document.querySelector('#selectionAccentButton'),beamEditButton=document.querySelector('#beamEditButton'),selectionDynamicButtons=[...document.querySelectorAll('.selection-dynamic-button')],selectionCrescendoButton=document.querySelector('#selectionCrescendoButton'),selectionDiminuendoButton=document.querySelector('#selectionDiminuendoButton'),writeSelectionActions=document.querySelector('#writeSelectionActions'),writePasteEndButton=document.querySelector('#writePasteEndButton'),writeSelectionDeleteButton=document.querySelector('#writeSelectionDeleteButton'),systemBreakButton=document.querySelector('#systemBreakButton'),barlineEditButton=document.querySelector('#barlineEditButton'),endingOneButton=document.querySelector('#endingOneButton'),endingTwoButton=document.querySelector('#endingTwoButton'),barlinePalette=document.querySelector('#barlinePalette'),barlineChoiceButtons=[...document.querySelectorAll('.barline-choice-button')],stretchLastLineButton=document.querySelector('#stretchLastLineButton'),staffTopSlider=document.querySelector('#staffTopSlider'),staffTopThumb=document.querySelector('#staffTopThumb'),staffTopFill=document.querySelector('#staffTopFill'),lineSpacingSlider=document.querySelector('#lineSpacingSlider'),lineSpacingThumb=document.querySelector('#lineSpacingThumb'),lineSpacingFill=document.querySelector('#lineSpacingFill'),noteSizeButton=document.querySelector('#noteSizeButton'),noteSizePanel=document.querySelector('#noteSizePanel'),noteSizeDecreaseButton=document.querySelector('#noteSizeDecreaseButton'),noteSizeResetButton=document.querySelector('#noteSizeResetButton'),noteSizeIncreaseButton=document.querySelector('#noteSizeIncreaseButton'),publishShareButton=document.querySelector('#publishShareButton'),publishXmlButton=document.querySelector('#publishXmlButton'),publishDriveButton=document.querySelector('#publishDriveButton'),publishDriveXmlCheckbox=document.querySelector('#publishDriveXmlCheckbox'),driveFolderLabel=document.querySelector('#driveFolderLabel'),driveFolderButton=document.querySelector('#driveFolderButton'),driveSettingsButton=document.querySelector('#driveSettingsButton'),driveSettingsModal=document.querySelector('#driveSettingsModal'),driveClientIdInput=document.querySelector('#driveClientIdInput'),driveApiKeyInput=document.querySelector('#driveApiKeyInput'),driveAppIdInput=document.querySelector('#driveAppIdInput'),driveSettingsCancelButton=document.querySelector('#driveSettingsCancelButton'),driveSettingsSaveButton=document.querySelector('#driveSettingsSaveButton'),publishProjectButton=document.querySelector('#publishProjectButton');
     const whitePitchNames={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'H'},blackPitchNames={1:'cis',3:'dis',6:'fis',8:'gis',10:'ais'};
     const sharpPitchNames=['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'],flatPitchNames=['c','des','d','es','e','f','ges','g','as','a','b','h'];
     const noteDurations={thirtysecond:1,sixteenth:2,eighth:4,quarter:8,half:16,whole:32};
@@ -1396,14 +1452,117 @@
     function canShareFile(file){if(typeof navigator.share!=='function')return false;try{return typeof navigator.canShare!=='function'||navigator.canShare({files:[file]})}catch{return false}}
     function shareOrDownloadFile(file,{title,text,successMessage,fallbackMessage}){
       if(canShareFile(file)){
-        navigator.share({files:[file],title,text}).then(()=>statusMessage(successMessage)).catch(error=>{if(error?.name==='AbortError')statusMessage('Jakaminen peruttiin.');else{console.error(error);downloadBlob(file,file.name);statusMessage(fallbackMessage)}});return;
+        const shareData={files:[file]};
+        if(title)shareData.title=title;
+        if(text)shareData.text=text;
+        navigator.share(shareData).then(()=>statusMessage(successMessage)).catch(error=>{if(error?.name==='AbortError')statusMessage('Jakaminen peruttiin.');else{console.error(error);downloadBlob(file,file.name);statusMessage(fallbackMessage)}});return;
       }
       downloadBlob(file,file.name);statusMessage(fallbackMessage);
     }
     function sharePdf(){
-      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}const file=new File([publishPdfBlob],`${projectFileBaseName()}.pdf`,{type:'application/pdf',lastModified:Date.now()});shareOrDownloadFile(file,{title:projectData?.title||'Nuotti',text:'Pikakirjoittimella tehty nuotti.',successMessage:'PDF annettu jakoikkunaan.',fallbackMessage:'PDF ladattu laitteelle.'});
+      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}const file=new File([publishPdfBlob],`${projectFileBaseName()}.pdf`,{type:'application/pdf',lastModified:Date.now()});shareOrDownloadFile(file,{title:projectData?.title||'Nuotti',successMessage:'PDF annettu jakoikkunaan.',fallbackMessage:'PDF ladattu laitteelle.'});
     }
     function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFile(file,{title:`${projectData?.title||'Nuotti'} – MusicXML`,text:'Pikakirjoittimen MusicXML-tiedosto.',successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
+
+    const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file',DRIVE_CONFIG_KEY='pikakirjoitin-drive-config-v1',DRIVE_FOLDER_KEY='pikakirjoitin-drive-folder-v1',DRIVE_AUTH_KEY='pikakirjoitin-drive-authorized-v1';
+    let driveAccessToken='',driveAccessTokenExpiresAt=0,driveTokenClient=null,drivePickerPromise=null,driveSaveBusy=false,driveFolderBusy=false;
+    function loadDriveJson(key){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value&&typeof value==='object'?value:null}catch{return null}}
+    function driveConfig(){return loadDriveJson(DRIVE_CONFIG_KEY)||{clientId:'',apiKey:'',appId:''}}
+    function driveFolder(){return loadDriveJson(DRIVE_FOLDER_KEY)}
+    function inferredDriveAppId(clientId){const match=String(clientId||'').trim().match(/^(\d+)-/);return match?match[1]:''}
+    function normalizedDriveConfig(source=driveConfig()){
+      const clientId=String(source?.clientId||'').trim(),apiKey=String(source?.apiKey||'').trim(),appId=String(source?.appId||inferredDriveAppId(clientId)).trim();return {clientId,apiKey,appId};
+    }
+    function driveConfigReady(){const config=normalizedDriveConfig();return Boolean(config.clientId&&config.apiKey&&config.appId)}
+    function syncDriveUi(){
+      const folder=driveFolder(),configured=driveConfigReady();
+      if(driveFolderLabel)driveFolderLabel.textContent=folder?.id?`Drive: ${folder.name||'valittu kansio'}`:(configured?'Drive-kansiota ei ole valittu':'Drive-asetukset puuttuvat');
+      if(driveFolderButton)driveFolderButton.textContent=folder?.id?'Vaihda kansio':'Valitse kansio';
+      if(publishDriveButton){publishDriveButton.disabled=driveSaveBusy;publishDriveButton.setAttribute('aria-busy',String(driveSaveBusy));publishDriveButton.textContent=driveSaveBusy?'TALLENNETAAN…':'TALLENNA DRIVEEN'}
+      if(publishDriveXmlCheckbox)publishDriveXmlCheckbox.disabled=driveSaveBusy;
+      if(driveFolderButton)driveFolderButton.disabled=driveFolderBusy||driveSaveBusy;
+      if(driveSettingsButton)driveSettingsButton.disabled=driveSaveBusy||driveFolderBusy;
+    }
+    function openDriveSettings(){
+      const config=normalizedDriveConfig();driveClientIdInput.value=config.clientId;driveApiKeyInput.value=config.apiKey;driveAppIdInput.value=config.appId;driveSettingsModal.hidden=false;app.inert=true;app.setAttribute('aria-hidden','true');requestAnimationFrame(()=>driveClientIdInput.focus());
+    }
+    function closeDriveSettings(){driveSettingsModal.hidden=true;if(projectModal.hidden){app.inert=false;app.removeAttribute('aria-hidden')}driveSettingsButton?.focus()}
+    function saveDriveSettings(){
+      const clientId=driveClientIdInput.value.trim(),apiKey=driveApiKeyInput.value.trim(),appId=(driveAppIdInput.value.trim()||inferredDriveAppId(clientId));
+      if(!clientId.endsWith('.apps.googleusercontent.com')){statusMessage('OAuth Client ID ei näytä oikealta.');driveClientIdInput.focus();return}
+      if(!apiKey){statusMessage('Lisää Google Pickerin API key.');driveApiKeyInput.focus();return}
+      if(!/^\d+$/.test(appId)){statusMessage('Lisää Google Cloud -projektinumero.');driveAppIdInput.focus();return}
+      localStorage.setItem(DRIVE_CONFIG_KEY,JSON.stringify({clientId,apiKey,appId}));localStorage.removeItem(DRIVE_FOLDER_KEY);driveAccessToken='';driveAccessTokenExpiresAt=0;driveTokenClient=null;localStorage.removeItem(DRIVE_AUTH_KEY);syncDriveUi();closeDriveSettings();statusMessage('Drive-asetukset tallennettu. Valitse seuraavaksi Drive-kansio.');prepareDriveLibraries().catch(()=>{});
+    }
+    function waitForDriveGlobals(timeout=12000){
+      const started=Date.now();return new Promise((resolve,reject)=>{const check=()=>{if(window.google?.accounts?.oauth2&&window.gapi?.load){resolve();return}if(Date.now()-started>timeout){reject(new Error('Google Drive -kirjastot eivät latautuneet. Tarkista verkkoyhteys.'));return}setTimeout(check,80)};check()});
+    }
+    async function prepareDriveLibraries(){
+      if(!driveConfigReady())return false;await waitForDriveGlobals();
+      if(!drivePickerPromise)drivePickerPromise=new Promise((resolve,reject)=>{try{gapi.load('picker',{callback:resolve,onerror:()=>reject(new Error('Google Picker ei latautunut.')),timeout:12000,ontimeout:()=>reject(new Error('Google Pickerin lataus aikakatkaistiin.'))})}catch(error){reject(error)}}).catch(error=>{drivePickerPromise=null;throw error});
+      await drivePickerPromise;return true;
+    }
+    function validDriveToken(){return Boolean(driveAccessToken&&Date.now()<driveAccessTokenExpiresAt-45000)}
+    async function requestDriveAccessToken(){
+      if(validDriveToken())return driveAccessToken;await prepareDriveLibraries();const config=normalizedDriveConfig();if(!window.google?.accounts?.oauth2)throw new Error('Google Drive -yhteys ei ole vielä valmis.');
+      return new Promise((resolve,reject)=>{
+        driveTokenClient=google.accounts.oauth2.initTokenClient({client_id:config.clientId,scope:DRIVE_SCOPE,callback:response=>{if(response?.error){reject(new Error(response.error_description||response.error));return}driveAccessToken=response.access_token||'';driveAccessTokenExpiresAt=Date.now()+(Number(response.expires_in)||3600)*1000;localStorage.setItem(DRIVE_AUTH_KEY,'1');resolve(driveAccessToken)},error_callback:error=>reject(new Error(error?.message||error?.type||'Google-kirjautuminen epäonnistui.'))});
+        try{driveTokenClient.requestAccessToken({prompt:localStorage.getItem(DRIVE_AUTH_KEY)==='1'?'':'consent'})}catch(error){reject(error)}
+      });
+    }
+    async function pickDriveFolder(){
+      await prepareDriveLibraries();const token=await requestDriveAccessToken(),config=normalizedDriveConfig();
+      if(!window.google?.picker)throw new Error('Google Picker ei ole käytettävissä.');
+      return new Promise((resolve,reject)=>{
+        try{
+          const view=new google.picker.DocsView(google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true);
+          try{view.setMode(google.picker.DocsViewMode.LIST)}catch{}
+          const picker=new google.picker.PickerBuilder().addView(view).setOAuthToken(token).setDeveloperKey(config.apiKey).setAppId(config.appId).setOrigin(window.location.origin).setLocale('fi').setTitle('Valitse Pikakirjoittimen tallennuskansio').setCallback(data=>{
+            const action=data?.action??data?.[google.picker.Response?.ACTION];
+            if(action===google.picker.Action.PICKED||action==='picked'){
+              const docs=data?.docs??data?.[google.picker.Response?.DOCUMENTS]??[],doc=docs[0]||{},id=doc.id??doc[google.picker.Document?.ID],name=doc.name??doc[google.picker.Document?.NAME]??'Drive-kansio';
+              if(!id){reject(new Error('Drive-kansion tunnistetta ei saatu.'));return}resolve({id:String(id),name:String(name)});return;
+            }
+            if(action===google.picker.Action.CANCEL||action==='cancel')resolve(null);
+          }).build();picker.setVisible(true);
+        }catch(error){reject(error)}
+      });
+    }
+    function rememberDriveFolder(folder){
+      if(!folder?.id)return;localStorage.setItem(DRIVE_FOLDER_KEY,JSON.stringify({id:folder.id,name:folder.name||'Drive-kansio'}));
+      if(projectData?.driveFiles?.folderId&&projectData.driveFiles.folderId!==folder.id)projectData.driveFiles=null;syncDriveUi();
+    }
+    async function chooseDriveFolder(){
+      if(!driveConfigReady()){openDriveSettings();return}if(driveFolderBusy)return;driveFolderBusy=true;syncDriveUi();
+      try{const folder=await pickDriveFolder();if(folder){rememberDriveFolder(folder);statusMessage(`Drive-kansio valittu: ${folder.name}`)}else statusMessage('Drive-kansion valinta peruttiin.')}catch(error){console.error(error);statusMessage(error?.message||'Drive-kansion valinta epäonnistui.')}finally{driveFolderBusy=false;syncDriveUi()}
+    }
+    function driveMultipart(file,metadata){
+      const boundary=`pikakirjoitin_${Date.now()}_${Math.random().toString(16).slice(2)}`,body=new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,JSON.stringify(metadata),`\r\n--${boundary}\r\nContent-Type: ${file.type||'application/octet-stream'}\r\n\r\n`,file,`\r\n--${boundary}--`]);return {body,contentType:`multipart/related; boundary=${boundary}`};
+    }
+    async function driveUploadFile(file,{folderId,fileId}={}){
+      const token=await requestDriveAccessToken(),metadata={name:file.name};if(!fileId&&folderId)metadata.parents=[folderId];const multipart=driveMultipart(file,metadata),base='https://www.googleapis.com/upload/drive/v3/files',url=fileId?`${base}/${encodeURIComponent(fileId)}?uploadType=multipart&fields=id,name&supportsAllDrives=true`:`${base}?uploadType=multipart&fields=id,name&supportsAllDrives=true`,method=fileId?'PATCH':'POST';
+      const response=await fetch(url,{method,headers:{Authorization:`Bearer ${token}`,'Content-Type':multipart.contentType},body:multipart.body});
+      if(response.status===401){driveAccessToken='';driveAccessTokenExpiresAt=0;throw new Error('Google Drive -kirjautuminen vanheni. Paina Tallenna uudelleen.')}
+      if(!response.ok){let message='';try{const data=await response.json();message=data?.error?.message||''}catch{}const error=new Error(message||`Drive-tallennus epäonnistui (${response.status}).`);error.status=response.status;throw error}
+      return response.json();
+    }
+    async function driveUpsertFile(file,folderId,fileId){
+      if(fileId){try{return await driveUploadFile(file,{folderId,fileId})}catch(error){if(error?.status!==404&&error?.status!==403)throw error}}
+      return driveUploadFile(file,{folderId});
+    }
+    function currentDriveFiles(folderId){
+      const value=projectData?.driveFiles;if(!value||value.folderId!==folderId)return {folderId,pdfId:null,xmlId:null};return {folderId,pdfId:value.pdfId||null,xmlId:value.xmlId||null};
+    }
+    async function saveToDrive(){
+      if(driveSaveBusy)return;if(!driveConfigReady()){openDriveSettings();return}const includeXml=Boolean(publishDriveXmlCheckbox?.checked);driveSaveBusy=true;syncDriveUi();
+      try{
+        await requestDriveAccessToken();let folder=driveFolder();if(!folder?.id){folder=await pickDriveFolder();if(!folder){statusMessage('Drive-tallennus peruttiin.');return}rememberDriveFolder(folder)}
+        const pdfBlob=publishPdfBlob||await preparePublishPdf();if(!pdfBlob)throw new Error('PDF:n muodostaminen epäonnistui.');const baseName=projectFileBaseName(),files=currentDriveFiles(folder.id),pdfFile=new File([pdfBlob],`${baseName}.pdf`,{type:'application/pdf',lastModified:Date.now()});
+        statusMessage('Tallennetaan PDF Driveen…');const pdfResult=await driveUpsertFile(pdfFile,folder.id,files.pdfId);files.pdfId=pdfResult.id;
+        if(includeXml){statusMessage('Tallennetaan MusicXML Driveen…');const xmlFile=new File([buildMusicXml()],`${baseName}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()}),xmlResult=await driveUpsertFile(xmlFile,folder.id,files.xmlId);files.xmlId=xmlResult.id}
+        if(projectData)projectData.driveFiles=files;statusMessage(includeXml?'PDF ja MusicXML tallennettu Driveen.':'PDF tallennettu Driveen.');
+      }catch(error){console.error(error);statusMessage(error?.message||'Drive-tallennus epäonnistui.')}finally{driveSaveBusy=false;syncDriveUi()}
+    }
     function buildProjectFile(){
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
@@ -2464,7 +2623,7 @@
     function focusNewProjectStart(e){e?.preventDefault();newProjectStartButton.setAttribute('aria-pressed','true');openProjectButton.setAttribute('aria-pressed','false');titleInput.focus()}
     function applyProjectData(){
       saveNotationSettings();
-      const headerPositions=normalizedHeaderPositions(projectData?.headerPositions),keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0,headerPositions};
+      const headerPositions=normalizedHeaderPositions(projectData?.headerPositions),driveFiles=projectData?.driveFiles?{...projectData.driveFiles}:null,keyInfo=selectedKeyInfo();projectData={instrumentName:'Pikakirjoitin',tuning:tuningSelect.value,title:titleInput.value.trim(),composer:composerInput.value.trim(),tempoText:tempoInput.value.trim(),themeId:currentThemeId(),keySignature:keyInfo.fifths,keyMode:keyInfo.mode,keyTonic:keyInfo.tonic,keySignatureName:selectedText(keySignatureSelect),timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,clef:clefSelect.value||'treble',transpose:tuningTransposes[tuningSelect.value]||0,headerPositions,driveFiles};
       saveThemePreference();
       applyTheme(projectData.themeId);
       syncNotationChoices();
@@ -2913,6 +3072,7 @@
     }
 
     restoreNotationSettings();restoreThemePreference();restoreModifierPosition();syncNotationChoices();syncPickupOptions();buildKeyWheel();buildMeterWheel();
+    syncDriveUi();if(driveConfigReady())prepareDriveLibraries().catch(()=>{});
     buildKeyboard();
     applyNotationSettings();
     applyHeaderPositions();
@@ -2939,6 +3099,11 @@
     document.addEventListener('keydown',pickerEscapeKey);
     timeSignatureSelect.addEventListener('change',()=>{syncMeterPicker();syncPickupOptions()});
     pickupChoices.addEventListener('click',choosePickup);
+    publishDriveButton?.addEventListener('click',saveToDrive);
+    driveFolderButton?.addEventListener('click',chooseDriveFolder);
+    driveSettingsButton?.addEventListener('click',openDriveSettings);
+    driveSettingsCancelButton?.addEventListener('click',closeDriveSettings);
+    driveSettingsSaveButton?.addEventListener('click',saveDriveSettings);
     publishShareButton?.addEventListener('click',sharePdf);
     publishXmlButton?.addEventListener('click',exportXml);
     publishProjectButton?.addEventListener('click',saveProjectFile);

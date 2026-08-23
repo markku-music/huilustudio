@@ -1,0 +1,31 @@
+PIKAKIRJOITIN – GOOGLE DRIVE -SUORATALLENNUS
+
+Suoratallennus tarvitsee oman Google Cloud -projektin tunnisteet. Pikakirjoitin ei tarvitse client secretiä.
+
+1. Avaa Google Cloud Console ja valitse tai luo projekti.
+2. Ota projektissa käyttöön:
+   - Google Drive API
+   - Google Picker API
+3. Määritä OAuth consent screen. Jos sovellus on vielä Testing-tilassa, lisää oma Google-tilisi testikäyttäjäksi.
+4. Luo Credentials-kohdassa OAuth client ID, tyyppi Web application.
+5. Lisää Authorized JavaScript origins -kohtaan GitHub Pages -origin, esimerkiksi:
+   https://markku-music.github.io
+   Huom: originissa ei ole polkua kuten /pelit/.
+6. Luo API key. Rajoita avain mieluiten:
+   - Website / HTTP referrer: https://markku-music.github.io/*
+   - API restrictions: Google Picker API
+7. Kopioi talteen:
+   - OAuth Client ID
+   - API key
+   - Google Cloud project number (numeromuotoinen Project number)
+8. Pikakirjoittimessa avaa Julkaise > Drive-asetukset ja liitä nuo kolme arvoa.
+9. Paina Valitse kansio ja valitse kerran Drive-kansio.
+
+Tämän jälkeen TALLENNA DRIVEEN tallentaa PDF:n samaan muistettuun kansioon.
+Valinta "Tallenna myös MusicXML" tallentaa samalla myös .musicxml-tiedoston.
+
+Pikakirjoitin käyttää OAuth-oikeutta:
+https://www.googleapis.com/auth/drive.file
+Se on rajattu sovelluksen kanssa valittuihin tai sovelluksen luomiin Drive-kohteisiin.
+
+Pikakirjoitin muistaa valitun kansion ID:n tällä laitteella. Jokaisen nuottiprojektin Driveen luotujen PDF- ja MusicXML-tiedostojen ID:t tallennetaan projektitietoihin, joten myöhempi Tallenna päivittää samaa Drive-tiedostoa eikä tee joka kerta uutta kopiota.

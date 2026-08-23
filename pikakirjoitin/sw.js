@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.63-local-fonts';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.65-drive-direct-save';
 const APP_SHELL = [
   './',
   './index.html',
