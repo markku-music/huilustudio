@@ -17,3 +17,5 @@ Muut 0.25:n ominaisuudet säilyvät.
 
 
 Core 0.27: Aluevalinnan Kopioi loppuun ja manuaalinen Palkita yhteen.
+
+0.28: Yksittäisen nuotin editoriin lisätty palkin katkaisu ennen valittua nuottia. Katkaisu on Undo/Redo-tallennettava ja voittaa automaattisen, tupletti- ja manuaalisen palkituksen kyseisessä rajassa.

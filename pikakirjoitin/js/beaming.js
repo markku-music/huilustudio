@@ -81,9 +81,16 @@ function measureConnections(notes, beats, beatType) {
     const manualAutomatic = Boolean(
       leftManual && rightManual && leftManual === rightManual && isBeamable(left) && isBeamable(right)
     );
-    const automatic = hasManualBoundary
-      ? manualAutomatic
-      : (tupletAutomatic === null ? metricAutomatic : tupletAutomatic);
+
+    // Yksittäisen nuotin käsin asetettu katkaisu on aina kova raja sen
+    // edellisen tapahtuman ja tämän nuotin välissä. Se voittaa sekä metrisen,
+    // tupletti- että manuaalisen palkkiryhmän.
+    const forcedBreakBeforeRight = Boolean(right?.manualBeamBreakBefore);
+    const automatic = forcedBreakBeforeRight
+      ? false
+      : (hasManualBoundary
+        ? manualAutomatic
+        : (tupletAutomatic === null ? metricAutomatic : tupletAutomatic));
 
     connections.push({
       index,

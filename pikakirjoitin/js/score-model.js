@@ -197,10 +197,41 @@ export class ScoreModel {
     const nextGroup = alreadyGrouped ? null : `beam-${this.#nextGroupId++}`;
 
     this.#recordStandaloneMutation();
-    for (const entry of candidates) entry.manualBeamGroup = nextGroup;
+    candidates.forEach((entry, index) => {
+      entry.manualBeamGroup = nextGroup;
+      // Kun käyttäjä nimenomaan yhdistää alueen palkiksi, sen sisäiset aiemmat
+      // katkaisurajat poistetaan. Ensimmäisen nuotin mahdollinen katkaisu
+      // edelliseen, valinnan ulkopuoliseen nuottiin säilytetään.
+      if (nextGroup && index > 0) entry.manualBeamBreakBefore = false;
+    });
     this.#emit();
     this.#finishStandaloneMutation();
     return { changed: true, active: !alreadyGrouped, groupId: nextGroup };
+  }
+
+  canToggleBeamBreakBefore(id) {
+    const beamableDurations = new Set(['eighth', 'sixteenth', 'thirty-second']);
+    const index = this.#notes.findIndex(entry => entry.id === id);
+    if (index <= 0) return false;
+    const current = this.#notes[index];
+    const previous = this.#notes[index - 1];
+    return Boolean(
+      current?.kind === 'note' && previous?.kind === 'note'
+      && beamableDurations.has(current.duration)
+      && beamableDurations.has(previous.duration)
+    );
+  }
+
+  toggleBeamBreakBefore(id) {
+    if (!this.canToggleBeamBreakBefore(id)) return { changed: false, active: false };
+    const note = this.#notes.find(entry => entry.id === id);
+    if (!note) return { changed: false, active: false };
+
+    this.#recordStandaloneMutation();
+    note.manualBeamBreakBefore = !Boolean(note.manualBeamBreakBefore);
+    this.#emit();
+    this.#finishStandaloneMutation();
+    return { changed: true, active: Boolean(note.manualBeamBreakBefore) };
   }
 
   undo() {

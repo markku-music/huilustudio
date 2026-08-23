@@ -3,7 +3,7 @@ export class SelectionEditor {
   #buttons = new Map();
   #handlers;
 
-  constructor({ onFlat, onUp, onDown, onSharp, onDelete, onCopyToEnd, onBeam } = {}) {
+  constructor({ onFlat, onUp, onDown, onSharp, onDelete, onCopyToEnd, onBeam, onBeamBreak } = {}) {
     const root = document.createElement('div');
     root.className = 'pk-selection-editor';
     root.hidden = true;
@@ -14,6 +14,17 @@ export class SelectionEditor {
       <button type="button" data-action="up" data-mode="both" aria-label="Siirrä sävelaskel ylöspäin">↑</button>
       <button type="button" data-action="down" data-mode="both" aria-label="Siirrä sävelaskel alaspäin">↓</button>
       <button type="button" data-action="sharp" data-mode="single" aria-label="Ylennä tai kirjoita enharmonisesti ylennysmerkkisenä">♯</button>
+      <button type="button" data-action="beam-break" data-mode="single" aria-label="Katkaise palkki ennen valittua nuottia" aria-pressed="false" class="is-beam-break">
+        <svg viewBox="0 0 30 24" aria-hidden="true">
+          <path d="M4 5v14M12 5v14M18 5v14M26 5v14"/>
+          <path d="M4 6h8v4H4zM18 6h8v4h-8z"/>
+          <ellipse cx="2.8" cy="18.5" rx="2.8" ry="2.1" transform="rotate(-18 2.8 18.5)"/>
+          <ellipse cx="10.8" cy="18.5" rx="2.8" ry="2.1" transform="rotate(-18 10.8 18.5)"/>
+          <ellipse cx="16.8" cy="18.5" rx="2.8" ry="2.1" transform="rotate(-18 16.8 18.5)"/>
+          <ellipse cx="24.8" cy="18.5" rx="2.8" ry="2.1" transform="rotate(-18 24.8 18.5)"/>
+          <path class="beam-cut-mark" d="M15 3v9"/>
+        </svg>
+      </button>
       <button type="button" data-action="delete" data-mode="both" aria-label="Poista valinta" class="is-delete">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5l1-2h4l1 2m3 0-1 16H7L6 5"/></svg>
       </button>
@@ -27,7 +38,7 @@ export class SelectionEditor {
     this.#root = root;
     for (const button of root.querySelectorAll('button')) this.#buttons.set(button.dataset.action, button);
 
-    this.#handlers = { flat:onFlat, up:onUp, down:onDown, sharp:onSharp, delete:onDelete, copy:onCopyToEnd, beam:onBeam };
+    this.#handlers = { flat:onFlat, up:onUp, down:onDown, sharp:onSharp, delete:onDelete, copy:onCopyToEnd, beam:onBeam, 'beam-break':onBeamBreak };
     root.addEventListener('pointerdown', event => event.stopPropagation());
     root.addEventListener('click', event => {
       const button = event.target.closest('button[data-action]');
@@ -38,7 +49,7 @@ export class SelectionEditor {
     });
   }
 
-  update({ visible=false, x=0, staffTop=0, staffBottom=0, noteCount=0, selectionCount=0 } = {}) {
+  update({ visible=false, x=0, staffTop=0, staffBottom=0, noteCount=0, selectionCount=0, beamBreakEnabled=false, beamBreakActive=false } = {}) {
     if (!visible) {
       this.#root.hidden = true;
       return;
@@ -56,6 +67,12 @@ export class SelectionEditor {
     }
     const beam = this.#buttons.get('beam');
     if (beam && !beam.hidden) beam.disabled = noteCount < 2;
+
+    const beamBreak = this.#buttons.get('beam-break');
+    if (beamBreak && !beamBreak.hidden) {
+      beamBreak.disabled = !beamBreakEnabled;
+      beamBreak.setAttribute('aria-pressed', beamBreakActive ? 'true' : 'false');
+    }
 
     this.#root.setAttribute('aria-label', rangeMode ? 'Alueen muokkaus' : 'Nuotin muokkaus');
     this.#root.hidden = false;

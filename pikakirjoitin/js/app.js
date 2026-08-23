@@ -64,19 +64,27 @@ const selectionEditor=new SelectionEditor({
     const ids=selectedExistingIds();
     if(ids.length<2)return;
     model.toggleManualBeamGroup(ids);
+  },
+  onBeamBreak:()=>{
+    const ids=selectedExistingIds();
+    if(ids.length!==1)return;
+    model.toggleBeamBreakBefore(ids[0]);
   }
 });
 
 selection.subscribe(state=>{
   const entries=state.selectedIds.map(id=>model.getEntry(id)).filter(Boolean);
   const noteCount=entries.filter(entry=>entry.kind==='note').length;
+  const singleEntry=entries.length===1?entries[0]:null;
   selectionEditor.update({
     visible:Boolean(entries.length && state.anchor),
     x:state.anchor?.x||0,
     staffTop:state.anchor?.staffTop||0,
     staffBottom:state.anchor?.staffBottom||0,
     noteCount,
-    selectionCount:entries.length
+    selectionCount:entries.length,
+    beamBreakEnabled:Boolean(singleEntry && model.canToggleBeamBreakBefore(singleEntry.id)),
+    beamBreakActive:Boolean(singleEntry?.manualBeamBreakBefore)
   });
 });
 

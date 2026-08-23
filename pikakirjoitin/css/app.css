@@ -545,3 +545,19 @@ button { font: inherit; }
 .pk-selection-editor button.is-beam svg {
   stroke-width: 1.6;
 }
+
+
+/* Yksittäisen nuotin palkin katkaisu ennen valittua nuottia. */
+.pk-selection-editor button.is-beam-break svg {
+  width: 28px;
+  height: 23px;
+  stroke-width: 1.6;
+}
+.pk-selection-editor button.is-beam-break .beam-cut-mark {
+  stroke-width: 2.2;
+}
+.pk-selection-editor button.is-beam-break[aria-pressed="true"] {
+  border-color: var(--pk-selection-color);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px var(--pk-selection-color);
+}
