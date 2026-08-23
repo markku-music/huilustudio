@@ -32,7 +32,8 @@ button { font: inherit; }
 }
 
 /* Nuottipaperi on ainoa pystysuunnassa vierivä alue.
-   JavaScript ei käsittele tämän elementin kosketuksia eikä scrollTop-arvoa. */
+   Yhden sormen pystyscrollaus on natiivi; kahden sormen zoom säätää scrollTopia
+   vain pinch-eleen lopussa pitääkseen zoomauskohdan näkyvissä. */
 .score-viewport {
   flex: 1 1 auto;
   min-height: 0;
@@ -472,3 +473,34 @@ button { font: inherit; }
 @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}}
 
 .tie-thumb-button img { width: 36px; height: 36px; }
+
+/* Kahden sormen zoomin kevyt reaaliaikainen esikatselu. Varsinainen
+   nuottikoko renderöidään OSMD:llä vasta pinchin päättyessä. */
+.score-document.is-pinch-preview {
+  will-change: transform;
+}
+
+.pk-zoom-indicator {
+  position: sticky;
+  top: 8px;
+  z-index: 45;
+  width: max-content;
+  min-width: 54px;
+  margin: 0 auto -30px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(31, 42, 55, .82);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.pk-zoom-indicator.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

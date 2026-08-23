@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.23 – Tupletit
+Pikakirjoitin 2 Core 0.24 – Kahden sormen zoom
 
 Pohja: Core 0.22 Kokotauko + multirest.
 
@@ -15,3 +15,10 @@ Lisätty vanhan Pikakirjoittimen tuplet-logiikka modulaarisena:
 - keskeneräisen tupletin kokoa ei voi vaihtaa tai kytkeä pois ennen loppuun kirjoittamista
 
 Muut Core 0.22:n ominaisuudet säilyvät.
+
+0.24 Kahden sormen zoom:
+- pinch nuottipaperilla 100–150 %
+- alle 100 % ei voi zoomata
+- pinch peruu yhden sormen valintaeleen
+- jäljelle jäävää yhtä sormea ei tulkita uudeksi eleeksi
+- pinch esikatsellaan kevyesti CSS:llä ja OSMD renderöidään kerran lopuksi

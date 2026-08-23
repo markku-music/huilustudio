@@ -149,6 +149,7 @@ export class ScoreRangeSelection {
   #gesture = null;
   #cursor = null;
   #cursorTarget = null;
+  #suspended = false;
 
   constructor({ viewport, container }) {
     this.#viewport = viewport;
@@ -188,6 +189,21 @@ export class ScoreRangeSelection {
 
   get selectedIds() { return [...this.#selectedIds]; }
 
+  suspendForExternalGesture() {
+    this.#suspended = true;
+    const g = this.#gesture;
+    if (!g) return;
+    if (g.previous) this.#restoreSelection(g.previous);
+    if (g.state === 'selecting') {
+      try { this.#viewport.releasePointerCapture(g.pointerId); } catch {}
+    }
+    this.#gesture = null;
+  }
+
+  resumeAfterExternalGesture() {
+    this.#suspended = false;
+  }
+
   clear() {
     this.#selectedIds.clear();
     this.#cursorTarget = null;
@@ -203,6 +219,7 @@ export class ScoreRangeSelection {
   }
 
   #pointerDown(ev) {
+    if (this.#suspended) return;
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     if (this.#gesture) return;
 
@@ -231,6 +248,7 @@ export class ScoreRangeSelection {
   }
 
   #pointerMove(ev) {
+    if (this.#suspended) return;
     const g = this.#gesture;
     if (!g || ev.pointerId !== g.pointerId) return;
 
@@ -285,6 +303,7 @@ export class ScoreRangeSelection {
   }
 
   #pointerUp(ev) {
+    if (this.#suspended) return;
     const g = this.#gesture;
     if (!g || ev.pointerId !== g.pointerId) return;
 
@@ -314,6 +333,7 @@ export class ScoreRangeSelection {
   }
 
   #pointerCancel(ev) {
+    if (this.#suspended) return;
     const g = this.#gesture;
     if (!g || g.pointerId !== ev.pointerId) return;
 
