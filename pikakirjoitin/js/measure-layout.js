@@ -85,6 +85,30 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
   };
 
   for (const note of notes) {
+    // Kokotauko on tahditauko, ei tavallinen neljän neljäsosan mittainen tauko.
+    // Vanhan Pikakirjoittimen tavoin se saa aina oman tahdin ja täyttää
+    // kyseisen tahdin todellisen kapasiteetin tahtilajista riippumatta.
+    if (note.kind === 'rest' && note.measureRest) {
+      if (current.notes.length > 0 || current.used > 0) nextMeasure();
+      const segment = {
+        sourceId: note.id,
+        segmentIndex: 0,
+        kind: 'rest',
+        midi: null,
+        duration: current.capacity,
+        type: 'whole',
+        dots: 0,
+        measureRest: true,
+        tieStop: false,
+        tieStart: false
+      };
+      current.notes.push(segment);
+      if (!segmentsBySource.has(note.id)) segmentsBySource.set(note.id, []);
+      segmentsBySource.get(note.id).push(segment);
+      current.used = current.capacity;
+      continue;
+    }
+
     let remaining = durationUnits(note.duration, note.dotted);
     let segmentIndex = 0;
 

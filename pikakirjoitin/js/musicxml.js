@@ -15,7 +15,12 @@ function tiedNotationXml(note){
   return tied?`<notations>${tied}</notations>`:'';
 }
 function noteXml(note, beamTags=[]){
-  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration * 2}</duration><voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}</note>`;
+  if (note.kind === 'rest') {
+    const restTag = note.measureRest ? '<rest measure="yes"/>' : '<rest/>';
+    const type = note.measureRest ? 'whole' : xmlNoteType(note.type);
+    const dots = note.measureRest ? '' : dotXml(note.dots);
+    return `<note>${restTag}<duration>${note.duration * 2}</duration><voice>1</voice><type>${type}</type>${dots}${beamTagsXml(beamTags)}</note>`;
+  }
   return `<note>${pitchXml(note.midi)}<duration>${note.duration * 2}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
 }
 function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d * 2}</duration><voice>1</voice></note>`:''; }

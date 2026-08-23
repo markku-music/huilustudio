@@ -75,7 +75,8 @@ export class ScoreModel {
       id: `rest-${this.#nextId++}`,
       kind: 'rest',
       duration,
-      dotted: Boolean(dotted)
+      dotted: Boolean(dotted),
+      measureRest: duration === 'whole' && !Boolean(dotted)
     };
     this.#notes.push(rest);
     this.#emit();
@@ -88,6 +89,9 @@ export class ScoreModel {
     if (!note || note.duration === duration) return;
     this.#recordStandaloneMutation();
     note.duration = duration;
+    if (note.kind === 'rest') {
+      note.measureRest = duration === 'whole' && !Boolean(note.dotted);
+    }
     this.#emit();
     this.#finishStandaloneMutation();
   }
