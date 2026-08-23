@@ -1,3 +1,5 @@
+Pikakirjoitin 2 Core 0.13 – Valintakohdistin
+
 Pikakirjoitin 2 Core 0.8 – 15 mm marginaalit
 
 Lisätty A4-nuottipaperille 15 mm marginaalit kaikille neljälle reunalle. Marginaalit ovat oma layout-asetus js/page-layout.js-tiedostossa ja muunnetaan OSMD:n sisäisiin yksiköihin sivun todellisen leveyden perusteella.
@@ -44,3 +46,5 @@ Core 0.12
 - Vaakavalinta käynnistyy 12 px kokonaisliikkeestä, jos elettä ei ole jo tunnistettu selväksi pystyscrollaukseksi.
 - Vaakavalinnan saa siis tehdä selvästi vinossa; 45 asteen veto ja monet sitä pystymmäksi kallistuvat vedot hyväksytään valinnaksi.
 - Kun ele on kerran päätetty scrollaukseksi tai valinnaksi, tulkintaa ei vaihdeta kesken kosketuksen.
+
+0.13: Vaakavalinnan aikana viivaston yläpuolella näkyy pieni kolmio+pystyviiva-kohdistin. Kohdistin napsahtaa viimeisimpään valittuun nuottiin, seuraa valintaa nuotti kerrallaan ja katoaa sormen nostossa.

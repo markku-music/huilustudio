@@ -87,6 +87,8 @@ function detectStaffBands(container) {
         page: svg,
         top: five[0].y - STAFF_EXTRA_Y,
         bottom: five[4].y + STAFF_EXTRA_Y,
+        staffTop: five[0].y,
+        staffBottom: five[4].y,
         centerY: (five[0].y + five[4].y) / 2,
         left: Math.min(...five.map(row=>row.left)),
         right: Math.max(...five.map(row=>row.right))
@@ -109,14 +111,17 @@ export class ScoreRangeSelection {
   #heads = [];
   #selectedIds = new Set();
   #gesture = null;
+  #cursor = null;
 
   constructor({ viewport, container }) {
     this.#viewport = viewport;
     this.#container = container;
+    this.#createCursor();
     this.#bind();
   }
 
   refresh({ notes = [], settings = {} } = {}) {
+    this.#hideCursor();
     // OSMD on juuri renderöinyt uuden SVG:n, joten vanhat elementtiviitteet eivät enää kelpaa.
     this.#bands = detectStaffBands(this.#container);
     const segments = logicalSegments(notes, settings);
@@ -149,6 +154,7 @@ export class ScoreRangeSelection {
   get selectedIds() { return [...this.#selectedIds]; }
 
   clear() {
+    this.#hideCursor();
     if (!this.#selectedIds.size) return;
     this.#selectedIds.clear();
     this.#paint();
@@ -254,6 +260,7 @@ export class ScoreRangeSelection {
       g.endHead = this.#nearestHeadInBand(g.band, g.currentX) || g.anchorHead;
       this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
       try { this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
+      this.#hideCursor();
     } else if (g.state === 'pending' && g.maxMove <= TAP_MOVE_TOLERANCE) {
       // Napautus tyhjään kohtaan poistaa valinnan. Nuotin ympärillä on reilu,
       // näkymätön osuma-alue, joten paksu sormi ei vahingossa tulkitse nuottiin
@@ -267,6 +274,7 @@ export class ScoreRangeSelection {
 
   #pointerCancel(ev) {
     if (this.#gesture?.pointerId !== ev.pointerId) return;
+    this.#hideCursor();
     this.#gesture = null;
   }
 
@@ -321,6 +329,28 @@ export class ScoreRangeSelection {
     }
     this.#selectedIds = ids;
     this.#paint();
+    this.#showCursor(band, endHead);
+  }
+
+  #createCursor() {
+    const cursor = document.createElement('div');
+    cursor.className = 'pk-selection-cursor';
+    cursor.setAttribute('aria-hidden', 'true');
+    cursor.innerHTML = '<span class="pk-selection-cursor-triangle"></span><span class="pk-selection-cursor-line"></span>';
+    document.body.appendChild(cursor);
+    this.#cursor = cursor;
+  }
+
+  #showCursor(band, head) {
+    if (!this.#cursor || !band || !head) return;
+    const staffTop = Number.isFinite(band.staffTop) ? band.staffTop : band.top + STAFF_EXTRA_Y;
+    this.#cursor.style.left = `${head.x}px`;
+    this.#cursor.style.top = `${Math.max(2, staffTop - 24)}px`;
+    this.#cursor.classList.add('is-visible');
+  }
+
+  #hideCursor() {
+    this.#cursor?.classList.remove('is-visible');
   }
 
   #paint() {
