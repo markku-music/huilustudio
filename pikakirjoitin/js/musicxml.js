@@ -1,10 +1,9 @@
 import { DIVISIONS, layoutNotesIntoMeasures } from './measure-layout.js';
 import { beamTagsForMeasure, beamTagsXml } from './beaming.js';
-
-const SHARP_SPELLING = [['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]];
+import { spellMidi } from './pitch-spelling.js';
 
 function esc(v=''){ return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;'); }
-function pitchXml(midi){ const pc=((midi%12)+12)%12,[step,alter]=SHARP_SPELLING[pc],oct=Math.floor(midi/12)-1; return `<pitch><step>${step}</step>${alter?`<alter>${alter}</alter>`:''}<octave>${oct}</octave></pitch>`; }
+function pitchXml(midi, index, notes, settings){ const {step,alter,octave}=spellMidi(midi,{index,notes,settings}); return `<pitch><step>${step}</step>${alter?`<alter>${alter}</alter>`:''}<octave>${octave}</octave></pitch>`; }
 function dotXml(count){ return '<dot/>'.repeat(Math.max(0, Number(count)||0)); }
 function xmlNoteType(type){
   return ({ sixteenth: '16th', 'thirty-second': '32nd' })[type] || type;
@@ -14,14 +13,14 @@ function tiedNotationXml(note){
   const tied=`${note.tieStop?'<tied type="stop"/>':''}${note.tieStart?'<tied type="start"/>':''}`;
   return tied?`<notations>${tied}</notations>`:'';
 }
-function noteXml(note, beamTags=[]){
+function noteXml(note, beamTags=[], noteIndex=0, measureNotes=[], settings={}){
   if (note.kind === 'rest') {
     const restTag = note.measureRest ? '<rest measure="yes"/>' : '<rest/>';
     const type = note.measureRest ? 'whole' : xmlNoteType(note.type);
     const dots = note.measureRest ? '' : dotXml(note.dots);
     return `<note>${restTag}<duration>${note.duration * 2}</duration><voice>1</voice><type>${type}</type>${dots}${beamTagsXml(beamTags)}</note>`;
   }
-  return `<note>${pitchXml(note.midi)}<duration>${note.duration * 2}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
+  return `<note>${pitchXml(note.midi,noteIndex,measureNotes,settings)}<duration>${note.duration * 2}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
 }
 function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d * 2}</duration><voice>1</voice></note>`:''; }
 function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="cut"':''; }
@@ -33,7 +32,7 @@ export function buildMusicXml(notes, settings={}){
     const attr=index===0?`<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${Number(settings.keySignature)||0}</fifths><mode>${esc(settings.keyMode||'major')}</mode></key><time${timeSymbol(settings.timeSignature)}><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clefXml(settings.clef)}</attributes>`:'';
     const tempo=index===0&&settings.tempoText?`<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type></direction>`:'';
     const beamTags=beamTagsForMeasure(measure.notes, beats, beatType, { osmdCompatible: true });
-    const content=measure.notes.length?measure.notes.map((note,noteIndex)=>noteXml(note,beamTags[noteIndex])).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
+    const content=measure.notes.length?measure.notes.map((note,noteIndex)=>noteXml(note,beamTags[noteIndex],noteIndex,measure.notes,settings)).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
     const number=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'';
     return `<measure number="${number}"${implicit}>${attr}${tempo}${content}</measure>`;
   }).join('');

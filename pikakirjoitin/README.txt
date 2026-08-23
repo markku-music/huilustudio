@@ -9,3 +9,7 @@ Tauko käyttää koskettimiston normaalia aika-arvoelettä, mutta ei soita ään
 0.19: Peukalopalkkiin lisätty vanhan Pikakirjoittimen kertakäyttöinen sidekaari. Napauta sidekaari aktiiviseksi; seuraava saman sävelen nuotti sidotaan edelliseen ja tila sammuu. Tauko/eri sävel kuluttaa tilan ilman sidettä. Sidekaaripainikkeesta voi edelleen siirtää palkkia pystysuunnassa vetämällä.
 
 0.20: Kokotauko palautettu tahditauoksi (measure rest). Useat perakkaiset kokotauot muodostavat kukin oman tahdin vakaasti.
+
+0.21: Sävellajin mukainen enharmoninen kirjoitusasu.
+Alennusmerkkisissä sävellajeissa mustat koskettimet kirjoitetaan alennuksina,
+ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään erikseen.
