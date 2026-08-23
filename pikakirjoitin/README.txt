@@ -30,3 +30,6 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 
 0.22.6: Koskettimella tehtävän nuottieditoinnin aikana sama looginen nuotti pidetään valittuna renderöintien yli, mutta kun kosketinele päättyy, valinta puretaan automaattisesti. Työkalupalkki ja valintakohdistin katoavat ja koskettimisto palaa uuden nuotin kirjoitustilaan.
+
+
+0.22.7: Enharmoninen nappi piilotetaan, kun valitun nuotin nykyinen kirjoitusasu on sävellajin normaali diatoninen asu (esim. Es Es-duurissa, Fis D-duurissa). Poikkeava enharmoninen kirjoitusasu voi edelleen näyttää napin.

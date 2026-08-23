@@ -8,6 +8,22 @@ const FLATS = [
   ['G',-1], ['G',0], ['A',-1], ['A',0], ['B',-1], ['B',0]
 ];
 
+const SHARP_ORDER = ['F','C','G','D','A','E','B'];
+const FLAT_ORDER = ['B','E','A','D','G','C','F'];
+
+export function keySignatureAlterForStep(step, settings = {}) {
+  const fifths = Math.max(-7, Math.min(7, Number(settings?.keySignature) || 0));
+  const normalizedStep = String(step || '').toUpperCase();
+  if (fifths > 0 && SHARP_ORDER.slice(0, fifths).includes(normalizedStep)) return 1;
+  if (fifths < 0 && FLAT_ORDER.slice(0, -fifths).includes(normalizedStep)) return -1;
+  return 0;
+}
+
+export function isDiatonicKeySpelling(spelling, settings = {}) {
+  if (!spelling?.step || !Number.isFinite(Number(spelling?.alter))) return false;
+  return Number(spelling.alter) === keySignatureAlterForStep(spelling.step, settings);
+}
+
 // Sama periaate kuin Pikakirjoitin 1.x:ssä: mollin korotettu johtosävel
 // kirjoitetaan teoreettisesti oikein riippumatta etumerkkien yleissuunnasta.
 const MINOR_LEADING_SPELLINGS = {

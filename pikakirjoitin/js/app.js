@@ -6,7 +6,7 @@ import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
-import { spellMidi } from './pitch-spelling.js';
+import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -45,6 +45,13 @@ function enharmonicPreferenceFor(id) {
   const index = notes.findIndex(entry => entry.id === id);
   if (index < 0 || notes[index]?.kind !== 'note') return null;
   const written = spellMidi(notes[index].midi, { index, notes, settings });
+
+  // Älä tarjoa enharmonista vaihtoa sävellajin omalle normaalille
+  // diatoniselle kirjoitusasulle. Es-duurissa Es on jo oikea asu,
+  // D-duurissa Fis on jo oikea asu jne. Jos sama soiva sävel on
+  // kirjoitettu poikkeavasti (esim. Dis Es-duurissa), nappi saa näkyä.
+  if (isDiatonicKeySpelling(written, settings)) return null;
+
   if (written.alter > 0) return 'flat';
   if (written.alter < 0) return 'sharp';
   return null;
