@@ -2,308 +2,36 @@
 <html lang="fi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#eef1f5">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Pikakirjoitin">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
-  <title>Pikakirjoitin</title>
+  <title>Pikakirjoitin 2 Core</title>
   <link rel="stylesheet" href="css/app.css">
+  <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
-  <div class="orientation-blocker" role="status" aria-live="polite">
-    <div class="orientation-card">
-      <span class="orientation-icon" aria-hidden="true">↻</span>
-      <h2>Käännä tabletti pystyasentoon</h2>
-      <p>Pikakirjoitin on suunniteltu käytettäväksi portrait-asennossa.</p>
-    </div>
-  </div>
-
-  <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
-    <form class="project-card" id="projectForm">
-      <div class="project-start-actions" role="group" aria-label="Projektin aloitustapa">
-        <button class="project-start-action" id="newProjectStartButton" type="button" aria-pressed="true">UUSI NUOTTI</button>
-        <button class="project-start-action" id="openProjectButton" type="button" aria-pressed="false">AVAA PROJEKTI</button>
+  <main class="app" id="app">
+    <section class="score-viewport" id="scoreViewport" aria-label="Nuottipaperi">
+      <div class="score-document">
+        <div id="osmdContainer" aria-hidden="true"></div>
       </div>
-      <input class="project-file-input" id="projectFileInput" type="file" tabindex="-1" aria-hidden="true">
-      <div class="project-grid">
-        <label class="field wide" for="titleInput">
-          <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
-        </label>
-        <label class="field" for="tempoInput">
-          <input id="tempoInput" type="text" autocomplete="off" placeholder="Tempoteksti" aria-label="Tempoteksti">
-        </label>
-        <label class="field" for="composerInput">
-          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
-        </label>
-        <div class="key-picker">
-          <button class="key-trigger" id="keyTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="keyWheelPopover">
-            <span class="key-trigger-value" id="keyTriggerValue">C-duuri</span>
-            <span class="key-trigger-icon" aria-hidden="true"></span>
-          </button>
-          <select id="keySignatureSelect" aria-label="Sävellaji" hidden>
-            <option value="0" data-mode="major" data-tonic="C">C-duuri</option>
-            <option value="0" data-mode="minor" data-tonic="A">a-molli</option>
-            <option value="1" data-mode="major" data-tonic="G">G-duuri</option>
-            <option value="1" data-mode="minor" data-tonic="E">e-molli</option>
-            <option value="2" data-mode="major" data-tonic="D">D-duuri</option>
-            <option value="2" data-mode="minor" data-tonic="B">h-molli</option>
-            <option value="3" data-mode="major" data-tonic="A">A-duuri</option>
-            <option value="3" data-mode="minor" data-tonic="F#">fis-molli</option>
-            <option value="4" data-mode="major" data-tonic="E">E-duuri</option>
-            <option value="4" data-mode="minor" data-tonic="C#">cis-molli</option>
-            <option value="5" data-mode="major" data-tonic="B">H-duuri</option>
-            <option value="5" data-mode="minor" data-tonic="G#">gis-molli</option>
-            <option value="-1" data-mode="major" data-tonic="F">F-duuri</option>
-            <option value="-1" data-mode="minor" data-tonic="D">d-molli</option>
-            <option value="-2" data-mode="major" data-tonic="Bb">B-duuri</option>
-            <option value="-2" data-mode="minor" data-tonic="G">g-molli</option>
-            <option value="-3" data-mode="major" data-tonic="Eb">Es-duuri</option>
-            <option value="-3" data-mode="minor" data-tonic="C">c-molli</option>
-            <option value="-4" data-mode="major" data-tonic="Ab">As-duuri</option>
-            <option value="-4" data-mode="minor" data-tonic="F">f-molli</option>
-            <option value="-5" data-mode="major" data-tonic="Db">Des-duuri</option>
-            <option value="-5" data-mode="minor" data-tonic="Bb">b-molli</option>
-            <option value="-6" data-mode="major" data-tonic="Gb">Ges-duuri</option>
-            <option value="-6" data-mode="minor" data-tonic="Eb">es-molli</option>
-          </select>
-        </div>
-        <div class="meter-picker">
-          <button class="meter-trigger" id="meterTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="meterWheelPopover">
-            <span class="meter-trigger-value" id="meterTriggerValue">4/4</span>
-            <span class="meter-trigger-icon" aria-hidden="true"></span>
-          </button>
-          <select id="timeSignatureSelect" aria-label="Tahtilaji" hidden>
-            <option value="2/4">2/4</option>
-            <option value="3/4">3/4</option>
-            <option value="4/4" selected>4/4</option>
-            <option value="C">C</option>
-            <option value="2/2">2/2</option>
-            <option value="cutC">Cut C</option>
-            <option value="3/8">3/8</option>
-            <option value="6/8">6/8</option>
-            <option value="9/8">9/8</option>
-            <option value="12/8">12/8</option>
-          </select>
-        </div>
-        <div class="pickup-control" role="group" aria-label="Kohotahti">
-          <span class="pickup-label">Kohotahti</span>
-          <input id="pickupSelect" type="hidden" value="0">
-          <div class="pickup-choices" id="pickupChoices"></div>
-        </div>
-        <div class="notation-settings">
-          <div class="notation-setting tuning-setting" role="group" aria-label="Viritys">
-            <span class="notation-setting-label">Viritys</span>
-            <input id="tuningSelect" type="hidden" value="C">
-            <div class="notation-choice-group" id="tuningChoices">
-              <button class="notation-choice" type="button" data-tuning="C" aria-pressed="true">C</button>
-              <button class="notation-choice" type="button" data-tuning="Bb" aria-pressed="false">B♭</button>
-              <button class="notation-choice" type="button" data-tuning="Eb" aria-pressed="false">E♭</button>
-              <button class="notation-choice" type="button" data-tuning="F" aria-pressed="false">F</button>
-            </div>
-          </div>
-          <div class="notation-setting" role="group" aria-label="Nuottiavain">
-            <input id="clefSelect" type="hidden" value="treble">
-            <div class="notation-choice-group" id="clefChoices">
-              <button class="notation-choice icon-choice" type="button" data-clef="treble" aria-label="G-avain" aria-pressed="true"><img src="assets/clef-alto.svg" alt=""></button>
-              <button class="notation-choice icon-choice" type="button" data-clef="alto" aria-label="C-avain" aria-pressed="false"><img src="assets/clef-treble.svg" alt=""></button>
-              <button class="notation-choice icon-choice" type="button" data-clef="bass" aria-label="F-avain" aria-pressed="false"><img src="assets/clef-bass.svg" alt=""></button>
-            </div>
-          </div>
-        </div>
-        <label class="field wide" for="themeSelect">
-          <span class="field-caption">Värimaailma</span>
-          <select id="themeSelect" aria-label="Värimaailma">
-            <option value="kupari">Kupari</option>
-            <option value="salvia">Salvia</option>
-            <option value="luumu">Luumu</option>
-            <option value="sahko">Sähkö</option>
-            <option value="koralli">Koralli</option>
-            <option value="vanilja">Vanilja</option>
-          </select>
-        </label>
-      </div>
-      <button class="start-button" id="projectSaveButton" type="submit">ALOITA</button>
-    </form>
-  </div>
+    </section>
 
-  <div class="key-wheel-popover" id="keyWheelPopover" role="dialog" aria-modal="true" aria-label="Valitse sävellaji kvinttiympyrästä" hidden>
-    <div class="key-wheel-card" id="keyWheelCard">
-      <button class="key-wheel-close" id="keyWheelClose" type="button" aria-label="Sulje sävellajivalinta">×</button>
-      <div id="keyWheelSlots"></div>
-    </div>
-  </div>
-
-  <div class="meter-wheel-popover" id="meterWheelPopover" role="dialog" aria-modal="true" aria-label="Valitse tahtiosoitus" hidden>
-    <div class="meter-wheel-card" id="meterWheelCard">
-      <button class="meter-wheel-close" id="meterWheelClose" type="button" aria-label="Sulje tahtiosoitusvalinta">×</button>
-      <div id="meterWheelSlots"></div>
-    </div>
-  </div>
-
-  <main class="app" id="app" aria-hidden="true" inert>
-    <nav class="mode-tabs" id="modeTabs" aria-label="Työskentelytila">
-      <button class="new-project-tab" id="newProjectButton" type="button" aria-label="Aloita uusi nuotti">UUSI</button>
-      <button class="mode-tab" id="writeModeButton" type="button" data-work-mode="write" aria-pressed="true">KIRJOITA</button>
-      <button class="mode-tab" id="editModeButton" type="button" data-work-mode="edit" aria-pressed="false" disabled>MUOKKAA</button>
-      <button class="mode-tab" id="printModeButton" type="button" data-work-mode="print" aria-pressed="false" disabled>JULKAISE</button>
-    </nav>
-    <div class="workspace">
-      <section class="score-area">
-        <div class="score" id="score" role="button" tabindex="0" aria-expanded="false" aria-controls="keyboardPanel" aria-label="Nuotti-ikkuna. Pyyhkäise pystysuunnassa vierittääksesi A4-sivua tai napauta avataksesi koskettimiston.">
-          <div class="score-page-shell" id="scorePageShell">
-            <div class="score-page" id="scorePage">
-              <span class="score-title" id="scoreTitle" role="button" tabindex="0" aria-label="Muokkaa kappaleen nimeä">Nimetön kappale</span>
-              <div class="score-info-row" aria-label="Kappaleen tempo ja säveltäjä">
-                <span class="score-tempo" id="scoreTempo" role="button" tabindex="0" aria-label="Muokkaa tempotekstiä" hidden></span>
-                <span class="score-composer" id="scoreComposer" role="button" tabindex="0" aria-label="Muokkaa säveltäjää" hidden></span>
-              </div>
-              <button class="header-drag-handle header-title-handle" id="titleDragHandle" type="button" data-header-target="title" aria-label="Siirrä kappaleen nimeä pystysuunnassa">↕</button>
-              <button class="header-drag-handle header-tempo-handle" id="tempoDragHandle" type="button" data-header-target="tempo" aria-label="Siirrä tempotekstiä pystysuunnassa" hidden>↕</button>
-              <button class="header-drag-handle header-composer-handle" id="composerDragHandle" type="button" data-header-target="composer" aria-label="Siirrä säveltäjää pystysuunnassa" hidden>↕</button>
-              <div id="osmdContainer" aria-hidden="true"></div>
-              <span class="score-prompt" id="scorePrompt" hidden></span>
-            </div>
-          </div>
-          <div class="write-note-context" id="writeNoteContext" role="toolbar" aria-label="Valitun nuotin pikakorjaus" hidden>
-            <button class="write-note-context-button" id="writeNoteFlatButton" type="button" data-alter="-1" aria-label="Alennusmerkki">♭</button>
-            <button class="write-note-context-button" id="writeNoteNaturalButton" type="button" data-alter="0" aria-label="Palautusmerkki">♮</button>
-            <button class="write-note-context-button" id="writeNoteSharpButton" type="button" data-alter="1" aria-label="Ylennysmerkki">♯</button>
-            <button class="write-note-context-button" id="writeNoteDeleteButton" type="button" aria-label="Poista nuotti">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
-            </button>
-          </div>
-          <div class="write-selection-actions" id="writeSelectionActions" role="toolbar" aria-label="Valitun jakson toiminnot" hidden>
-            <button class="write-paste-end-button" id="writePasteEndButton" type="button" aria-label="Liitä valittu jakso kappaleen loppuun">Liitä loppuun</button>
-            <button class="write-note-context-button" id="writeSelectionDeleteButton" type="button" aria-label="Poista valittu jakso">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
-            </button>
-          </div>
-        </div>
-        <section class="publish-screen" id="publishScreen" aria-label="Julkaisu">
-          <div class="publish-grid">
-            <button class="publish-card" id="publishProjectButton" type="button" aria-label="Tallenna projekti">
-              <div class="publish-card-icon publish-card-icon-usb" aria-hidden="true"><img src="assets/USB.svg" alt="" draggable="false"></div>
-              <div class="publish-card-title">TALLENNA</div>
-            </button>
-            <button class="publish-card" id="publishShareButton" type="button" aria-label="Vie PDF ja MusicXML" aria-busy="true" disabled>
-              <div class="publish-card-icon publish-card-icon-vie" aria-hidden="true"><img src="assets/Vie.svg" alt="" draggable="false"></div>
-              <div class="publish-card-title">VIE</div>
-            </button>
-            <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta nuotti">
-              <div class="publish-card-icon publish-card-icon-print" aria-hidden="true"><img src="assets/Tulostin.svg" alt="" draggable="false"></div>
-              <div class="publish-card-title">TULOSTA</div>
-            </button>
-          </div>
-        </section>
-        <div class="modifier-rail" id="modifierRail" role="toolbar" aria-label="Nuotin muuntimet" aria-hidden="true">
-          <button class="modifier-drag-handle" id="modifierDragHandle" type="button" aria-label="Siirrä muunninpalkkia pystysuunnassa">
-            <svg viewBox="0 0 22 12" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="16" cy="3" r="1.5"/><circle cx="6" cy="9" r="1.5"/><circle cx="11" cy="9" r="1.5"/><circle cx="16" cy="9" r="1.5"/></g></svg>
-          </button>
-          <button class="modifier-button" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen nuotti; liu'uta kaksoispisteelliseen" aria-pressed="false"><img class="modifier-icon" src="assets/1_4_dot.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <button class="modifier-button double-dot-button" id="doubleDotButton" type="button" aria-label="Kaksoispisteellinen nuotti" aria-pressed="false" tabindex="-1"><img class="modifier-icon" src="assets/1_4_double_dot.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <button class="modifier-button" type="button" data-modifier="sixteenth" aria-label="Pidä pohjassa: kuudestoistaosanuotti; liu'uta 1/32-nuottiin" aria-pressed="false"><img class="modifier-icon" src="assets/1_16_note.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <button class="modifier-button thirtysecond-button" id="thirtysecondButton" type="button" data-modifier="thirtysecond" aria-label="Pidä pohjassa: kolmaskymmeneskahtasosanuotti" aria-pressed="false" tabindex="-1"><img class="modifier-icon" src="assets/1_32_note.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <button class="modifier-button" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko; liu'uta 1/16- tai 1/32-taukoon" aria-pressed="false"><img class="modifier-icon" src="assets/rest.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <button class="modifier-button rest-duration-button" id="restSixteenthButton" type="button" aria-label="Kuudestoistaosatauko" aria-pressed="false" tabindex="-1"><img class="modifier-icon compact" src="assets/1_16_rest.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <button class="modifier-button rest-duration-button" id="restThirtysecondButton" type="button" aria-label="Kolmaskymmeneskahtasosatauko" aria-pressed="false" tabindex="-1"><img class="modifier-icon compact" src="assets/1_32_rest.svg" alt="" aria-hidden="true" draggable="false"></button>
-          <div class="modifier-divider" aria-hidden="true"></div>
-          <button class="modifier-button triplet-button" id="tripletButton" type="button" data-modifier="tuplet" aria-label="Trioli: seuraavat kolme nuottia tai taukoa; liu'uta kvintoliin tai sekstoliin" aria-pressed="false">
-            <svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text id="tupletButtonNumber" x="18" y="17" text-anchor="middle">3</text></svg>
-          </button>
-          <button class="modifier-button tuplet-choice-button" id="quintupletButton" type="button" aria-label="Kvintoli: seuraavat viisi nuottia tai taukoa" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">5</text></svg></button>
-          <button class="modifier-button tuplet-choice-button" id="sextupletButton" type="button" aria-label="Sekstoli: seuraavat kuusi nuottia tai taukoa" aria-pressed="false" tabindex="-1"><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 24v-5h9M23 19h9v5"/><text x="18" y="17" text-anchor="middle">6</text></svg></button>
-          <button class="modifier-button tie-button" id="tieButton" type="button" aria-label="Yhdyskaari seuraavaan saman sävelen nuottiin" aria-pressed="false">
-            <img class="custom-tool-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
-          </button>
-        </div>
-        <div class="edit-rail" id="editRail" role="toolbar" aria-label="Nuottikuvan ja rivien muokkaus">
-          <div class="staff-top-slider" id="staffTopSlider" role="slider" tabindex="0" aria-label="Viivastojen aloituskorkeus" aria-orientation="vertical" aria-valuemin="8" aria-valuemax="30" aria-valuenow="17" aria-valuetext="Nykyinen aloituskorkeus" title="Viivastojen aloituskorkeus">
-            <div class="staff-top-track" aria-hidden="true"><div class="staff-top-fill" id="staffTopFill"></div></div>
-            <div class="staff-top-thumb" id="staffTopThumb" aria-hidden="true"></div>
-          </div>
-          <div class="line-spacing-slider" id="lineSpacingSlider" role="slider" tabindex="0" aria-label="Riviväli" aria-orientation="vertical" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5" aria-valuetext="300 %">
-            <div class="line-spacing-track" aria-hidden="true"><div class="line-spacing-fill" id="lineSpacingFill"></div></div>
-            <div class="line-spacing-thumb" id="lineSpacingThumb" aria-hidden="true"></div>
-          </div>
-          <button class="edit-rail-button note-size-button" id="noteSizeButton" type="button" aria-label="Säädä nuottikuvan kokoa" aria-controls="noteSizePanel" aria-expanded="false" aria-pressed="false">
-            <svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="13" cy="34" rx="4.8" ry="3.5" transform="rotate(-18 13 34)" fill="currentColor" stroke="none"/><path d="M17 33V20"/><ellipse cx="34" cy="30" rx="7" ry="4.8" transform="rotate(-18 34 30)" fill="currentColor" stroke="none"/><path d="M40 29V10"/></svg>
-          </button>
-          <button class="edit-rail-button" id="systemBreakButton" type="button" aria-label="Muokkaa rivinvaihtoja" aria-pressed="false">
-            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 12h32M8 21h24M8 30h20"/><path d="M38 21v9c0 4.4-3.6 8-8 8H18"/><path d="m23 33-5 5 5 5"/></svg>
-          </button>
-          <button class="edit-rail-button" id="stretchLastLineButton" type="button" aria-label="Venytä viimeinen rivi koko leveyteen" aria-pressed="false">↔</button>
-        </div>
-        <div class="note-size-panel" id="noteSizePanel" role="dialog" aria-label="Nuottikuvan koko" aria-busy="false" hidden>
-          <span class="note-size-title">Nuottikoko</span>
-          <div class="note-size-stepper" role="group" aria-label="Muuta nuottikuvan kokoa viiden prosenttiyksikön askelin">
-            <button class="note-size-step-button" id="noteSizeDecreaseButton" type="button" aria-label="Pienennä nuottikokoa viisi prosenttiyksikköä">◀</button>
-            <button class="note-size-value" id="noteSizeResetButton" type="button" aria-label="Nuottikoko 100 prosenttia. Palauta sataan prosenttiin">100 %</button>
-            <button class="note-size-step-button" id="noteSizeIncreaseButton" type="button" aria-label="Suurenna nuottikokoa viisi prosenttiyksikköä">▶</button>
-          </div>
-          <div class="note-size-limits" aria-hidden="true">70 % – 140 %</div>
-        </div>
-        <div class="selection-toolbar" id="selectionToolbar" role="toolbar" aria-label="Valittujen nuottien muokkaus" aria-hidden="true">
-          <div class="selection-toolbar-row selection-toolbar-main-row">
-            <button class="selection-toolbar-drag-handle" id="selectionToolbarDragHandle" type="button" aria-label="Siirrä työkalupalkkia"><svg viewBox="0 0 18 30" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="13" cy="6" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="13" cy="15" r="2"/><circle cx="5" cy="24" r="2"/><circle cx="13" cy="24" r="2"/></svg></button>
-            <button class="selection-action-button" id="selectionSlurButton" type="button" aria-label="Lisää tai poista legatokaari" aria-pressed="false" disabled><img class="custom-tool-icon" src="assets/slur.svg" alt="" aria-hidden="true" draggable="false"></button>
-            <button class="selection-action-button" id="selectionSlurFlipButton" type="button" aria-label="Vaihda legatokaari ylä- tai alapuolelle" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 17C15 7 33 7 40 17"/><path d="M8 31C15 41 33 41 40 31"/><path d="M24 20v8"/><path d="m20 23 4-4 4 4M20 25l4 4 4-4"/></svg></button>
-            <button class="selection-action-button" id="selectionStemFlipButton" type="button" aria-label="Vaihda nuottivarren suunta" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="21" cy="30" rx="6" ry="4" transform="rotate(-18 21 30)"/><path d="M26 29V11"/><path d="M33 14V34"/><path d="m29 18 4-4 4 4M29 30l4 4 4-4"/></svg></button>
-            <button class="selection-action-button" id="selectionTieFlipButton" type="button" aria-label="Käännä sidekaari" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 27C15 14 33 14 40 27"/><path d="M17 35h14"/><path d="m20 31-4 4 4 4M28 31l4 4-4 4"/></svg></button>
-            <button class="selection-action-button" id="selectionStaccatoButton" type="button" aria-label="Lisää tai poista staccatopisteet" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="5"/></svg></button>
-            <button class="selection-action-button" id="selectionPortatoButton" type="button" aria-label="Lisää tai poista portatoviivat" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 24h24"/></svg></button>
-            <button class="selection-action-button" id="selectionAccentButton" type="button" aria-label="Lisää tai poista aksentit" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m13 14 22 10-22 10"/></svg></button>
-            <button class="selection-action-button" id="beamEditButton" type="button" aria-label="Muokkaa palkitusta" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="13" cy="36" rx="5.5" ry="4" transform="rotate(-17 13 36)"/><ellipse cx="35" cy="31" rx="5.5" ry="4" transform="rotate(-17 35 31)"/><path d="M17 34V12M39 29V7"/><path d="M17 12 39 7" stroke-width="6"/></svg></button>
-            <button class="selection-action-button" id="barlineEditButton" type="button" aria-label="Muokkaa tahtiviivoja" aria-pressed="false"><img class="custom-tool-icon" src="assets/repeat.svg" alt="" aria-hidden="true" draggable="false"></button>
-            <button class="selection-action-button ending-tool-button" id="endingOneButton" type="button" aria-label="Lisää tai poista 1. maali" aria-pressed="false"><img class="custom-tool-icon" src="assets/ending-1.svg" alt="" aria-hidden="true" draggable="false"></button>
-            <button class="selection-action-button ending-tool-button" id="endingTwoButton" type="button" aria-label="Lisää tai poista 2. maali" aria-pressed="false"><img class="custom-tool-icon" src="assets/ending-2.svg" alt="" aria-hidden="true" draggable="false"></button>
-          </div>
-          <div class="selection-toolbar-row selection-toolbar-dynamics-row" aria-label="Dynamiikka">
-            <button class="selection-action-button" id="selectionCrescendoButton" type="button" aria-label="Lisää tai poista crescendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 24 41 10M7 24l34 14"/></svg></button>
-            <button class="selection-dynamic-button" type="button" data-dynamic="pp" aria-label="Pianissimo" aria-pressed="false" disabled>pp</button>
-            <button class="selection-dynamic-button" type="button" data-dynamic="p" aria-label="Piano" aria-pressed="false" disabled>p</button>
-            <button class="selection-dynamic-button" type="button" data-dynamic="mp" aria-label="Mezzopiano" aria-pressed="false" disabled>mp</button>
-            <button class="selection-dynamic-button" type="button" data-dynamic="mf" aria-label="Mezzoforte" aria-pressed="false" disabled>mf</button>
-            <button class="selection-dynamic-button" type="button" data-dynamic="f" aria-label="Forte" aria-pressed="false" disabled>f</button>
-            <button class="selection-dynamic-button" type="button" data-dynamic="ff" aria-label="Fortissimo" aria-pressed="false" disabled>ff</button>
-            <button class="selection-action-button" id="selectionDiminuendoButton" type="button" aria-label="Lisää tai poista diminuendo" aria-pressed="false" disabled><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m7 10 34 14M7 38l34-14"/></svg></button>
-          </div>
-        </div>
-        <div class="barline-palette" id="barlinePalette" role="toolbar" aria-label="Tahtiviivan tyyppi" hidden>
-          <button class="barline-choice-button" type="button" data-barline-style="normal" aria-label="Normaali tahtiviiva" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M16 3v22" stroke="currentColor" stroke-width="2"/></svg></button>
-          <button class="barline-choice-button" type="button" data-barline-style="double" aria-label="Kaksoisviiva" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M12 3v22M20 3v22" stroke="currentColor" stroke-width="2"/></svg></button>
-          <button class="barline-choice-button" type="button" data-barline-style="repeat-start" aria-label="Kertaus alkaa" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><path d="M9 3v22" stroke="currentColor" stroke-width="4"/><path d="M15 3v22" stroke="currentColor" stroke-width="1.8"/><circle cx="23" cy="10" r="2" fill="currentColor"/><circle cx="23" cy="18" r="2" fill="currentColor"/></svg></button>
-          <button class="barline-choice-button" type="button" data-barline-style="repeat-end" aria-label="Kertaus päättyy" aria-pressed="false"><svg viewBox="0 0 32 28" aria-hidden="true"><circle cx="9" cy="10" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/><path d="M17 3v22" stroke="currentColor" stroke-width="1.8"/><path d="M23 3v22" stroke="currentColor" stroke-width="4"/></svg></button>
-        </div>
-      </section>
-      <div class="keyboard-panel" id="keyboardPanel" hidden>
-        <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0" aria-label="Siirrä koskettimistoa" aria-controls="keyboardViewport" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <div class="keyboard-scroll-track" id="keyboardScrollTrack">
-            <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
-          </div>
-        </div>
-        <div class="keyboard-viewport" id="keyboardViewport" aria-label="Viiden oktaavin vaakasuunnassa siirrettävä koskettimisto">
-          <div class="piano" id="piano">
-            <div class="white-keys" id="whiteKeys"></div>
-          </div>
+    <section class="keyboard-panel" aria-label="Koskettimisto">
+      <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0"
+           aria-label="Siirrä koskettimistoa" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="keyboard-scroll-track" id="keyboardScrollTrack">
+          <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
         </div>
       </div>
-    </div>
-    <div class="tuplet-warning" id="tupletWarning" role="status" aria-live="polite" hidden></div>
-    <div id="status" role="status" aria-live="polite">Audio: ei avattu</div>
+      <div class="keyboard-viewport" id="keyboardViewport">
+        <div class="piano" id="piano">
+          <div class="white-keys" id="whiteKeys"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
-  <script src="js/app.js"></script>
-
-  <div class="pwa-update-banner" id="pwaUpdateBanner" role="status" aria-live="polite" hidden>
-    <span>Uusi versio Pikakirjoittimesta on saatavilla.</span>
-    <button id="pwaUpdateButton" type="button">Päivitä nyt</button>
-  </div>
-  <script src="js/pwa-update.js"></script>
-
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
