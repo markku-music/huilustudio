@@ -8,6 +8,7 @@ import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
 import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
 import { ScoreTextLayout } from './score-text-layout.js';
+import { ScoreLayoutControls } from './score-layout-controls.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -19,6 +20,11 @@ const scoreTextLayout=new ScoreTextLayout({
   documentElement:document.querySelector('#scoreDocument'),
   osmdContainer:document.querySelector('#osmdContainer'),
   overlay:document.querySelector('#scoreMetadataOverlay')
+});
+const scoreLayoutControls=new ScoreLayoutControls({
+  layout:scoreTextLayout,
+  toggle:document.querySelector('#layoutControlsToggle'),
+  panel:document.querySelector('#layoutControlsPanel')
 });
 const audio=new AudioEngine();
 const selection=new ScoreRangeSelection({

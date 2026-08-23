@@ -43,6 +43,7 @@ export class ScoreTextLayout {
   #layout = normalizeLayout();
   #drag = null;
   #resizeObserver = null;
+  #listeners = new Set();
 
   constructor({ documentElement, osmdContainer, overlay }) {
     this.#document = documentElement;
@@ -92,6 +93,32 @@ export class ScoreTextLayout {
     this.#overlay.style.width = `${pageRect.width}px`;
     this.#overlay.style.height = `${pageRect.height}px`;
     this.#applyPositions();
+  }
+
+  subscribe(listener) {
+    this.#listeners.add(listener);
+    try { listener(this.layout); } catch {}
+    return () => this.#listeners.delete(listener);
+  }
+
+  setLayout(patch = {}) {
+    this.#layout = normalizeLayout({
+      ...this.#layout,
+      ...patch,
+      title: { ...this.#layout.title, ...(patch.title || {}) },
+      tempo: { ...this.#layout.tempo, ...(patch.tempo || {}) },
+      composer: { ...this.#layout.composer, ...(patch.composer || {}) }
+    });
+    this.#applyPositions();
+    this.#save();
+    this.#notify();
+  }
+
+  reset() {
+    this.#layout = normalizeLayout(DEFAULT_SCORE_TEXT_LAYOUT);
+    this.#applyPositions();
+    this.#save();
+    this.#notify();
   }
 
   get layout() {
@@ -200,6 +227,7 @@ export class ScoreTextLayout {
     d.element.classList.remove('is-dragging');
     this.#drag = null;
     this.#save();
+    this.#notify();
     window.setTimeout(() => { if (!this.#drag) this.#readout.hidden = true; }, 450);
   }
 
@@ -209,6 +237,13 @@ export class ScoreTextLayout {
     else if (kind === 'composer') this.#readout.textContent = `Y ${L.composer.y.toFixed(1)} mm`;
     else this.#readout.textContent = `Y ${L.title.y.toFixed(1)} mm`;
     this.#readout.hidden = false;
+  }
+
+  #notify() {
+    const value = this.layout;
+    for (const listener of this.#listeners) {
+      try { listener(value); } catch {}
+    }
   }
 
   #load() {

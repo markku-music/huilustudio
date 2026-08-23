@@ -138,6 +138,35 @@
   </div>
 
   <main class="app" id="app" aria-hidden="true" inert>
+    <button class="layout-controls-toggle" id="layoutControlsToggle" type="button" aria-expanded="false" aria-controls="layoutControlsPanel">ASETTELU</button>
+    <section class="layout-controls-panel" id="layoutControlsPanel" aria-label="Otsikon, tempon ja säveltäjän paikat" hidden>
+      <div class="layout-controls-head">
+        <strong>Asettelu</strong>
+        <button type="button" class="layout-controls-close" data-layout-close aria-label="Sulje asettelusäädöt">×</button>
+      </div>
+      <label class="layout-control-row" data-layout-key="titleY">
+        <span>Otsikko Y</span><output>20.0 mm</output>
+        <input type="range" min="6" max="75" step="0.5" value="20" aria-label="Otsikon pystysijainti">
+      </label>
+      <label class="layout-control-row" data-layout-key="tempoX">
+        <span>Tempo X</span><output>16.0 mm</output>
+        <input type="range" min="5" max="190" step="0.5" value="16" aria-label="Tempotekstin vaakasijainti">
+      </label>
+      <label class="layout-control-row" data-layout-key="tempoY">
+        <span>Tempo Y</span><output>34.0 mm</output>
+        <input type="range" min="6" max="75" step="0.5" value="34" aria-label="Tempotekstin pystysijainti">
+      </label>
+      <label class="layout-control-row" data-layout-key="composerY">
+        <span>Säveltäjä Y</span><output>34.0 mm</output>
+        <input type="range" min="6" max="75" step="0.5" value="34" aria-label="Säveltäjän pystysijainti">
+      </label>
+      <div class="layout-controls-actions">
+        <button type="button" data-layout-reset>Palauta</button>
+        <button type="button" data-layout-copy>Kopioi JSON</button>
+      </div>
+      <div class="layout-controls-status" data-layout-status role="status" hidden></div>
+    </section>
+
     <section class="score-viewport" id="scoreViewport" aria-label="Nuottipaperi">
       <div class="score-document" id="scoreDocument">
         <div id="osmdContainer" aria-hidden="true"></div>
