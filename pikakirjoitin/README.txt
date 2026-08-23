@@ -1,20 +1,19 @@
-Pikakirjoitin 2 Core 0.24 – Tupletit
+Pikakirjoitin 2 Core 0.25 – Nuottieditointi koskettimella
 
-Pohja: Core 0.22 Kokotauko + multirest.
+Pohja: Core 0.24 Nuottieditointi / Core 0.23 Tupletit.
 
-Lisätty vanhan Pikakirjoittimen tuplet-logiikka modulaarisena:
-- peukalopalkin 3-painike = trioli
-- vaakaliu'utus oikealle valitsee kvintolin (5) tai sekstolin (6)
-- pystysuuntainen veto samasta napista siirtää peukalopalkkia kuten muista napeista
-- tupletti pysyy aktiivisena, kunnes sen nimelliskesto on täynnä
-- 3:2, 5:4 ja 6:4 time-modification MusicXML:ssä
-- tupletin numero ja hakasulku OSMD:ssä
-- tupletin palkitettavat nuotit pidetään yhtenä ryhmänä
-- 1/16- ja 1/32-sekstolin vanhan version palkitussuoja huomioitu
-- nuotit ja tauot voivat kuulua tuplettiin
-- keskeneräisen tupletin kokoa ei voi vaihtaa tai kytkeä pois ennen loppuun kirjoittamista
+Lisätty:
+- kun yksi nuotti on valittuna, kosketin jolta ele alkaa määrää nuotin uuden sävelkorkeuden
+- sama kosketinele määrää samalla uuden aika-arvon:
+  napautus = 1/4
+  alas = 1/8
+  ylös = 1/2
+  oikealle = 1/16
+  vasemmalle = 1/32
+  pitkä = 1/1
+- editoinnin aikana uusi sävel myös soi
+- koskettimella valittu uusi sävel palautuu sävellajin normaaliin enharmoniseen kirjoitusasuun
+- koko kosketinele on yksi Undo/Redo-tapahtuma
+- usean nuotin aluevalinnassa kosketinele muuttaa edelleen aika-arvoa, mutta ei pakota koko aluetta samaan sävelkorkeuteen
 
-Muut Core 0.22:n ominaisuudet säilyvät.
-
-
-0.24: Nuottieditointi: valitun nuotin/alueen kelluva ♭ ↑ ↓ ♯ roskis -palkki sekä aika-arvon muokkaus koskettimiston eleillä.
+Muut 0.24:n ominaisuudet säilyvät.

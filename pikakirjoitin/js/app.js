@@ -104,7 +104,23 @@ const keyboard=new PianoKeyboard({
     const selectedIds=selectedExistingIds();
     if(selectedIds.length){
       model.beginAction();
-      keyboardEditAction={ids:[...selectedIds]};
+      const singleNote = selectedIds.length === 1 ? model.getEntry(selectedIds[0]) : null;
+      keyboardEditAction={ids:[...selectedIds],singleNote:Boolean(singleNote?.kind==='note')};
+
+      if(singleNote?.kind==='note'){
+        // Yksittäisen valitun nuotin editoinnissa kosketin määrää korkeuden
+        // ja kosketinele aika-arvon. Uuden korkeuden kirjoitusasu palautetaan
+        // sävellajin normaaliin enharmoniseen logiikkaan.
+        model.updateEntries(selectedIds,{
+          midi:Number(midi),
+          duration,
+          spellingPreference:null
+        });
+        return { id:selectedIds[0], sound:true };
+      }
+
+      // Aluevalinnassa kosketinele voi edelleen muuttaa yhteistä aika-arvoa,
+      // mutta yhtä kosketinta ei tulkita koko alueen yhteiseksi sävelkorkeudeksi.
       model.updateEntries(selectedIds,{duration});
       return { id:selectedIds[0], sound:false };
     }
