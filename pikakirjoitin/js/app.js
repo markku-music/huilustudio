@@ -19,11 +19,11 @@ const selection=new ScoreRangeSelection({
 });
 renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
 let settings={transpose:0,keyboardStartMidi:60};
-let thumbState={dot:false,rest:false};
+let thumbState={dot:false,rest:false,tie:false};
 
 model.subscribe(notes=>renderer.render(notes));
 
-new ThumbRail({
+const thumbRail=new ThumbRail({
   rail:document.querySelector('#thumbRail'),
   boundsElement:document.querySelector('#scoreViewport'),
   onChange:state=>{ thumbState=state; }
@@ -34,10 +34,16 @@ const keyboard=new PianoKeyboard({
   rail:document.querySelector('#keyboardScrollRail'),track:document.querySelector('#keyboardScrollTrack'),thumb:document.querySelector('#keyboardScrollThumb'),
   onStart:(midi,duration)=>{
     model.beginAction();
+    const tieWasArmed=Boolean(thumbState.tie);
+    // Vanhan Pikakirjoittimen logiikka: sidekaari on kertakäyttöinen.
+    // Se kulutetaan heti seuraavaan syötettyyn tapahtumaan.
+    if(tieWasArmed) thumbRail.setToggle('tie',false);
     if(thumbState.rest){
       return { id:model.addRest({duration,dotted:thumbState.dot}), sound:false };
     }
-    return { id:model.addNote({midi,duration,dotted:thumbState.dot}), sound:true };
+    const previous=model.notes.at(-1);
+    const tieFromPrevious=Boolean(tieWasArmed && previous?.kind==='note' && Number(previous.midi)===Number(midi));
+    return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious}), sound:true };
   },
   onDuration:(id,duration)=>model.setDuration(id,duration),
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),

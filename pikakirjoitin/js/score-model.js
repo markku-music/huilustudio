@@ -53,14 +53,15 @@ export class ScoreModel {
     this.#emitHistory();
   }
 
-  addNote({ midi, duration = 'quarter', dotted = false }) {
+  addNote({ midi, duration = 'quarter', dotted = false, tieFromPrevious = false }) {
     this.#recordStandaloneMutation();
     const note = {
       id: `note-${this.#nextId++}`,
       kind: 'note',
       midi: Number(midi),
       duration,
-      dotted: Boolean(dotted)
+      dotted: Boolean(dotted),
+      tieFromPrevious: Boolean(tieFromPrevious)
     };
     this.#notes.push(note);
     this.#emit();

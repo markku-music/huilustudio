@@ -76,6 +76,7 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
   const pickupCapacity = rawPickup > 0 && rawPickup < normalCapacity ? rawPickup : 0;
 
   const measures = [createMeasure(pickupCapacity || normalCapacity)];
+  const segmentsBySource = new Map();
   let current = measures[0];
 
   const nextMeasure = () => {
@@ -108,6 +109,8 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
           tieStart: note.kind !== 'rest' && unitsAfterThisPiece > 0
         };
         current.notes.push(segment);
+        if (!segmentsBySource.has(note.id)) segmentsBySource.set(note.id, []);
+        segmentsBySource.get(note.id).push(segment);
         current.used += piece.units;
         remaining -= piece.units;
         segmentIndex += 1;
@@ -115,6 +118,21 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
 
       if (current.used >= current.capacity && remaining > 0) nextMeasure();
     }
+  }
+
+  // Käsin aseistettu sidekaari yhdistää kaksi peräkkäistä saman sävelen
+  // loogista nuottia. Automaattinen tahdinylitysside käyttää samoja tieStart/
+  // tieStop-lippuja, joten nämä kaksi tapaa voivat jatkua saumattomasti.
+  for (let i = 1; i < notes.length; i += 1) {
+    const currentNote = notes[i];
+    const previousNote = notes[i - 1];
+    if (!currentNote?.tieFromPrevious || currentNote.kind === 'rest' || previousNote?.kind === 'rest') continue;
+    if (Number(currentNote.midi) !== Number(previousNote.midi)) continue;
+    const previousSegments = segmentsBySource.get(previousNote.id) || [];
+    const currentSegments = segmentsBySource.get(currentNote.id) || [];
+    const from = previousSegments.at(-1);
+    const to = currentSegments[0];
+    if (from && to) { from.tieStart = true; to.tieStop = true; }
   }
 
   // Älä jätä ylimääräistä tyhjää tahtia loppuun, mutta säilytä aina vähintään yksi tahti.
