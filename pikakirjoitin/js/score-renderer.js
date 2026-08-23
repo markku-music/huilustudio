@@ -1,5 +1,5 @@
 import { buildMusicXml } from './musicxml.js';
-import { DEFAULT_PAGE_LAYOUT, marginsToOsmdUnits } from './page-layout.js';
+import { DEFAULT_PAGE_LAYOUT, marginsToOsmdUnits, standardEngravingRules } from './page-layout.js';
 
 export class ScoreRenderer {
   #container;
@@ -46,6 +46,7 @@ export class ScoreRenderer {
 
   setSettings(settings) {
     this.#settings = { ...settings };
+    this.#applyPageMargins();
   }
 
   subscribeRendered(listener) {
@@ -66,10 +67,34 @@ export class ScoreRenderer {
     const rules = this.#osmd.EngravingRules;
     if (!rules) return;
 
-    rules.PageTopMargin = margins.top;
+    const standard = standardEngravingRules(this.#settings, width, this.#layout, zoom);
+
+    // A4:n sivumarginaalit pysyvät 15 mm:ssä. Ylämarginaali elää vain
+    // otsikkosisällön mukaan, jotta tyhjää otsikkoaluetta ei synny.
+    rules.PageTopMargin = standard.pageTopMargin;
     rules.PageRightMargin = margins.right;
     rules.PageBottomMargin = margins.bottom;
     rules.PageLeftMargin = margins.left;
+
+    // OSMD:n oma otsikko- ja säveltäjägrafiikka: yksi vakioasettelu,
+    // ei erillisiä HTML-overlay-elementtejä.
+    rules.RenderTitle = standard.hasTitle;
+    rules.RenderComposer = standard.hasComposer;
+    rules.TitleTopDistance = standard.titleTopDistance;
+    rules.SheetTitleHeight = standard.sheetTitleHeight;
+    rules.TitleBottomDistance = standard.titleBottomDistance;
+    rules.SystemComposerDistance = standard.systemComposerDistance;
+    rules.SheetComposerHeight = standard.sheetComposerHeight;
+
+    // Järjestelmien väli mitataan nuottigrafiikan staff-space-yksiköissä.
+    // Sky/bottom-laskenta saa kasvattaa väliä sisällön vaatiessa.
+    rules.MinimumDistanceBetweenSystems = standard.minimumDistanceBetweenSystems;
+    rules.MinSkyBottomDistBetweenSystems = standard.minSkyBottomDistBetweenSystems;
+
+    // Tempoteksti pysyy ensimmäisen järjestelmän musiikin aloituskohdassa.
+    rules.InstantaneousTempoTextHeight = standard.instantaneousTempoTextHeight;
+    rules.TempoYSpacing = standard.tempoYSpacing;
+
     this.#lastMarginWidth = width;
   }
 
