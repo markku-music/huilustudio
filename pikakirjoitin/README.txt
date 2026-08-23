@@ -35,3 +35,12 @@ Core 0.11
 - Kun vaakaveto lukittuu valinnaksi, aloitus napsahtaa saman viivaston lähimpään nuotinpäähän.
 - Myös vedon loppu napsahtaa lähimpään nuotinpäähän, joten valinta laajenee nuotti kerrallaan eikä pikseli kerrallaan.
 - Pystysuuntainen veto säilyy selaimen natiivina scrollauksena.
+
+
+Core 0.12
+---------
+- Eleiden suunnantunnistus on nyt epäsymmetrinen.
+- Selvä pystyscrollaus tunnistetaan herkästi: 7 px ja y-liike yli 1,5 × x-liike.
+- Vaakavalinta käynnistyy 12 px kokonaisliikkeestä, jos elettä ei ole jo tunnistettu selväksi pystyscrollaukseksi.
+- Vaakavalinnan saa siis tehdä selvästi vinossa; 45 asteen veto ja monet sitä pystymmäksi kallistuvat vedot hyväksytään valinnaksi.
+- Kun ele on kerran päätetty scrollaukseksi tai valinnaksi, tulkintaa ei vaihdeta kesken kosketuksen.

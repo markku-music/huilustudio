@@ -1,7 +1,8 @@
 import { layoutNotesIntoMeasures } from './measure-layout.js';
 
-const DIRECTION_THRESHOLD = 11;
-const DIRECTION_DOMINANCE = 1.18;
+const SCROLL_THRESHOLD = 7;
+const SELECTION_THRESHOLD = 12;
+const VERTICAL_DOMINANCE = 1.5;
 const STAFF_EXTRA_Y = 15;
 const SAME_LINE_TOLERANCE = 1.8;
 const TAP_MOVE_TOLERANCE = 9;
@@ -191,36 +192,43 @@ export class ScoreRangeSelection {
     g.maxMove = Math.max(g.maxMove, Math.hypot(dx,dy));
 
     if (g.state === 'pending') {
-      if (Math.max(ax,ay) < DIRECTION_THRESHOLD) return;
+      const distance = Math.hypot(dx, dy);
 
-      // Pystysuunta kuuluu aina Safarille. Emme preventDefaultaa emmekä kaappaa pointeria.
-      if (ay > ax * DIRECTION_DOMINANCE) {
+      // Scrollaus saa etuoikeuden vain, kun ele on JO HYVIN selvästi pystysuuntainen.
+      // Pieni 7 px pystysuuntainen liike riittää, kun y-liike on vähintään
+      // 1,5-kertainen x-liikkeeseen verrattuna. Tällöin JavaScript luopuu eleestä
+      // heti ja Safari jatkaa natiivia pan-y-scrollausta.
+      if (ay >= SCROLL_THRESHOLD && ay > ax * VERTICAL_DOMINANCE) {
         this.#gesture = null;
         return;
       }
 
-      // Vaakavalinta voi alkaa vain viivaston alueelta.
+      // Vaakavalinnan ei tarvitse olla laser-suora. Kun liike on riittävän pitkä
+      // eikä sitä ole jo tunnistettu selväksi pystyscrollaukseksi, viivaston päältä
+      // alkanut ele hyväksytään valinnaksi myös melko voimakkaasti vinossa.
+      if (distance < SELECTION_THRESHOLD) return;
+
+      // Vaakavalinta voi alkaa vain viivaston alueelta. Muualta alkanut pidempi
+      // ele jätetään selaimen hoidettavaksi.
       if (!g.band) {
         this.#gesture = null;
         return;
       }
 
-      if (ax > ay * DIRECTION_DOMINANCE) {
-        // TARKKA ALOITUS: raakaa startX-pikseliä ei käytetä valintarajana.
-        // Aloitus napsahtaa saman viivaston lähimpään nuotinpäähän. Näin paksu
-        // sormi voi osua nuotin ympärille, eikä valinnan ensimmäinen nuotti ole
-        // kiinni muutamasta pikselistä.
-        g.anchorHead = this.#nearestHeadInBand(g.band, g.startX);
-        if (!g.anchorHead) {
-          this.#gesture = null;
-          return;
-        }
-
-        g.state = 'selecting';
-        try { this.#viewport.setPointerCapture(ev.pointerId); } catch {}
-        g.endHead = this.#nearestHeadInBand(g.band, ev.clientX) || g.anchorHead;
-        this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
+      // TARKKA ALOITUS: raakaa startX-pikseliä ei käytetä valintarajana.
+      // Aloitus napsahtaa saman viivaston lähimpään nuotinpäähän. Näin paksu
+      // sormi voi osua nuotin ympärille, eikä valinnan ensimmäinen nuotti ole
+      // kiinni muutamasta pikselistä.
+      g.anchorHead = this.#nearestHeadInBand(g.band, g.startX);
+      if (!g.anchorHead) {
+        this.#gesture = null;
+        return;
       }
+
+      g.state = 'selecting';
+      try { this.#viewport.setPointerCapture(ev.pointerId); } catch {}
+      g.endHead = this.#nearestHeadInBand(g.band, ev.clientX) || g.anchorHead;
+      this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
       return;
     }
 
