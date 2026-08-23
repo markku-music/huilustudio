@@ -41,11 +41,11 @@ button { font: inherit; }
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  padding: 12px 10px 22px;
+  padding: 12px 12px 22px;
 }
 
 .score-document {
-  width: min(100%, 860px);
+  width: 100%;
   min-height: 100%;
   margin: 0 auto;
 }
