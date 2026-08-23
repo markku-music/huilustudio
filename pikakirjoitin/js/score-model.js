@@ -11,6 +11,11 @@ export class ScoreModel {
     return this.#cloneNotes(this.#notes);
   }
 
+  getEntry(id) {
+    const entry = this.#notes.find(item => item.id === id);
+    return entry ? { ...entry } : null;
+  }
+
   get canUndo() {
     return this.#undoStack.length > 0;
   }
@@ -61,7 +66,8 @@ export class ScoreModel {
       midi: Number(midi),
       duration,
       dotted: Boolean(dotted),
-      tieFromPrevious: Boolean(tieFromPrevious)
+      tieFromPrevious: Boolean(tieFromPrevious),
+      spellingPreference: null
     };
     this.#notes.push(note);
     this.#emit();
@@ -94,6 +100,32 @@ export class ScoreModel {
     }
     this.#emit();
     this.#finishStandaloneMutation();
+  }
+
+
+  updateEntry(id, patch = {}) {
+    const entry = this.#notes.find(item => item.id === id);
+    if (!entry) return false;
+    const next = { ...entry, ...patch };
+    if (JSON.stringify(next) === JSON.stringify(entry)) return false;
+    this.#recordStandaloneMutation();
+    Object.assign(entry, patch);
+    if (entry.kind === 'rest') {
+      entry.measureRest = entry.duration === 'whole' && !Boolean(entry.dotted);
+    }
+    this.#emit();
+    this.#finishStandaloneMutation();
+    return true;
+  }
+
+  deleteEntry(id) {
+    const index = this.#notes.findIndex(item => item.id === id);
+    if (index < 0) return false;
+    this.#recordStandaloneMutation();
+    this.#notes.splice(index, 1);
+    this.#emit();
+    this.#finishStandaloneMutation();
+    return true;
   }
 
   undo() {

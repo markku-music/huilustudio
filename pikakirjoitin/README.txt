@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.22 – Kokotauko ja multirest
+Pikakirjoitin 2 Core 0.22.1 – Yhden nuotin editointi
 
 Pikakirjoitin 2 Core 0.19 – Sidekaari
 
@@ -17,3 +17,5 @@ Alennusmerkkisissä sävellajeissa mustat koskettimet kirjoitetaan alennuksina,
 ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään erikseen.
 
 0.22: Tauko + koskettimen pitkä painallus luo aina täyden tahdin kokotauon. Peräkkäiset kokotauot muodostavat eksplisiittisen MusicXML-multirestin (2, 3, 4...), ja OSMD:n oma automaattinen multirest-arvaus on pois käytöstä.
+
+0.22.1: Yhden nuotin valinta avaa kompaktin enharmonia+roskis-palkin. Valitun nuotin kosketinele muuttaa yhtä aikaa sävelkorkeuden (kosketin) ja aika-arvon (ele).

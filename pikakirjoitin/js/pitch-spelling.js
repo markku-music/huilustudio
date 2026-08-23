@@ -29,6 +29,12 @@ function leadingToneSpelling(midi, { keyMode='major', keyTonic='C' } = {}) {
   return mod(Number(midi), 12) === pc ? spelling : null;
 }
 
+function forcedSpelling(midi, preference) {
+  if (preference === 'flat') return FLATS[mod(Number(midi), 12)];
+  if (preference === 'sharp') return SHARPS[mod(Number(midi), 12)];
+  return null;
+}
+
 function useFlats(midi, index, notes, settings) {
   const keySignature = Number(settings?.keySignature) || 0;
   const leading = leadingToneSpelling(midi, settings);
@@ -52,8 +58,10 @@ function useFlats(midi, index, notes, settings) {
 }
 
 export function spellMidi(midi, { index=0, notes=[], settings={} } = {}) {
-  const leading = leadingToneSpelling(midi, settings);
-  const [step, alter] = leading || (useFlats(midi, index, notes, settings) ? FLATS : SHARPS)[mod(Number(midi), 12)];
+  const source = notes?.[index];
+  const forced = forcedSpelling(midi, source?.spellingPreference);
+  const leading = forced ? null : leadingToneSpelling(midi, settings);
+  const [step, alter] = forced || leading || (useFlats(midi, index, notes, settings) ? FLATS : SHARPS)[mod(Number(midi), 12)];
   const octave = (Number(midi) - NATURAL_PITCH_CLASS[step] - alter) / 12 - 1;
   return { step, alter, octave };
 }

@@ -132,6 +132,7 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
           segmentIndex,
           kind: note.kind === 'rest' ? 'rest' : 'note',
           midi: note.kind === 'rest' ? null : note.midi,
+          spellingPreference: note.kind === 'rest' ? null : (note.spellingPreference || null),
           duration: piece.units,
           type: piece.type,
           dots: piece.dots,
