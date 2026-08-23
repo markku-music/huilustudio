@@ -1,3 +1,7 @@
+Pikakirjoitin 2 Core 0.8 – 15 mm marginaalit
+
+Lisätty A4-nuottipaperille 15 mm marginaalit kaikille neljälle reunalle. Marginaalit ovat oma layout-asetus js/page-layout.js-tiedostossa ja muunnetaan OSMD:n sisäisiin yksiköihin sivun todellisen leveyden perusteella.
+
 Pikakirjoitin 2 Core 0.7 – Automaattinen tie
 
 Pohja: Core 0.6 Vanha aloitusikkuna.
