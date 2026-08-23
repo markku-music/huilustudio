@@ -190,7 +190,7 @@
     .barline-choice-button:disabled{opacity:.25;cursor:default}
     .app[data-work-mode="edit"] .score-area{padding-left:78px}
     .app[data-work-mode="edit"] .edit-rail,.app[data-work-mode="edit"] .selection-toolbar{display:flex}
-    .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:none}
+    .app[data-work-mode="edit"] #osmdContainer{pointer-events:auto;cursor:crosshair;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
     .app[data-work-mode="edit"] .score-title{pointer-events:none}
     .app[data-work-mode="edit"] .header-drag-handle{display:grid}
     .app[data-work-mode="edit"] .score{cursor:default}
@@ -2789,13 +2789,9 @@
     }
     function startScoreTouchLock(e){
       if(workMode!=='write')return;
+      // Yhden sormen vieritys kuuluu selaimelle. Oma kosketuslukko aktivoituu
+      // vasta kahdella tai useammalla sormella (undo / tyhjennys).
       for(const touch of e.changedTouches||[])scoreTouchIds.add(touch.identifier);
-      if(scoreTouchIds.size===1&&!scoreMultiTouchLocked){
-        const touch=(e.touches&&e.touches.length===1)?e.touches[0]:(e.changedTouches&&e.changedTouches[0]);
-        if(touch){
-          scoreSingleTouchId=touch.identifier;scoreSingleTouchStartX=touch.clientX;scoreSingleTouchStartY=touch.clientY;scoreSingleTouchScrollTop=score.scrollTop;scoreSingleTouchScrolling=false;
-        }
-      }
       if(scoreTouchIds.size>=2&&!scoreMultiTouchLocked){
         resetSingleScoreTouch();
         scoreMultiTouchLocked=true;
@@ -2819,23 +2815,13 @@
         if(e.cancelable)e.preventDefault();
         score.scrollTop=scoreMultiTouchScrollTop;
         score.scrollLeft=scoreMultiTouchScrollLeft;
-        keepOuterViewportFixed();return;
+        keepOuterViewportFixed();
+        return;
       }
-      if(scoreSingleTouchId===null||!e.touches||e.touches.length!==1)return;
-      const touch=Array.from(e.touches).find(item=>item.identifier===scoreSingleTouchId)||e.touches[0];
-      if(!touch)return;
-      const dx=touch.clientX-scoreSingleTouchStartX,dy=touch.clientY-scoreSingleTouchStartY;
-      if(!scoreSingleTouchScrolling&&Math.abs(dy)>=SCORE_SCROLL_SLOP&&Math.abs(dy)>=Math.abs(dx)){
-        scoreSingleTouchScrolling=true;scoreMoved=true;cancelWriteSelectionHold();
-      }
-      if(!scoreSingleTouchScrolling)return;
-      if(e.cancelable)e.preventDefault();
-      const maxScroll=Math.max(0,score.scrollHeight-score.clientHeight);
-      score.scrollTop=clamp(scoreSingleTouchScrollTop-dy,0,maxScroll);
-      keepOuterViewportFixed();
+      // Ei preventDefaultia eikä scrollTopin käsin muuttamista yhden sormen eleelle.
+      // Näin iPad/Safari hoitaa myös monisivuisen inertiascrollauksen itse.
     }
     function endScoreTouchLock(e){
-      const endedSingle=scoreSingleTouchId!==null&&Array.from(e.changedTouches||[]).some(touch=>touch.identifier===scoreSingleTouchId);
       for(const touch of e.changedTouches||[])scoreTouchIds.delete(touch.identifier);
       if(scoreMultiTouchLocked){
         if(e.cancelable)e.preventDefault();
@@ -2843,7 +2829,6 @@
         score.scrollLeft=scoreMultiTouchScrollLeft;
         keepOuterViewportFixed();
       }
-      if(endedSingle)resetSingleScoreTouch();
       if(!scoreTouchIds.size){
         scoreMultiTouchLocked=false;
         scoreMultiTouchScrollTop=0;
@@ -2864,7 +2849,7 @@
       writeSelectionCandidate={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:clientPointToScoreContent(e.clientX,e.clientY)};
       writeSelectionHoldTimer=setTimeout(()=>{
         const candidate=writeSelectionCandidate;if(!candidate||candidate.pointerId!==e.pointerId||workMode!=='write'||scorePointers.size!==1||scoreGesture!==0||scoreMoved)return;
-        writeSelectionHoldTimer=null;writeSelectionActive=true;writeSelectionScrollTop=score.scrollTop;writeSelectionScrollLeft=score.scrollLeft;clearWriteNoteEdit();selectionHitboxes=writeNoteHitboxes.map(item=>({...item}));selectedNoteIndices.clear();selectionDrag={pointerId:e.pointerId,start:candidate.start,current:candidate.start,moved:false};selectAtPoint(candidate.start);renderSelectionOverlay();status.textContent='Valitse kopioitava alue vetämällä';
+        writeSelectionHoldTimer=null;writeSelectionActive=true;writeSelectionScrollTop=score.scrollTop;writeSelectionScrollLeft=score.scrollLeft;clearWriteNoteEdit();selectionHitboxes=writeNoteHitboxes.map(item=>({...item}));selectedNoteIndices.clear();selectionDrag={pointerId:e.pointerId,start:candidate.start,current:candidate.start,moved:false};try{score.setPointerCapture(e.pointerId)}catch{}selectAtPoint(candidate.start);renderSelectionOverlay();status.textContent='Valitse kopioitava alue vetämällä';
       },WRITE_SELECTION_HOLD_MS);
     }
     function finishWriteSelection(e,cancelled=false){
@@ -2882,7 +2867,9 @@
       if(e.pointerType==='mouse'&&e.button!==0)return;
       if(!scorePointers.size){scoreGesture=0;scoreUndoneAction=null;scoreStartX=e.clientX;scoreStartY=e.clientY;scoreMoved=false}
       scorePointers.add(e.pointerId);
-      try{score.setPointerCapture(e.pointerId)}catch{}
+      // Älä kaappaa yhden sormen touch-pointeria: pointer capture voi estää
+      // Safarin oman pan-y-vierityksen. Hiirellä capture säilyy.
+      if(e.pointerType==='mouse'){try{score.setPointerCapture(e.pointerId)}catch{}}
       if(scorePointers.size===1)armWriteSelection(e);else cancelWriteSelectionHold();
       if(scorePointers.size>=3&&scoreGesture!==3){
         if(scoreGesture===2&&scoreUndoneAction)redoChange(scoreUndoneAction);
@@ -3097,15 +3084,23 @@
     osmdContainer.addEventListener('pointerdown',e=>{
       if(workMode!=='edit'||barlineEditModeActive||beamEditModeActive||(e.pointerType==='mouse'&&e.button!==0)||e.target.closest?.('.system-break-marker,.system-break-candidate-marker,.system-break-candidate-svg,.barline-edit-marker,.beam-edit-marker'))return;
       if(endingModeActive){beginEndingDrag(e);return}
-      e.preventDefault();e.stopPropagation();
       const start=contentPointFromPointer(e),isMouse=e.pointerType==='mouse';
+      // Stopataan vain kuplinta score-elementin elekäsittelijälle. Touchilla ei
+      // kutsuta preventDefaultia eikä pointer capturea ennen pitkää painallusta,
+      // jotta Safari saa hoitaa normaalin pystyscrollauksen.
+      e.stopPropagation();
+      if(isMouse)e.preventDefault();
       selectionDrag={pointerId:e.pointerId,start,current:start,moved:false,mode:isMouse?'select':'pending',startClientX:e.clientX,startClientY:e.clientY,scrollTop:score.scrollTop,scrollLeft:score.scrollLeft,holdTimer:null};
-      try{osmdContainer.setPointerCapture(e.pointerId)}catch{}
-      if(isMouse){selectedNoteIndices.clear();selectionClipboard=null;renderSelectionOverlay();return}
+      if(isMouse){
+        try{osmdContainer.setPointerCapture(e.pointerId)}catch{}
+        selectedNoteIndices.clear();selectionClipboard=null;renderSelectionOverlay();return;
+      }
       const drag=selectionDrag;
       drag.holdTimer=setTimeout(()=>{
         if(workMode!=='edit'||selectionDrag!==drag||drag.mode!=='pending')return;
-        drag.holdTimer=null;drag.mode='select';drag.current=contentPointFromPointer({clientX:drag.startClientX,clientY:drag.startClientY});selectedNoteIndices.clear();selectionClipboard=null;selectAtPoint(drag.start);renderSelectionOverlay();status.textContent='Valitse nuotit vetämällä';
+        drag.holdTimer=null;drag.mode='select';drag.current=contentPointFromPointer({clientX:drag.startClientX,clientY:drag.startClientY});
+        try{osmdContainer.setPointerCapture(drag.pointerId)}catch{}
+        selectedNoteIndices.clear();selectionClipboard=null;selectAtPoint(drag.start);renderSelectionOverlay();status.textContent='Valitse nuotit vetämällä';
       },EDIT_SELECTION_HOLD_MS);
     },{passive:false});
     osmdContainer.addEventListener('pointermove',e=>{
@@ -3113,21 +3108,23 @@
       const drag=selectionDrag,dx=e.clientX-drag.startClientX,dy=e.clientY-drag.startClientY,distance=Math.hypot(dx,dy);
       if(drag.mode==='pending'){
         if(distance<Math.min(SCORE_SCROLL_SLOP,EDIT_SELECTION_MOVE))return;
-        if(Math.abs(dy)>=SCORE_SCROLL_SLOP&&Math.abs(dy)>=Math.abs(dx)){drag.mode='scroll';drag.moved=true;clearEditSelectionHold(drag)}
-        else if(distance>=EDIT_SELECTION_MOVE){drag.mode='cancelled';drag.moved=true;clearEditSelectionHold(drag);return}
+        if(Math.abs(dy)>=SCORE_SCROLL_SLOP&&Math.abs(dy)>=Math.abs(dx)){
+          drag.mode='scroll-native';drag.moved=true;clearEditSelectionHold(drag);
+          // Ei preventDefaultia: selaimen oma pan-y jatkaa eleen loppuun asti.
+          return;
+        }
+        if(distance>=EDIT_SELECTION_MOVE){drag.mode='cancelled';drag.moved=true;clearEditSelectionHold(drag);return}
       }
-      if(drag.mode==='scroll'){
-        e.preventDefault();e.stopPropagation();const maxScroll=Math.max(0,score.scrollHeight-score.clientHeight);score.scrollTop=clamp(drag.scrollTop-dy,0,maxScroll);score.scrollLeft=drag.scrollLeft;keepOuterViewportFixed();return;
-      }
+      if(drag.mode==='scroll-native'||drag.mode==='cancelled')return;
       if(drag.mode!=='select')return;
-      e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||distance>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));score.scrollTop=drag.scrollTop;score.scrollLeft=drag.scrollLeft;renderSelectionOverlay();
+      if(e.cancelable)e.preventDefault();e.stopPropagation();selectionDrag.current=contentPointFromPointer(e);selectionDrag.moved=selectionDrag.moved||distance>4;if(selectionDrag.moved)selectInRectangle(normalizedRectangle(selectionDrag.start,selectionDrag.current));score.scrollTop=drag.scrollTop;score.scrollLeft=drag.scrollLeft;renderSelectionOverlay();
     },{passive:false});
     const finishSelectionGesture=(e,cancelled=false)=>{
       if(!selectionDrag||selectionDrag.pointerId!==e.pointerId)return;
       const drag=selectionDrag;clearEditSelectionHold(drag);selectionDrag=null;
       try{if(osmdContainer.hasPointerCapture(e.pointerId))osmdContainer.releasePointerCapture(e.pointerId)}catch{}
-      if(drag.mode==='scroll'||drag.mode==='cancelled'){e.stopPropagation();return}
-      e.preventDefault();e.stopPropagation();
+      if(drag.mode==='scroll-native'||drag.mode==='cancelled'){e.stopPropagation();return}
+      if(e.cancelable)e.preventDefault();e.stopPropagation();
       if(cancelled){if(drag.mode==='select'){selectedNoteIndices.clear();selectionClipboard=null}}
       else{drag.current=contentPointFromPointer(e);if(drag.mode==='select'&&drag.moved)selectInRectangle(normalizedRectangle(drag.start,drag.current));else{selectedNoteIndices.clear();selectAtPoint(drag.current)}selectionClipboard=null}
       renderSelectionOverlay();
