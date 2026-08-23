@@ -1,6 +1,6 @@
-Pikakirjoitin 2 Core 0.29 – Sävelasun valitsin
+Pikakirjoitin 2 Core 0.26 – Etumerkkieditointi
 
-Pohja: Core 0.28 Palkin katkaisu.
+Pohja: Core 0.25 Nuottieditointi korkeus + aika.
 
 Lisätty valitun nuotin ♭/♯-painikkeisiin kaksitoiminen logiikka:
 - diatoninen/naturaali nuotti + ♯ = sama kirjain ylennettynä, soiva korkeus +1/2 askelta
@@ -21,4 +21,4 @@ Core 0.27: Aluevalinnan Kopioi loppuun ja manuaalinen Palkita yhteen.
 0.28: Yksittäisen nuotin editoriin lisätty palkin katkaisu ennen valittua nuottia. Katkaisu on Undo/Redo-tallennettava ja voittaa automaattisen, tupletti- ja manuaalisen palkituksen kyseisessä rajassa.
 
 
-0.29: Yksittäisen nuotin työkalupaneelista poistettu ylös/alas-nuolet. Erilliset ♭/♯-napit korvattu yhdellä sävelasun valitsimella: naturaali sävel tarjoaa saman kirjainnimen ♭ / naturaali / ♯ -vaihtoehdot, muunnettu sävel saman soivan korkeuden tavalliset enharmoniset kirjoitusasut. Palkin katkaisu ja roskis säilyvät.
+0.28.1: Yksittäisen nuotin työkalupalkista poistettu ylös/alas-nuolet. Erilliset ♭/♯-napit on koottu yhdeksi ♭♯-napiksi. Napautus vaihtaa saman työkalupalkin sisällön näkymään ♭ | ♯ | ← ilman erillistä popupia, joten valinta mahtuu myös ensimmäisen nuottirivin kohdalla. 0.28:n etumerkki- ja enharmoninen logiikka säilyy muuttumattomana.

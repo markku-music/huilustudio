@@ -7,7 +7,7 @@ import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { TupletController } from './tuplet-controller.js';
 import { SelectionEditor } from './selection-editor.js';
-import { getSpellingChoices } from './pitch-spelling.js';
+import { applyAccidental } from './pitch-spelling.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -32,18 +32,18 @@ function selectedExistingIds() {
   return selection.selectedIds.filter(id => model.getEntry(id));
 }
 
+function editSelectedNotes(updater) {
+  const ids=selectedExistingIds();
+  if(!ids.length) return false;
+  return model.updateEntries(ids,(entry,index,all)=>{
+    if(entry.kind!=='note') return null;
+    return updater(entry,index,all);
+  });
+}
+
 const selectionEditor=new SelectionEditor({
-  onSpellingChoice:choice=>{
-    const ids=selectedExistingIds();
-    if(ids.length!==1)return;
-    const entry=model.getEntry(ids[0]);
-    if(entry?.kind!=='note')return;
-    model.updateEntry(ids[0],{
-      midi:Number(choice.midi),
-      spellingPreference:null,
-      spellingOverride:choice.spellingOverride ? {...choice.spellingOverride} : null
-    });
-  },
+  onFlat:()=>editSelectedNotes((entry,index,all)=>applyAccidental(entry.midi,'flat',{index,notes:all,settings})),
+  onSharp:()=>editSelectedNotes((entry,index,all)=>applyAccidental(entry.midi,'sharp',{index,notes:all,settings})),
   onDelete:()=>{
     const ids=selectedExistingIds();
     if(!ids.length)return;
@@ -74,11 +74,6 @@ selection.subscribe(state=>{
   const entries=state.selectedIds.map(id=>model.getEntry(id)).filter(Boolean);
   const noteCount=entries.filter(entry=>entry.kind==='note').length;
   const singleEntry=entries.length===1?entries[0]:null;
-  const allNotes=model.notes;
-  const singleIndex=singleEntry ? allNotes.findIndex(entry=>entry.id===singleEntry.id) : -1;
-  const spellingOptions=singleEntry?.kind==='note'
-    ? getSpellingChoices(singleEntry.midi,{index:singleIndex,notes:allNotes,settings})
-    : [];
   selectionEditor.update({
     visible:Boolean(entries.length && state.anchor),
     x:state.anchor?.x||0,
@@ -86,7 +81,7 @@ selection.subscribe(state=>{
     staffBottom:state.anchor?.staffBottom||0,
     noteCount,
     selectionCount:entries.length,
-    spellingOptions,
+    selectionKey:state.selectedIds.join('|'),
     beamBreakEnabled:Boolean(singleEntry && model.canToggleBeamBreakBefore(singleEntry.id)),
     beamBreakActive:Boolean(singleEntry?.manualBeamBreakBefore)
   });

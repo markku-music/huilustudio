@@ -2,21 +2,19 @@ export class SelectionEditor {
   #root;
   #buttons = new Map();
   #handlers;
-  #spellingPopover;
-  #spellingOptions = [];
+  #view = 'primary';
+  #lastState = {};
+  #selectionKey = '';
 
-  constructor({ onDelete, onCopyToEnd, onBeam, onBeamBreak, onSpellingChoice } = {}) {
+  constructor({ onFlat, onSharp, onDelete, onCopyToEnd, onBeam, onBeamBreak } = {}) {
     const root = document.createElement('div');
     root.className = 'pk-selection-editor';
     root.hidden = true;
     root.setAttribute('role', 'toolbar');
     root.setAttribute('aria-label', 'Nuotin muokkaus');
     root.innerHTML = `
-      <button type="button" data-action="spelling" data-mode="single" aria-label="Valitse sävelasu" aria-haspopup="listbox" aria-expanded="false" class="is-spelling">
-        <span class="spelling-current">♯/♭</span>
-        <svg class="spelling-chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M2 2l4 4 4-4"/></svg>
-      </button>
-      <button type="button" data-action="beam-break" data-mode="single" aria-label="Katkaise palkki ennen valittua nuottia" aria-pressed="false" class="is-beam-break">
+      <button type="button" data-action="accidental-menu" data-mode="single" data-view="primary" aria-label="Etumerkki ja enharmoninen kirjoitusasu" class="is-accidental-menu"><span aria-hidden="true">♭♯</span></button>
+      <button type="button" data-action="beam-break" data-mode="single" data-view="primary" aria-label="Katkaise palkki ennen valittua nuottia" aria-pressed="false" class="is-beam-break">
         <svg viewBox="0 0 30 24" aria-hidden="true">
           <path d="M4 5v14M12 5v14M18 5v14M26 5v14"/>
           <path d="M4 6h8v4H4zM18 6h8v4h-8z"/>
@@ -27,74 +25,78 @@ export class SelectionEditor {
           <path class="beam-cut-mark" d="M15 3v9"/>
         </svg>
       </button>
-      <button type="button" data-action="delete" data-mode="both" aria-label="Poista valinta" class="is-delete">
+      <button type="button" data-action="delete" data-mode="both" data-view="primary" aria-label="Poista valinta" class="is-delete">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5l1-2h4l1 2m3 0-1 16H7L6 5"/></svg>
       </button>
-      <button type="button" data-action="copy" data-mode="range" aria-label="Kopioi valittu jakso kappaleen loppuun" class="is-range-action">
+      <button type="button" data-action="copy" data-mode="range" data-view="primary" aria-label="Kopioi valittu jakso kappaleen loppuun" class="is-range-action">
         <svg viewBox="0 0 28 24" aria-hidden="true"><rect x="2.5" y="5" width="9" height="13" rx="1.5"/><rect x="8" y="2" width="9" height="13" rx="1.5"/><path d="M18.5 12h6m-2.5-2.5L24.5 12 22 14.5"/></svg>
       </button>
-      <button type="button" data-action="beam" data-mode="range" aria-label="Palkita valitut nuotit yhteen" class="is-range-action is-beam">
+      <button type="button" data-action="beam" data-mode="range" data-view="primary" aria-label="Palkita valitut nuotit yhteen" class="is-range-action is-beam">
         <svg viewBox="0 0 28 24" aria-hidden="true"><path d="M5 5v14M13 5v14M21 5v14M5 6h16v4H5z"/><ellipse cx="3.6" cy="18.5" rx="3" ry="2.2" transform="rotate(-18 3.6 18.5)"/><ellipse cx="11.6" cy="18.5" rx="3" ry="2.2" transform="rotate(-18 11.6 18.5)"/><ellipse cx="19.6" cy="18.5" rx="3" ry="2.2" transform="rotate(-18 19.6 18.5)"/></svg>
       </button>
-      <div class="pk-spelling-popover" role="listbox" aria-label="Sävelasun vaihtoehdot" hidden></div>`;
+
+      <button type="button" data-action="flat" data-mode="single" data-view="accidental" aria-label="Alenna tai kirjoita enharmonisesti alennusmerkkisenä" class="is-accidental-choice">♭</button>
+      <button type="button" data-action="sharp" data-mode="single" data-view="accidental" aria-label="Ylennä tai kirjoita enharmonisesti ylennysmerkkisenä" class="is-accidental-choice">♯</button>
+      <button type="button" data-action="accidental-back" data-mode="single" data-view="accidental" aria-label="Palaa nuotin työkaluihin" class="is-editor-back">←</button>`;
     document.body.appendChild(root);
     this.#root = root;
-    this.#spellingPopover = root.querySelector('.pk-spelling-popover');
-    for (const button of root.querySelectorAll(':scope > button[data-action]')) this.#buttons.set(button.dataset.action, button);
+    for (const button of root.querySelectorAll('button')) this.#buttons.set(button.dataset.action, button);
 
-    this.#handlers = { delete:onDelete, copy:onCopyToEnd, beam:onBeam, 'beam-break':onBeamBreak, spelling:onSpellingChoice };
+    this.#handlers = { flat:onFlat, sharp:onSharp, delete:onDelete, copy:onCopyToEnd, beam:onBeam, 'beam-break':onBeamBreak };
     root.addEventListener('pointerdown', event => event.stopPropagation());
     root.addEventListener('click', event => {
-      const choice = event.target.closest('button[data-spelling-index]');
-      if (choice) {
-        event.preventDefault();
-        event.stopPropagation();
-        const option = this.#spellingOptions[Number(choice.dataset.spellingIndex)];
-        this.#closeSpelling();
-        if (option) this.#handlers.spelling?.(option);
-        return;
-      }
-
       const button = event.target.closest('button[data-action]');
       if (!button || button.disabled) return;
       event.preventDefault();
       event.stopPropagation();
-      if (button.dataset.action === 'spelling') {
-        this.#toggleSpelling();
+
+      const action = button.dataset.action;
+      if (action === 'accidental-menu') {
+        this.#view = 'accidental';
+        this.#renderState();
         return;
       }
-      this.#closeSpelling();
-      this.#handlers[button.dataset.action]?.();
-    });
+      if (action === 'accidental-back') {
+        this.#view = 'primary';
+        this.#renderState();
+        return;
+      }
 
-    document.addEventListener('pointerdown', event => {
-      if (!this.#root.hidden && !this.#root.contains(event.target)) this.#closeSpelling();
-    }, true);
+      this.#handlers[action]?.();
+      if (action === 'flat' || action === 'sharp') {
+        this.#view = 'primary';
+        this.#renderState();
+      }
+    });
   }
 
-  update({ visible=false, x=0, staffTop=0, staffBottom=0, noteCount=0, selectionCount=0, beamBreakEnabled=false, beamBreakActive=false, spellingOptions=[] } = {}) {
+  #renderState() {
+    const {
+      visible=false, x=0, staffTop=0, staffBottom=0,
+      noteCount=0, selectionCount=0,
+      beamBreakEnabled=false, beamBreakActive=false
+    } = this.#lastState;
+
     if (!visible) {
-      this.#closeSpelling();
       this.#root.hidden = true;
       return;
     }
 
     const rangeMode = selectionCount > 1;
-    if (rangeMode) this.#closeSpelling();
+    if (rangeMode) this.#view = 'primary';
+
     for (const button of this.#buttons.values()) {
       const mode = button.dataset.mode || 'both';
-      button.hidden = mode === 'single' ? rangeMode : mode === 'range' ? !rangeMode : false;
+      const view = button.dataset.view || 'primary';
+      const modeMatches = mode === 'both' || (mode === 'single' ? !rangeMode : rangeMode);
+      button.hidden = !modeMatches || view !== this.#view;
     }
 
-    const spelling = this.#buttons.get('spelling');
-    this.#spellingOptions = Array.isArray(spellingOptions) ? spellingOptions : [];
-    if (spelling && !spelling.hidden) {
-      const current = this.#spellingOptions.find(option => option.current) || this.#spellingOptions[0];
-      spelling.disabled = noteCount !== 1 || !current;
-      const label = current?.label || '♯/♭';
-      spelling.querySelector('.spelling-current').textContent = label;
-      spelling.setAttribute('aria-label', `Valitse sävelasu, nykyinen ${label}`);
-      this.#renderSpellingOptions();
+    const accidentalMenu = this.#buttons.get('accidental-menu');
+    if (accidentalMenu && !accidentalMenu.hidden) accidentalMenu.disabled = noteCount <= 0;
+    for (const key of ['flat','sharp']) {
+      const button = this.#buttons.get(key);
+      if (button && !button.hidden) button.disabled = noteCount <= 0;
     }
 
     const beam = this.#buttons.get('beam');
@@ -106,50 +108,34 @@ export class SelectionEditor {
       beamBreak.setAttribute('aria-pressed', beamBreakActive ? 'true' : 'false');
     }
 
-    this.#root.setAttribute('aria-label', rangeMode ? 'Alueen muokkaus' : 'Nuotin muokkaus');
+    this.#root.setAttribute(
+      'aria-label',
+      rangeMode ? 'Alueen muokkaus' : this.#view === 'accidental' ? 'Etumerkin valinta' : 'Nuotin muokkaus'
+    );
     this.#root.hidden = false;
-    const width = this.#root.offsetWidth || (rangeMode ? 156 : 146);
+
+    const width = this.#root.offsetWidth || 136;
     const half = width / 2;
     this.#root.style.left = `${Math.max(half + 6, Math.min(window.innerWidth - half - 6, x))}px`;
 
-    const height = this.#root.offsetHeight || 48;
+    const height = this.#root.offsetHeight || 52;
     const above = staffTop - height - 34;
-    const placeAbove = above >= 6;
-    const top = placeAbove ? above : Math.min(window.innerHeight - height - 6, staffBottom + 10);
-    this.#root.classList.toggle('is-above-staff', placeAbove);
+    const top = above >= 6 ? above : Math.min(window.innerHeight - height - 6, staffBottom + 10);
     this.#root.style.top = `${Math.max(6, top)}px`;
   }
 
-  #renderSpellingOptions() {
-    if (!this.#spellingPopover) return;
-    this.#spellingPopover.replaceChildren();
-    this.#spellingOptions.forEach((option, index) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.spellingIndex = String(index);
-      button.className = 'pk-spelling-choice';
-      button.setAttribute('role', 'option');
-      button.setAttribute('aria-selected', option.current ? 'true' : 'false');
-      button.textContent = option.label;
-      this.#spellingPopover.appendChild(button);
-    });
-  }
-
-  #toggleSpelling() {
-    const button = this.#buttons.get('spelling');
-    if (!button || button.disabled || !this.#spellingOptions.length) return;
-    const opening = this.#spellingPopover.hidden;
-    this.#spellingPopover.hidden = !opening;
-    button.setAttribute('aria-expanded', opening ? 'true' : 'false');
-  }
-
-  #closeSpelling() {
-    if (this.#spellingPopover) this.#spellingPopover.hidden = true;
-    this.#buttons.get('spelling')?.setAttribute('aria-expanded', 'false');
+  update(state = {}) {
+    const nextKey = String(state.selectionKey || '');
+    if (nextKey !== this.#selectionKey) {
+      this.#selectionKey = nextKey;
+      this.#view = 'primary';
+    }
+    this.#lastState = { ...state };
+    this.#renderState();
   }
 
   hide() {
-    this.#closeSpelling();
+    this.#view = 'primary';
     this.#root.hidden = true;
   }
 }
