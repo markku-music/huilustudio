@@ -13,6 +13,12 @@ export class ScoreRenderer {
   #resizeTimer = 0;
   #lastMarginWidth = 0;
   #renderListeners = new Set();
+  #textLayout = {
+    TitleTopDistance: 5,
+    TempoYSpacing: 0.5,
+    SystemComposerDistance: 2,
+    tempoOffsetDivisions: 0
+  };
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
     this.#container = container;
@@ -48,6 +54,23 @@ export class ScoreRenderer {
     this.#settings = { ...settings };
   }
 
+  setTextLayout(layout = {}, { render = true } = {}) {
+    const next = { ...this.#textLayout };
+    for (const key of ['TitleTopDistance', 'TempoYSpacing', 'SystemComposerDistance']) {
+      const value = Number(layout[key]);
+      if (Number.isFinite(value)) next[key] = value;
+    }
+    const offset = Number(layout.tempoOffsetDivisions);
+    if (Number.isFinite(offset)) next.tempoOffsetDivisions = Math.max(0, Math.round(offset));
+    this.#textLayout = next;
+    this.#applyTextLayoutRules();
+    if (render && (this.#lastNotes.length || this.#container.childElementCount)) this.render(this.#lastNotes);
+  }
+
+  getTextLayout() {
+    return { ...this.#textLayout };
+  }
+
   subscribeRendered(listener) {
     this.#renderListeners.add(listener);
     return () => this.#renderListeners.delete(listener);
@@ -71,6 +94,14 @@ export class ScoreRenderer {
     rules.PageBottomMargin = margins.bottom;
     rules.PageLeftMargin = margins.left;
     this.#lastMarginWidth = width;
+  }
+
+  #applyTextLayoutRules() {
+    const rules = this.#osmd.EngravingRules;
+    if (!rules) return;
+    rules.TitleTopDistance = this.#textLayout.TitleTopDistance;
+    rules.TempoYSpacing = this.#textLayout.TempoYSpacing;
+    rules.SystemComposerDistance = this.#textLayout.SystemComposerDistance;
   }
 
   #watchWidth() {
@@ -97,8 +128,11 @@ export class ScoreRenderer {
         const notes = this.#pending;
         this.#pending = null;
         this.#applyPageMargins();
-        await this.#osmd.load(buildMusicXml(notes, this.#settings));
+        this.#applyTextLayoutRules();
+        const xmlSettings = { ...this.#settings, tempoOffsetDivisions: this.#textLayout.tempoOffsetDivisions };
+        await this.#osmd.load(buildMusicXml(notes, xmlSettings));
         this.#applyPageMargins();
+        this.#applyTextLayoutRules();
         await this.#osmd.render();
         const snapshot = {
           notes: notes.map(note => ({ ...note })),

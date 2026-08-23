@@ -55,7 +55,8 @@ export function buildMusicXml(notes, settings={}){
   const multiRestStarts = explicitMultiRestRuns(measures);
   const xmlMeasures=measures.map((measure,index)=>{
     const attr=attributesXml({ index, settings, beats, beatType, multiRestCount: multiRestStarts.get(index) || 0 });
-    const tempo=index===0&&settings.tempoText?`<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type></direction>`:'';
+    const tempoOffset=Math.max(0,Math.round(Number(settings.tempoOffsetDivisions)||0));
+    const tempo=index===0&&settings.tempoText?`<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type>${tempoOffset?`<offset>${tempoOffset}</offset>`:''}</direction>`:'';
     const beamTags=beamTagsForMeasure(measure.notes, beats, beatType, { osmdCompatible: true });
     const content=measure.notes.length?measure.notes.map((note,noteIndex)=>noteXml(note,beamTags[noteIndex],noteIndex,measure.notes,settings)).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
     const number=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'';
