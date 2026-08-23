@@ -1,8 +1,11 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.76-natiivi-scrollaus-korjattu';
+const CACHE_NAME = 'pikakirjoitin-offline-ref1-1.1.76-rakenne';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './css/app.css',
+  './js/app.js',
+  './js/pwa-update.js',
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
