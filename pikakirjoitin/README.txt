@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.1
+Pikakirjoitin 2 Core 0.2
 ========================
 
 Tarkoitus
@@ -8,6 +8,19 @@ Puhdas kirjoitusydin, jossa on vain:
 - viiden oktaavin koskettimisto
 - koskettimiston vaakasiirto
 - perusnuottien syöttö
+- iPad-yhteensopiva jatkuva Web Audio -ääni
+
+Ääni
+----
+Ensimmäinen koskettimen pointerdown:
+- luo AudioContextin
+- luo yhden pysyvän triangle-oskillaattorin ja gain-solmun
+- käynnistää oscillatorin kerran
+- kutsuu AudioContext.resume() samassa käyttäjäeleessä
+- soittaa jo ensimmäisen painetun sävelen
+
+Seuraavilla sävelillä oskillaattoria ei luoda uudelleen. Vain sen taajuutta ja
+gainia muutetaan. Äänimoottori on omassa js/audio-engine.js-moduulissaan.
 
 Koskettimiston eleet
 --------------------
@@ -20,7 +33,3 @@ Nuottipaperi
 ------------
 Nuottipaperilla ei ole JavaScript-eleitä. Yhden sormen pystysuuntainen vieritys
 on kokonaan selaimen/iPadOS:n natiivia scrollausta.
-
-Tässä versiossa EI ole Muokkaa-, Julkaise-, projekti-, PDF-, MusicXML-export-,
-peukalopalkki-, sävellaji-, tahtiosoitus- tai soitinasetuksia.
-Perusasetukset ovat G-avain, C-duuri ja 4/4.
