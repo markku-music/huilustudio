@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.22.7.2 – OSMD tekstiasettelu
+Pikakirjoitin 2 Core 0.22.1 – Yhden nuotin editointi
 
 Pikakirjoitin 2 Core 0.19 – Sidekaari
 
@@ -33,6 +33,3 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 
 0.22.7: Enharmoninen nappi piilotetaan, kun valitun nuotin nykyinen kirjoitusasu on sävellajin normaali diatoninen asu (esim. Es Es-duurissa, Fis D-duurissa). Poikkeava enharmoninen kirjoitusasu voi edelleen näyttää napin.
-
-
-0.22.7.2: Lisätty väliaikainen OSMD-tekstiasettelupaneeli. Otsikko Y säätää EngravingRules.TitleTopDistance-arvoa, Tempo Y EngravingRules.TempoYSpacing-arvoa ja Säveltäjä Y EngravingRules.SystemComposerDistance-arvoa. Tempo X käyttää MusicXML-directionin offsetia (quarter note = 16 divisions), koska tässä OSMD-versiossa sanalliselle tempotekstille ei ole yleistä TempoXShift-EngravingRulea. Paneeli sisältää Palauta- ja Kopioi JSON -toiminnot ja tallentaa kokeiluarvot localStorageen.

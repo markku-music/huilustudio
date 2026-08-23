@@ -7,7 +7,6 @@ import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
 import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
-import { OsmdTextLayoutControls } from './osmd-text-layout-controls.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -15,10 +14,6 @@ app.setAttribute('aria-hidden','true');
 
 const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
-new OsmdTextLayoutControls({
-  root: document.querySelector('#scoreViewport'),
-  renderer
-});
 const audio=new AudioEngine();
 const selection=new ScoreRangeSelection({
   viewport:document.querySelector('#scoreViewport'),
