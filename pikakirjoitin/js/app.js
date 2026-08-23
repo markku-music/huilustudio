@@ -5,6 +5,7 @@ import { PianoKeyboard } from './keyboard.js';
 import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
+import { TupletController } from './tuplet-controller.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -19,14 +20,38 @@ const selection=new ScoreRangeSelection({
 });
 renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
 let settings={transpose:0,keyboardStartMidi:60};
-let thumbState={dot:false,rest:false,tie:false};
+let thumbState={dot:false,rest:false,tie:false,tuplet:0};
+let warningTimer=0;
 
 model.subscribe(notes=>renderer.render(notes));
 
-const thumbRail=new ThumbRail({
+const warning=document.querySelector('#tupletWarning');
+function showTupletWarning(message){
+  if(!warning)return;
+  window.clearTimeout(warningTimer);
+  warning.textContent=message;
+  const tripletRect=document.querySelector('#tripletButton')?.getBoundingClientRect();
+  warning.style.top=`${Math.max(42,Math.min(window.innerHeight-70,(tripletRect?.top||70)+8))}px`;
+  warning.hidden=false;
+  requestAnimationFrame(()=>warning.classList.add('visible'));
+  warningTimer=window.setTimeout(()=>{
+    warning.classList.remove('visible');
+    window.setTimeout(()=>{if(!warning.classList.contains('visible'))warning.hidden=true;},150);
+  },1450);
+}
+
+let thumbRail;
+const tuplet=new TupletController({
+  model,
+  onStateChange:state=>thumbRail?.setTuplet(state.active?state.size:0),
+  onWarning:showTupletWarning
+});
+
+thumbRail=new ThumbRail({
   rail:document.querySelector('#thumbRail'),
   boundsElement:document.querySelector('#scoreViewport'),
-  onChange:state=>{ thumbState=state; }
+  onChange:state=>{ thumbState=state; },
+  onTupletRequest:size=>tuplet.request(size)
 });
 
 const keyboard=new PianoKeyboard({
@@ -35,22 +60,27 @@ const keyboard=new PianoKeyboard({
   onStart:(midi,duration)=>{
     model.beginAction();
     const tieWasArmed=Boolean(thumbState.tie);
-    // Vanhan Pikakirjoittimen logiikka: sidekaari on kertakäyttöinen.
-    // Se kulutetaan heti seuraavaan syötettyyn tapahtumaan.
     if(tieWasArmed) thumbRail.setToggle('tie',false);
+    const tupletMeta=tuplet.metadataForNewEntry();
     if(thumbState.rest){
-      return { id:model.addRest({duration,dotted:thumbState.dot}), sound:false };
+      return { id:model.addRest({duration,dotted:thumbState.dot,tuplet:tupletMeta}), sound:false };
     }
     const previous=model.notes.at(-1);
     const tieFromPrevious=Boolean(tieWasArmed && previous?.kind==='note' && Number(previous.midi)===Number(midi));
-    return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious}), sound:true };
+    return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious,tuplet:tupletMeta}), sound:true };
   },
   onDuration:(id,duration)=>model.setDuration(id,duration),
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),
   onSoundStop:()=>audio.noteOff(),
-  onFinish:()=>model.endAction()
+  onFinish:id=>{
+    const result=tuplet.finishEntry(id);
+    if(!result.ok){ model.cancelAction(); return; }
+    model.endAction();
+    if(result.completed && result.historyGroup){
+      model.collapseRecentActions(result.historyGroup.actionCount,result.historyGroup.beforeSnapshot);
+    }
+  }
 });
-
 
 const undoButton=document.querySelector('#undoButton');
 const redoButton=document.querySelector('#redoButton');
@@ -61,10 +91,10 @@ model.subscribeHistory(({canUndo,canRedo})=>{
 });
 
 undoButton.addEventListener('click',()=>{
-  if(model.undo()) selection.clear();
+  if(model.undo()){ selection.clear(); tuplet.syncFromModel(); }
 });
 redoButton.addEventListener('click',()=>{
-  if(model.redo()) selection.clear();
+  if(model.redo()){ selection.clear(); tuplet.syncFromModel(); }
 });
 
 new StartScreen({
@@ -78,5 +108,3 @@ new StartScreen({
 });
 
 // Nuottialueen pystyscrollaus on edelleen täysin natiivi.
-// Paperilla: kosketus tapahtumaan valitsee heti, vaakaveto laajentaa valintaa,
-// pystysuuntainen veto jää selaimen natiiviksi scrollaukseksi.

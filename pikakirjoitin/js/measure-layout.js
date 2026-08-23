@@ -1,4 +1,4 @@
-export const DIVISIONS = 16;
+export const DIVISIONS = 480;
 
 export const DURATION_UNITS = Object.freeze({
   'thirty-second': 1,
@@ -24,6 +24,11 @@ const NOTATABLE = Object.freeze([
   { units: 0.5, type: '64th', dots: 0 }
 ]);
 
+const TYPE_BY_DURATION = Object.freeze({
+  whole: 'whole', half: 'half', quarter: 'quarter', eighth: 'eighth',
+  sixteenth: '16th', 'thirty-second': '32nd'
+});
+
 export function timeSignatureParts(value = '4/4') {
   if (value === 'C') return [4, 4];
   if (value === 'cutC') return [2, 2];
@@ -41,20 +46,35 @@ export function durationUnits(duration, dotted = false) {
   return dotted ? base * 1.5 : base;
 }
 
+export function tupletNormalNotes(size) {
+  return Number(size) === 5 || Number(size) === 6 ? 4 : 2;
+}
+
+export function actualDurationUnits(note) {
+  const nominal = durationUnits(note?.duration, note?.dotted);
+  if (!note?.tupletId) return nominal;
+  const actual = [3,5,6].includes(Number(note.tupletSize)) ? Number(note.tupletSize) : 3;
+  const normal = Number(note.tupletNormalNotes) || tupletNormalNotes(actual);
+  return nominal * normal / actual;
+}
+
+export function musicXmlDuration(units) {
+  return Math.round(Number(units) * (DIVISIONS / 8));
+}
+
 function notationParts(units) {
   let remaining = units;
   const parts = [];
 
   for (const notation of NOTATABLE) {
-    while (remaining >= notation.units) {
+    while (remaining >= notation.units - 1e-7) {
       parts.push({ ...notation });
       remaining -= notation.units;
+      if (Math.abs(remaining) < 1e-7) remaining = 0;
     }
   }
 
-  if (remaining !== 0) {
-    throw new Error(`Kestoa ${units} ei voi esittää nykyisillä nuottiarvoilla.`);
-  }
+  if (Math.abs(remaining) > 1e-7) throw new Error(`Kestoa ${units} ei voi esittää nykyisillä nuottiarvoilla.`);
   return parts;
 }
 
@@ -62,13 +82,21 @@ function createMeasure(capacity) {
   return { capacity, used: 0, notes: [], explicitMeasureRest: false };
 }
 
+function copyTupletMetadata(source, target) {
+  if (!source?.tupletId) return target;
+  target.tupletId = source.tupletId;
+  target.tupletIndex = Number(source.tupletIndex) || 0;
+  target.tupletSize = [3,5,6].includes(Number(source.tupletSize)) ? Number(source.tupletSize) : 3;
+  target.tupletNormalNotes = Number(source.tupletNormalNotes) || tupletNormalNotes(target.tupletSize);
+  const base = Number(source.tupletBaseUnits);
+  if (Number.isFinite(base) && base > 0) target.tupletBaseUnits = base;
+  return target;
+}
 
 /**
- * Muuttaa ScoreModelin loogiset nuotit tahteihin mahtuviksi segmenteiksi.
- * Jos nuotti ylittää tahtirajan, se jatkuu seuraavaan tahtiin tie-kaarella.
- * Sama looginen nuotti voi poikkeustapauksessa jakautua myös useaan
- * nuottikuvaan yhden tahdin sisällä, jos tahdissa jäljellä oleva kesto
- * ei vastaa yhtä tavallista aika-arvoa.
+ * Muuttaa ScoreModelin loogiset tapahtumat tahteihin mahtuviksi segmenteiksi.
+ * Tavalliset nuotit voidaan jakaa tahtirajalla sidekaarella. Tupletti säilyttää
+ * oman nimellisarvonsa, mutta vie tahdista time-modification-suhteen mukaisen ajan.
  */
 export function layoutNotesIntoMeasures(notes, settings = {}) {
   const [beats, beatType] = timeSignatureParts(settings.timeSignature);
@@ -85,41 +113,57 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
     measures.push(current);
   };
 
+  const rememberSegment = (sourceId, segment) => {
+    current.notes.push(segment);
+    if (!segmentsBySource.has(sourceId)) segmentsBySource.set(sourceId, []);
+    segmentsBySource.get(sourceId).push(segment);
+  };
+
   for (const note of notes) {
-    // Kokotauko on tahditauko, ei tavallinen neljän neljäsosan mittainen tauko.
-    // Vanhan Pikakirjoittimen tavoin se saa aina oman tahdin ja täyttää
-    // kyseisen tahdin todellisen kapasiteetin tahtilajista riippumatta.
-    if (note.kind === 'rest' && note.measureRest) {
-      // Peukalopalkin Tauko + koskettimen pitkä painallus tarkoittaa aina
-      // KOKO TAHDIN taukoa, riippumatta tahtilajista. Se ei siis koskaan
-      // täytä mahdollista kohotahtia, vaan aloittaa tarvittaessa uuden
-      // normaalimittaisen tahdin.
+    // Tauko + pitkä painallus ilman tuplettia = koko tahdin tauko.
+    if (note.kind === 'rest' && note.measureRest && !note.tupletId) {
       if (current.notes.length > 0 || current.used > 0 || current.capacity !== normalCapacity) nextMeasure();
       current.explicitMeasureRest = true;
       const segment = {
+        sourceId: note.id, segmentIndex: 0, kind: 'rest', midi: null,
+        duration: normalCapacity, type: 'whole', dots: 0, measureRest: true,
+        tieStop: false, tieStart: false
+      };
+      rememberSegment(note.id, segment);
+      current.used = normalCapacity;
+      continue;
+    }
+
+    // Tuplettitapahtuma pidetään yhtenä nuottikuvana. Sen visuaalinen type/dot
+    // on nimellisarvo, mutta tahdista kulutetaan tuplettisuhteen mukainen aika.
+    if (note.tupletId) {
+      const actualUnits = actualDurationUnits(note);
+      if (current.used >= current.capacity - 1e-7) nextMeasure();
+      if (current.notes.length > 0 && current.used + actualUnits > current.capacity + 1e-7) nextMeasure();
+
+      const segment = copyTupletMetadata(note, {
         sourceId: note.id,
         segmentIndex: 0,
-        kind: 'rest',
-        midi: null,
-        duration: normalCapacity,
-        type: 'whole',
-        dots: 0,
-        measureRest: true,
+        kind: note.kind === 'rest' ? 'rest' : 'note',
+        midi: note.kind === 'rest' ? null : note.midi,
+        duration: actualUnits,
+        nominalDuration: durationUnits(note.duration, note.dotted),
+        type: TYPE_BY_DURATION[note.duration] || 'quarter',
+        dots: note.dotted ? 1 : 0,
+        measureRest: false,
         tieStop: false,
         tieStart: false
-      };
-      current.notes.push(segment);
-      if (!segmentsBySource.has(note.id)) segmentsBySource.set(note.id, []);
-      segmentsBySource.get(note.id).push(segment);
-      current.used = normalCapacity;
+      });
+      rememberSegment(note.id, segment);
+      current.used += actualUnits;
       continue;
     }
 
     let remaining = durationUnits(note.duration, note.dotted);
     let segmentIndex = 0;
 
-    while (remaining > 0) {
-      if (current.used >= current.capacity) nextMeasure();
+    while (remaining > 1e-7) {
+      if (current.used >= current.capacity - 1e-7) nextMeasure();
 
       const available = current.capacity - current.used;
       const chunk = Math.min(remaining, available);
@@ -136,23 +180,19 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
           type: piece.type,
           dots: piece.dots,
           tieStop: note.kind !== 'rest' && segmentIndex > 0,
-          tieStart: note.kind !== 'rest' && unitsAfterThisPiece > 0
+          tieStart: note.kind !== 'rest' && unitsAfterThisPiece > 1e-7
         };
-        current.notes.push(segment);
-        if (!segmentsBySource.has(note.id)) segmentsBySource.set(note.id, []);
-        segmentsBySource.get(note.id).push(segment);
+        rememberSegment(note.id, segment);
         current.used += piece.units;
         remaining -= piece.units;
         segmentIndex += 1;
       }
 
-      if (current.used >= current.capacity && remaining > 0) nextMeasure();
+      if (current.used >= current.capacity - 1e-7 && remaining > 1e-7) nextMeasure();
     }
   }
 
-  // Käsin aseistettu sidekaari yhdistää kaksi peräkkäistä saman sävelen
-  // loogista nuottia. Automaattinen tahdinylitysside käyttää samoja tieStart/
-  // tieStop-lippuja, joten nämä kaksi tapaa voivat jatkua saumattomasti.
+  // Käsin aseistettu sidekaari yhdistää kaksi peräkkäistä saman sävelen loogista nuottia.
   for (let i = 1; i < notes.length; i += 1) {
     const currentNote = notes[i];
     const previousNote = notes[i - 1];
@@ -165,8 +205,22 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
     if (from && to) { from.tieStart = true; to.tieStop = true; }
   }
 
-  // Älä jätä ylimääräistä tyhjää tahtia loppuun, mutta säilytä aina vähintään yksi tahti.
-  if (measures.length > 1 && measures.at(-1).used === 0) measures.pop();
+  // Merkitään kunkin tupletin ensimmäinen ja viimeinen renderöitävä tapahtuma.
+  const tuplets = new Map();
+  for (const measure of measures) {
+    for (const segment of measure.notes) {
+      if (!segment.tupletId) continue;
+      if (!tuplets.has(segment.tupletId)) tuplets.set(segment.tupletId, []);
+      tuplets.get(segment.tupletId).push(segment);
+    }
+  }
+  for (const group of tuplets.values()) {
+    if (!group.length) continue;
+    group[0].tupletStart = true;
+    group.at(-1).tupletStop = true;
+  }
+
+  if (measures.length > 1 && measures.at(-1).used <= 1e-7) measures.pop();
 
   return { beats, beatType, normalCapacity, pickupCapacity, measures };
 }

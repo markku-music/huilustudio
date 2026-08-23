@@ -1,19 +1,17 @@
-Pikakirjoitin 2 Core 0.22 – Kokotauko ja multirest
+Pikakirjoitin 2 Core 0.23 – Tupletit
 
-Pikakirjoitin 2 Core 0.19 – Sidekaari
+Pohja: Core 0.22 Kokotauko + multirest.
 
-Lisätty vasemman reunan peukalopalkki, jossa on aluksi pisteellinen ja tauko.
-Painikkeet toimivat momentary-modifioijina: toiminto on aktiivinen vain niin kauan kuin nappia pidetään pohjassa.
-Samaa pohjassa olevaa nappia voi vetää pystysuunnassa, jolloin koko palkki siirtyy; paikka tallentuu selaimen localStorageen.
-Piste toimii myös 1/32-ajalla: MusicXML-divisions on nostettu 16:een, mutta Pikakirjoittimen sisäinen rytmiasteikko on säilytetty ennallaan.
-Tauko käyttää koskettimiston normaalia aika-arvoelettä, mutta ei soita ääntä.
+Lisätty vanhan Pikakirjoittimen tuplet-logiikka modulaarisena:
+- peukalopalkin 3-painike = trioli
+- vaakaliu'utus oikealle valitsee kvintolin (5) tai sekstolin (6)
+- pystysuuntainen veto samasta napista siirtää peukalopalkkia kuten muista napeista
+- tupletti pysyy aktiivisena, kunnes sen nimelliskesto on täynnä
+- 3:2, 5:4 ja 6:4 time-modification MusicXML:ssä
+- tupletin numero ja hakasulku OSMD:ssä
+- tupletin palkitettavat nuotit pidetään yhtenä ryhmänä
+- 1/16- ja 1/32-sekstolin vanhan version palkitussuoja huomioitu
+- nuotit ja tauot voivat kuulua tuplettiin
+- keskeneräisen tupletin kokoa ei voi vaihtaa tai kytkeä pois ennen loppuun kirjoittamista
 
-0.19: Peukalopalkkiin lisätty vanhan Pikakirjoittimen kertakäyttöinen sidekaari. Napauta sidekaari aktiiviseksi; seuraava saman sävelen nuotti sidotaan edelliseen ja tila sammuu. Tauko/eri sävel kuluttaa tilan ilman sidettä. Sidekaaripainikkeesta voi edelleen siirtää palkkia pystysuunnassa vetämällä.
-
-0.20: Kokotauko palautettu tahditauoksi (measure rest). Useat perakkaiset kokotauot muodostavat kukin oman tahdin vakaasti.
-
-0.21: Sävellajin mukainen enharmoninen kirjoitusasu.
-Alennusmerkkisissä sävellajeissa mustat koskettimet kirjoitetaan alennuksina,
-ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään erikseen.
-
-0.22: Tauko + koskettimen pitkä painallus luo aina täyden tahdin kokotauon. Peräkkäiset kokotauot muodostavat eksplisiittisen MusicXML-multirestin (2, 3, 4...), ja OSMD:n oma automaattinen multirest-arvaus on pois käytöstä.
+Muut Core 0.22:n ominaisuudet säilyvät.

@@ -1,31 +1,46 @@
-import { DIVISIONS, layoutNotesIntoMeasures } from './measure-layout.js';
+import { DIVISIONS, layoutNotesIntoMeasures, musicXmlDuration, tupletNormalNotes } from './measure-layout.js';
 import { beamTagsForMeasure, beamTagsXml } from './beaming.js';
 import { spellMidi } from './pitch-spelling.js';
 
 function esc(v=''){ return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;'); }
 function pitchXml(midi, index, notes, settings){ const {step,alter,octave}=spellMidi(midi,{index,notes,settings}); return `<pitch><step>${step}</step>${alter?`<alter>${alter}</alter>`:''}<octave>${octave}</octave></pitch>`; }
 function dotXml(count){ return '<dot/>'.repeat(Math.max(0, Number(count)||0)); }
-function xmlNoteType(type){
-  return ({ sixteenth: '16th', 'thirty-second': '32nd' })[type] || type;
-}
+function xmlNoteType(type){ return ({ sixteenth: '16th', 'thirty-second': '32nd' })[type] || type; }
 function tieXml(note){ return `${note.tieStop?'<tie type="stop"/>':''}${note.tieStart?'<tie type="start"/>':''}`; }
-function tiedNotationXml(note){
+function timeModificationXml(note){
+  if (!note?.tupletId) return '';
+  const actual=[3,5,6].includes(Number(note.tupletSize))?Number(note.tupletSize):3;
+  const normal=Number(note.tupletNormalNotes)||tupletNormalNotes(actual);
+  return `<time-modification><actual-notes>${actual}</actual-notes><normal-notes>${normal}</normal-notes></time-modification>`;
+}
+function tupletNotationXml(note){
+  if (!note?.tupletId) return '';
+  const start=note.tupletStart?'<tuplet type="start" number="1" bracket="yes" show-number="actual" placement="above"/>':'';
+  const stop=note.tupletStop?'<tuplet type="stop" number="1"/>':'';
+  return `${start}${stop}`;
+}
+function notationsXml(note){
   const tied=`${note.tieStop?'<tied type="stop"/>':''}${note.tieStart?'<tied type="start"/>':''}`;
-  return tied?`<notations>${tied}</notations>`:'';
+  const tuplet=tupletNotationXml(note);
+  return tied||tuplet?`<notations>${tied}${tuplet}</notations>`:'';
 }
 function noteXml(note, beamTags=[], noteIndex=0, measureNotes=[], settings={}){
+  const duration=musicXmlDuration(note.duration);
+  const type=note.measureRest?'whole':xmlNoteType(note.type);
+  const dots=note.measureRest?'':dotXml(note.dots);
+  const timeModification=timeModificationXml(note);
+  const beams=beamTagsXml(beamTags);
+  const notations=notationsXml(note);
+
   if (note.kind === 'rest') {
     const restTag = note.measureRest ? '<rest measure="yes"/>' : '<rest/>';
-    const type = note.measureRest ? 'whole' : xmlNoteType(note.type);
-    const dots = note.measureRest ? '' : dotXml(note.dots);
-    return `<note>${restTag}<duration>${note.duration * 2}</duration><voice>1</voice><type>${type}</type>${dots}${beamTagsXml(beamTags)}</note>`;
+    return `<note>${restTag}<duration>${duration}</duration><voice>1</voice><type>${type}</type>${dots}${timeModification}${beams}${notations}</note>`;
   }
-  return `<note>${pitchXml(note.midi,noteIndex,measureNotes,settings)}<duration>${note.duration * 2}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
+  return `<note>${pitchXml(note.midi,noteIndex,measureNotes,settings)}<duration>${duration}</duration>${tieXml(note)}<voice>1</voice><type>${type}</type>${dots}${timeModification}${beams}${notations}</note>`;
 }
-function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d * 2}</duration><voice>1</voice></note>`:''; }
+function hiddenRestXml(d){ return d>1e-7?`<note print-object="no"><rest/><duration>${musicXmlDuration(d)}</duration><voice>1</voice></note>`:''; }
 function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="cut"':''; }
 function clefXml(v){ const [sign,line]=({treble:['G',2],alto:['C',3],bass:['F',4]})[v]||['G',2]; return `<clef><sign>${sign}</sign><line>${line}</line></clef>`; }
-
 
 function explicitMultiRestRuns(measures) {
   const starts = new Map();

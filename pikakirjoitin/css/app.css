@@ -144,7 +144,9 @@ button { font: inherit; }
 .thumb-rail.is-dragging { cursor: ns-resize; }
 
 .thumb-modifier,
-.thumb-toggle {
+.thumb-toggle,
+.thumb-tuplet,
+.thumb-tuplet-choice {
   width: 46px;
   height: 50px;
   display: grid;
@@ -172,7 +174,11 @@ button { font: inherit; }
 .thumb-modifier.active,
 .thumb-modifier[aria-pressed="true"],
 .thumb-toggle.active,
-.thumb-toggle[aria-pressed="true"] {
+.thumb-toggle[aria-pressed="true"],
+.thumb-tuplet.active,
+.thumb-tuplet[aria-pressed="true"],
+.thumb-tuplet-choice.active,
+.thumb-tuplet-choice[aria-pressed="true"] {
   border-color: var(--pk-selection-color);
   background: var(--pk-selection-color);
   color: #fff;
@@ -185,6 +191,60 @@ button { font: inherit; }
 .thumb-toggle[aria-pressed="true"] img {
   filter: brightness(0) invert(1);
 }
+
+
+.thumb-tuplet svg,
+.thumb-tuplet-choice svg {
+  display: block;
+  width: 36px;
+  height: 30px;
+  pointer-events: none;
+  overflow: visible;
+}
+.thumb-tuplet svg path,
+.thumb-tuplet-choice svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.thumb-tuplet svg text,
+.thumb-tuplet-choice svg text {
+  fill: currentColor;
+  font: 800 14px/1 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.thumb-tuplet-choice {
+  position: absolute;
+  z-index: 4;
+  display: none;
+  pointer-events: none;
+}
+.thumb-tuplet-choice.visible { display: grid; }
+#quintupletButton { left: 58px; }
+#sextupletButton { left: 112px; }
+
+.tuplet-warning {
+  position: fixed;
+  z-index: 74;
+  left: 68px;
+  max-width: min(330px, calc(100vw - 84px));
+  padding: 9px 12px;
+  border: 1px solid #d7a43a;
+  border-radius: 11px;
+  background: #fff8df;
+  color: #5b430f;
+  box-shadow: 0 7px 20px rgba(74,54,29,.17);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity .12s ease, transform .12s ease;
+  pointer-events: none;
+}
+.tuplet-warning.visible { opacity: 1; transform: translateY(0); }
+.tuplet-warning[hidden] { display: none !important; }
 
 .keyboard-panel {
   flex: 0 0 clamp(230px, 31dvh, 360px);
