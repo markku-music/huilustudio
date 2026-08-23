@@ -11,6 +11,7 @@ function tiedNotationXml(note){
   return tied?`<notations>${tied}</notations>`:'';
 }
 function noteXml(note){
+  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration}</duration><voice>1</voice><type>${note.type}</type>${dotXml(note.dots)}</note>`;
   return `<note>${pitchXml(note.midi)}<duration>${note.duration}</duration>${tieXml(note)}<voice>1</voice><type>${note.type}</type>${dotXml(note.dots)}${tiedNotationXml(note)}</note>`;
 }
 function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d}</duration><voice>1</voice></note>`:''; }

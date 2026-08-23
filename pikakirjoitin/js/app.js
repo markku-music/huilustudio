@@ -41,4 +41,5 @@ new StartScreen({
 });
 
 // Nuottialueen pystyscrollaus on edelleen täysin natiivi.
-// Ainoa oma paperiele on viivaston päältä alkava vaakasuuntainen aluevalinta.
+// Paperilla: kosketus tapahtumaan valitsee heti, vaakaveto laajentaa valintaa,
+// pystysuuntainen veto jää selaimen natiiviksi scrollaukseksi.

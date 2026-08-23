@@ -68,15 +68,22 @@ button { font: inherit; }
   max-width: 100%;
 }
 
-/* Aluevalinnassa vain nuotinpäät vaihtavat väriä. Varsi, palkit,
-   etumerkit, tie-kaaret ja viivasto säilyvät ennallaan. */
+/* Valinnassa nuotista väritetään vain nuotin pää. Tauolla väritetään
+   itse taukosymboli. Varret, palkit, etumerkit, tie-kaaret ja viivasto
+   säilyvät ennallaan. */
 #osmdContainer .pk-selected-notehead,
 #osmdContainer .pk-selected-notehead * {
   fill: var(--pk-selection-color) !important;
 }
 
-/* Vaakavalinnan hetkellinen tarkkuuskohdistin. Se napsahtaa aina
-   viimeisimpään valittuun nuottiin ja katoaa, kun sormi nousee. */
+#osmdContainer .pk-selected-rest,
+#osmdContainer .pk-selected-rest * {
+  fill: var(--pk-selection-color) !important;
+  stroke: var(--pk-selection-color) !important;
+}
+
+/* Valinnan tarkkuuskohdistin. Se napsahtaa aina viimeisimpään valittuun
+   tapahtumaan ja jää näkyviin, kunnes valinta poistetaan tai vaihtuu. */
 .pk-selection-cursor {
   position: fixed;
   width: 12px;

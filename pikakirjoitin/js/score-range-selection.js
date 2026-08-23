@@ -6,8 +6,8 @@ const VERTICAL_DOMINANCE = 1.5;
 const STAFF_EXTRA_Y = 15;
 const SAME_LINE_TOLERANCE = 1.8;
 const TAP_MOVE_TOLERANCE = 9;
-const NOTE_HIT_PADDING_X = 22;
-const NOTE_HIT_PADDING_Y = 20;
+const EVENT_HIT_PADDING_X = 22;
+const EVENT_HIT_PADDING_Y = 20;
 
 function rectCenterX(rect) { return rect.left + rect.width / 2; }
 function rectCenterY(rect) { return rect.top + rect.height / 2; }
@@ -29,9 +29,8 @@ function unionWidth(intervals) {
 
 /**
  * Etsii OSMD/VexFlow-SVG:stä viivastojen viisi vaakaviivaa.
- * Emme sido elelogiikkaa VexFlow'n sisäisiin class-nimiin, vaan etsimme
- * geometrisesti pitkät, ohuet vaakasuorat viivat ja ryhmittelemme ne viiden
- * tasavälisen viivan viivastoiksi.
+ * Elelogiikka ei nojaa VexFlow'n sisäisiin viivastoluokkiin, vaan tunnistaa
+ * viivastot geometriasta. Näin pystyscrollaus ja vaakavalinta pysyvät erillään.
  */
 function detectStaffBands(container) {
   const bands = [];
@@ -99,19 +98,57 @@ function detectStaffBands(container) {
   return bands;
 }
 
-function logicalSegments(notes, settings) {
-  const layout = layoutNotesIntoMeasures(notes, settings);
+function logicalSegments(events, settings) {
+  const layout = layoutNotesIntoMeasures(events, settings);
   return layout.measures.flatMap(measure => measure.notes);
+}
+
+/**
+ * Palauttaa yhden näkyvän VexFlow-tapahtuman per nuotti/tauko.
+ * Nuotilla maalaamme vain .vf-notehead-elementin. Tauolla .vf-note-ryhmässä
+ * ei ole noteheadia, joten itse taukosymbolin ryhmä toimii maalauskohteena.
+ * Jos VexFlow-rakenne joskus poikkeaa tästä, notehead-fallback pitää nykyisen
+ * nuottivalinnan toiminnassa.
+ */
+function collectVisualEvents(container) {
+  const groups = [...container.querySelectorAll('.vf-note')]
+    .filter(group => {
+      const r = group.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
+
+  if (groups.length) {
+    return groups.map(group => {
+      const head = group.querySelector('.vf-notehead');
+      const element = head || group;
+      const rect = element.getBoundingClientRect();
+      return {
+        element,
+        kind: head ? 'note' : 'rest',
+        rect,
+        x: rectCenterX(rect),
+        y: rectCenterY(rect)
+      };
+    });
+  }
+
+  return [...container.querySelectorAll('.vf-notehead')]
+    .filter(element => element.getBoundingClientRect().width > 0)
+    .map(element => {
+      const rect = element.getBoundingClientRect();
+      return { element, kind:'note', rect, x:rectCenterX(rect), y:rectCenterY(rect) };
+    });
 }
 
 export class ScoreRangeSelection {
   #viewport;
   #container;
   #bands = [];
-  #heads = [];
+  #events = [];
   #selectedIds = new Set();
   #gesture = null;
   #cursor = null;
+  #cursorTarget = null;
 
   constructor({ viewport, container }) {
     this.#viewport = viewport;
@@ -121,43 +158,41 @@ export class ScoreRangeSelection {
   }
 
   refresh({ notes = [], settings = {} } = {}) {
-    this.#hideCursor();
-    // OSMD on juuri renderöinyt uuden SVG:n, joten vanhat elementtiviitteet eivät enää kelpaa.
+    // OSMD on juuri renderöinyt uuden SVG:n, joten vanhat elementtiviitteet
+    // eivät enää kelpaa. Säilytetään kuitenkin looginen valinta ja kohdistin.
     this.#bands = detectStaffBands(this.#container);
     const segments = logicalSegments(notes, settings);
-    const elements = [...this.#container.querySelectorAll('.vf-notehead')]
-      .filter(el => el.getBoundingClientRect().width > 0);
+    const visuals = collectVisualEvents(this.#container);
 
-    this.#heads = [];
-    const count = Math.min(segments.length, elements.length);
+    this.#events = [];
+    const count = Math.min(segments.length, visuals.length);
     for (let i=0;i<count;i++) {
-      const element = elements[i];
-      const rect = element.getBoundingClientRect();
-      const band = this.#nearestBand(rectCenterX(rect), rectCenterY(rect));
-      this.#heads.push({
-        element,
-        sourceId: segments[i].sourceId,
-        segmentIndex: segments[i].segmentIndex,
-        x: rectCenterX(rect),
-        y: rectCenterY(rect),
-        rect,
+      const visual = visuals[i];
+      const segment = segments[i];
+      const band = this.#nearestBand(visual.x, visual.y);
+      this.#events.push({
+        ...visual,
+        sourceId: segment.sourceId,
+        segmentIndex: segment.segmentIndex,
+        kind: segment.kind || visual.kind || 'note',
         band
       });
     }
 
-    if (segments.length !== elements.length) {
-      console.warn(`Nuotinpäiden kartoitus: MusicXML-segmenttejä ${segments.length}, SVG-nuotinpäitä ${elements.length}.`);
+    if (segments.length !== visuals.length) {
+      console.warn(`Tapahtumien kartoitus: MusicXML-segmenttejä ${segments.length}, SVG-tapahtumia ${visuals.length}.`);
     }
     this.#paint();
+    this.#restoreCursorFromTarget();
   }
 
   get selectedIds() { return [...this.#selectedIds]; }
 
   clear() {
-    this.#hideCursor();
-    if (!this.#selectedIds.size) return;
     this.#selectedIds.clear();
+    this.#cursorTarget = null;
     this.#paint();
+    this.#hideCursor();
   }
 
   #bind() {
@@ -171,21 +206,28 @@ export class ScoreRangeSelection {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     if (this.#gesture) return;
 
-    // Pidämme pending-tilan myös viivaston ulkopuolella, jotta lyhyt napautus
-    // tyhjään paperiin voi poistaa valinnan. Emme kuitenkaan estä selaimen
-    // natiivia pystyscrollausta missään vaiheessa.
     const band = this.#bandAt(ev.clientX, ev.clientY);
+    const hitEvent = this.#eventAt(ev.clientX, ev.clientY);
+    const previous = this.#snapshotSelection();
+
     this.#gesture = {
       pointerId: ev.pointerId,
       state: 'pending',
-      band,
+      band: hitEvent?.band || band,
       startX: ev.clientX,
       startY: ev.clientY,
       currentX: ev.clientX,
-      anchorHead: null,
-      endHead: null,
+      anchorEvent: hitEvent || null,
+      endEvent: hitEvent || null,
+      initialEvent: hitEvent || null,
+      previous,
       maxMove: 0
     };
+
+    // Ensimmäinen kosketus nuottiin tai taukoon antaa palautteen heti.
+    // Mitään preventDefaultia ei tehdä tässä, joten Safari voi edelleen
+    // ottaa eleen pystyscrollaukseksi. Jos niin käy, palautamme edellisen valinnan.
+    if (hitEvent) this.#selectSingleEvent(hitEvent);
   }
 
   #pointerMove(ev) {
@@ -200,49 +242,45 @@ export class ScoreRangeSelection {
     if (g.state === 'pending') {
       const distance = Math.hypot(dx, dy);
 
-      // Scrollaus saa etuoikeuden vain, kun ele on JO HYVIN selvästi pystysuuntainen.
-      // Pieni 7 px pystysuuntainen liike riittää, kun y-liike on vähintään
-      // 1,5-kertainen x-liikkeeseen verrattuna. Tällöin JavaScript luopuu eleestä
-      // heti ja Safari jatkaa natiivia pan-y-scrollausta.
+      // Vain selvästi pystysuora liike kuuluu scrollaukselle. Koska pointerdown
+      // saattoi jo näyttää yksittäisen valinnan, palautamme tässä elettä edeltäneen
+      // valinnan ennen kuin luovutamme kosketuksen Safarille.
       if (ay >= SCROLL_THRESHOLD && ay > ax * VERTICAL_DOMINANCE) {
+        this.#restoreSelection(g.previous);
         this.#gesture = null;
         return;
       }
 
-      // Vaakavalinnan ei tarvitse olla laser-suora. Kun liike on riittävän pitkä
-      // eikä sitä ole jo tunnistettu selväksi pystyscrollaukseksi, viivaston päältä
-      // alkanut ele hyväksytään valinnaksi myös melko voimakkaasti vinossa.
       if (distance < SELECTION_THRESHOLD) return;
 
-      // Vaakavalinta voi alkaa vain viivaston alueelta. Muualta alkanut pidempi
-      // ele jätetään selaimen hoidettavaksi.
+      // Vaakavalinta voi alkaa vain viivaston alueelta.
       if (!g.band) {
+        this.#restoreSelection(g.previous);
         this.#gesture = null;
         return;
       }
 
-      // TARKKA ALOITUS: raakaa startX-pikseliä ei käytetä valintarajana.
-      // Aloitus napsahtaa saman viivaston lähimpään nuotinpäähän. Näin paksu
-      // sormi voi osua nuotin ympärille, eikä valinnan ensimmäinen nuotti ole
-      // kiinni muutamasta pikselistä.
-      g.anchorHead = this.#nearestHeadInBand(g.band, g.startX);
-      if (!g.anchorHead) {
+      // Jos kosketus osui heti tapahtumaan, juuri se on ankkuri. Muussa tapauksessa
+      // ankkuri napsahtaa saman viivaston lähimpään tapahtumaan.
+      g.anchorEvent = g.anchorEvent || this.#nearestEventInBand(g.band, g.startX);
+      if (!g.anchorEvent) {
+        this.#restoreSelection(g.previous);
         this.#gesture = null;
         return;
       }
 
       g.state = 'selecting';
       try { this.#viewport.setPointerCapture(ev.pointerId); } catch {}
-      g.endHead = this.#nearestHeadInBand(g.band, ev.clientX) || g.anchorHead;
-      this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
+      g.endEvent = this.#nearestEventInBand(g.band, ev.clientX) || g.anchorEvent;
+      this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
       return;
     }
 
     if (g.state === 'selecting') {
       ev.preventDefault();
       g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
-      g.endHead = this.#nearestHeadInBand(g.band, g.currentX) || g.anchorHead;
-      this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
+      g.endEvent = this.#nearestEventInBand(g.band, g.currentX) || g.anchorEvent;
+      this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
     }
   }
 
@@ -257,24 +295,31 @@ export class ScoreRangeSelection {
     if (g.state === 'selecting') {
       ev.preventDefault();
       g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
-      g.endHead = this.#nearestHeadInBand(g.band, g.currentX) || g.anchorHead;
-      this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
+      g.endEvent = this.#nearestEventInBand(g.band, g.currentX) || g.anchorEvent;
+      this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
       try { this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
-      this.#hideCursor();
-    } else if (g.state === 'pending' && g.maxMove <= TAP_MOVE_TOLERANCE) {
-      // Napautus tyhjään kohtaan poistaa valinnan. Nuotin ympärillä on reilu,
-      // näkymätön osuma-alue, joten paksu sormi ei vahingossa tulkitse nuottiin
-      // osunutta napautusta tyhjäksi.
-      const hitHead = this.#headAt(ev.clientX, ev.clientY);
-      if (!hitHead) this.clear();
+      // Kohdistin jää näkyviin viimeisen tapahtuman kohdalle sormen noston jälkeenkin.
+    } else if (g.state === 'pending') {
+      if (g.initialEvent) {
+        // Lyhyt napautus jäi jo pointerdownissa yksittäiseksi valinnaksi.
+        // Pidetään valinta ja kohdistin näkyvissä.
+        this.#selectSingleEvent(g.initialEvent);
+      } else if (g.maxMove <= TAP_MOVE_TOLERANCE) {
+        // Tyhjään paperiin napautus poistaa valinnan.
+        this.clear();
+      }
     }
 
     this.#gesture = null;
   }
 
   #pointerCancel(ev) {
-    if (this.#gesture?.pointerId !== ev.pointerId) return;
-    this.#hideCursor();
+    const g = this.#gesture;
+    if (!g || g.pointerId !== ev.pointerId) return;
+
+    // iPad/Safari voi lähettää pointercancelin, kun natiivi pan-y-scrollaus
+    // ottaa eleen. Pending-vaiheessa palautetaan siksi aiempi valinta.
+    if (g.state === 'pending') this.#restoreSelection(g.previous);
     this.#gesture = null;
   }
 
@@ -289,47 +334,69 @@ export class ScoreRangeSelection {
     return pool.reduce((best,b) => Math.abs(y-b.centerY) < Math.abs(y-best.centerY) ? b : best, pool[0]);
   }
 
-  #headsInBand(band) {
-    return this.#heads
-      .filter(head => head.band === band)
+  #eventsInBand(band) {
+    return this.#events
+      .filter(event => event.band === band)
       .sort((a,b) => a.x - b.x);
   }
 
-  #nearestHeadInBand(band, x) {
-    const heads = this.#headsInBand(band);
-    if (!heads.length) return null;
-    return heads.reduce((best, head) => Math.abs(x-head.x) < Math.abs(x-best.x) ? head : best, heads[0]);
+  #nearestEventInBand(band, x) {
+    const events = this.#eventsInBand(band);
+    if (!events.length) return null;
+    return events.reduce((best, event) => Math.abs(x-event.x) < Math.abs(x-best.x) ? event : best, events[0]);
   }
 
-  #headAt(x,y) {
-    // Käytetään nuottipäätä paljon suurempaa näkymätöntä osuma-aluetta.
-    // Jos alueet limittyvät, valitaan geometrisesti lähin nuotin pää.
-    const candidates = this.#heads.filter(head => {
-      const r = head.rect;
-      return x >= r.left - NOTE_HIT_PADDING_X && x <= r.right + NOTE_HIT_PADDING_X &&
-             y >= r.top - NOTE_HIT_PADDING_Y && y <= r.bottom + NOTE_HIT_PADDING_Y;
+  #eventAt(x,y) {
+    // Nuotin/tauon näkyvää symbolia huomattavasti suurempi näkymätön kosketusalue.
+    // Jos osuma-alueet limittyvät, valitaan geometrisesti lähin tapahtuma.
+    const candidates = this.#events.filter(event => {
+      const r = event.rect;
+      return x >= r.left - EVENT_HIT_PADDING_X && x <= r.right + EVENT_HIT_PADDING_X &&
+             y >= r.top - EVENT_HIT_PADDING_Y && y <= r.bottom + EVENT_HIT_PADDING_Y;
     });
     if (!candidates.length) return null;
-    return candidates.reduce((best, head) => {
-      const d = Math.hypot(x-head.x, y-head.y);
+    return candidates.reduce((best, event) => {
+      const d = Math.hypot(x-event.x, y-event.y);
       const bestD = Math.hypot(x-best.x, y-best.y);
-      return d < bestD ? head : best;
+      return d < bestD ? event : best;
     }, candidates[0]);
   }
 
-  #selectBetweenHeads(band, startHead, endHead) {
-    if (!startHead || !endHead) return;
-    const left = Math.min(startHead.x, endHead.x);
-    const right = Math.max(startHead.x, endHead.x);
+  #selectSingleEvent(event) {
+    if (!event) return;
+    this.#selectedIds = new Set([event.sourceId]);
+    this.#paint();
+    this.#showCursor(event.band, event);
+  }
+
+  #selectBetweenEvents(band, startEvent, endEvent) {
+    if (!startEvent || !endEvent) return;
+    const left = Math.min(startEvent.x, endEvent.x);
+    const right = Math.max(startEvent.x, endEvent.x);
     const ids = new Set();
 
-    for (const head of this.#heads) {
-      if (head.band !== band) continue;
-      if (head.x >= left - 0.5 && head.x <= right + 0.5) ids.add(head.sourceId);
+    for (const event of this.#events) {
+      if (event.band !== band) continue;
+      if (event.x >= left - 0.5 && event.x <= right + 0.5) ids.add(event.sourceId);
     }
     this.#selectedIds = ids;
     this.#paint();
-    this.#showCursor(band, endHead);
+    this.#showCursor(band, endEvent);
+  }
+
+  #snapshotSelection() {
+    return {
+      ids: new Set(this.#selectedIds),
+      cursorTarget: this.#cursorTarget ? { ...this.#cursorTarget } : null
+    };
+  }
+
+  #restoreSelection(snapshot) {
+    if (!snapshot) return;
+    this.#selectedIds = new Set(snapshot.ids || []);
+    this.#cursorTarget = snapshot.cursorTarget ? { ...snapshot.cursorTarget } : null;
+    this.#paint();
+    this.#restoreCursorFromTarget();
   }
 
   #createCursor() {
@@ -341,12 +408,31 @@ export class ScoreRangeSelection {
     this.#cursor = cursor;
   }
 
-  #showCursor(band, head) {
-    if (!this.#cursor || !band || !head) return;
+  #showCursor(band, event) {
+    if (!this.#cursor || !band || !event) return;
+    this.#cursorTarget = { sourceId:event.sourceId, segmentIndex:event.segmentIndex };
     const staffTop = Number.isFinite(band.staffTop) ? band.staffTop : band.top + STAFF_EXTRA_Y;
-    this.#cursor.style.left = `${head.x}px`;
+    this.#cursor.style.left = `${event.x}px`;
     this.#cursor.style.top = `${Math.max(2, staffTop - 24)}px`;
     this.#cursor.classList.add('is-visible');
+  }
+
+  #restoreCursorFromTarget() {
+    if (!this.#cursorTarget || !this.#selectedIds.size) {
+      this.#hideCursor();
+      return;
+    }
+    const exact = this.#events.find(event =>
+      event.sourceId === this.#cursorTarget.sourceId &&
+      event.segmentIndex === this.#cursorTarget.segmentIndex
+    );
+    const fallback = this.#events.find(event => event.sourceId === this.#cursorTarget.sourceId);
+    const event = exact || fallback;
+    if (!event?.band) {
+      this.#hideCursor();
+      return;
+    }
+    this.#showCursor(event.band, event);
   }
 
   #hideCursor() {
@@ -354,8 +440,10 @@ export class ScoreRangeSelection {
   }
 
   #paint() {
-    for (const head of this.#heads) {
-      head.element.classList.toggle('pk-selected-notehead', this.#selectedIds.has(head.sourceId));
+    for (const event of this.#events) {
+      const selected = this.#selectedIds.has(event.sourceId);
+      event.element.classList.toggle('pk-selected-notehead', selected && event.kind !== 'rest');
+      event.element.classList.toggle('pk-selected-rest', selected && event.kind === 'rest');
     }
   }
 }

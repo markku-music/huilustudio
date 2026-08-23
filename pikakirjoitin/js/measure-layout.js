@@ -91,12 +91,13 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
         const segment = {
           sourceId: note.id,
           segmentIndex,
-          midi: note.midi,
+          kind: note.kind === 'rest' ? 'rest' : 'note',
+          midi: note.kind === 'rest' ? null : note.midi,
           duration: piece.units,
           type: piece.type,
           dots: piece.dots,
-          tieStop: segmentIndex > 0,
-          tieStart: unitsAfterThisPiece > 0
+          tieStop: note.kind !== 'rest' && segmentIndex > 0,
+          tieStart: note.kind !== 'rest' && unitsAfterThisPiece > 0
         };
         current.notes.push(segment);
         current.used += piece.units;

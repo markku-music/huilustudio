@@ -15,12 +15,25 @@ export class ScoreModel {
   addNote({ midi, duration = 'quarter' }) {
     const note = {
       id: `note-${this.#nextId++}`,
+      kind: 'note',
       midi: Number(midi),
       duration
     };
     this.#notes.push(note);
     this.#emit();
     return note.id;
+  }
+
+
+  addRest({ duration = 'quarter' } = {}) {
+    const rest = {
+      id: `rest-${this.#nextId++}`,
+      kind: 'rest',
+      duration
+    };
+    this.#notes.push(rest);
+    this.#emit();
+    return rest.id;
   }
 
   setDuration(id, duration) {

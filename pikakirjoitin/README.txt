@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.13 – Valintakohdistin
+Pikakirjoitin 2 Core 0.14 – Kosketusvalinta
 
 Pikakirjoitin 2 Core 0.8 – 15 mm marginaalit
 
@@ -48,3 +48,13 @@ Core 0.12
 - Kun ele on kerran päätetty scrollaukseksi tai valinnaksi, tulkintaa ei vaihdeta kesken kosketuksen.
 
 0.13: Vaakavalinnan aikana viivaston yläpuolella näkyy pieni kolmio+pystyviiva-kohdistin. Kohdistin napsahtaa viimeisimpään valittuun nuottiin, seuraa valintaa nuotti kerrallaan ja katoaa sormen nostossa.
+
+
+Core 0.14
+---------
+- Ensimmäinen kosketus nuottiin valitsee nuotin heti pointerdownissa ja näyttää kohdistimen.
+- Sama valintarakenne tukee myös näkyviä taukoja: tauolla itse taukosymboli vaihtaa väriä.
+- Jos kosketus muuttuu selväksi pystyscrollaukseksi, hetkellinen valinta perutaan ja edellinen valinta palautetaan.
+- Vaakavedossa juuri kosketettu tapahtuma toimii tarkkana ankkurina; tyhjästä viivastokohdasta aloitettaessa käytetään lähintä tapahtumaa.
+- Valintakohdistin jää näkyviin valinnan viimeisen tapahtuman kohdalle myös sormen nostamisen jälkeen.
+- Tyhjään paperiin napautus poistaa sekä valinnan että kohdistimen.
