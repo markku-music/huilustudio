@@ -7,8 +7,6 @@ import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
 import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
-import { ScoreTextLayout } from './score-text-layout.js';
-import { ScoreLayoutControls } from './score-layout-controls.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -16,16 +14,6 @@ app.setAttribute('aria-hidden','true');
 
 const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
-const scoreTextLayout=new ScoreTextLayout({
-  documentElement:document.querySelector('#scoreDocument'),
-  osmdContainer:document.querySelector('#osmdContainer'),
-  overlay:document.querySelector('#scoreMetadataOverlay')
-});
-const scoreLayoutControls=new ScoreLayoutControls({
-  layout:scoreTextLayout,
-  toggle:document.querySelector('#layoutControlsToggle'),
-  panel:document.querySelector('#layoutControlsPanel')
-});
 const audio=new AudioEngine();
 const selection=new ScoreRangeSelection({
   viewport:document.querySelector('#scoreViewport'),
@@ -34,7 +22,6 @@ const selection=new ScoreRangeSelection({
 let keyboardEditId = null;
 renderer.subscribeRendered(snapshot=>{
   selection.refresh(snapshot);
-  scoreTextLayout.syncToRenderedPage();
   // Kosketineditoinnin aikana OSMD rakentaa SVG:n kokonaan uudelleen.
   // Palauta sama looginen nuotti valituksi jokaisen renderöinnin jälkeen.
   if (keyboardEditId && model.getEntry(keyboardEditId)?.kind === 'note') {
@@ -193,7 +180,6 @@ new StartScreen({
   audio,
   onStart:async nextSettings=>{
     settings={...nextSettings};
-    scoreTextLayout.setSettings(settings);
     renderer.setSettings(settings);
     await renderer.render(model.notes);
     requestAnimationFrame(()=>keyboard.scrollToMidi(settings.keyboardStartMidi));

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 2 Core 0.22.9 – Tekstiasettelun säädöt</title>
+  <title>Pikakirjoitin 2 Core 0.22.1 – Yhden nuotin editointi</title>
   <link rel="stylesheet" href="css/app.css">
   <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
@@ -138,44 +138,9 @@
   </div>
 
   <main class="app" id="app" aria-hidden="true" inert>
-    <button class="layout-controls-toggle" id="layoutControlsToggle" type="button" aria-expanded="false" aria-controls="layoutControlsPanel">ASETTELU</button>
-    <section class="layout-controls-panel" id="layoutControlsPanel" aria-label="Otsikon, tempon ja säveltäjän paikat" hidden>
-      <div class="layout-controls-head">
-        <strong>Asettelu</strong>
-        <button type="button" class="layout-controls-close" data-layout-close aria-label="Sulje asettelusäädöt">×</button>
-      </div>
-      <label class="layout-control-row" data-layout-key="titleY">
-        <span>Otsikko Y</span><output>20.0 mm</output>
-        <input type="range" min="6" max="75" step="0.5" value="20" aria-label="Otsikon pystysijainti">
-      </label>
-      <label class="layout-control-row" data-layout-key="tempoX">
-        <span>Tempo X</span><output>16.0 mm</output>
-        <input type="range" min="5" max="190" step="0.5" value="16" aria-label="Tempotekstin vaakasijainti">
-      </label>
-      <label class="layout-control-row" data-layout-key="tempoY">
-        <span>Tempo Y</span><output>34.0 mm</output>
-        <input type="range" min="6" max="75" step="0.5" value="34" aria-label="Tempotekstin pystysijainti">
-      </label>
-      <label class="layout-control-row" data-layout-key="composerY">
-        <span>Säveltäjä Y</span><output>34.0 mm</output>
-        <input type="range" min="6" max="75" step="0.5" value="34" aria-label="Säveltäjän pystysijainti">
-      </label>
-      <div class="layout-controls-actions">
-        <button type="button" data-layout-reset>Palauta</button>
-        <button type="button" data-layout-copy>Kopioi JSON</button>
-      </div>
-      <div class="layout-controls-status" data-layout-status role="status" hidden></div>
-    </section>
-
     <section class="score-viewport" id="scoreViewport" aria-label="Nuottipaperi">
-      <div class="score-document" id="scoreDocument">
+      <div class="score-document">
         <div id="osmdContainer" aria-hidden="true"></div>
-        <div class="score-metadata-overlay" id="scoreMetadataOverlay" aria-label="Otsikko-, tempo- ja säveltäjäasettelu" hidden>
-          <div class="score-text-item score-title-item" data-score-text="title" role="button" tabindex="0" aria-label="Siirrä otsikkoa pystysuunnassa"></div>
-          <div class="score-text-item score-tempo-item" data-score-text="tempo" role="button" tabindex="0" aria-label="Siirrä tempotekstiä"></div>
-          <div class="score-text-item score-composer-item" data-score-text="composer" role="button" tabindex="0" aria-label="Siirrä säveltäjää pystysuunnassa"></div>
-          <div class="score-text-readout" hidden></div>
-        </div>
       </div>
     </section>
 
