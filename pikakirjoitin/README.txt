@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.2
+Pikakirjoitin 2 Core 0.3
 ========================
 
 Tarkoitus

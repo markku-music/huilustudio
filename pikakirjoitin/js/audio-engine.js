@@ -8,28 +8,34 @@ function midiToFrequency(midi) {
 }
 
 /**
- * Yksi pysyvä Web Audio -ääni.
+ * Yksi pysyvä Web Audio -ääni iPadia varten.
  *
- * iPad/iOS-periaate:
- * - AudioContext luodaan vasta oikeassa käyttäjäeleessä.
- * - oscillator.start() tehdään samassa ensimmäisessä käyttäjäeleessä.
- * - context.resume() kutsutaan samassa ensimmäisessä käyttäjäeleessä.
- * - oskillaattoria ei luoda nuotti kerrallaan uudelleen.
+ * Ensimmäinen nuotti:
+ * 1) AudioContext + audioketju luodaan suoraan pointerdown-kutsuketjussa.
+ * 2) oscillator.start() tehdään samassa käyttäjäeleessä.
+ * 3) context.resume() kutsutaan samassa käyttäjäeleessä.
+ * 4) Ensimmäinen attack tehdään vasta kun resume() on oikeasti valmistunut.
+ *
+ * Seuraavat nuotit soivat heti, kun context on jo running.
  */
 export class AudioEngine {
   #context = null;
   #oscillator = null;
   #gain = null;
   #started = false;
-  #active = false;
-  #activeMidi = null;
+  #pressed = false;
+  #requestedMidi = null;
+  #requestSerial = 0;
 
   noteOn(midi) {
     if (!Number.isFinite(midi)) return false;
     if (!this.#ensureGraph()) return false;
 
-    // Tärkeää iOS:lle: nämä tapahtuvat suoraan pointerdown-kutsuketjussa,
-    // eivät awaitin tai .then()-ketjun jälkeen.
+    this.#pressed = true;
+    this.#requestedMidi = midi;
+    const serial = ++this.#requestSerial;
+
+    // Nämä on tehtävä suoraan käyttäjän pointerdown-kutsuketjussa iOS:ää varten.
     if (!this.#started) {
       try {
         this.#oscillator.start();
@@ -39,31 +45,52 @@ export class AudioEngine {
       }
     }
 
-    if (this.#context.state !== 'running') {
-      try {
-        const resumeResult = this.#context.resume();
-        if (resumeResult?.catch) resumeResult.catch(() => {});
-      } catch {}
+    if (this.#context.state === 'running') {
+      this.#attack(midi);
+      return true;
     }
 
-    this.#active = true;
-    this.#activeMidi = midi;
-    this.#attack(midi);
+    try {
+      const resumeResult = this.#context.resume();
+
+      // Ensimmäisen nuotin varsinainen attack vasta, kun Safari kertoo
+      // AudioContextin olevan käynnissä. Sarjanumero estää vanhan kosketuksen
+      // soimisen myöhemmin, jos sormi on jo nostettu tai uusi nuotti painettu.
+      if (resumeResult?.then) {
+        resumeResult
+          .then(() => {
+            if (
+              this.#context?.state === 'running' &&
+              this.#pressed &&
+              this.#requestSerial === serial &&
+              this.#requestedMidi === midi
+            ) {
+              this.#attack(midi);
+            }
+          })
+          .catch(() => {});
+      } else if (this.#context.state === 'running') {
+        this.#attack(midi);
+      }
+    } catch {}
+
     return true;
   }
 
   noteOff() {
-    if (!this.#context || !this.#gain || !this.#active) return;
+    this.#pressed = false;
+    this.#requestedMidi = null;
+    ++this.#requestSerial;
+
+    if (!this.#context || !this.#gain) return;
     const now = this.#context.currentTime;
 
     try {
       this.#gain.gain.cancelScheduledValues(now);
-      this.#gain.gain.setValueAtTime(NOTE_GAIN, now);
+      const current = Math.max(this.#gain.gain.value || SILENT_GAIN, SILENT_GAIN);
+      this.#gain.gain.setValueAtTime(current, now);
       this.#gain.gain.exponentialRampToValueAtTime(SILENT_GAIN, now + RELEASE_SECONDS);
     } catch {}
-
-    this.#active = false;
-    this.#activeMidi = null;
   }
 
   get state() {
@@ -103,10 +130,11 @@ export class AudioEngine {
 
   #attack(midi) {
     const context = this.#context;
-    if (!context || !this.#oscillator || !this.#gain) return;
+    if (!context || !this.#oscillator || !this.#gain || context.state !== 'running') return;
 
     const now = context.currentTime;
     try {
+      this.#oscillator.frequency.cancelScheduledValues(now);
       this.#oscillator.frequency.setValueAtTime(midiToFrequency(midi), now);
       this.#gain.gain.cancelScheduledValues(now);
       this.#gain.gain.setValueAtTime(SILENT_GAIN, now);
