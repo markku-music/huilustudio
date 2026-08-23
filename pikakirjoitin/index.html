@@ -204,8 +204,11 @@
     .publish-card:hover,.publish-card:focus-visible{transform:translateY(-2px);border-color:#8cb2e6;box-shadow:0 16px 34px #1d28361b;background:#fbfdff;outline:none}
     .publish-card:active{transform:translateY(0) scale(.985)}
     .publish-card:disabled{cursor:wait;opacity:.58;transform:none;box-shadow:0 8px 20px #1d28360d}
-    .publish-card-icon{width:122px;height:122px;display:grid;place-items:center;background:transparent!important;color:inherit!important;box-shadow:none!important}
-    .publish-card-icon img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+    .publish-card-icon{width:190px;height:142px;display:flex;align-items:flex-start;justify-content:center;background:transparent!important;color:inherit!important;box-shadow:none!important;overflow:visible}
+    .publish-card-icon img{display:block;width:auto;height:132px;max-width:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+    .publish-card-icon-usb img{height:132px}
+    .publish-card-icon-vie img{height:132px}
+    .publish-card-icon-print img{height:132px}
     .publish-card-title{font-size:21px;font-weight:850;letter-spacing:.045em;color:#172434}
     .publish-card-desc{min-height:20px;max-width:22ch;font-size:14px;line-height:1.35;color:#617286}
     .app[data-work-mode="print"] .score-area{display:flex;align-items:center;justify-content:center;padding:34px 18px 18px}
@@ -332,8 +335,8 @@
     .start-button[hidden]{display:none}
     @media (max-width:700px){.score-area{padding:0 10px 8px}.score{border-radius:0}}
     @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}.mode-tabs{width:calc(100% - 16px);gap:3px}.new-project-tab{flex-basis:50px;padding:0 4px;font-size:8px}.mode-tab{padding:0 4px;font-size:8px}}
-    @media (max-width:900px){.publish-grid{gap:12px}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:18px}.publish-title{font-size:28px}.publish-card{min-height:220px;padding:18px 12px;gap:9px}.publish-card-icon{width:98px;height:98px}.publish-card-title{font-size:18px}.publish-card-desc{font-size:13px}}
-    @media (max-width:620px){.publish-grid{grid-template-columns:1fr}.publish-card{min-height:170px;padding:16px}.publish-card-icon{width:86px;height:86px}.publish-card-title{font-size:19px}}
+    @media (max-width:900px){.publish-grid{gap:12px}.publish-screen{padding:18px 4px 8px}.publish-header{margin-bottom:18px}.publish-title{font-size:28px}.publish-card{min-height:220px;padding:18px 12px;gap:9px}.publish-card-icon{width:162px;height:124px}.publish-card-icon img{height:116px}.publish-card-title{font-size:18px}.publish-card-desc{font-size:13px}}
+    @media (max-width:620px){.publish-grid{grid-template-columns:1fr}.publish-card{min-height:170px;padding:16px}.publish-card-icon{width:160px;height:120px}.publish-card-icon img{height:112px}.publish-card-title{font-size:19px}}
     @media (orientation:landscape){.app{display:none}.orientation-blocker{display:grid}}
     /* Peukalopalkin ohjekuvatila: index.html?peukalopalkki=ohje */
     body.thumb-guide-mode{position:fixed;inset:0;overflow:hidden;background:#eef1f5}
@@ -559,27 +562,18 @@
           </div>
         </div>
         <section class="publish-screen" id="publishScreen" aria-label="Julkaisu">
-          <div class="publish-header">
-            <div class="publish-header-text">
-              <div class="publish-title">JULKAISE</div>
-              <div class="publish-subtitle">Valitse toiminto.</div>
-            </div>
-          </div>
           <div class="publish-grid">
-            <button class="publish-card" id="publishShareButton" type="button" aria-label="Tallenna PDF ja MusicXML" aria-busy="true" disabled>
-              <div class="publish-card-icon" aria-hidden="true"><img src="assets/Tallenna.svg" alt="" draggable="false"></div>
+            <button class="publish-card" id="publishProjectButton" type="button" aria-label="Tallenna projekti">
+              <div class="publish-card-icon publish-card-icon-usb" aria-hidden="true"><img src="assets/USB.svg" alt="" draggable="false"></div>
               <div class="publish-card-title">TALLENNA</div>
-              <div class="publish-card-desc">PDF + MusicXML</div>
+            </button>
+            <button class="publish-card" id="publishShareButton" type="button" aria-label="Vie PDF ja MusicXML" aria-busy="true" disabled>
+              <div class="publish-card-icon publish-card-icon-vie" aria-hidden="true"><img src="assets/Vie.svg" alt="" draggable="false"></div>
+              <div class="publish-card-title">VIE</div>
             </button>
             <button class="publish-card" id="publishPrintButton" type="button" aria-label="Tulosta nuotti">
-              <div class="publish-card-icon" aria-hidden="true"><img src="assets/Tulostin.svg" alt="" draggable="false"></div>
+              <div class="publish-card-icon publish-card-icon-print" aria-hidden="true"><img src="assets/Tulostin.svg" alt="" draggable="false"></div>
               <div class="publish-card-title">TULOSTA</div>
-              <div class="publish-card-desc">Tulosta nuotti</div>
-            </button>
-            <button class="publish-card" id="publishProjectButton" type="button" aria-label="Tallenna projekti">
-              <div class="publish-card-icon" aria-hidden="true"><img src="assets/USB.svg" alt="" draggable="false"></div>
-              <div class="publish-card-title">PROJEKTI</div>
-              <div class="publish-card-desc">Muokattava tiedosto</div>
             </button>
           </div>
         </section>
@@ -1405,7 +1399,10 @@
     function buildProjectFile(){
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
-    function saveProjectFile(){const payload=JSON.stringify(buildProjectFile(),null,2);downloadBlob(new Blob([payload],{type:'application/json'}),`${projectFileBaseName()}.pikakirjoitin`);statusMessage('Pikakirjoitin-projekti tallennettu laitteelle.')}
+    function saveProjectFile(){
+      const payload=JSON.stringify(buildProjectFile(),null,2),filename=`${projectFileBaseName()}.pikakirjoitin`,projectFile=new File([payload],filename,{type:'text/plain;charset=utf-8',lastModified:Date.now()});
+      shareOrDownloadFiles([projectFile],{successMessage:'Pikakirjoitin-projekti annettu jakoikkunaan.',fallbackMessage:'Pikakirjoitin-projekti ladattu laitteelle.'});
+    }
     function nextIdFromItems(items,prefix){
       let maximum=0;
       for(const item of items||[]){const raw=prefix==='tuplet'?item?.tupletId:item?.id,match=String(raw||'').match(new RegExp(`^${prefix}-(\\d+)$`));if(match)maximum=Math.max(maximum,Number(match[1])||0)}

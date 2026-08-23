@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.66-julkaise-ikonit';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.70-julkaise-ikonit-jarjestys';
 const APP_SHELL = [
   './',
   './index.html',
@@ -44,7 +44,7 @@ const APP_SHELL = [
   './assets/rest.svg',
   './assets/slur.svg',
   './assets/tie.svg',
-  './assets/Tallenna.svg',
+  './assets/Vie.svg',
   './assets/Tulostin.svg',
   './assets/USB.svg'
 ];
