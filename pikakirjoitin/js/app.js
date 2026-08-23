@@ -6,6 +6,8 @@ import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { TupletController } from './tuplet-controller.js';
+import { SelectionEditor } from './selection-editor.js';
+import { moveDiatonic } from './pitch-spelling.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -22,8 +24,49 @@ renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
 let settings={transpose:0,keyboardStartMidi:60};
 let thumbState={dot:false,rest:false,tie:false,tuplet:0};
 let warningTimer=0;
+let keyboardEditAction=null;
 
 model.subscribe(notes=>renderer.render(notes));
+
+function selectedExistingIds() {
+  return selection.selectedIds.filter(id => model.getEntry(id));
+}
+
+function editSelectedNotes(updater) {
+  const ids=selectedExistingIds();
+  if(!ids.length) return false;
+  return model.updateEntries(ids,(entry,index,all)=>{
+    if(entry.kind!=='note') return null;
+    return updater(entry,index,all);
+  });
+}
+
+const selectionEditor=new SelectionEditor({
+  onFlat:()=>editSelectedNotes(()=>({spellingPreference:'flat'})),
+  onSharp:()=>editSelectedNotes(()=>({spellingPreference:'sharp'})),
+  onUp:()=>editSelectedNotes((entry,index,all)=>moveDiatonic(entry.midi,1,{index,notes:all,settings})),
+  onDown:()=>editSelectedNotes((entry,index,all)=>moveDiatonic(entry.midi,-1,{index,notes:all,settings})),
+  onDelete:()=>{
+    const ids=selectedExistingIds();
+    if(!ids.length)return;
+    if(model.deleteEntries(ids)){
+      selection.clear();
+      tuplet.syncFromModel();
+    }
+  }
+});
+
+selection.subscribe(state=>{
+  const entries=state.selectedIds.map(id=>model.getEntry(id)).filter(Boolean);
+  const noteCount=entries.filter(entry=>entry.kind==='note').length;
+  selectionEditor.update({
+    visible:Boolean(entries.length && state.anchor),
+    x:state.anchor?.x||0,
+    staffTop:state.anchor?.staffTop||0,
+    staffBottom:state.anchor?.staffBottom||0,
+    noteCount
+  });
+});
 
 const warning=document.querySelector('#tupletWarning');
 function showTupletWarning(message){
@@ -58,6 +101,14 @@ const keyboard=new PianoKeyboard({
   piano:document.querySelector('#piano'),whiteKeys:document.querySelector('#whiteKeys'),viewport:document.querySelector('#keyboardViewport'),
   rail:document.querySelector('#keyboardScrollRail'),track:document.querySelector('#keyboardScrollTrack'),thumb:document.querySelector('#keyboardScrollThumb'),
   onStart:(midi,duration)=>{
+    const selectedIds=selectedExistingIds();
+    if(selectedIds.length){
+      model.beginAction();
+      keyboardEditAction={ids:[...selectedIds]};
+      model.updateEntries(selectedIds,{duration});
+      return { id:selectedIds[0], sound:false };
+    }
+
     model.beginAction();
     const tieWasArmed=Boolean(thumbState.tie);
     if(tieWasArmed) thumbRail.setToggle('tie',false);
@@ -69,10 +120,18 @@ const keyboard=new PianoKeyboard({
     const tieFromPrevious=Boolean(tieWasArmed && previous?.kind==='note' && Number(previous.midi)===Number(midi));
     return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious,tuplet:tupletMeta}), sound:true };
   },
-  onDuration:(id,duration)=>model.setDuration(id,duration),
+  onDuration:(id,duration)=>{
+    if(keyboardEditAction) model.updateEntries(keyboardEditAction.ids,{duration});
+    else model.setDuration(id,duration);
+  },
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),
   onSoundStop:()=>audio.noteOff(),
   onFinish:id=>{
+    if(keyboardEditAction){
+      model.endAction();
+      keyboardEditAction=null;
+      return;
+    }
     const result=tuplet.finishEntry(id);
     if(!result.ok){ model.cancelAction(); return; }
     model.endAction();

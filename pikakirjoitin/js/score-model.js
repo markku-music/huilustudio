@@ -11,6 +11,11 @@ export class ScoreModel {
   get canUndo() { return this.#undoStack.length > 0; }
   get canRedo() { return this.#redoStack.length > 0; }
 
+  getEntry(id) {
+    const entry = this.#notes.find(item => item.id === id);
+    return entry ? { ...entry } : null;
+  }
+
   subscribe(listener) {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
@@ -54,6 +59,7 @@ export class ScoreModel {
       duration,
       dotted: Boolean(dotted),
       tieFromPrevious: Boolean(tieFromPrevious),
+      spellingPreference: null,
       ...this.#tupletFields(tuplet)
     };
     this.#notes.push(note);
@@ -99,6 +105,42 @@ export class ScoreModel {
     this.#emit();
     this.#finishStandaloneMutation();
     return true;
+  }
+
+  updateEntries(ids, updater) {
+    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
+    if (!wanted.size) return false;
+    const before = this.notes;
+    let changed = false;
+    this.#recordStandaloneMutation();
+
+    this.#notes = this.#notes.map((entry, index) => {
+      if (!wanted.has(entry.id)) return entry;
+      const patch = typeof updater === 'function'
+        ? updater({ ...entry }, index, before.map(item => ({ ...item })))
+        : updater;
+      if (!patch || typeof patch !== 'object') return entry;
+      const next = { ...entry, ...patch };
+      if (next.kind === 'rest') next.measureRest = next.duration === 'whole' && !Boolean(next.dotted) && !next.tupletId;
+      if (JSON.stringify(next) !== JSON.stringify(entry)) changed = true;
+      return next;
+    });
+
+    if (changed) this.#emit();
+    this.#finishStandaloneMutation();
+    return changed;
+  }
+
+  deleteEntries(ids) {
+    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
+    if (!wanted.size) return false;
+    const beforeLength = this.#notes.length;
+    this.#recordStandaloneMutation();
+    this.#notes = this.#notes.filter(entry => !wanted.has(entry.id));
+    const changed = this.#notes.length !== beforeLength;
+    if (changed) this.#emit();
+    this.#finishStandaloneMutation();
+    return changed;
   }
 
   undo() {

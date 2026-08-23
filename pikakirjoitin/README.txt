@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.23 – Tupletit
+Pikakirjoitin 2 Core 0.24 – Tupletit
 
 Pohja: Core 0.22 Kokotauko + multirest.
 
@@ -15,3 +15,6 @@ Lisätty vanhan Pikakirjoittimen tuplet-logiikka modulaarisena:
 - keskeneräisen tupletin kokoa ei voi vaihtaa tai kytkeä pois ennen loppuun kirjoittamista
 
 Muut Core 0.22:n ominaisuudet säilyvät.
+
+
+0.24: Nuottieditointi: valitun nuotin/alueen kelluva ♭ ↑ ↓ ♯ roskis -palkki sekä aika-arvon muokkaus koskettimiston eleillä.
