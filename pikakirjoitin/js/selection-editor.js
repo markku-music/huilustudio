@@ -35,6 +35,9 @@ export class SelectionEditor {
     }
 
     const enharmonic = this.#root.querySelector('[data-action="enharmonic"]');
+    // Näytä enharmoninen komento vain silloin, kun valitulle nuotille
+    // on oikeasti olemassa nykyisen kirjoituslogiikan mukainen vaihtoehto.
+    enharmonic.hidden = !canEnharmonic;
     enharmonic.disabled = !canEnharmonic;
     this.#root.hidden = false;
 

@@ -444,6 +444,7 @@ button { font: inherit; }
   cursor: pointer;
   touch-action: manipulation;
 }
+.pk-selection-editor button[hidden] { display: none; }
 .pk-selection-editor button:active { transform: translateY(1px); }
 .pk-selection-editor button:disabled { opacity: .34; cursor: default; }
 .pk-selection-editor .pk-enharmonic-icon {

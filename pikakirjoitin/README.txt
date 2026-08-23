@@ -21,3 +21,6 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.1: Yhden nuotin valinta avaa kompaktin enharmonia+roskis-palkin. Valitun nuotin kosketinele muuttaa yhtä aikaa sävelkorkeuden (kosketin) ja aika-arvon (ele).
 
 0.22.2: Yhden nuotin enharmonisen vaihdon painike käyttää käyttäjän toimittamaa assets/Enharmoninen.svg-kuvaketta. Toimintalogiikka ennallaan.
+
+
+0.22.3: Enharmonisen vaihdon nappi piilotetaan kokonaan, jos valitulla nuotilla ei ole enharmonista vaihtoehtoa.
