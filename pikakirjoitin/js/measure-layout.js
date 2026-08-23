@@ -17,8 +17,8 @@ const NOTATABLE = Object.freeze([
   { units: 8, type: 'quarter', dots: 0 },
   { units: 6, type: 'eighth', dots: 1 },
   { units: 4, type: 'eighth', dots: 0 },
-  { units: 3, type: 'sixteenth', dots: 1 },
-  { units: 2, type: 'sixteenth', dots: 0 },
+  { units: 3, type: '16th', dots: 1 },
+  { units: 2, type: '16th', dots: 0 },
   { units: 1, type: '32nd', dots: 0 }
 ]);
 

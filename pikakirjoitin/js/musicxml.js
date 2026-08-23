@@ -5,14 +5,17 @@ const SHARP_SPELLING = [['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],
 function esc(v=''){ return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;'); }
 function pitchXml(midi){ const pc=((midi%12)+12)%12,[step,alter]=SHARP_SPELLING[pc],oct=Math.floor(midi/12)-1; return `<pitch><step>${step}</step>${alter?`<alter>${alter}</alter>`:''}<octave>${oct}</octave></pitch>`; }
 function dotXml(count){ return '<dot/>'.repeat(Math.max(0, Number(count)||0)); }
+function xmlNoteType(type){
+  return ({ sixteenth: '16th', 'thirty-second': '32nd' })[type] || type;
+}
 function tieXml(note){ return `${note.tieStop?'<tie type="stop"/>':''}${note.tieStart?'<tie type="start"/>':''}`; }
 function tiedNotationXml(note){
   const tied=`${note.tieStop?'<tied type="stop"/>':''}${note.tieStart?'<tied type="start"/>':''}`;
   return tied?`<notations>${tied}</notations>`:'';
 }
 function noteXml(note){
-  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration}</duration><voice>1</voice><type>${note.type}</type>${dotXml(note.dots)}</note>`;
-  return `<note>${pitchXml(note.midi)}<duration>${note.duration}</duration>${tieXml(note)}<voice>1</voice><type>${note.type}</type>${dotXml(note.dots)}${tiedNotationXml(note)}</note>`;
+  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration}</duration><voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}</note>`;
+  return `<note>${pitchXml(note.midi)}<duration>${note.duration}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${tiedNotationXml(note)}</note>`;
 }
 function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d}</duration><voice>1</voice></note>`:''; }
 function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="cut"':''; }

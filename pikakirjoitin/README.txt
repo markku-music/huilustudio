@@ -1,3 +1,7 @@
+Pikakirjoitin 2 Core 0.16 – Vaakaeleet korjattu
+
+Korjaus: MusicXML:n 1/16-tyyppi on nyt standardin mukainen 16th. 1/32 käyttää 32nd-arvoa. Undo/Redo ja 0.14:n kosketusvalinta säilyvät.
+
 Pikakirjoitin 2 Core 0.15
 
 Lisätty:
