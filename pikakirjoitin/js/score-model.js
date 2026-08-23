@@ -3,6 +3,7 @@ export class ScoreModel {
   #listeners = new Set();
   #historyListeners = new Set();
   #nextId = 1;
+  #nextGroupId = 1;
   #undoStack = [];
   #redoStack = [];
   #transactionSnapshot = null;
@@ -142,6 +143,64 @@ export class ScoreModel {
     if (changed) this.#emit();
     this.#finishStandaloneMutation();
     return changed;
+  }
+
+  copyEntriesToEnd(ids) {
+    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
+    const indexed = this.#notes.map((entry, index) => ({ entry, index })).filter(({ entry }) => wanted.has(entry.id));
+    if (!indexed.length) return [];
+
+    this.#recordStandaloneMutation();
+
+    const selectedOriginalIndexes = new Set(indexed.map(item => item.index));
+    const tupletMap = new Map();
+    const beamMap = new Map();
+    const newIds = [];
+
+    const cloneGroupId = (map, oldId, prefix) => {
+      if (!oldId) return null;
+      if (!map.has(oldId)) map.set(oldId, `${prefix}-${this.#nextGroupId++}`);
+      return map.get(oldId);
+    };
+
+    const copies = indexed.map(({ entry, index }) => {
+      const copy = this.#cloneNotes([entry])[0];
+      copy.id = `${entry.kind === 'rest' ? 'rest' : 'note'}-${this.#nextId++}`;
+      newIds.push(copy.id);
+
+      // Käsin tehty side säilyy vain, jos myös sen edellinen looginen tapahtuma
+      // kuuluu kopioituun jaksoon. Kopio ei siis koskaan sido itseään vahingossa
+      // alkuperäisen musiikin viimeiseen nuottiin.
+      if (copy.tieFromPrevious) copy.tieFromPrevious = selectedOriginalIndexes.has(index - 1);
+
+      if (copy.tupletId) copy.tupletId = cloneGroupId(tupletMap, copy.tupletId, 'copy-tuplet');
+      if (copy.manualBeamGroup) copy.manualBeamGroup = cloneGroupId(beamMap, copy.manualBeamGroup, 'copy-beam');
+      return copy;
+    });
+
+    this.#notes.push(...copies);
+    this.#emit();
+    this.#finishStandaloneMutation();
+    return newIds;
+  }
+
+  toggleManualBeamGroup(ids) {
+    const wanted = new Set(Array.isArray(ids) ? ids : [ids]);
+    const beamableDurations = new Set(['eighth', 'sixteenth', 'thirty-second']);
+    const candidates = this.#notes.filter(entry =>
+      wanted.has(entry.id) && entry.kind === 'note' && beamableDurations.has(entry.duration)
+    );
+    if (candidates.length < 2) return { changed: false, active: false };
+
+    const shared = candidates[0].manualBeamGroup || null;
+    const alreadyGrouped = Boolean(shared && candidates.every(entry => entry.manualBeamGroup === shared));
+    const nextGroup = alreadyGrouped ? null : `beam-${this.#nextGroupId++}`;
+
+    this.#recordStandaloneMutation();
+    for (const entry of candidates) entry.manualBeamGroup = nextGroup;
+    this.#emit();
+    this.#finishStandaloneMutation();
+    return { changed: true, active: !alreadyGrouped, groupId: nextGroup };
   }
 
   undo() {

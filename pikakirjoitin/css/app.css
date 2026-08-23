@@ -532,3 +532,16 @@ button { font: inherit; }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+
+/* Aluevalinnan lisätoiminnot: kopioi loppuun ja manuaalinen palkitus. */
+.pk-selection-editor button.is-range-action {
+  width: 46px;
+}
+.pk-selection-editor button.is-range-action svg {
+  width: 27px;
+  height: 24px;
+}
+.pk-selection-editor button.is-beam svg {
+  stroke-width: 1.6;
+}

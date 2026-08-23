@@ -70,7 +70,20 @@ function measureConnections(notes, beats, beatType) {
       && rightInside
       && leftBucket === rightBucket;
     const tupletAutomatic = tupletFixedConnection(left, right);
-    const automatic = tupletAutomatic === null ? metricAutomatic : tupletAutomatic;
+
+    // Manuaalinen palkkiryhmä menee automatiikan edelle. Jos jompikumpi
+    // tapahtuma kuuluu manuaaliseen ryhmään, yhteys syntyy vain saman ryhmän
+    // sisällä. Näin valinta ei vahingossa ime viereistä automaattisesti
+    // palkitettavaa nuottia mukaansa. Tauko katkaisee ryhmän luonnostaan.
+    const leftManual = left?.manualBeamGroup || null;
+    const rightManual = right?.manualBeamGroup || null;
+    const hasManualBoundary = Boolean(leftManual || rightManual);
+    const manualAutomatic = Boolean(
+      leftManual && rightManual && leftManual === rightManual && isBeamable(left) && isBeamable(right)
+    );
+    const automatic = hasManualBoundary
+      ? manualAutomatic
+      : (tupletAutomatic === null ? metricAutomatic : tupletAutomatic);
 
     connections.push({
       index,

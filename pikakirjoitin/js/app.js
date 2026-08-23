@@ -53,6 +53,17 @@ const selectionEditor=new SelectionEditor({
       selection.clear();
       tuplet.syncFromModel();
     }
+  },
+  onCopyToEnd:()=>{
+    const ids=selectedExistingIds();
+    if(ids.length<2)return;
+    const copied=model.copyEntriesToEnd(ids);
+    if(copied.length) tuplet.syncFromModel();
+  },
+  onBeam:()=>{
+    const ids=selectedExistingIds();
+    if(ids.length<2)return;
+    model.toggleManualBeamGroup(ids);
   }
 });
 
@@ -64,7 +75,8 @@ selection.subscribe(state=>{
     x:state.anchor?.x||0,
     staffTop:state.anchor?.staffTop||0,
     staffBottom:state.anchor?.staffBottom||0,
-    noteCount
+    noteCount,
+    selectionCount:entries.length
   });
 });
 

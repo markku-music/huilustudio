@@ -14,3 +14,6 @@ Lisätty valitun nuotin ♭/♯-painikkeisiin kaksitoiminen logiikka:
 - Undo/Redo käsittelee jokaisen etumerkkimuutoksen yhtenä editointina
 
 Muut 0.25:n ominaisuudet säilyvät.
+
+
+Core 0.27: Aluevalinnan Kopioi loppuun ja manuaalinen Palkita yhteen.
