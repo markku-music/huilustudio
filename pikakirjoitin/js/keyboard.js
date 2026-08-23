@@ -61,8 +61,12 @@ export class PianoKeyboard {
   }
 
   centerOnMiddleC() {
+    this.scrollToMidi(60);
+  }
+
+  scrollToMidi(midi) {
     const whites = [...this.#whiteKeys.children];
-    const middleCIndex = whites.findIndex(key => Number(key.dataset.midi) === 60);
+    const middleCIndex = whites.findIndex(key => Number(key.dataset.midi) === Number(midi));
     const whiteWidth = this.#piano.scrollWidth / WHITE_COUNT;
     const maxScroll = Math.max(0, this.#piano.scrollWidth - this.#viewport.clientWidth);
     this.#viewport.scrollLeft = clamp(middleCIndex * whiteWidth, 0, maxScroll);

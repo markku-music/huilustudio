@@ -5,20 +5,139 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 2 Core 0.5</title>
+  <title>Pikakirjoitin 2 Core 0.6</title>
   <link rel="stylesheet" href="css/app.css">
   <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
-  <div class="start-screen" id="startScreen" role="dialog" aria-modal="true" aria-labelledby="startTitle">
-    <div class="start-card">
-      <h1 id="startTitle">PIKAKIRJOITIN</h1>
-      <button class="start-button" id="startButton" type="button">ALOITA</button>
-      <p class="start-status" id="startStatus" aria-live="polite"></p>
+  <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
+    <form class="project-card" id="projectForm">
+      <div class="project-start-actions" role="group" aria-label="Projektin aloitustapa">
+        <button class="project-start-action" id="newProjectStartButton" type="button" aria-pressed="true">UUSI NUOTTI</button>
+        <button class="project-start-action" id="openProjectButton" type="button" aria-pressed="false" disabled aria-disabled="true" title="Projektin avaaminen lisätään myöhemmin Coreen">AVAA PROJEKTI</button>
+      </div>
+      <div class="project-grid">
+        <label class="field wide" for="titleInput">
+          <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
+        </label>
+        <label class="field" for="tempoInput">
+          <input id="tempoInput" type="text" autocomplete="off" placeholder="Tempoteksti" aria-label="Tempoteksti">
+        </label>
+        <label class="field" for="composerInput">
+          <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
+        </label>
+
+        <div class="key-picker">
+          <button class="key-trigger" id="keyTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="keyWheelPopover">
+            <span class="key-trigger-value" id="keyTriggerValue">C-duuri</span>
+            <span class="key-trigger-icon" aria-hidden="true"></span>
+          </button>
+          <select id="keySignatureSelect" aria-label="Sävellaji" hidden>
+            <option value="0" data-mode="major" data-tonic="C">C-duuri</option>
+            <option value="0" data-mode="minor" data-tonic="A">a-molli</option>
+            <option value="1" data-mode="major" data-tonic="G">G-duuri</option>
+            <option value="1" data-mode="minor" data-tonic="E">e-molli</option>
+            <option value="2" data-mode="major" data-tonic="D">D-duuri</option>
+            <option value="2" data-mode="minor" data-tonic="B">h-molli</option>
+            <option value="3" data-mode="major" data-tonic="A">A-duuri</option>
+            <option value="3" data-mode="minor" data-tonic="F#">fis-molli</option>
+            <option value="4" data-mode="major" data-tonic="E">E-duuri</option>
+            <option value="4" data-mode="minor" data-tonic="C#">cis-molli</option>
+            <option value="5" data-mode="major" data-tonic="B">H-duuri</option>
+            <option value="5" data-mode="minor" data-tonic="G#">gis-molli</option>
+            <option value="-1" data-mode="major" data-tonic="F">F-duuri</option>
+            <option value="-1" data-mode="minor" data-tonic="D">d-molli</option>
+            <option value="-2" data-mode="major" data-tonic="Bb">B-duuri</option>
+            <option value="-2" data-mode="minor" data-tonic="G">g-molli</option>
+            <option value="-3" data-mode="major" data-tonic="Eb">Es-duuri</option>
+            <option value="-3" data-mode="minor" data-tonic="C">c-molli</option>
+            <option value="-4" data-mode="major" data-tonic="Ab">As-duuri</option>
+            <option value="-4" data-mode="minor" data-tonic="F">f-molli</option>
+            <option value="-5" data-mode="major" data-tonic="Db">Des-duuri</option>
+            <option value="-5" data-mode="minor" data-tonic="Bb">b-molli</option>
+            <option value="-6" data-mode="major" data-tonic="Gb">Ges-duuri</option>
+            <option value="-6" data-mode="minor" data-tonic="Eb">es-molli</option>
+          </select>
+        </div>
+
+        <div class="meter-picker">
+          <button class="meter-trigger" id="meterTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="meterWheelPopover">
+            <span class="meter-trigger-value" id="meterTriggerValue">4/4</span>
+            <span class="meter-trigger-icon" aria-hidden="true"></span>
+          </button>
+          <select id="timeSignatureSelect" aria-label="Tahtilaji" hidden>
+            <option value="2/4">2/4</option>
+            <option value="3/4">3/4</option>
+            <option value="4/4" selected>4/4</option>
+            <option value="C">C</option>
+            <option value="2/2">2/2</option>
+            <option value="cutC">Cut C</option>
+            <option value="3/8">3/8</option>
+            <option value="6/8">6/8</option>
+            <option value="9/8">9/8</option>
+            <option value="12/8">12/8</option>
+          </select>
+        </div>
+
+        <div class="pickup-control" role="group" aria-label="Kohotahti">
+          <span class="pickup-label">Kohotahti</span>
+          <input id="pickupSelect" type="hidden" value="0">
+          <div class="pickup-choices" id="pickupChoices"></div>
+        </div>
+
+        <div class="notation-settings">
+          <div class="notation-setting tuning-setting" role="group" aria-label="Viritys">
+            <span class="notation-setting-label">Viritys</span>
+            <input id="tuningSelect" type="hidden" value="C">
+            <div class="notation-choice-group" id="tuningChoices">
+              <button class="notation-choice" type="button" data-tuning="C" aria-pressed="true">C</button>
+              <button class="notation-choice" type="button" data-tuning="Bb" aria-pressed="false">B♭</button>
+              <button class="notation-choice" type="button" data-tuning="Eb" aria-pressed="false">E♭</button>
+              <button class="notation-choice" type="button" data-tuning="F" aria-pressed="false">F</button>
+            </div>
+          </div>
+          <div class="notation-setting" role="group" aria-label="Nuottiavain">
+            <input id="clefSelect" type="hidden" value="treble">
+            <div class="notation-choice-group" id="clefChoices">
+              <button class="notation-choice icon-choice" type="button" data-clef="treble" aria-label="G-avain" aria-pressed="true"><img src="assets/clef-alto.svg" alt=""></button>
+              <button class="notation-choice icon-choice" type="button" data-clef="alto" aria-label="C-avain" aria-pressed="false"><img src="assets/clef-treble.svg" alt=""></button>
+              <button class="notation-choice icon-choice" type="button" data-clef="bass" aria-label="F-avain" aria-pressed="false"><img src="assets/clef-bass.svg" alt=""></button>
+            </div>
+          </div>
+        </div>
+
+        <label class="field wide" for="themeSelect">
+          <span class="field-caption">Värimaailma</span>
+          <select id="themeSelect" aria-label="Värimaailma">
+            <option value="kupari">Kupari</option>
+            <option value="salvia">Salvia</option>
+            <option value="luumu">Luumu</option>
+            <option value="sahko">Sähkö</option>
+            <option value="koralli">Koralli</option>
+            <option value="vanilja">Vanilja</option>
+          </select>
+        </label>
+      </div>
+      <button class="start-button" id="projectSaveButton" type="submit">ALOITA</button>
+      <div class="start-status" id="startStatus" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <div class="key-wheel-popover" id="keyWheelPopover" role="dialog" aria-modal="true" aria-label="Valitse sävellaji kvinttiympyrästä" hidden>
+    <div class="key-wheel-card" id="keyWheelCard">
+      <button class="key-wheel-close" id="keyWheelClose" type="button" aria-label="Sulje sävellajivalinta">×</button>
+      <div id="keyWheelSlots"></div>
     </div>
   </div>
 
-  <main class="app" id="app" inert aria-hidden="true">
+  <div class="meter-wheel-popover" id="meterWheelPopover" role="dialog" aria-modal="true" aria-label="Valitse tahtiosoitus" hidden>
+    <div class="meter-wheel-card" id="meterWheelCard">
+      <button class="meter-wheel-close" id="meterWheelClose" type="button" aria-label="Sulje tahtiosoitusvalinta">×</button>
+      <div id="meterWheelSlots"></div>
+    </div>
+  </div>
+
+  <main class="app" id="app" aria-hidden="true" inert>
     <section class="score-viewport" id="scoreViewport" aria-label="Nuottipaperi">
       <div class="score-document">
         <div id="osmdContainer" aria-hidden="true"></div>
