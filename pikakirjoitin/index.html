@@ -1277,9 +1277,38 @@
       if(!headerDrag||e.pointerId!==headerDrag.pointerId)return;
       const {handle,key,startOffset}=headerDrag;ensureHeaderPositions()[key]=startOffset;applyHeaderPositions();handle.classList.remove('dragging');try{handle.releasePointerCapture?.(e.pointerId)}catch{}headerDrag=null;
     }
+    function renderedScoreContentHeight(){
+      // iPad/Safari ei aina päivitä absoluuttisesti skaalatun scorePage-elementin
+      // scrollHeight-arvoa, kun OSMD lisää uuden osmdCanvasPage-sivun. Lasketaan
+      // monisivuisen nuotin korkeus suoraan OSMD:n sivuelementeistä.
+      const pages=[...osmdContainer.querySelectorAll('[id^="osmdCanvasPage"]')];
+      if(!pages.length)return A4_HEIGHT;
+      let total=0;
+      for(const page of pages){
+        const svg=page.matches?.('svg')?page:page.querySelector('svg');
+        const attrHeight=Number.parseFloat(svg?.getAttribute?.('height'))||0;
+        const viewBoxHeight=svg?.viewBox?.baseVal?.height||0;
+        const measured=Math.max(page.offsetHeight||0,svg?.offsetHeight||0,attrHeight,viewBoxHeight);
+        total+=Math.max(A4_HEIGHT,measured||A4_HEIGHT);
+      }
+      return Math.max(A4_HEIGHT,total);
+    }
     function updateScorePagePreview(){
-      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,computedScale=clamp(Math.min(widthScale,heightScale),.42,1.28),scale=activeHeaderEditor?.frozenScale||computedScale,contentHeight=Math.max(A4_HEIGHT,scorePage.scrollHeight);scorePageScale=scale;
-      scorePage.style.transform=`scale(${scale})`;scorePageShell.style.width=A4_WIDTH*scale+'px';scorePageShell.style.height=contentHeight*scale+'px';if(writeEditNoteId)requestAnimationFrame(positionWriteNoteContext);
+      const widthScale=Math.max(1,score.clientWidth-16)/A4_WIDTH,heightScale=score.clientHeight?score.clientHeight/(A4_HEIGHT*A4_VISIBLE_FRACTION):widthScale,computedScale=clamp(Math.min(widthScale,heightScale),.42,1.28),scale=activeHeaderEditor?.frozenScale||computedScale;
+      // Nollaa edellisen renderin pakotettu korkeus, jotta sivumäärän väheneminenkin
+      // (esim. undo) voidaan mitata oikein.
+      scorePage.style.height='';
+      osmdContainer.style.minHeight=A4_HEIGHT+'px';
+      const contentHeight=renderedScoreContentHeight();
+      scorePageScale=scale;
+      // Tee scrollausalueesta eksplisiittisesti kaikkien OSMD-sivujen korkuinen.
+      // Tämä estää tilanteen, jossa sivu 2 näkyy mutta scrollHeight jää sivun 1 tasolle.
+      osmdContainer.style.minHeight=contentHeight+'px';
+      scorePage.style.height=contentHeight+'px';
+      scorePage.style.transform=`scale(${scale})`;
+      scorePageShell.style.width=A4_WIDTH*scale+'px';
+      scorePageShell.style.height=contentHeight*scale+'px';
+      if(writeEditNoteId)requestAnimationFrame(positionWriteNoteContext);
     }
     function closeKeyboardForWorkMode(){
       if(keyboardPanel.hidden)return;

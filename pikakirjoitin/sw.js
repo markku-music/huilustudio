@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.74-projektin-avaus-ipad-korjattu';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.75-monisivu-scrollaus-korjattu';
 const APP_SHELL = [
   './',
   './index.html',
