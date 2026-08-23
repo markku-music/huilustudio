@@ -38,11 +38,12 @@ export class PianoKeyboard {
   #onDuration;
   #onSoundStart;
   #onSoundStop;
+  #onFinish;
   #active = null;
   #scrollPointerId = null;
   #scrollGrabOffset = 0;
 
-  constructor({ piano, whiteKeys, viewport, rail, track, thumb, onStart, onDuration, onSoundStart, onSoundStop }) {
+  constructor({ piano, whiteKeys, viewport, rail, track, thumb, onStart, onDuration, onSoundStart, onSoundStop, onFinish }) {
     this.#piano = piano;
     this.#whiteKeys = whiteKeys;
     this.#viewport = viewport;
@@ -53,6 +54,7 @@ export class PianoKeyboard {
     this.#onDuration = onDuration;
     this.#onSoundStart = onSoundStart;
     this.#onSoundStop = onSoundStop;
+    this.#onFinish = onFinish;
 
     this.#buildKeys();
     this.#bindNoteGestures();
@@ -147,10 +149,18 @@ export class PianoKeyboard {
     const dx = event.clientX - active.startX;
     const dy = event.clientY - active.startY;
     if (Math.hypot(dx, dy) > LONG_PRESS_MOVE) this.#clearLongPress();
-    if (Math.abs(dy) < active.threshold) return;
+
+    const horizontal = Math.abs(dx) > Math.abs(dy);
+    const primaryDistance = horizontal ? Math.abs(dx) : Math.abs(dy);
+    if (primaryDistance < active.threshold) return;
 
     active.locked = true;
-    active.duration = dy > 0 ? 'eighth' : 'half';
+    if (horizontal) {
+      // Vaakasuunnat: oikealle 1/16, vasemmalle 1/32.
+      active.duration = dx > 0 ? 'sixteenth' : 'thirty-second';
+    } else {
+      active.duration = dy > 0 ? 'eighth' : 'half';
+    }
     this.#onDuration?.(active.noteId, active.duration);
   }
 
@@ -161,6 +171,7 @@ export class PianoKeyboard {
     this.#clearLongPress();
     active.key.classList.remove('active');
     this.#onSoundStop?.();
+    this.#onFinish?.(active.noteId, active.duration);
     try {
       if (this.#piano.hasPointerCapture(event.pointerId)) this.#piano.releasePointerCapture(event.pointerId);
     } catch {}

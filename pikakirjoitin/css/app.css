@@ -165,10 +165,65 @@ button { font: inherit; }
   will-change: transform;
 }
 
-.keyboard-viewport {
+.keyboard-body {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
+  display: flex;
+  background: #20242a;
+}
+
+.keyboard-tools {
+  flex: 0 0 56px;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-left: 1px solid #434a53;
+  background: #20242a;
+  touch-action: manipulation;
+}
+
+.history-button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #5e6874;
+  border-radius: 10px;
+  background: #2c3239;
+  color: #f4f7fa;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.history-button svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.history-button:active:not(:disabled) {
+  transform: translateY(1px);
+  background: #3a424c;
+}
+
+.history-button:disabled {
+  opacity: .28;
+}
+
+.keyboard-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: auto;
   overflow: hidden;
   background: #20242a;
   border-top: 5px solid #20242a;

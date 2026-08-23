@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 2 Core 0.14</title>
+  <title>Pikakirjoitin 2 Core 0.15</title>
   <link rel="stylesheet" href="css/app.css">
   <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
@@ -151,10 +151,20 @@
           <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
         </div>
       </div>
-      <div class="keyboard-viewport" id="keyboardViewport">
-        <div class="piano" id="piano">
-          <div class="white-keys" id="whiteKeys"></div>
+      <div class="keyboard-body">
+        <div class="keyboard-viewport" id="keyboardViewport">
+          <div class="piano" id="piano">
+            <div class="white-keys" id="whiteKeys"></div>
+          </div>
         </div>
+        <aside class="keyboard-tools" aria-label="Kirjoitustyökalut">
+          <button class="history-button" id="undoButton" type="button" aria-label="Kumoa" title="Kumoa" disabled>
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M13 8 6.5 14.5 13 21"/><path d="M7.5 14.5h10.2c5.1 0 8.3 2.8 8.3 7.5"/></svg>
+          </button>
+          <button class="history-button" id="redoButton" type="button" aria-label="Tee uudelleen" title="Tee uudelleen" disabled>
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m19 8 6.5 6.5L19 21"/><path d="M24.5 14.5H14.3C9.2 14.5 6 17.3 6 22"/></svg>
+          </button>
+        </aside>
       </div>
     </section>
   </main>

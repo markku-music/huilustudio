@@ -1,6 +1,8 @@
 export const DIVISIONS = 8;
 
 export const DURATION_UNITS = Object.freeze({
+  'thirty-second': 1,
+  sixteenth: 2,
   eighth: 4,
   quarter: 8,
   half: 16,
@@ -14,7 +16,10 @@ const NOTATABLE = Object.freeze([
   { units: 12, type: 'quarter', dots: 1 },
   { units: 8, type: 'quarter', dots: 0 },
   { units: 6, type: 'eighth', dots: 1 },
-  { units: 4, type: 'eighth', dots: 0 }
+  { units: 4, type: 'eighth', dots: 0 },
+  { units: 3, type: 'sixteenth', dots: 1 },
+  { units: 2, type: 'sixteenth', dots: 0 },
+  { units: 1, type: '32nd', dots: 0 }
 ]);
 
 export function timeSignatureParts(value = '4/4') {

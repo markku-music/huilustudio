@@ -24,10 +24,27 @@ model.subscribe(notes=>renderer.render(notes));
 const keyboard=new PianoKeyboard({
   piano:document.querySelector('#piano'),whiteKeys:document.querySelector('#whiteKeys'),viewport:document.querySelector('#keyboardViewport'),
   rail:document.querySelector('#keyboardScrollRail'),track:document.querySelector('#keyboardScrollTrack'),thumb:document.querySelector('#keyboardScrollThumb'),
-  onStart:(midi,duration)=>model.addNote({midi,duration}),
+  onStart:(midi,duration)=>{ model.beginAction(); return model.addNote({midi,duration}); },
   onDuration:(id,duration)=>model.setDuration(id,duration),
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),
-  onSoundStop:()=>audio.noteOff()
+  onSoundStop:()=>audio.noteOff(),
+  onFinish:()=>model.endAction()
+});
+
+
+const undoButton=document.querySelector('#undoButton');
+const redoButton=document.querySelector('#redoButton');
+
+model.subscribeHistory(({canUndo,canRedo})=>{
+  undoButton.disabled=!canUndo;
+  redoButton.disabled=!canRedo;
+});
+
+undoButton.addEventListener('click',()=>{
+  if(model.undo()) selection.clear();
+});
+redoButton.addEventListener('click',()=>{
+  if(model.redo()) selection.clear();
 });
 
 new StartScreen({
