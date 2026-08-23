@@ -70,62 +70,7 @@ export class ScoreRenderer {
     rules.PageRightMargin = margins.right;
     rules.PageBottomMargin = margins.bottom;
     rules.PageLeftMargin = margins.left;
-
-    // Pikakirjoittimen vakioyläosa:
-    // otsikko nostetaan hieman OSMD:n oletusta ylemmäs. Tempo ja säveltäjä
-    // kohdistetaan renderöinnin jälkeen samalle visuaaliselle riville.
-    rules.TitleTopDistance = 3.6;
-    rules.TitleBottomDistance = 1.2;
-    rules.SystemComposerDistance = 2.0;
-    rules.TempoYSpacing = 0.5;
-
     this.#lastMarginWidth = width;
-  }
-
-  #findRenderedText(value) {
-    const wanted = String(value || '').trim().replace(/\s+/g, ' ');
-    if (!wanted) return null;
-
-    const texts = this.#container.querySelectorAll('svg text');
-    for (const text of texts) {
-      const actual = String(text.textContent || '').trim().replace(/\s+/g, ' ');
-      if (actual === wanted) return text;
-    }
-    return null;
-  }
-
-  #translateSvgElementY(element, deltaScreenPx) {
-    if (!element || !Number.isFinite(deltaScreenPx) || Math.abs(deltaScreenPx) < 0.25) return;
-    const svg = element.ownerSVGElement;
-    const parent = element.parentNode;
-    const parentCtm = parent?.getScreenCTM?.();
-    if (!svg || !parentCtm) return;
-
-    try {
-      const inverse = parentCtm.inverse();
-      const a = new DOMPoint(0, 0).matrixTransform(inverse);
-      const b = new DOMPoint(0, deltaScreenPx).matrixTransform(inverse);
-      const deltaY = b.y - a.y;
-      const oldTransform = element.getAttribute('transform') || '';
-      element.setAttribute('transform', `translate(0 ${deltaY}) ${oldTransform}`.trim());
-    } catch (error) {
-      console.warn('Yläosan tekstin kohdistus epäonnistui:', error);
-    }
-  }
-
-  #alignHeaderTexts() {
-    const composer = this.#findRenderedText(this.#settings.composer);
-    const tempo = this.#findRenderedText(this.#settings.tempoText);
-    if (!composer || !tempo) return;
-
-    // Tempo ja säveltäjä ovat saman kokoisia tekstielementtejä. Kohdistetaan
-    // niiden visuaaliset pystykeskipisteet, jolloin ne näyttävät yhdeltä
-    // yhteiseltä vaakariviltä myös eri selaimissa ja eri paperiskaaloilla.
-    const composerRect = composer.getBoundingClientRect();
-    const tempoRect = tempo.getBoundingClientRect();
-    const composerCenterY = (composerRect.top + composerRect.bottom) / 2;
-    const tempoCenterY = (tempoRect.top + tempoRect.bottom) / 2;
-    this.#translateSvgElementY(tempo, composerCenterY - tempoCenterY);
   }
 
   #watchWidth() {
@@ -155,7 +100,6 @@ export class ScoreRenderer {
         await this.#osmd.load(buildMusicXml(notes, this.#settings));
         this.#applyPageMargins();
         await this.#osmd.render();
-        this.#alignHeaderTexts();
         const snapshot = {
           notes: notes.map(note => ({ ...note })),
           settings: { ...this.#settings }

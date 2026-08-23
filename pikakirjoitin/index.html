@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 2 Core 0.22.7.1 – Yläosan vakioasettelu</title>
+  <title>Pikakirjoitin 2 Core 0.22.9 – Tekstiasettelun säädöt</title>
   <link rel="stylesheet" href="css/app.css">
   <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
@@ -139,8 +139,14 @@
 
   <main class="app" id="app" aria-hidden="true" inert>
     <section class="score-viewport" id="scoreViewport" aria-label="Nuottipaperi">
-      <div class="score-document">
+      <div class="score-document" id="scoreDocument">
         <div id="osmdContainer" aria-hidden="true"></div>
+        <div class="score-metadata-overlay" id="scoreMetadataOverlay" aria-label="Otsikko-, tempo- ja säveltäjäasettelu" hidden>
+          <div class="score-text-item score-title-item" data-score-text="title" role="button" tabindex="0" aria-label="Siirrä otsikkoa pystysuunnassa"></div>
+          <div class="score-text-item score-tempo-item" data-score-text="tempo" role="button" tabindex="0" aria-label="Siirrä tempotekstiä"></div>
+          <div class="score-text-item score-composer-item" data-score-text="composer" role="button" tabindex="0" aria-label="Siirrä säveltäjää pystysuunnassa"></div>
+          <div class="score-text-readout" hidden></div>
+        </div>
       </div>
     </section>
 

@@ -34,8 +34,11 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 0.22.7: Enharmoninen nappi piilotetaan, kun valitun nuotin nykyinen kirjoitusasu on sävellajin normaali diatoninen asu (esim. Es Es-duurissa, Fis D-duurissa). Poikkeava enharmoninen kirjoitusasu voi edelleen näyttää napin.
 
-0.22.7.1 – Yläosan vakioasettelu
-- Otsikko on OSMD:n oletusta hieman ylempänä ja keskitettynä.
-- Tempoteksti ja säveltäjä kohdistetaan täsmälleen samalle pystytasolle.
-- Tempo säilyy vasemmalla musiikin aloituskohdassa ja säveltäjä oikealla.
-- Nuottiviivastojen muu asettelu on ennallaan.
+
+0.22.9 Tekstiasettelun säädöt
+- Otsikko: aina viivaston keskellä, vain Y-veto.
+- Tempoteksti: vapaa X/Y-veto.
+- Säveltäjä: oikea reuna viivaston oikeassa reunassa, vain Y-veto.
+- Sijainnit tallennetaan localStorageen A4-millimetreinä.
+- Vedon aikana näytetään tarkka mm-lukema.
+- Pikakirjoitin_asettelu.json sisältää oletusarvot, jotka voi lähettää takaisin paikkojen hienosäätöä varten.
