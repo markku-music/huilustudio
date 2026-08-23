@@ -1,4 +1,5 @@
 import { DIVISIONS, layoutNotesIntoMeasures } from './measure-layout.js';
+import { beamTagsForMeasure, beamTagsXml } from './beaming.js';
 
 const SHARP_SPELLING = [['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]];
 
@@ -13,9 +14,9 @@ function tiedNotationXml(note){
   const tied=`${note.tieStop?'<tied type="stop"/>':''}${note.tieStart?'<tied type="start"/>':''}`;
   return tied?`<notations>${tied}</notations>`:'';
 }
-function noteXml(note){
-  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration}</duration><voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}</note>`;
-  return `<note>${pitchXml(note.midi)}<duration>${note.duration}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${tiedNotationXml(note)}</note>`;
+function noteXml(note, beamTags=[]){
+  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration}</duration><voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}</note>`;
+  return `<note>${pitchXml(note.midi)}<duration>${note.duration}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
 }
 function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d}</duration><voice>1</voice></note>`:''; }
 function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="cut"':''; }
@@ -26,7 +27,8 @@ export function buildMusicXml(notes, settings={}){
   const xmlMeasures=measures.map((measure,index)=>{
     const attr=index===0?`<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${Number(settings.keySignature)||0}</fifths><mode>${esc(settings.keyMode||'major')}</mode></key><time${timeSymbol(settings.timeSignature)}><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clefXml(settings.clef)}</attributes>`:'';
     const tempo=index===0&&settings.tempoText?`<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type></direction>`:'';
-    const content=measure.notes.length?measure.notes.map(noteXml).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
+    const beamTags=beamTagsForMeasure(measure.notes, beats, beatType, { osmdCompatible: true });
+    const content=measure.notes.length?measure.notes.map((note,noteIndex)=>noteXml(note,beamTags[noteIndex])).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
     const number=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'';
     return `<measure number="${number}"${implicit}>${attr}${tempo}${content}</measure>`;
   }).join('');
