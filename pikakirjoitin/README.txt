@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.22.8 – Standardiasettelu
+Pikakirjoitin 2 Core 0.22.1 – Yhden nuotin editointi
 
 Pikakirjoitin 2 Core 0.19 – Sidekaari
 
@@ -34,13 +34,8 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 0.22.7: Enharmoninen nappi piilotetaan, kun valitun nuotin nykyinen kirjoitusasu on sävellajin normaali diatoninen asu (esim. Es Es-duurissa, Fis D-duurissa). Poikkeava enharmoninen kirjoitusasu voi edelleen näyttää napin.
 
-
-0.22.8 – Standardiasettelu
-- A4 ja 15 mm sivumarginaalit säilyvät.
-- Otsikko OSMD:n omana nuottigrafiikkana keskelle, baseline noin 21 mm paperin yläreunasta.
-- Säveltäjä oikealle ensimmäisen järjestelmän yläpuolelle.
-- Tempoteksti ensimmäisen järjestelmän musiikin aloituskohtaan.
-- Ensimmäisen järjestelmän korkeus mukautuu automaattisesti sen mukaan, mitä otsikkotietoja on annettu.
-- Otsikko + säveltäjä/tempo: ensimmäinen järjestelmä noin 50 mm kohdalle.
-- Ilman otsikkoa ei varata tyhjää otsikkoblokkia.
-- Järjestelmien vähimmäisväli 8,5 staff-space-yksikköä; OSMD:n törmäysten välttäminen saa kasvattaa väliä.
+0.22.7.1 – Yläosan vakioasettelu
+- Otsikko on OSMD:n oletusta hieman ylempänä ja keskitettynä.
+- Tempoteksti ja säveltäjä kohdistetaan täsmälleen samalle pystytasolle.
+- Tempo säilyy vasemmalla musiikin aloituskohdassa ja säveltäjä oikealla.
+- Nuottiviivastojen muu asettelu on ennallaan.
