@@ -406,7 +406,7 @@
         <button class="project-start-action" id="newProjectStartButton" type="button" aria-pressed="true">UUSI NUOTTI</button>
         <button class="project-start-action" id="openProjectButton" type="button" aria-pressed="false">AVAA PROJEKTI</button>
       </div>
-      <input class="project-file-input" id="projectFileInput" type="file" accept=".pikakirjoitin,application/json" tabindex="-1" aria-hidden="true">
+      <input class="project-file-input" id="projectFileInput" type="file" tabindex="-1" aria-hidden="true">
       <div class="project-grid">
         <label class="field wide" for="titleInput">
           <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
@@ -1401,7 +1401,7 @@
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
     function saveProjectFile(){
-      const payload=JSON.stringify(buildProjectFile(),null,2),filename=`${projectFileBaseName()}.pikakirjoitin`,projectFile=new File([payload],filename,{type:'text/plain;charset=utf-8',lastModified:Date.now()});
+      const payload=JSON.stringify(buildProjectFile(),null,2),filename=`${projectFileBaseName()}.pikakirjoitin`,projectFile=new File([payload],filename,{type:'application/json;charset=utf-8',lastModified:Date.now()});
       shareOrDownloadFiles([projectFile],{successMessage:'Pikakirjoitin-projekti annettu jakoikkunaan.',fallbackMessage:'Pikakirjoitin-projekti ladattu laitteelle.'});
     }
     function nextIdFromItems(items,prefix){
