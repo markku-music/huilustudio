@@ -196,6 +196,29 @@ export class ScoreRangeSelection {
 
   get selectedIds() { return [...this.#selectedIds]; }
 
+  /**
+   * Pitää yhden loogisen ScoreModel-tapahtuman valittuna myös OSMD:n
+   * uudelleenrenderöinnin yli. Editointi saa muuttaa nuotin korkeutta,
+   * kestoa ja jopa näkyvien segmenttien määrää, mutta sourceId pysyy samana.
+   */
+  retainSingle(sourceId) {
+    if (!sourceId) return false;
+    this.#selectedIds = new Set([sourceId]);
+
+    const event = this.#events.find(item => item.sourceId === sourceId) || null;
+    if (event) {
+      this.#cursorTarget = { sourceId:event.sourceId, segmentIndex:event.segmentIndex };
+      this.#paint();
+      this.#showCursor(event.band, event);
+    } else {
+      // SVG voi olla juuri vaihtumassa. Looginen valinta säilytetään ja
+      // kohdistin palautetaan seuraavassa refresh()-kierroksessa.
+      this.#paint();
+    }
+    this.#emitChange();
+    return true;
+  }
+
   clear() {
     this.#selectedIds.clear();
     this.#cursorTarget = null;

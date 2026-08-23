@@ -19,7 +19,15 @@ const selection=new ScoreRangeSelection({
   viewport:document.querySelector('#scoreViewport'),
   container:document.querySelector('#osmdContainer')
 });
-renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
+let keyboardEditId = null;
+renderer.subscribeRendered(snapshot=>{
+  selection.refresh(snapshot);
+  // Kosketineditoinnin aikana OSMD rakentaa SVG:n kokonaan uudelleen.
+  // Palauta sama looginen nuotti valituksi jokaisen renderöinnin jälkeen.
+  if (keyboardEditId && model.getEntry(keyboardEditId)?.kind === 'note') {
+    selection.retainSingle(keyboardEditId);
+  }
+});
 let settings={transpose:0,keyboardStartMidi:60};
 let thumbState={dot:false,rest:false,tie:false};
 
@@ -56,15 +64,36 @@ const selectionEditor = new SelectionEditor({
   }
 });
 
+let lastSelectionEditorAnchor = null;
+
 selection.subscribe(state => {
   const note = state.count === 1 ? model.getEntry(state.selectedIds[0]) : null;
-  const isSingleNote = Boolean(note?.kind === 'note' && state.anchor);
+  const isSingleNote = Boolean(note?.kind === 'note');
+
+  // OSMD rakentaa SVG:n uudelleen aina, kun valittua nuottia muutetaan.
+  // Looginen valinta (sourceId) säilyy, mutta uuden SVG:n ankkuri voi olla
+  // yhden renderöintikierroksen ajan tyhjä. Älä piilota työkalupalkkia siksi.
+  if (state.anchor) lastSelectionEditorAnchor = { ...state.anchor };
+
+  if (!isSingleNote) {
+    lastSelectionEditorAnchor = null;
+    selectionEditor.update({ visible:false });
+    return;
+  }
+
+  const anchor = state.anchor || lastSelectionEditorAnchor;
+  if (!anchor) {
+    // Tätä voi tapahtua vain ennen ensimmäistä onnistunutta graafista osumaa.
+    // Säilytä editorin nykyinen tila sen sijaan, että väläytetään se pois.
+    return;
+  }
+
   selectionEditor.update({
-    visible: isSingleNote,
-    x: state.anchor?.x || 0,
-    staffTop: state.anchor?.staffTop || 0,
-    staffBottom: state.anchor?.staffBottom || 0,
-    canEnharmonic: isSingleNote && Boolean(enharmonicPreferenceFor(note.id))
+    visible: true,
+    x: anchor.x,
+    staffTop: anchor.staffTop,
+    staffBottom: anchor.staffBottom,
+    canEnharmonic: Boolean(enharmonicPreferenceFor(note.id))
   });
 });
 
@@ -73,8 +102,6 @@ const thumbRail=new ThumbRail({
   boundsElement:document.querySelector('#scoreViewport'),
   onChange:state=>{ thumbState=state; }
 });
-
-let keyboardEditId = null;
 
 const keyboard=new PianoKeyboard({
   piano:document.querySelector('#piano'),whiteKeys:document.querySelector('#whiteKeys'),viewport:document.querySelector('#keyboardViewport'),
@@ -92,6 +119,7 @@ const keyboard=new PianoKeyboard({
         duration,
         spellingPreference:null
       });
+      selection.retainSingle(selected.id);
       return { id:selected.id, sound:true };
     }
 
@@ -108,13 +136,19 @@ const keyboard=new PianoKeyboard({
     return { id:model.addNote({midi,duration,dotted:thumbState.dot,tieFromPrevious}), sound:true };
   },
   onDuration:(id,duration)=>{
-    if (keyboardEditId) model.updateEntry(keyboardEditId,{duration});
-    else model.setDuration(id,duration);
+    if (keyboardEditId) {
+      model.updateEntry(keyboardEditId,{duration});
+      selection.retainSingle(keyboardEditId);
+    } else model.setDuration(id,duration);
   },
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),
   onSoundStop:()=>audio.noteOff(),
   onFinish:()=>{
     model.endAction();
+    // Koskettimella tehty editointi on valmis. Tämän jälkeen valinta
+    // puretaan tarkoituksella, jotta koskettimisto palaa heti normaaliin
+    // uuden nuotin kirjoitustilaan.
+    if (keyboardEditId) selection.clear();
     keyboardEditId=null;
   }
 });

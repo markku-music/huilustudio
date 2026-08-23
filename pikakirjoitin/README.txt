@@ -24,3 +24,9 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 
 0.22.3: Enharmonisen vaihdon nappi piilotetaan kokonaan, jos valitulla nuotilla ei ole enharmonista vaihtoehtoa.
+
+
+0.22.4: Yhden nuotin työkalupalkki säilyy näkyvissä koskettimella tehdyn korkeus-/aika-arvomuutoksen ja OSMD-uudelleenrenderöinnin yli.
+
+
+0.22.6: Koskettimella tehtävän nuottieditoinnin aikana sama looginen nuotti pidetään valittuna renderöintien yli, mutta kun kosketinele päättyy, valinta puretaan automaattisesti. Työkalupalkki ja valintakohdistin katoavat ja koskettimisto palaa uuden nuotin kirjoitustilaan.
