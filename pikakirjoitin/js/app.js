@@ -6,7 +6,6 @@ import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { TupletController } from './tuplet-controller.js';
-import { ScoreZoomController } from './score-zoom.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -20,14 +19,6 @@ const selection=new ScoreRangeSelection({
   container:document.querySelector('#osmdContainer')
 });
 renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
-const zoomController=new ScoreZoomController({
-  viewport:document.querySelector('#scoreViewport'),
-  documentElement:document.querySelector('.score-document'),
-  renderer,
-  selection,
-  minZoom:1,
-  maxZoom:1.5
-});
 let settings={transpose:0,keyboardStartMidi:60};
 let thumbState={dot:false,rest:false,tie:false,tuplet:0};
 let warningTimer=0;
