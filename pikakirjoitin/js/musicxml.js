@@ -15,10 +15,10 @@ function tiedNotationXml(note){
   return tied?`<notations>${tied}</notations>`:'';
 }
 function noteXml(note, beamTags=[]){
-  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration}</duration><voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}</note>`;
-  return `<note>${pitchXml(note.midi)}<duration>${note.duration}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
+  if (note.kind === 'rest') return `<note><rest/><duration>${note.duration * 2}</duration><voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}</note>`;
+  return `<note>${pitchXml(note.midi)}<duration>${note.duration * 2}</duration>${tieXml(note)}<voice>1</voice><type>${xmlNoteType(note.type)}</type>${dotXml(note.dots)}${beamTagsXml(beamTags)}${tiedNotationXml(note)}</note>`;
 }
-function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d}</duration><voice>1</voice></note>`:''; }
+function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>${d * 2}</duration><voice>1</voice></note>`:''; }
 function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="cut"':''; }
 function clefXml(v){ const [sign,line]=({treble:['G',2],alto:['C',3],bass:['F',4]})[v]||['G',2]; return `<clef><sign>${sign}</sign><line>${line}</line></clef>`; }
 

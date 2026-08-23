@@ -53,13 +53,14 @@ export class ScoreModel {
     this.#emitHistory();
   }
 
-  addNote({ midi, duration = 'quarter' }) {
+  addNote({ midi, duration = 'quarter', dotted = false }) {
     this.#recordStandaloneMutation();
     const note = {
       id: `note-${this.#nextId++}`,
       kind: 'note',
       midi: Number(midi),
-      duration
+      duration,
+      dotted: Boolean(dotted)
     };
     this.#notes.push(note);
     this.#emit();
@@ -67,12 +68,13 @@ export class ScoreModel {
     return note.id;
   }
 
-  addRest({ duration = 'quarter' } = {}) {
+  addRest({ duration = 'quarter', dotted = false } = {}) {
     this.#recordStandaloneMutation();
     const rest = {
       id: `rest-${this.#nextId++}`,
       kind: 'rest',
-      duration
+      duration,
+      dotted: Boolean(dotted)
     };
     this.#notes.push(rest);
     this.#emit();

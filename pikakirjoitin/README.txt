@@ -1,14 +1,7 @@
-Pikakirjoitin 2 Core 0.16 – Vaakaeleet korjattu
+Pikakirjoitin 2 Core 0.18 – Peukalopalkki
 
-Korjaus: MusicXML:n 1/16-tyyppi on nyt standardin mukainen 16th. 1/32 käyttää 32nd-arvoa. Undo/Redo ja 0.14:n kosketusvalinta säilyvät.
-
-Pikakirjoitin 2 Core 0.15
-
-Lisätty:
-- oikean reunan Undo/Redo-työkalupalkki
-- tapahtumapohjainen history: yksi kosketinele = yksi undo-askel
-- koskettimen eleet: napautus 1/4, alas 1/8, ylös 1/2, oikealle 1/16, vasemmalle 1/32, pitkä 1/1
-- aiemmat 0.14 kosketusvalinnat ja 0.13 valintakohdistin säilyvät
-
-
-0.17: Automaattinen palkitus lisätty omana beaming.js-moduulina. 1/8, 1/16 ja 1/32 ryhmitellään iskualojen mukaan; 6/8, 9/8 ja 12/8 käyttävät pisteellisen neljäsosan iskua.
+Lisätty vasemman reunan peukalopalkki, jossa on aluksi pisteellinen ja tauko.
+Painikkeet toimivat momentary-modifioijina: toiminto on aktiivinen vain niin kauan kuin nappia pidetään pohjassa.
+Samaa pohjassa olevaa nappia voi vetää pystysuunnassa, jolloin koko palkki siirtyy; paikka tallentuu selaimen localStorageen.
+Piste toimii myös 1/32-ajalla: MusicXML-divisions on nostettu 16:een, mutta Pikakirjoittimen sisäinen rytmiasteikko on säilytetty ennallaan.
+Tauko käyttää koskettimiston normaalia aika-arvoelettä, mutta ei soita ääntä.

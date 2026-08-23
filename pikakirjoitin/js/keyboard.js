@@ -112,7 +112,9 @@ export class PianoKeyboard {
     event.preventDefault();
 
     const midi = Number(key.dataset.midi);
-    const noteId = this.#onStart?.(midi, 'quarter');
+    const startResult = this.#onStart?.(midi, 'quarter');
+    const noteId = typeof startResult === 'object' ? startResult?.id : startResult;
+    const playSound = typeof startResult === 'object' ? startResult?.sound !== false : true;
     if (!noteId) return;
 
     key.classList.add('active');
@@ -126,11 +128,12 @@ export class PianoKeyboard {
       threshold,
       duration: 'quarter',
       locked: false,
+      soundOn: playSound,
       timer: null
     };
 
     try { this.#piano.setPointerCapture(event.pointerId); } catch {}
-    this.#onSoundStart?.(midi);
+    if (playSound) this.#onSoundStart?.(midi);
 
     this.#active.timer = window.setTimeout(() => {
       const active = this.#active;
@@ -170,7 +173,7 @@ export class PianoKeyboard {
 
     this.#clearLongPress();
     active.key.classList.remove('active');
-    this.#onSoundStop?.();
+    if (active.soundOn) this.#onSoundStop?.();
     this.#onFinish?.(active.noteId, active.duration);
     try {
       if (this.#piano.hasPointerCapture(event.pointerId)) this.#piano.releasePointerCapture(event.pointerId);

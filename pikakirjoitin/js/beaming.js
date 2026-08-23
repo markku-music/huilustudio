@@ -19,6 +19,7 @@ function beamUnit(beats, beatType) {
 
 function beamLevelCount(note) {
   if (!note || note.kind === 'rest') return 0;
+  if (note.type === '64th') return 4;
   if (note.type === '32nd') return 3;
   if (note.type === '16th') return 2;
   if (note.type === 'eighth') return 1;
@@ -95,7 +96,7 @@ function addBeamLevelRuns(tags, notes, starts, connections, level) {
       // Yksittäinen alempi palkkitaso tarvitsee hookin. Suunta määräytyy
       // rytmipaikan mukaan samalla periaatteella kuin Pikakirjoitin 1.x:ssä.
       const noteIndex = run[0];
-      const subdivision = level === 2 ? 4 : 2;
+      const subdivision = level === 2 ? 4 : level === 3 ? 2 : 1;
       tags[noteIndex].push({
         number: level,
         value: starts[noteIndex] % subdivision === 0 ? 'forward hook' : 'backward hook'
@@ -125,6 +126,7 @@ export function beamTagsForMeasure(notes, beats, beatType, { osmdCompatible = tr
   if (!osmdCompatible) {
     addBeamLevelRuns(tags, notes, starts, connections, 2);
     addBeamLevelRuns(tags, notes, starts, connections, 3);
+    addBeamLevelRuns(tags, notes, starts, connections, 4);
   }
 
   return tags;

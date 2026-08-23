@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 2 Core 0.15</title>
+  <title>Pikakirjoitin 2 Core 0.18</title>
   <link rel="stylesheet" href="css/app.css">
   <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
@@ -143,6 +143,15 @@
         <div id="osmdContainer" aria-hidden="true"></div>
       </div>
     </section>
+
+    <aside class="thumb-rail" id="thumbRail" role="toolbar" aria-label="Peukalopalkki">
+      <button class="thumb-modifier" type="button" data-modifier="dot" aria-label="Pidä pohjassa: pisteellinen" aria-pressed="false">
+        <img src="assets/1_4_dot.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+      <button class="thumb-modifier" type="button" data-modifier="rest" aria-label="Pidä pohjassa: tauko" aria-pressed="false">
+        <img src="assets/rest.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+    </aside>
 
     <section class="keyboard-panel" aria-label="Koskettimisto">
       <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0"

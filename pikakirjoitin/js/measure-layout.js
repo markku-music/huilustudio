@@ -1,4 +1,4 @@
-export const DIVISIONS = 8;
+export const DIVISIONS = 16;
 
 export const DURATION_UNITS = Object.freeze({
   'thirty-second': 1,
@@ -19,7 +19,9 @@ const NOTATABLE = Object.freeze([
   { units: 4, type: 'eighth', dots: 0 },
   { units: 3, type: '16th', dots: 1 },
   { units: 2, type: '16th', dots: 0 },
-  { units: 1, type: '32nd', dots: 0 }
+  { units: 1.5, type: '32nd', dots: 1 },
+  { units: 1, type: '32nd', dots: 0 },
+  { units: 0.5, type: '64th', dots: 0 }
 ]);
 
 export function timeSignatureParts(value = '4/4') {
@@ -34,8 +36,9 @@ export function measureCapacity(value = '4/4') {
   return beats * 32 / beatType;
 }
 
-export function durationUnits(duration) {
-  return DURATION_UNITS[duration] ?? DURATION_UNITS.quarter;
+export function durationUnits(duration, dotted = false) {
+  const base = DURATION_UNITS[duration] ?? DURATION_UNITS.quarter;
+  return dotted ? base * 1.5 : base;
 }
 
 function notationParts(units) {
@@ -81,7 +84,7 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
   };
 
   for (const note of notes) {
-    let remaining = durationUnits(note.duration);
+    let remaining = durationUnits(note.duration, note.dotted);
     let segmentIndex = 0;
 
     while (remaining > 0) {

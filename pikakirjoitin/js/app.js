@@ -4,6 +4,7 @@ import { ScoreRenderer } from './score-renderer.js';
 import { PianoKeyboard } from './keyboard.js';
 import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
+import { ThumbRail } from './thumb-rail.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -18,13 +19,26 @@ const selection=new ScoreRangeSelection({
 });
 renderer.subscribeRendered(snapshot=>selection.refresh(snapshot));
 let settings={transpose:0,keyboardStartMidi:60};
+let thumbState={dot:false,rest:false};
 
 model.subscribe(notes=>renderer.render(notes));
+
+new ThumbRail({
+  rail:document.querySelector('#thumbRail'),
+  boundsElement:document.querySelector('#scoreViewport'),
+  onChange:state=>{ thumbState=state; }
+});
 
 const keyboard=new PianoKeyboard({
   piano:document.querySelector('#piano'),whiteKeys:document.querySelector('#whiteKeys'),viewport:document.querySelector('#keyboardViewport'),
   rail:document.querySelector('#keyboardScrollRail'),track:document.querySelector('#keyboardScrollTrack'),thumb:document.querySelector('#keyboardScrollThumb'),
-  onStart:(midi,duration)=>{ model.beginAction(); return model.addNote({midi,duration}); },
+  onStart:(midi,duration)=>{
+    model.beginAction();
+    if(thumbState.rest){
+      return { id:model.addRest({duration,dotted:thumbState.dot}), sound:false };
+    }
+    return { id:model.addNote({midi,duration,dotted:thumbState.dot}), sound:true };
+  },
   onDuration:(id,duration)=>model.setDuration(id,duration),
   onSoundStart:midi=>audio.noteOn(midi+(settings.transpose||0)),
   onSoundStop:()=>audio.noteOff(),
