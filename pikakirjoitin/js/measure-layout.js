@@ -59,8 +59,9 @@ function notationParts(units) {
 }
 
 function createMeasure(capacity) {
-  return { capacity, used: 0, notes: [] };
+  return { capacity, used: 0, notes: [], explicitMeasureRest: false };
 }
+
 
 /**
  * Muuttaa ScoreModelin loogiset nuotit tahteihin mahtuviksi segmenteiksi.
@@ -89,13 +90,18 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
     // Vanhan Pikakirjoittimen tavoin se saa aina oman tahdin ja täyttää
     // kyseisen tahdin todellisen kapasiteetin tahtilajista riippumatta.
     if (note.kind === 'rest' && note.measureRest) {
-      if (current.notes.length > 0 || current.used > 0) nextMeasure();
+      // Peukalopalkin Tauko + koskettimen pitkä painallus tarkoittaa aina
+      // KOKO TAHDIN taukoa, riippumatta tahtilajista. Se ei siis koskaan
+      // täytä mahdollista kohotahtia, vaan aloittaa tarvittaessa uuden
+      // normaalimittaisen tahdin.
+      if (current.notes.length > 0 || current.used > 0 || current.capacity !== normalCapacity) nextMeasure();
+      current.explicitMeasureRest = true;
       const segment = {
         sourceId: note.id,
         segmentIndex: 0,
         kind: 'rest',
         midi: null,
-        duration: current.capacity,
+        duration: normalCapacity,
         type: 'whole',
         dots: 0,
         measureRest: true,
@@ -105,7 +111,7 @@ export function layoutNotesIntoMeasures(notes, settings = {}) {
       current.notes.push(segment);
       if (!segmentsBySource.has(note.id)) segmentsBySource.set(note.id, []);
       segmentsBySource.get(note.id).push(segment);
-      current.used = current.capacity;
+      current.used = normalCapacity;
       continue;
     }
 

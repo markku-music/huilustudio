@@ -33,7 +33,11 @@ export class ScoreRenderer {
       drawPartNames: false,
       drawMeasureNumbers: false,
       newSystemFromXML: false,
-      stretchLastSystemLine: false
+      stretchLastSystemLine: false,
+      // Multirestit muodostetaan itse vain käyttäjän nimenomaisista
+      // kokotaukosyötöistä. Näin OSMD ei yhdistä muita tyhjiä tahteja
+      // arvaamalla omalla automatiikallaan.
+      autoGenerateMultipleRestMeasuresFromRestMeasures: false
     });
     this.#osmd.setPageFormat?.(layout.format);
     this.#applyPageMargins();

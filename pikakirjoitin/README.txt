@@ -1,3 +1,5 @@
+Pikakirjoitin 2 Core 0.22 – Kokotauko ja multirest
+
 Pikakirjoitin 2 Core 0.19 – Sidekaari
 
 Lisätty vasemman reunan peukalopalkki, jossa on aluksi pisteellinen ja tauko.
@@ -13,3 +15,5 @@ Tauko käyttää koskettimiston normaalia aika-arvoelettä, mutta ei soita ään
 0.21: Sävellajin mukainen enharmoninen kirjoitusasu.
 Alennusmerkkisissä sävellajeissa mustat koskettimet kirjoitetaan alennuksina,
 ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään erikseen.
+
+0.22: Tauko + koskettimen pitkä painallus luo aina täyden tahdin kokotauon. Peräkkäiset kokotauot muodostavat eksplisiittisen MusicXML-multirestin (2, 3, 4...), ja OSMD:n oma automaattinen multirest-arvaus on pois käytöstä.

@@ -26,10 +26,35 @@ function hiddenRestXml(d){ return d>0?`<note print-object="no"><rest/><duration>
 function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="cut"':''; }
 function clefXml(v){ const [sign,line]=({treble:['G',2],alto:['C',3],bass:['F',4]})[v]||['G',2]; return `<clef><sign>${sign}</sign><line>${line}</line></clef>`; }
 
+
+function explicitMultiRestRuns(measures) {
+  const starts = new Map();
+  for (let i = 0; i < measures.length; ) {
+    if (!measures[i]?.explicitMeasureRest) { i += 1; continue; }
+    let end = i + 1;
+    while (end < measures.length && measures[end]?.explicitMeasureRest) end += 1;
+    const count = end - i;
+    if (count >= 2) starts.set(i, count);
+    i = end;
+  }
+  return starts;
+}
+
+function attributesXml({ index, settings, beats, beatType, multiRestCount }) {
+  const common = index === 0
+    ? `<divisions>${DIVISIONS}</divisions><key><fifths>${Number(settings.keySignature)||0}</fifths><mode>${esc(settings.keyMode||'major')}</mode></key><time${timeSymbol(settings.timeSignature)}><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clefXml(settings.clef)}`
+    : '';
+  const multi = multiRestCount >= 2
+    ? `<measure-style><multiple-rest use-symbols="no">${multiRestCount}</multiple-rest></measure-style>`
+    : '';
+  return (common || multi) ? `<attributes>${common}${multi}</attributes>` : '';
+}
+
 export function buildMusicXml(notes, settings={}){
   const { beats, beatType, pickupCapacity, measures } = layoutNotesIntoMeasures(notes, settings);
+  const multiRestStarts = explicitMultiRestRuns(measures);
   const xmlMeasures=measures.map((measure,index)=>{
-    const attr=index===0?`<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${Number(settings.keySignature)||0}</fifths><mode>${esc(settings.keyMode||'major')}</mode></key><time${timeSymbol(settings.timeSignature)}><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clefXml(settings.clef)}</attributes>`:'';
+    const attr=attributesXml({ index, settings, beats, beatType, multiRestCount: multiRestStarts.get(index) || 0 });
     const tempo=index===0&&settings.tempoText?`<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type></direction>`:'';
     const beamTags=beamTagsForMeasure(measure.notes, beats, beatType, { osmdCompatible: true });
     const content=measure.notes.length?measure.notes.map((note,noteIndex)=>noteXml(note,beamTags[noteIndex],noteIndex,measure.notes,settings)).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
