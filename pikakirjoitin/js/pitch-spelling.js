@@ -134,3 +134,75 @@ export function moveDiatonic(midi, direction, { index=0, notes=[], settings={} }
   const targetMidi = (octave + 1) * 12 + NATURAL_PITCH_CLASS[step] + alter;
   return { midi: targetMidi, spellingPreference: null, spellingOverride: null };
 }
+
+const DISPLAY_STEP = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'H' };
+
+export function formatSpelling({ step, alter=0 } = {}) {
+  const base = DISPLAY_STEP[step] || step || '';
+  const n = Number(alter) || 0;
+  if (n === -2) return `${base}𝄫`;
+  if (n === -1) return `${base}♭`;
+  if (n === 1) return `${base}♯`;
+  if (n === 2) return `${base}𝄪`;
+  return base;
+}
+
+/**
+ * Rakentaa yhden valitun nuotin sävelasuvalikon.
+ *
+ * Naturaali kirjoitusasu: saman kirjainnimen ♭ / naturaali / ♯. Näissä
+ * soiva korkeus muuttuu tarvittaessa puolisävelaskeleen.
+ *
+ * Jo muunnettu kirjoitusasu: saman soivan sävelen kaikki tavalliset
+ * (ei kaksoisetumerkkiä tarvitsevat) enharmoniset kirjoitusasut.
+ * Nykyinen mahdollinen kaksoisetumerkkinen asu säilytetään vaihtoehtona,
+ * mutta editori ei luo uusia kaksoisetumerkkejä.
+ */
+export function getSpellingChoices(midi, { index=0, notes=[], settings={} } = {}) {
+  const current = spellMidi(midi, { index, notes, settings });
+  const currentAlter = Number(current.alter) || 0;
+  const choices = [];
+
+  const addChoice = ({ step, alter, octave, midi:choiceMidi }) => {
+    if (!Object.hasOwn(NATURAL_PITCH_CLASS, step)) return;
+    const key = `${step}:${alter}:${octave}:${choiceMidi}`;
+    if (choices.some(choice => choice.key === key)) return;
+    choices.push({
+      key,
+      label: formatSpelling({ step, alter }),
+      midi: Number(choiceMidi),
+      spellingPreference: null,
+      spellingOverride: { step, alter:Number(alter), octave:Number(octave) },
+      current: step === current.step && Number(alter) === currentAlter && Number(octave) === Number(current.octave) && Number(choiceMidi) === Number(midi)
+    });
+  };
+
+  if (currentAlter === 0) {
+    for (const alter of [-1, 0, 1]) {
+      const choiceMidi = (Number(current.octave) + 1) * 12 + NATURAL_PITCH_CLASS[current.step] + alter;
+      addChoice({ step:current.step, alter, octave:current.octave, midi:choiceMidi });
+    }
+    return choices;
+  }
+
+  // Pidä nykyinen asu mukana myös silloin, jos se on esim. mollin johtosävelen
+  // vuoksi kaksoisylennetty. Uusia kaksoisetumerkkejä ei kuitenkaan tarjota.
+  addChoice({ step:current.step, alter:currentAlter, octave:current.octave, midi:Number(midi) });
+
+  for (const step of STEP_ORDER) {
+    for (const alter of [-1, 0, 1]) {
+      const octave = (Number(midi) - NATURAL_PITCH_CLASS[step] - alter) / 12 - 1;
+      if (!Number.isInteger(octave)) continue;
+      addChoice({ step, alter, octave, midi:Number(midi) });
+    }
+  }
+
+  // Luetaan valikko vasemmalta oikealle alennusmerkkinen -> naturaali -> ylennysmerkkinen.
+  choices.sort((a,b) => {
+    const aa = Number(a.spellingOverride.alter) || 0;
+    const ba = Number(b.spellingOverride.alter) || 0;
+    if (aa !== ba) return aa - ba;
+    return STEP_ORDER.indexOf(a.spellingOverride.step) - STEP_ORDER.indexOf(b.spellingOverride.step);
+  });
+  return choices;
+}
