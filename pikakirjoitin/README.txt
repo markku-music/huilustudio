@@ -1,19 +1,16 @@
-Pikakirjoitin 2 Core 0.25 – Nuottieditointi koskettimella
+Pikakirjoitin 2 Core 0.26 – Etumerkkieditointi
 
-Pohja: Core 0.24 Nuottieditointi / Core 0.23 Tupletit.
+Pohja: Core 0.25 Nuottieditointi korkeus + aika.
 
-Lisätty:
-- kun yksi nuotti on valittuna, kosketin jolta ele alkaa määrää nuotin uuden sävelkorkeuden
-- sama kosketinele määrää samalla uuden aika-arvon:
-  napautus = 1/4
-  alas = 1/8
-  ylös = 1/2
-  oikealle = 1/16
-  vasemmalle = 1/32
-  pitkä = 1/1
-- editoinnin aikana uusi sävel myös soi
-- koskettimella valittu uusi sävel palautuu sävellajin normaaliin enharmoniseen kirjoitusasuun
-- koko kosketinele on yksi Undo/Redo-tapahtuma
-- usean nuotin aluevalinnassa kosketinele muuttaa edelleen aika-arvoa, mutta ei pakota koko aluetta samaan sävelkorkeuteen
+Lisätty valitun nuotin ♭/♯-painikkeisiin kaksitoiminen logiikka:
+- diatoninen/naturaali nuotti + ♯ = sama kirjain ylennettynä, soiva korkeus +1/2 askelta
+- diatoninen/naturaali nuotti + ♭ = sama kirjain alennettuna, soiva korkeus -1/2 askelta
+- vastakkaisella etumerkillä kirjoitettu nuotti vaihtuu enharmonisesti ilman soivan korkeuden muutosta
+  esim. Ges -> ♯ -> Fis ja Fis -> ♭ -> Ges
+- jo samalla etumerkillä oleva nuotti ei muutu
+- kaksoisylennyksiä ja kaksoisalennuksia ei luoda
+- tarkka kirjoitusasu (esim. Cb, Fb, B#, E#) säilytetään MusicXML:ään asti
+- ↑/↓ ja koskettimella tehtävä uusi korkeus palauttavat kirjoitusasun sävellajin normaaliin logiikkaan
+- Undo/Redo käsittelee jokaisen etumerkkimuutoksen yhtenä editointina
 
-Muut 0.24:n ominaisuudet säilyvät.
+Muut 0.25:n ominaisuudet säilyvät.

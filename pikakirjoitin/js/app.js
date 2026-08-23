@@ -7,7 +7,7 @@ import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { TupletController } from './tuplet-controller.js';
 import { SelectionEditor } from './selection-editor.js';
-import { moveDiatonic } from './pitch-spelling.js';
+import { applyAccidental, moveDiatonic } from './pitch-spelling.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
@@ -42,8 +42,8 @@ function editSelectedNotes(updater) {
 }
 
 const selectionEditor=new SelectionEditor({
-  onFlat:()=>editSelectedNotes(()=>({spellingPreference:'flat'})),
-  onSharp:()=>editSelectedNotes(()=>({spellingPreference:'sharp'})),
+  onFlat:()=>editSelectedNotes((entry,index,all)=>applyAccidental(entry.midi,'flat',{index,notes:all,settings})),
+  onSharp:()=>editSelectedNotes((entry,index,all)=>applyAccidental(entry.midi,'sharp',{index,notes:all,settings})),
   onUp:()=>editSelectedNotes((entry,index,all)=>moveDiatonic(entry.midi,1,{index,notes:all,settings})),
   onDown:()=>editSelectedNotes((entry,index,all)=>moveDiatonic(entry.midi,-1,{index,notes:all,settings})),
   onDelete:()=>{
@@ -114,7 +114,8 @@ const keyboard=new PianoKeyboard({
         model.updateEntries(selectedIds,{
           midi:Number(midi),
           duration,
-          spellingPreference:null
+          spellingPreference:null,
+          spellingOverride:null
         });
         return { id:selectedIds[0], sound:true };
       }

@@ -9,10 +9,10 @@ export class SelectionEditor {
     root.setAttribute('role', 'toolbar');
     root.setAttribute('aria-label', 'Nuotin muokkaus');
     root.innerHTML = `
-      <button type="button" data-action="flat" aria-label="Kirjoita alennusmerkkisenä">♭</button>
+      <button type="button" data-action="flat" aria-label="Alenna tai kirjoita enharmonisesti alennusmerkkisenä">♭</button>
       <button type="button" data-action="up" aria-label="Siirrä sävelaskel ylöspäin">↑</button>
       <button type="button" data-action="down" aria-label="Siirrä sävelaskel alaspäin">↓</button>
-      <button type="button" data-action="sharp" aria-label="Kirjoita ylennysmerkkisenä">♯</button>
+      <button type="button" data-action="sharp" aria-label="Ylennä tai kirjoita enharmonisesti ylennysmerkkisenä">♯</button>
       <button type="button" data-action="delete" aria-label="Poista valinta" class="is-delete">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5l1-2h4l1 2m3 0-1 16H7L6 5"/></svg>
       </button>`;

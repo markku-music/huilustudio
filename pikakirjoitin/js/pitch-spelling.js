@@ -34,6 +34,18 @@ function forcedSpelling(midi, preference) {
   return null;
 }
 
+function explicitSpelling(midi, source) {
+  const explicit = source?.spellingOverride;
+  if (!explicit || !Object.hasOwn(NATURAL_PITCH_CLASS, explicit.step)) return null;
+  const step = explicit.step;
+  const alter = Number(explicit.alter);
+  const octave = Number(explicit.octave);
+  if (!Number.isFinite(alter) || !Number.isFinite(octave)) return null;
+  const expectedMidi = (octave + 1) * 12 + NATURAL_PITCH_CLASS[step] + alter;
+  if (expectedMidi !== Number(midi)) return null;
+  return [step, alter, octave];
+}
+
 function useFlats(midi, index, notes, settings) {
   const keySignature = Number(settings?.keySignature) || 0;
   const leading = leadingToneSpelling(midi, settings);
@@ -62,11 +74,47 @@ function keyAlterForStep(step, keySignature=0) {
 
 export function spellMidi(midi, { index=0, notes=[], settings={} } = {}) {
   const source = notes?.[index];
+  const explicit = explicitSpelling(midi, source);
+  if (explicit) return { step:explicit[0], alter:explicit[1], octave:explicit[2] };
   const forced = forcedSpelling(midi, source?.spellingPreference);
   const leading = forced ? null : leadingToneSpelling(midi, settings);
   const [step, alter] = forced || leading || (useFlats(midi, index, notes, settings) ? FLATS : SHARPS)[mod(Number(midi), 12)];
   const octave = (Number(midi) - NATURAL_PITCH_CLASS[step] - alter) / 12 - 1;
   return { step, alter, octave };
+}
+
+/**
+ * ♯/♭-editorin semantiikka:
+ * - luonnollinen sävel: lisää pyydetty etumerkki ja muuttaa soivaa korkeutta 1/2 askelta
+ * - vastakkaisella etumerkillä kirjoitettu sävel: enharmoninen uudelleenkirjoitus, soiva korkeus ei muutu
+ * - jo samalla etumerkillä kirjoitettu sävel: ei muutosta
+ * Kaksoisylennyksiä/-alennuksia ei luoda tässä editorissa.
+ */
+export function applyAccidental(midi, accidental, { index=0, notes=[], settings={} } = {}) {
+  const target = accidental === 'flat' ? -1 : accidental === 'sharp' ? 1 : 0;
+  if (!target) return null;
+  const current = spellMidi(midi, { index, notes, settings });
+
+  if (Math.sign(Number(current.alter) || 0) === target) return null;
+
+  // Vastakkainen etumerkki: sama soiva sävel, mutta kirjoitusasu vaihdetaan.
+  if ((Number(current.alter) || 0) * target < 0) {
+    return {
+      midi:Number(midi),
+      spellingPreference: target > 0 ? 'sharp' : 'flat',
+      spellingOverride:null
+    };
+  }
+
+  // Diatoninen/naturaali sävel: pidetään kirjain ja oktaavi, lisätään ♯ tai ♭.
+  const step=current.step;
+  const octave=current.octave;
+  const nextMidi=(octave + 1) * 12 + NATURAL_PITCH_CLASS[step] + target;
+  return {
+    midi:nextMidi,
+    spellingPreference:null,
+    spellingOverride:{ step, alter:target, octave }
+  };
 }
 
 /**
@@ -84,5 +132,5 @@ export function moveDiatonic(midi, direction, { index=0, notes=[], settings={} }
   const step = STEP_ORDER[targetIndex];
   const alter = keyAlterForStep(step, settings?.keySignature);
   const targetMidi = (octave + 1) * 12 + NATURAL_PITCH_CLASS[step] + alter;
-  return { midi: targetMidi, spellingPreference: null };
+  return { midi: targetMidi, spellingPreference: null, spellingOverride: null };
 }

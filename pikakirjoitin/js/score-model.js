@@ -60,6 +60,7 @@ export class ScoreModel {
       dotted: Boolean(dotted),
       tieFromPrevious: Boolean(tieFromPrevious),
       spellingPreference: null,
+      spellingOverride: null,
       ...this.#tupletFields(tuplet)
     };
     this.#notes.push(note);
