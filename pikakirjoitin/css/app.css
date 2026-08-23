@@ -184,3 +184,65 @@ button { font: inherit; }
 @media (max-height: 620px) {
   .keyboard-panel { flex-basis: 220px; }
 }
+
+/* Aloitusruudun ainoa tehtävä on antaa iPadille käyttäjäele,
+   jolla Web Audio avataan ennen ensimmäistä pianokosketusta. */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: #eef1f5;
+  transition: opacity 140ms ease;
+}
+
+.start-screen.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.start-card {
+  display: grid;
+  justify-items: center;
+  gap: 28px;
+  width: min(88vw, 420px);
+}
+
+.start-card h1 {
+  margin: 0;
+  color: #20242a;
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.start-button {
+  min-width: 180px;
+  min-height: 58px;
+  padding: 12px 28px;
+  border: 0;
+  border-radius: 14px;
+  background: #2365aa;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.start-button:disabled {
+  opacity: .72;
+  cursor: default;
+}
+
+.start-status {
+  min-height: 1.4em;
+  margin: -12px 0 0;
+  color: #5b6572;
+  font-size: 14px;
+  text-align: center;
+}

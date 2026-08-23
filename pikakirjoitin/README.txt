@@ -1,3 +1,5 @@
+Pikakirjoitin 2 Core 0.5 – Aloitusruutu ja audio unlock
+
 Pikakirjoitin 2 Core 0.2
 ========================
 

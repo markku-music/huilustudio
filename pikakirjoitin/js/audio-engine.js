@@ -24,6 +24,32 @@ export class AudioEngine {
   #active = false;
   #activeMidi = null;
 
+  async unlock() {
+    if (!this.#ensureGraph()) return false;
+
+    // Tämä metodi kutsutaan suoraan ALOITA-painikkeen käyttäjäeleestä.
+    // Oskillaattori käynnistetään ja AudioContext herätetään ennen kuin
+    // varsinainen koskettimisto tulee käyttäjän käsiteltäväksi.
+    if (!this.#started) {
+      try {
+        this.#oscillator.start();
+        this.#started = true;
+      } catch {
+        return false;
+      }
+    }
+
+    if (this.#context.state !== 'running') {
+      try {
+        await this.#context.resume();
+      } catch {
+        return false;
+      }
+    }
+
+    return this.#context.state === 'running';
+  }
+
   noteOn(midi) {
     if (!Number.isFinite(midi)) return false;
     if (!this.#ensureGraph()) return false;
