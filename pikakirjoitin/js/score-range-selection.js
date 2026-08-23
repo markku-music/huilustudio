@@ -4,6 +4,9 @@ const DIRECTION_THRESHOLD = 11;
 const DIRECTION_DOMINANCE = 1.18;
 const STAFF_EXTRA_Y = 15;
 const SAME_LINE_TOLERANCE = 1.8;
+const TAP_MOVE_TOLERANCE = 9;
+const NOTE_HIT_PADDING_X = 22;
+const NOTE_HIT_PADDING_Y = 20;
 
 function rectCenterX(rect) { return rect.left + rect.width / 2; }
 function rectCenterY(rect) { return rect.top + rect.height / 2; }
@@ -131,6 +134,7 @@ export class ScoreRangeSelection {
         segmentIndex: segments[i].segmentIndex,
         x: rectCenterX(rect),
         y: rectCenterY(rect),
+        rect,
         band
       });
     }
@@ -144,6 +148,7 @@ export class ScoreRangeSelection {
   get selectedIds() { return [...this.#selectedIds]; }
 
   clear() {
+    if (!this.#selectedIds.size) return;
     this.#selectedIds.clear();
     this.#paint();
   }
@@ -158,16 +163,21 @@ export class ScoreRangeSelection {
   #pointerDown(ev) {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     if (this.#gesture) return;
-    const band = this.#bandAt(ev.clientX, ev.clientY);
-    if (!band) return; // viivaston ulkopuolelta alkava kosketus ei koskaan ole aluevalinta
 
+    // Pidämme pending-tilan myös viivaston ulkopuolella, jotta lyhyt napautus
+    // tyhjään paperiin voi poistaa valinnan. Emme kuitenkaan estä selaimen
+    // natiivia pystyscrollausta missään vaiheessa.
+    const band = this.#bandAt(ev.clientX, ev.clientY);
     this.#gesture = {
       pointerId: ev.pointerId,
       state: 'pending',
       band,
       startX: ev.clientX,
       startY: ev.clientY,
-      currentX: ev.clientX
+      currentX: ev.clientX,
+      anchorHead: null,
+      endHead: null,
+      maxMove: 0
     };
   }
 
@@ -178,6 +188,7 @@ export class ScoreRangeSelection {
     const dx = ev.clientX - g.startX;
     const dy = ev.clientY - g.startY;
     const ax = Math.abs(dx), ay = Math.abs(dy);
+    g.maxMove = Math.max(g.maxMove, Math.hypot(dx,dy));
 
     if (g.state === 'pending') {
       if (Math.max(ax,ay) < DIRECTION_THRESHOLD) return;
@@ -188,29 +199,61 @@ export class ScoreRangeSelection {
         return;
       }
 
-      // Vasta selkeä vaakaliike aktivoi valinnan ja lukitsee eleen siihen.
+      // Vaakavalinta voi alkaa vain viivaston alueelta.
+      if (!g.band) {
+        this.#gesture = null;
+        return;
+      }
+
       if (ax > ay * DIRECTION_DOMINANCE) {
+        // TARKKA ALOITUS: raakaa startX-pikseliä ei käytetä valintarajana.
+        // Aloitus napsahtaa saman viivaston lähimpään nuotinpäähän. Näin paksu
+        // sormi voi osua nuotin ympärille, eikä valinnan ensimmäinen nuotti ole
+        // kiinni muutamasta pikselistä.
+        g.anchorHead = this.#nearestHeadInBand(g.band, g.startX);
+        if (!g.anchorHead) {
+          this.#gesture = null;
+          return;
+        }
+
         g.state = 'selecting';
         try { this.#viewport.setPointerCapture(ev.pointerId); } catch {}
-      } else return;
+        g.endHead = this.#nearestHeadInBand(g.band, ev.clientX) || g.anchorHead;
+        this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
+      }
+      return;
     }
 
     if (g.state === 'selecting') {
       ev.preventDefault();
       g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
-      this.#selectRange(g.band, g.startX, g.currentX);
+      g.endHead = this.#nearestHeadInBand(g.band, g.currentX) || g.anchorHead;
+      this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
     }
   }
 
   #pointerUp(ev) {
     const g = this.#gesture;
     if (!g || ev.pointerId !== g.pointerId) return;
+
+    const dx = ev.clientX - g.startX;
+    const dy = ev.clientY - g.startY;
+    g.maxMove = Math.max(g.maxMove, Math.hypot(dx,dy));
+
     if (g.state === 'selecting') {
       ev.preventDefault();
       g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
-      this.#selectRange(g.band, g.startX, g.currentX);
+      g.endHead = this.#nearestHeadInBand(g.band, g.currentX) || g.anchorHead;
+      this.#selectBetweenHeads(g.band, g.anchorHead, g.endHead);
       try { this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
+    } else if (g.state === 'pending' && g.maxMove <= TAP_MOVE_TOLERANCE) {
+      // Napautus tyhjään kohtaan poistaa valinnan. Nuotin ympärillä on reilu,
+      // näkymätön osuma-alue, joten paksu sormi ei vahingossa tulkitse nuottiin
+      // osunutta napautusta tyhjäksi.
+      const hitHead = this.#headAt(ev.clientX, ev.clientY);
+      if (!hitHead) this.clear();
     }
+
     this.#gesture = null;
   }
 
@@ -230,14 +273,43 @@ export class ScoreRangeSelection {
     return pool.reduce((best,b) => Math.abs(y-b.centerY) < Math.abs(y-best.centerY) ? b : best, pool[0]);
   }
 
-  #selectRange(band, startX, endX) {
-    const left = Math.min(startX,endX);
-    const right = Math.max(startX,endX);
+  #headsInBand(band) {
+    return this.#heads
+      .filter(head => head.band === band)
+      .sort((a,b) => a.x - b.x);
+  }
+
+  #nearestHeadInBand(band, x) {
+    const heads = this.#headsInBand(band);
+    if (!heads.length) return null;
+    return heads.reduce((best, head) => Math.abs(x-head.x) < Math.abs(x-best.x) ? head : best, heads[0]);
+  }
+
+  #headAt(x,y) {
+    // Käytetään nuottipäätä paljon suurempaa näkymätöntä osuma-aluetta.
+    // Jos alueet limittyvät, valitaan geometrisesti lähin nuotin pää.
+    const candidates = this.#heads.filter(head => {
+      const r = head.rect;
+      return x >= r.left - NOTE_HIT_PADDING_X && x <= r.right + NOTE_HIT_PADDING_X &&
+             y >= r.top - NOTE_HIT_PADDING_Y && y <= r.bottom + NOTE_HIT_PADDING_Y;
+    });
+    if (!candidates.length) return null;
+    return candidates.reduce((best, head) => {
+      const d = Math.hypot(x-head.x, y-head.y);
+      const bestD = Math.hypot(x-best.x, y-best.y);
+      return d < bestD ? head : best;
+    }, candidates[0]);
+  }
+
+  #selectBetweenHeads(band, startHead, endHead) {
+    if (!startHead || !endHead) return;
+    const left = Math.min(startHead.x, endHead.x);
+    const right = Math.max(startHead.x, endHead.x);
     const ids = new Set();
 
     for (const head of this.#heads) {
       if (head.band !== band) continue;
-      if (head.x >= left && head.x <= right) ids.add(head.sourceId);
+      if (head.x >= left - 0.5 && head.x <= right + 0.5) ids.add(head.sourceId);
     }
     this.#selectedIds = ids;
     this.#paint();

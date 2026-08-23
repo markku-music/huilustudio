@@ -26,3 +26,12 @@ Core 0.10
 - Valinta toimii kumpaankin vaakasuuntaan samalla viivastorivillä.
 - Vain valittujen nuottien nuotinpäät vaihtavat teemaväriin.
 - Tahdin yli tie-kaarella jaetun saman loogisen nuotin kaikki nuotinpäät värittyvät yhdessä.
+
+Core 0.11
+---------
+- Tyhjään nuottipaperin kohtaan napauttaminen poistaa nykyisen aluevalinnan.
+- Nuotin ympärillä on 44+ px:n näkymätön osuma-alue, joten nuottiin osunutta napautusta ei tulkita tyhjäksi.
+- Vaakavalinnan aloitus ei enää käytä raakaa sormen x-koordinaattia.
+- Kun vaakaveto lukittuu valinnaksi, aloitus napsahtaa saman viivaston lähimpään nuotinpäähän.
+- Myös vedon loppu napsahtaa lähimpään nuotinpäähän, joten valinta laajenee nuotti kerrallaan eikä pikseli kerrallaan.
+- Pystysuuntainen veto säilyy selaimen natiivina scrollauksena.
