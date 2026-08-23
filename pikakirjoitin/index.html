@@ -9,12 +9,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;1,500&family=Source+Sans+3:wght@400&display=swap" rel="stylesheet">
   <script async src="vendor/osmd/opensheetmusicdisplay.min.js" onload="window.dispatchEvent(new Event('osmd-ready'))"></script>
   <title>Pikakirjoitin</title>
   <style>
+    @font-face{font-family:"Fraunces";src:url("fonts/Fraunces-Variable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
+    @font-face{font-family:"Fraunces";src:url("fonts/Fraunces-Italic-Variable.woff2") format("woff2");font-style:italic;font-weight:100 900;font-display:swap}
+    @font-face{font-family:"Source Sans 3";src:url("fonts/SourceSans3-Variable.woff2") format("woff2");font-style:normal;font-weight:200 900;font-display:swap}
     *{box-sizing:border-box}
     :root{font-family:system-ui,-apple-system,sans-serif;color:#18202a;background:#eef1f5}
     html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -1361,15 +1361,30 @@
       if(lines.length>maxLines){const rest=lines.slice(maxLines-1).join(' ');lines.length=maxLines-1;let last=rest;while(last.length>1&&ctx.measureText(`${last}…`).width>maxWidth)last=last.slice(0,-1);lines.push(`${last}…`)}
       return lines;
     }
+    function canvasFontFromElement(element){
+      const style=getComputedStyle(element),fontStyle=style.fontStyle&&style.fontStyle!=='normal'?`${style.fontStyle} `:'',fontWeight=style.fontWeight||'400',fontSize=style.fontSize||'16px',fontFamily=style.fontFamily||'sans-serif';
+      return `${fontStyle}${fontWeight} ${fontSize} ${fontFamily}`;
+    }
+    async function ensurePublicationFonts(){
+      if(!document.fonts?.load)return;
+      const requests=[
+        [canvasFontFromElement(scoreTitle),(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim()],
+        [canvasFontFromElement(scoreTempo),(scoreTempo.textContent||projectData?.tempoText||'').trim()],
+        [canvasFontFromElement(scoreComposer),(scoreComposer.textContent||projectData?.composer||'').trim()]
+      ];
+      await Promise.all(requests.filter(([,sample])=>sample).map(([font,sample])=>document.fonts.load(font,sample).catch(()=>[])));
+      try{await document.fonts.ready}catch{}
+    }
     function drawPublicationHeader(ctx){
       const title=(scoreTitle.textContent||projectData?.title||'Nimetön kappale').trim(),tempo=(scoreTempo.textContent||projectData?.tempoText||'').trim(),composer=(scoreComposer.textContent||projectData?.composer||'').trim(),titleStyle=getComputedStyle(scoreTitle),infoStyle=getComputedStyle(scoreTempo.parentElement),tempoStyle=getComputedStyle(scoreTempo),composerStyle=getComputedStyle(scoreComposer),titleTop=Number.parseFloat(titleStyle.top)||28,infoTop=Number.parseFloat(infoStyle.top)||104,tempoTop=infoTop+(Number.parseFloat(tempoStyle.top)||0),composerTop=infoTop+(Number.parseFloat(composerStyle.top)||0);
-      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font='750 25px system-ui,-apple-system,sans-serif';wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';ctx.font='650 15px system-ui,-apple-system,sans-serif';if(tempo){ctx.textAlign='left';ctx.fillText(tempo,50,tempoTop)}if(composer){ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,composerTop)}ctx.restore();
+      ctx.save();ctx.fillStyle='#18202a';ctx.textBaseline='top';ctx.textAlign='center';ctx.font=canvasFontFromElement(scoreTitle);wrappedCanvasLines(ctx,title,A4_WIDTH-100,2).forEach((line,index)=>ctx.fillText(line,A4_WIDTH/2,titleTop+index*29));ctx.fillStyle='#263342';if(tempo){ctx.font=canvasFontFromElement(scoreTempo);ctx.textAlign='left';ctx.fillText(tempo,50,tempoTop)}if(composer){ctx.font=canvasFontFromElement(scoreComposer);ctx.textAlign='right';ctx.fillText(composer,A4_WIDTH-50,composerTop)}ctx.restore();
     }
     function canvasBlob(canvas,type='image/png',quality){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF-sivun kuvan luominen epäonnistui.')),type,quality))}
     async function publicationPagePng(svg,pageIndex){
       const rasterScale=2,canvas=document.createElement('canvas');canvas.width=A4_WIDTH*rasterScale;canvas.height=A4_HEIGHT*rasterScale;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('PDF-kuvapintaa ei voitu luoda.');ctx.setTransform(rasterScale,0,0,rasterScale,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,A4_WIDTH,A4_HEIGHT);const image=await publicationSvgImage(svg);ctx.drawImage(image,0,0,A4_WIDTH,A4_HEIGHT);if(pageIndex===0)drawPublicationHeader(ctx);const blob=await canvasBlob(canvas);canvas.width=1;canvas.height=1;return new Uint8Array(await blob.arrayBuffer());
     }
     async function createScorePdfBlob(){
+      await ensurePublicationFonts();
       const PDFDocument=window.PDFLib?.PDFDocument;if(!PDFDocument)throw new Error('PDF-moottori ei ole vielä käytettävissä.');const svgs=scoreSvgPages();if(!svgs.length)throw new Error('Nuottisivuja ei löytynyt PDF:ää varten.');const documentPdf=await PDFDocument.create(),pageWidth=595.28,pageHeight=841.89;documentPdf.setTitle(projectData?.title||'Nimetön kappale');if(projectData?.composer)documentPdf.setAuthor(projectData.composer);documentPdf.setCreator('Pikakirjoitin');
       for(let index=0;index<svgs.length;index+=1){const pngBytes=await publicationPagePng(svgs[index],index),image=await documentPdf.embedPng(pngBytes),page=documentPdf.addPage([pageWidth,pageHeight]);page.drawImage(image,{x:0,y:0,width:pageWidth,height:pageHeight})}
       const bytes=await documentPdf.save({useObjectStreams:true});return new Blob([bytes],{type:'application/pdf'});

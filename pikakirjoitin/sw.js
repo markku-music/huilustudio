@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.60-cleanup';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.63-local-fonts';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,6 +6,9 @@ const APP_SHELL = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
+  './fonts/Fraunces-Variable.woff2',
+  './fonts/Fraunces-Italic-Variable.woff2',
+  './fonts/SourceSans3-Variable.woff2',
   './vendor/osmd/opensheetmusicdisplay.min.js',
   './vendor/pdf-lib/pdf-lib.min.js',
   './vendor/pdf-lib/LICENSE.md',
