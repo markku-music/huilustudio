@@ -6,6 +6,7 @@ import { PianoKeyboard } from './keyboard.js';
 const model = new ScoreModel();
 const renderer = new ScoreRenderer(document.querySelector('#osmdContainer'));
 const audio = new AudioEngine();
+audio.prepare();
 
 model.subscribe(notes => renderer.render(notes));
 renderer.render(model.notes);

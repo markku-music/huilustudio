@@ -106,8 +106,16 @@ export class PianoKeyboard {
     event.preventDefault();
 
     const midi = Number(key.dataset.midi);
+
+    // Audio saa käyttäjäeleen ensimmäisenä. Tämä on erityisen tärkeää iOS:ssa:
+    // context.resume() käynnistyy ennen ScoreModel/OSMD-renderöinnin työtä.
+    this.#onSoundStart?.(midi);
+
     const noteId = this.#onStart?.(midi, 'quarter');
-    if (!noteId) return;
+    if (!noteId) {
+      this.#onSoundStop?.();
+      return;
+    }
 
     key.classList.add('active');
     const threshold = clamp(this.#viewport.clientHeight * 0.12, 24, 48);
@@ -124,7 +132,6 @@ export class PianoKeyboard {
     };
 
     try { this.#piano.setPointerCapture(event.pointerId); } catch {}
-    this.#onSoundStart?.(midi);
 
     this.#active.timer = window.setTimeout(() => {
       const active = this.#active;

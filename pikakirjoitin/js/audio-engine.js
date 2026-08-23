@@ -27,6 +27,27 @@ export class AudioEngine {
   #requestedMidi = null;
   #requestSerial = 0;
 
+  /**
+   * Rakentaa audioketjun valmiiksi sovelluksen käynnistyessä.
+   * iOS voi jättää AudioContextin suspended-tilaan, mikä on tarkoituskin.
+   * Oscillator käynnistetään hiljaisena jo nyt; ensimmäinen käyttäjäele
+   * tarvitsee enää context.resume()-kutsun ja gainin avaamisen.
+   */
+  prepare() {
+    if (!this.#ensureGraph()) return false;
+
+    if (!this.#started) {
+      try {
+        this.#oscillator.start();
+        this.#started = true;
+      } catch {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   noteOn(midi) {
     if (!Number.isFinite(midi)) return false;
     if (!this.#ensureGraph()) return false;
