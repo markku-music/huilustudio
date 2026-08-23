@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pikakirjoitin-offline-v1.1.63-local-fonts';
+const CACHE_NAME = 'pikakirjoitin-offline-v1.1.64-pdf-xml';
 const APP_SHELL = [
   './',
   './index.html',

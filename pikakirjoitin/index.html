@@ -572,10 +572,10 @@
             </div>
           </div>
           <div class="publish-grid publish-grid-three">
-            <button class="publish-card" id="publishShareButton" type="button" aria-label="Tulosta, tallenna tai lähetä PDF" aria-busy="true" disabled>
+            <button class="publish-card" id="publishShareButton" type="button" aria-label="Tulosta, tallenna tai lähetä PDF ja MusicXML" aria-busy="true" disabled>
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.7M8.3 13.1l7.4 4.7"></path></svg></div>
-              <div class="publish-card-title">PDF – tulosta, tallenna tai lähetä</div>
-              <div class="publish-card-desc">Valitse jakoikkunasta Tulosta, Drive, Tiedostot, sähköposti tai WhatsApp.</div>
+              <div class="publish-card-title">PDF + MusicXML – tallenna tai lähetä</div>
+              <div class="publish-card-desc">PDF ja MusicXML avautuvat yhdessä jakoikkunaan. Valitse Drive, Tiedostot tai muu kohde.</div>
             </button>
             <button class="publish-card" id="publishXmlButton" type="button" aria-label="Export XML">
               <div class="publish-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M8 16l2-2-2-2"></path><path d="M12 12h2"></path><path d="m17 12-2 2 2 2"></path></svg></div>
@@ -1393,17 +1393,21 @@
       if(publishPdfBlob)return publishPdfBlob;if(publishPdfPromise)return publishPdfPromise;const revision=publishPdfRevision,promise=createScorePdfBlob();publishPdfPromise=promise;syncPublishPdfButtons();statusMessage('PDF valmistellaan…');
       try{const blob=await promise;if(revision===publishPdfRevision){publishPdfBlob=blob;statusMessage('PDF valmis jaettavaksi.')}return blob}catch(error){console.error(error);if(revision===publishPdfRevision)statusMessage(error?.message||'PDF:n valmistelu epäonnistui.');return null}finally{if(publishPdfPromise===promise)publishPdfPromise=null;syncPublishPdfButtons()}
     }
-    function canShareFile(file){if(typeof navigator.share!=='function')return false;try{return typeof navigator.canShare!=='function'||navigator.canShare({files:[file]})}catch{return false}}
-    function shareOrDownloadFile(file,{title,text,successMessage,fallbackMessage}){
-      if(canShareFile(file)){
-        navigator.share({files:[file],title,text}).then(()=>statusMessage(successMessage)).catch(error=>{if(error?.name==='AbortError')statusMessage('Jakaminen peruttiin.');else{console.error(error);downloadBlob(file,file.name);statusMessage(fallbackMessage)}});return;
+    function canShareFiles(files){if(typeof navigator.share!=='function')return false;try{return typeof navigator.canShare!=='function'||navigator.canShare({files})}catch{return false}}
+    function shareOrDownloadFiles(files,{successMessage,fallbackMessage}){
+      if(canShareFiles(files)){
+        navigator.share({files}).then(()=>statusMessage(successMessage)).catch(error=>{if(error?.name==='AbortError')statusMessage('Jakaminen peruttiin.');else{console.error(error);files.forEach(file=>downloadBlob(file,file.name));statusMessage(fallbackMessage)}});return;
       }
-      downloadBlob(file,file.name);statusMessage(fallbackMessage);
+      files.forEach(file=>downloadBlob(file,file.name));statusMessage(fallbackMessage);
     }
     function sharePdf(){
-      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}const file=new File([publishPdfBlob],`${projectFileBaseName()}.pdf`,{type:'application/pdf',lastModified:Date.now()});shareOrDownloadFile(file,{title:projectData?.title||'Nuotti',text:'Pikakirjoittimella tehty nuotti.',successMessage:'PDF annettu jakoikkunaan.',fallbackMessage:'PDF ladattu laitteelle.'});
+      if(!publishPdfBlob){statusMessage('PDF valmistuu vielä. Kokeile hetken kuluttua uudelleen.');preparePublishPdf();return}
+      const baseName=projectFileBaseName(),now=Date.now();
+      const pdfFile=new File([publishPdfBlob],`${baseName}.pdf`,{type:'application/pdf',lastModified:now});
+      const xmlFile=new File([buildMusicXml()],`${baseName}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:now});
+      shareOrDownloadFiles([pdfFile,xmlFile],{successMessage:'PDF ja MusicXML annettu jakoikkunaan.',fallbackMessage:'PDF ja MusicXML ladattu laitteelle.'});
     }
-    function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFile(file,{title:`${projectData?.title||'Nuotti'} – MusicXML`,text:'Pikakirjoittimen MusicXML-tiedosto.',successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
+    function exportXml(){const file=new File([buildMusicXml()],`${projectFileBaseName()}.musicxml`,{type:'application/vnd.recordare.musicxml+xml',lastModified:Date.now()});shareOrDownloadFiles([file],{successMessage:'MusicXML jaettu.',fallbackMessage:'MusicXML tallennettu laitteelle.'})}
     function buildProjectFile(){
       return {format:'pikakirjoitin-project',version:'1.0',savedAt:new Date().toISOString(),projectData:projectData?{...projectData}:null,notes:notes.map(note=>({...note})),slurs:slurs.map(item=>({...item})),hairpins:hairpins.map(item=>({...item})),endings:endings.map(item=>({...item})),systemBreaks:[...systemBreaks],barlineStyles:[...barlineStyles],beamOverrides:[...beamOverrides],staffTopValue,lineSpacingValue,noteSizePercent,stretchLastLine,notation:{tuning:tuningSelect.value,clef:clefSelect.value,keySignature:keySignatureSelect.value,timeSignature:timeSignatureSelect.value,pickupDuration:Number(pickupSelect.value)||0,noteSizePercent}};
     }
