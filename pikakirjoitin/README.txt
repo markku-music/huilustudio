@@ -47,3 +47,7 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.7.8: Rivivälisäätimen alapuolinen turha ikoni-/paneelialue poistettu kokonaan. Paneeli on nyt vain varsinaisen pystykiskon korkuinen. Riviväliarvon localStorage-tallennus säilyy ennallaan.
 
 0.22.7.9: Rivivälisäätimen arvoa ei enää tallenneta localStorageen. Jokainen uusi sivun lataus/käynnistys alkaa aina oletusarvosta 9.0 staff spacea. Muut sovelluksen muistettavat asetukset säilyvät ennallaan.
+
+0.22.7.10: Lisätty väliaikainen pystysäädin otsikon ja ensimmäisen nuottirivin välin hakemiseen. Säädin muuttaa suoraan OSMD EngravingRules.TitleBottomDistance -arvoa välillä 0.0–8.0 staff spacea, askel 0.5, oletus 1.0. Arvo ei tallennu muistiin.
+
+0.22.7.11: Lisätty väliaikainen O-säädin otsikon pystysijainnille. Se muuttaa suoraan OSMD EngravingRules.TitleTopDistance -arvoa välillä 2.0–12.0 staff spacea, askel 0.5, oletus 5.0. Nykyiset 15 mm sivumarginaalit, TitleBottomDistance-säädin ja rivivälisäädin säilyvät ennallaan. Arvo ei tallennu muistiin.

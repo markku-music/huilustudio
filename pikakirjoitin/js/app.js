@@ -17,6 +17,30 @@ const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
 
 new SystemSpacingRail({
+  rail: document.querySelector('#titleTopRail'),
+  track: document.querySelector('#titleTopTrack'),
+  thumb: document.querySelector('#titleTopThumb'),
+  bubble: document.querySelector('#titleTopBubble'),
+  min: 2,
+  max: 12,
+  step: 0.5,
+  value: 5,
+  onChange: (value, { initial }) => renderer.setTitleTopDistance(value, { render: !initial })
+});
+
+new SystemSpacingRail({
+  rail: document.querySelector('#titleSpacingRail'),
+  track: document.querySelector('#titleSpacingTrack'),
+  thumb: document.querySelector('#titleSpacingThumb'),
+  bubble: document.querySelector('#titleSpacingBubble'),
+  min: 0,
+  max: 8,
+  step: 0.5,
+  value: 1,
+  onChange: (value, { initial }) => renderer.setTitleBottomDistance(value, { render: !initial })
+});
+
+new SystemSpacingRail({
   rail: document.querySelector('#systemSpacingRail'),
   track: document.querySelector('#systemSpacingTrack'),
   thumb: document.querySelector('#systemSpacingThumb'),
