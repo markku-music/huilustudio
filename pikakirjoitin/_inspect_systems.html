@@ -1,0 +1,15 @@
+<!doctype html><html><head><style>#osmd{width:600px}</style></head><body><div id="osmd"></div><pre id="out">loading</pre>
+<script src="./vendor/osmd/opensheetmusicdisplay.min.js"></script>
+<script type="module">
+import { buildMusicXml } from './js/musicxml.js';
+const notes=[]; for(let i=0;i<40;i++) notes.push({id:'n'+i,kind:'note',midi:60+(i%8),duration:'quarter',dotted:false});
+const settings={timeSignature:'4/4',clef:'treble',title:'TEST TITLE',composer:'COMPOSER XYZ',tempoText:'Allegro'};
+const xml=buildMusicXml(notes,settings);
+const osmd=new opensheetmusicdisplay.OpenSheetMusicDisplay('osmd',{backend:'svg',autoResize:false,drawingParameters:'compacttight',drawTitle:true,drawComposer:true,newSystemFromXML:false});
+await osmd.load(xml); osmd.Zoom=1; osmd.EngravingRules.TitleTopDistance=9; osmd.EngravingRules.TitleBottomDistance=7; osmd.EngravingRules.MinimumDistanceBetweenSystems=9; await osmd.render();
+const gs=osmd.GraphicSheet; const pages=gs?.MusicPages||[]; const systems=pages.flatMap(p=>p.MusicSystems||[]);
+const sysInfo=systems.map((s,i)=>({i, keys:Object.keys(s).slice(0,30), pos:s.PositionAndShape?.AbsolutePosition, rel:s.PositionAndShape?.RelativePosition, size:s.PositionAndShape?.Size, staffCount:s.StaffLines?.length, staffPos:s.StaffLines?.[0]?.PositionAndShape?.AbsolutePosition, staffRel:s.StaffLines?.[0]?.PositionAndShape?.RelativePosition}));
+const svg=document.querySelector('#osmd svg');
+const lines=[...svg.querySelectorAll('line')].slice(0,30).map(l=>({x1:l.getAttribute('x1'),x2:l.getAttribute('x2'),y1:l.getAttribute('y1'),y2:l.getAttribute('y2'),cls:l.getAttribute('class'),stroke:l.getAttribute('stroke')}));
+document.querySelector('#out').textContent=JSON.stringify({pageCount:pages.length, systemCount:systems.length, sysInfo, lineCount:svg.querySelectorAll('line').length, lines},null,2);
+</script></body></html>

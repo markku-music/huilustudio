@@ -65,3 +65,5 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 - S-slideri käyttää edelleen SystemComposerDistance-arvoa.
 
 0.22.7.15: Tempo- ja säveltäjä-Y-testisäätimet siirtävät vain OSMD:n piirtämiä SVG-tekstielementtejä. Kaikki samaa tekstiä vastaavat päällekkäiset text-elementit siirretään yhdessä. Kumpikaan säädin ei renderöi nuottia uudelleen.
+
+0.22.7.17: Rivivälisäätimen näkymän vakaus muutettu järjestelmäankkurointiin. Ennen rivivälirenderöintiä talletetaan näkymässä ylimpänä olevan OSMD MusicSystemin ensimmäisen viivaston ruutu-Y. Renderöinnin jälkeen sama järjestelmä palautetaan samaan ruutukohtaan scrollTop-korjauksella. Tämä estää tempo- ja säveltäjätekstien aiheuttaman ensimmäisen rivin hypyn usean järjestelmän sivuilla. Pelkkä scrollTop-palautus jää fallbackiksi.

@@ -24,6 +24,7 @@ export class ScoreRenderer {
   #renderListeners = new Set();
   #viewport = null;
   #restoreViewportScrollTop = null;
+  #restoreViewportSystemAnchor = null;
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
     this.#container = container;
@@ -73,10 +74,16 @@ export class ScoreRenderer {
     this.#minimumSystemDistance = Math.min(15, Math.max(5, numeric));
     this.#applySystemSpacing();
     if (render && (this.#lastNotes.length || this.#container.childElementCount)) {
-      // Rivivälin muuttaminen rakentaa koko SVG:n uudelleen. Safari/Chrome voi
-      // samalla yrittää ankkuroida scrollia eri DOM-solmuun. Tallenna täsmälleen
-      // nykyinen nuottipaperin scrollTop ja palauta se renderin valmistuttua.
-      if (this.#viewport) this.#restoreViewportScrollTop = this.#viewport.scrollTop;
+      // Rivivälin muuttaminen rakentaa koko SVG:n uudelleen. Kun tempo ja
+      // säveltäjä ovat mukana, OSMD voi samalla laskea ensimmäisen systeemin
+      // Y-paikan hieman uudestaan. Ankkuroi siksi näkymä nuottijärjestelmään,
+      // ei pelkkään scrollTop-lukuun.
+      if (this.#viewport && !this.#restoreViewportSystemAnchor) {
+        this.#restoreViewportSystemAnchor = this.#captureViewportSystemAnchor();
+        // Fallback tilanteeseen, jossa OSMD:n graafista systeemirakennetta ei
+        // jostain syystä löydy.
+        this.#restoreViewportScrollTop = this.#viewport.scrollTop;
+      }
       this.render(this.#lastNotes);
     }
     return this.#minimumSystemDistance;
@@ -273,6 +280,78 @@ export class ScoreRenderer {
     this.#lastMarginWidth = width;
   }
 
+  #pageSvg(pageIndex) {
+    const pageWrappers = Array.from(this.#container.children).filter(element =>
+      element?.id?.startsWith?.('osmdCanvasPage')
+    );
+    const wrapperSvg = pageWrappers[pageIndex]?.querySelector?.('svg');
+    if (wrapperSvg) return wrapperSvg;
+    return this.#container.querySelectorAll('svg')[pageIndex] || null;
+  }
+
+  #systemClientY(pageIndex, systemIndex) {
+    const page = this.#osmd?.GraphicSheet?.MusicPages?.[pageIndex];
+    const system = page?.MusicSystems?.[systemIndex];
+    const staffLine = system?.StaffLines?.[0];
+    const position = staffLine?.PositionAndShape?.AbsolutePosition
+      || system?.PositionAndShape?.AbsolutePosition;
+    const svg = this.#pageSvg(pageIndex);
+    if (!position || !svg) return null;
+
+    // OSMD:n graafinen yksikkö on staff-space ja VexFlow-piirtäjä käyttää
+    // 10 SVG-yksikköä / staff-space. getScreenCTM huomioi samalla OSMD Zoomin,
+    // viewBoxin sekä selaimen CSS-skaalauksen.
+    const point = svg.createSVGPoint?.();
+    const matrix = svg.getScreenCTM?.();
+    if (!point || !matrix) return null;
+    point.x = Number(position.x || 0) * 10;
+    point.y = Number(position.y || 0) * 10;
+    const screenPoint = point.matrixTransform(matrix);
+    return Number.isFinite(screenPoint.y) ? screenPoint.y : null;
+  }
+
+  #captureViewportSystemAnchor() {
+    if (!this.#viewport) return null;
+    const pages = this.#osmd?.GraphicSheet?.MusicPages || [];
+    const viewportRect = this.#viewport.getBoundingClientRect();
+    const candidates = [];
+
+    for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+      const systems = pages[pageIndex]?.MusicSystems || [];
+      for (let systemIndex = 0; systemIndex < systems.length; systemIndex += 1) {
+        const clientY = this.#systemClientY(pageIndex, systemIndex);
+        if (!Number.isFinite(clientY)) continue;
+        candidates.push({ pageIndex, systemIndex, clientY });
+      }
+    }
+    if (!candidates.length) return null;
+
+    // Suosi näkymässä olevaa ylintä järjestelmää. Jos yksikään viivasto ei
+    // juuri leikkaa viewportia, käytä lähimpänä yläreunaa olevaa järjestelmää.
+    const visible = candidates
+      .filter(item => item.clientY >= viewportRect.top - 24 && item.clientY <= viewportRect.bottom)
+      .sort((a, b) => a.clientY - b.clientY);
+    if (visible.length) return visible[0];
+
+    return candidates.reduce((best, item) => {
+      if (!best) return item;
+      return Math.abs(item.clientY - viewportRect.top) < Math.abs(best.clientY - viewportRect.top)
+        ? item
+        : best;
+    }, null);
+  }
+
+  #restoreSystemAnchor(anchor) {
+    if (!this.#viewport || !anchor) return false;
+    const nextClientY = this.#systemClientY(anchor.pageIndex, anchor.systemIndex);
+    if (!Number.isFinite(nextClientY)) return false;
+    const delta = nextClientY - anchor.clientY;
+    if (Math.abs(delta) > 0.05) {
+      this.#viewport.scrollTop += delta;
+    }
+    return true;
+  }
+
   #watchWidth() {
     if (!('ResizeObserver' in window)) return;
     this.#resizeObserver = new ResizeObserver(entries => {
@@ -316,13 +395,22 @@ export class ScoreRenderer {
         this.#applyTempoVisualYOffset();
         this.#applyComposerVisualYOffset();
 
-        // Palauta rivivälisäätimen renderöintiä edeltänyt näkymä ennen kuin
-        // selain ehtii maalata seuraavan ruudun. Näin itse rivivälit muuttuvat,
-        // mutta koko nuottipaperi ei hypähdä pystysuunnassa.
-        if (this.#viewport && this.#restoreViewportScrollTop !== null) {
-          const top = this.#restoreViewportScrollTop;
-          this.#restoreViewportScrollTop = null;
-          this.#viewport.scrollTop = top;
+        // Pidä sama nuottijärjestelmä samassa ruudun Y-kohdassa. Tämä korjaa
+        // juuri tilanteen, jossa tempo/säveltäjä muuttavat OSMD:n ensimmäisen
+        // systeemin pystylaskentaa samalla kun riviväliä säädetään.
+        if (this.#viewport && this.#restoreViewportSystemAnchor) {
+          const restored = this.#restoreSystemAnchor(this.#restoreViewportSystemAnchor);
+          if (!restored && this.#restoreViewportScrollTop !== null) {
+            this.#viewport.scrollTop = this.#restoreViewportScrollTop;
+          }
+
+          // Slideri voi ehtiä pyytää uuden renderin edellisen ollessa käynnissä.
+          // Säilytä sama visuaalinen ankkuri koko renderijonon ajan ja vapauta se
+          // vasta, kun viimeinenkin pending-renderi on valmis.
+          if (!this.#pending) {
+            this.#restoreViewportSystemAnchor = null;
+            this.#restoreViewportScrollTop = null;
+          }
         }
 
         const snapshot = {
