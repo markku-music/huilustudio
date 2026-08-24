@@ -4,6 +4,7 @@
   const POSITION_KEY = "pikakirjoitin3.thumbRailY";
   const DRAG_THRESHOLD = 14;
   const EDGE_GAP = 8;
+  const FLYOUT_SLOP = 10;
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -14,13 +15,19 @@
       this.rail = options.rail;
       this.boundsElement = options.boundsElement;
       this.onChange = options.onChange;
+
       this.activePointers = new Map();
       this.dragPointerId = null;
       this.stateValue = { rest: false, dots: 0 };
       this.ratio = 0.52;
 
+      this.dotWrap = this.rail.querySelector(".thumb-dot-wrap");
+      this.dot1Button = this.rail.querySelector("#dot1Button");
+      this.dot2Flyout = this.rail.querySelector("#dot2Flyout");
+
       this.restorePosition();
       this.bind();
+
       requestAnimationFrame(() => this.positionFromRatio());
       window.addEventListener("resize", () => this.positionFromRatio());
     }
@@ -42,11 +49,15 @@
       if (!button) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
+      const modifier = button.dataset.modifier;
+      if (!["rest", "dot1", "dot2"].includes(modifier)) return;
+
       event.preventDefault();
       event.stopPropagation();
 
-      const modifier = button.dataset.modifier;
-      if (!["rest", "dot1", "dot2"].includes(modifier)) return;
+      // Flyout on normaalisti piilossa eikä aloita omaa elettä.
+      // Varsinainen kahden pisteen valinta tapahtuu liu'uttamalla dot1:stä.
+      if (modifier === "dot2") return;
 
       const rect = this.rail.getBoundingClientRect();
 
@@ -56,8 +67,13 @@
         startX: event.clientX,
         startY: event.clientY,
         startTop: rect.top,
-        dragging: false
+        dragging: false,
+        dotSelection: modifier === "dot1" ? 1 : 0
       });
+
+      if (modifier === "dot1") {
+        this.openDotFlyout();
+      }
 
       try {
         button.setPointerCapture(event.pointerId);
@@ -76,7 +92,18 @@
       const dx = event.clientX - active.startX;
       const dy = event.clientY - active.startY;
 
+      if (active.modifier === "dot1") {
+        active.dotSelection = this.isInsideDot2(event.clientX, event.clientY)
+          ? 2
+          : 1;
+
+        this.updateStateAndButtons();
+        return;
+      }
+
+      // Peukalopalkin pystysiirto tehdään Tauko-painikkeesta.
       if (
+        active.modifier === "rest" &&
         !active.dragging &&
         this.dragPointerId === null &&
         Math.abs(dy) >= DRAG_THRESHOLD &&
@@ -91,6 +118,7 @@
 
       const bounds = this.bounds();
       const top = clamp(active.startTop + dy, bounds.minTop, bounds.maxTop);
+
       this.rail.style.top = top + "px";
       this.ratio = bounds.maxTop > bounds.minTop
         ? (top - bounds.minTop) / (bounds.maxTop - bounds.minTop)
@@ -118,7 +146,37 @@
         this.savePosition();
       }
 
+      if (active.modifier === "dot1") {
+        this.closeDotFlyout();
+      }
+
       this.updateStateAndButtons();
+    }
+
+    isInsideDot2(clientX, clientY) {
+      if (!this.dot2Flyout) return false;
+
+      const rect = this.dot2Flyout.getBoundingClientRect();
+
+      return (
+        clientX >= rect.left - FLYOUT_SLOP &&
+        clientX <= rect.right + FLYOUT_SLOP &&
+        clientY >= rect.top - FLYOUT_SLOP &&
+        clientY <= rect.bottom + FLYOUT_SLOP
+      );
+    }
+
+    openDotFlyout() {
+      if (!this.dotWrap || !this.dot2Flyout) return;
+      this.dotWrap.classList.add("flyout-open");
+      this.dot2Flyout.setAttribute("aria-hidden", "false");
+    }
+
+    closeDotFlyout() {
+      if (!this.dotWrap || !this.dot2Flyout) return;
+      this.dotWrap.classList.remove("flyout-open", "dot2-selected");
+      this.dot2Flyout.setAttribute("aria-hidden", "true");
+      this.dot2Flyout.setAttribute("aria-pressed", "false");
     }
 
     updateStateAndButtons() {
@@ -126,23 +184,40 @@
       let dots = 0;
 
       for (const active of this.activePointers.values()) {
-        if (active.modifier === "rest") rest = true;
-        if (active.modifier === "dot1") dots = Math.max(dots, 1);
-        if (active.modifier === "dot2") dots = Math.max(dots, 2);
+        if (active.modifier === "rest") {
+          rest = true;
+        }
+
+        if (active.modifier === "dot1") {
+          dots = Math.max(dots, active.dotSelection || 1);
+        }
       }
 
       this.stateValue = { rest: rest, dots: dots };
 
-      this.rail.querySelectorAll(".thumb-modifier").forEach((button) => {
-        const modifier = button.dataset.modifier;
-        const isActive =
-          (modifier === "rest" && rest) ||
-          (modifier === "dot1" && Array.from(this.activePointers.values()).some(a => a.modifier === "dot1")) ||
-          (modifier === "dot2" && Array.from(this.activePointers.values()).some(a => a.modifier === "dot2"));
+      const restButton = this.rail.querySelector('[data-modifier="rest"]');
+      if (restButton) {
+        restButton.classList.toggle("active", rest);
+        restButton.setAttribute("aria-pressed", rest ? "true" : "false");
+      }
 
-        button.classList.toggle("active", isActive);
-        button.setAttribute("aria-pressed", isActive ? "true" : "false");
-      });
+      if (this.dot1Button) {
+        const dotPressed = dots >= 1;
+        this.dot1Button.classList.toggle("active", dotPressed && dots === 1);
+        this.dot1Button.setAttribute(
+          "aria-pressed",
+          dotPressed && dots === 1 ? "true" : "false"
+        );
+      }
+
+      if (this.dotWrap && this.dot2Flyout) {
+        const doubleSelected = dots === 2;
+        this.dotWrap.classList.toggle("dot2-selected", doubleSelected);
+        this.dot2Flyout.setAttribute(
+          "aria-pressed",
+          doubleSelected ? "true" : "false"
+        );
+      }
 
       this.emit();
     }

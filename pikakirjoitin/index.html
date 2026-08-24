@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.10</title>
+  <title>Pikakirjoitin 3 · BASE 0.10.1</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.10 · Peukalopalkin pisteet · OSMD 2.1.2</p>
+      <p>BASE 0.10.1 · Pisteen liukuflyout · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
@@ -26,15 +26,21 @@
         <img src="assets/rest.svg" alt="" aria-hidden="true" draggable="false">
       </button>
 
-      <button class="thumb-modifier thumb-dot" type="button" data-modifier="dot1"
-              aria-label="Pidä pohjassa: yksi piste" aria-pressed="false">
-        <span aria-hidden="true">●</span>
-      </button>
+      <div class="thumb-dot-wrap">
+        <button class="thumb-modifier thumb-dot-button" id="dot1Button" type="button"
+                data-modifier="dot1"
+                aria-label="Pidä pohjassa: yksi piste. Liu'uta oikealle kahteen pisteeseen."
+                aria-pressed="false">
+          <img src="assets/1_4_dot.svg" alt="" aria-hidden="true" draggable="false">
+        </button>
 
-      <button class="thumb-modifier thumb-dot thumb-dot-double" type="button" data-modifier="dot2"
-              aria-label="Pidä pohjassa: kaksi pistettä" aria-pressed="false">
-        <span aria-hidden="true">●●</span>
-      </button>
+        <button class="thumb-modifier thumb-dot-button thumb-dot-flyout" id="dot2Flyout"
+                type="button" data-modifier="dot2"
+                aria-label="Kaksi pistettä" aria-pressed="false" tabindex="-1"
+                aria-hidden="true">
+          <img src="assets/1_4_double_dot.svg" alt="" aria-hidden="true" draggable="false">
+        </button>
+      </div>
     </aside>
 
     <section class="keyboard-panel" aria-label="Koskettimisto">

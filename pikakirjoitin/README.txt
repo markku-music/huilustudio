@@ -1,52 +1,27 @@
-Pikakirjoitin 3 · BASE 0.10 · Peukalopalkin pisteet
+Pikakirjoitin 3 · BASE 0.10.1 · Pisteen liukuflyout
 
 Pohja:
-- BASE 0.9.1 Explicit Multirest
+- BASE 0.10 Pisteet
 - OSMD 2.1.2
 - Score Model -> MusicXML -> OSMD
-- OSMD autoBeam
-- eksplisiittinen MusicXML multirest
+- explicit MusicXML multirest
+- DIVISIONS 32
 
-Uutta peukalopalkissa:
-- Tauko
-- ● = yksi piste
-- ●● = kaksi pistettä
+Peukalopalkin pistekäyttö:
+- yhden pisteen nappi on aina näkyvissä
+- nappikuvana käytetään 1_4_dot.svg-tiedostoa
+- kun yhden pisteen nappia painetaan, kahden pisteen nappi ilmestyy sen oikealle puolelle
+- kahden pisteen nappikuvana käytetään 1_4_double_dot.svg-tiedostoa
+- saman peukalon liuku oikealle kahden pisteen napille muuttaa dots-arvon 1 -> 2
+- liuku takaisin yhden pisteen alueelle muuttaa arvon takaisin 2 -> 1
+- peukalon irrotus sulkee flyoutin ja poistaa pistemodifikaattorin
+- Tauko voidaan pitää samaan aikaan pohjassa toisella sormella
 
-Käyttö:
-- pidä ● pohjassa ja tee koskettimella normaali aika-arvoele
-- pidä ●● pohjassa ja tee koskettimella normaali aika-arvoele
-- Tauko + ● toimii yhtä aikaa
-- Tauko + ●● toimii yhtä aikaa
-
-Esimerkkejä:
-- ● + napautus = pisteellinen 1/4-nuotti
-- ● + alas = pisteellinen 1/8-nuotti
-- ●● + napautus = kaksipisteinen 1/4-nuotti
-- Tauko + ● + alas = pisteellinen 1/8-tauko
-- Tauko + ●● + oikealle = kaksipisteinen 1/16-tauko
-
-Score Model:
-- jokaisella note/rest-tapahtumalla on dots: 0, 1 tai 2
-
-MusicXML:
-- yksi piste -> <dot/>
-- kaksi pistettä -> <dot/><dot/>
-- OSMD piirtää pisteet, Pikakirjoitin ei piirrä niitä itse
-
-DIVISIONS:
-- muutettu 8 -> 32
-- tämä mahdollistaa myös kaksipisteisen 1/32-arvon kokonaislukuna
-- 1/32 = 4
-- pisteellinen 1/32 = 6
-- kaksipisteinen 1/32 = 7
-
-Kokotahdin tauko / multirest:
-- pisteetön pitkä + Tauko = edelleen oikea kokotahdin tauko
-- peräkkäiset kokotahdin tauot muodostavat edelleen MusicXML multiple-rest -ryhmän
-- pisteellinen pitkä tauko EI ole kokotahdin tauko
-- 4/4:ssa yli tahdin meneviä pisteellisiä pitkiä arvoja ei vielä sidota automaattisesti yli tahtiviivan
+Pystysiirto:
+- peukalopalkkia voi edelleen siirtää pystysuunnassa Tauko-painikkeesta
+- yhden pisteen painikkeen vaakaliuku on varattu 1 piste -> 2 pistettä -valintaan
 
 OSMD:
-- autoBeam = true
-- autoGenerateMultipleRestMeasuresFromRestMeasures = false
-- OSMD 2.1.2 -vendor-tiedostoa ei muutettu
+- pisteet ovat edelleen MusicXML:n <dot/>-elementtejä
+- OSMD piirtää pisteet
+- vendor/opensheetmusicdisplay.min.js ei ole muuttunut
