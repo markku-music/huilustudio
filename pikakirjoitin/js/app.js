@@ -11,6 +11,7 @@
   });
 
   let rendering = Promise.resolve();
+  let thumbState = { rest: false };
 
   const durationLabels = {
     whole: "1/1",
@@ -34,7 +35,10 @@
     console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
 
     rendering = rendering.then(function () {
-      return window.PikakirjoitinRenderer.renderMusicXML(musicXML, "osmd-container");
+      return window.PikakirjoitinRenderer.renderMusicXML(
+        musicXML,
+        "osmd-container"
+      );
     });
 
     return rendering;
@@ -44,15 +48,24 @@
     return String(pitch).replace("B", "H");
   }
 
-  function startNote(midi, pitch, duration) {
-    const note = window.PikakirjoitinScoreModel.addNote(score, {
-      pitch: pitch,
-      duration: duration
-    });
+  function entryLabel(entry, pitch, duration) {
+    if (entry && entry.kind === "rest") {
+      return duration === "whole"
+        ? "kokotahdin tauko"
+        : durationLabels[duration] + "-tauko";
+    }
+    return displayPitch(pitch) + " " + durationLabels[duration];
+  }
 
-    updateStatus(
-      displayPitch(pitch) + " · " + durationLabels[duration] + " · ele kesken…"
-    );
+  function startEntry(midi, pitch, duration) {
+    const entry = thumbState.rest
+      ? window.PikakirjoitinScoreModel.addRest(score, { duration: duration })
+      : window.PikakirjoitinScoreModel.addNote(score, {
+          pitch: pitch,
+          duration: duration
+        });
+
+    updateStatus(entryLabel(entry, pitch, duration) + " · ele kesken…");
 
     renderScore().catch(function (error) {
       console.error(error);
@@ -62,15 +75,14 @@
       );
     });
 
-    return { id: note.id };
+    return { id: entry.id };
   }
 
   function changeDuration(id, duration, midi, pitch) {
     if (!window.PikakirjoitinScoreModel.setDuration(score, id, duration)) return;
 
-    updateStatus(
-      displayPitch(pitch) + " · aika-arvo " + durationLabels[duration]
-    );
+    const entry = window.PikakirjoitinScoreModel.getEntry(score, id);
+    updateStatus(entryLabel(entry, pitch, duration) + " · aika-arvo muutettu");
 
     renderScore().catch(function (error) {
       console.error(error);
@@ -81,13 +93,14 @@
     });
   }
 
-  function finishNote(id, duration, midi, pitch) {
+  function finishEntry(id, duration, midi, pitch) {
     const count = score.notes.length;
+    const entry = window.PikakirjoitinScoreModel.getEntry(score, id);
 
     renderScore().then(function () {
       updateStatus(
-        "OK · " + displayPitch(pitch) + " " + durationLabels[duration] +
-        " · " + count + (count === 1 ? " nuotti" : " nuottia"),
+        "OK · " + entryLabel(entry, pitch, duration) +
+        " · " + count + (count === 1 ? " tapahtuma" : " tapahtumaa"),
         "ok"
       );
     }).catch(function (error) {
@@ -100,6 +113,19 @@
   }
 
   function start() {
+    new window.PikakirjoitinThumbRail.ThumbRail({
+      rail: document.getElementById("thumbRail"),
+      boundsElement: document.querySelector(".score-card"),
+      onChange: function (state) {
+        thumbState = state;
+        if (state.rest) {
+          updateStatus(
+            "Tauko pohjassa · valitse aika-arvo koskettimen eleellä."
+          );
+        }
+      }
+    });
+
     new window.PikakirjoitinKeyboard.PianoKeyboard({
       piano: document.getElementById("piano"),
       whiteKeys: document.getElementById("whiteKeys"),
@@ -107,13 +133,16 @@
       rail: document.getElementById("keyboardScrollRail"),
       track: document.getElementById("keyboardScrollTrack"),
       thumb: document.getElementById("keyboardScrollThumb"),
-      onStart: startNote,
+      onStart: startEntry,
       onDuration: changeDuration,
-      onFinish: finishNote
+      onFinish: finishEntry
     });
 
     renderScore().then(function () {
-      updateStatus("Valmis · ← 1/32 · ↓ 1/8 · napauta 1/4 · ↑ 1/2 · → 1/16 · pitkä 1/1.", "ok");
+      updateStatus(
+        "Valmis · pidä Tauko pohjassa + tee aika-arvoele koskettimella.",
+        "ok"
+      );
     }).catch(function (error) {
       console.error(error);
       updateStatus(

@@ -1,26 +1,38 @@
-Pikakirjoitin 3 · BASE 0.8 · OSMD 2.1.2 automaattipalkitus
+Pikakirjoitin 3 · BASE 0.9 · Peukalopalkki + Tauko
 
 Pohja:
-- Pikakirjoitin 3 BASE 0.7
-- kaikki kuusi aika-arvoelettä säilyvät ennallaan
-- Score Model → MusicXML → OSMD 2.1.2
+- Pikakirjoitin 3 BASE 0.8
+- OSMD 2.1.2
+- OSMD:n automaattipalkitus
+- täydet aika-arvoeleet
 
-Tämän version ainoa varsinainen toiminnallinen muutos:
-- OSMD:n oma automaattipalkitus on kytketty päälle asetuksella:
-  autoBeam: true
+Uutta:
+- Pikakirjoitin 2:n peukalopalkin mukainen vasemman reunan palkki
+- tässä BASE-vaiheessa palkissa on vain Tauko
+- Tauko on momentaarinen modifioija: pidä sitä pohjassa toisella sormella
+- koskettimen ele määrää edelleen aika-arvon
+- samaa taukonappia voi vetää pystysuunnassa peukalopalkin siirtämiseksi
+- palkin pystysijainti tallennetaan localStorageen
 
-Tärkeää:
-- Pikakirjoitin EI lisää MusicXML:ään <beam>-elementtejä.
-- Palkituslogiikkaa EI ole kirjoitettu Pikakirjoittimeen.
-- OSMD 2.1.2 saa nuottien aika-arvot ja päättää palkituksen itse.
+Yhdistelmät:
+- Tauko + napautus = 1/4-tauko
+- Tauko + alas = 1/8-tauko
+- Tauko + ylös = 1/2-tauko
+- Tauko + oikealle = 1/16-tauko
+- Tauko + vasemmalle = 1/32-tauko
+- Tauko + pitkä painallus = kokotahdin tauko
 
-Näin voidaan testata puhtaasti, riittääkö OSMD:n oma palkitus Pikakirjoitin 3:n tarpeisiin.
+OSMD-yhteistyö:
+- tavallinen tauko kirjoitetaan MusicXML:ään <rest/>
+- kokotahdin tauko kirjoitetaan <rest measure="yes"/>
+- kokotahdin tauon kesto tulee tahtilajin todellisesta kapasiteetista
+- OSMD piirtää taukosymbolit
+- OSMD:n autoBeam pysyy käytössä
+- autoGenerateMultipleRestMeasuresFromRestMeasures on kytketty päälle,
+  jotta peräkkäiset kokotahdin tauot ovat valmiiksi OSMD-yhteensopivia
 
-Hyviä testisarjoja:
-- 8 x 1/8
-- 16 x 1/16
-- 1/8 + 1/16 + 1/16
-- useita 1/32-nuotteja
-- sekoituksia 1/8, 1/16 ja 1/32 saman tahdin sisällä
-
-Jos OSMD:n oma palkitus käyttäytyy halutusti, omaa palkitusmoottoria ei tarvitse tehdä.
+Ei vielä:
+- piste/pisteet
+- muut peukalopalkin napit
+- undo/redo
+- äänimoottori

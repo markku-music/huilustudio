@@ -27,9 +27,7 @@
 
   function parsePitch(pitch) {
     const match = /^([A-G])([#b]?)(-?\d+)$/.exec(String(pitch || ""));
-    if (!match) {
-      throw new Error("Virheellinen sävel: " + pitch);
-    }
+    if (!match) throw new Error("Virheellinen sävel: " + pitch);
 
     return {
       step: match[1],
@@ -40,15 +38,35 @@
 
   function durationValue(duration) {
     const value = DURATION_VALUES[duration];
-    if (!value) {
-      throw new Error("Tuntematon aika-arvo: " + duration);
-    }
+    if (!value) throw new Error("Tuntematon aika-arvo: " + duration);
     return value;
   }
 
-  function noteToXML(note) {
-    const pitch = parsePitch(note.pitch);
-    const value = durationValue(note.duration);
+  function xmlType(duration) {
+    return MUSICXML_TYPES[duration] || duration;
+  }
+
+  function entryToXML(entry, options) {
+    const config = options || {};
+    const isMeasureRest = Boolean(config.measureRest);
+
+    if (entry.kind === "rest") {
+      const value = isMeasureRest
+        ? Number(config.measureCapacity)
+        : durationValue(entry.duration);
+
+      return [
+        "      <note>",
+        isMeasureRest ? "        <rest measure=\"yes\"/>" : "        <rest/>",
+        "        <duration>" + value + "</duration>",
+        "        <voice>1</voice>",
+        "        <type>" + (isMeasureRest ? "whole" : escapeXML(xmlType(entry.duration))) + "</type>",
+        "      </note>"
+      ].join("\n");
+    }
+
+    const pitch = parsePitch(entry.pitch);
+    const value = durationValue(entry.duration);
     const alterXML = pitch.alter !== 0
       ? "<alter>" + pitch.alter + "</alter>"
       : "";
@@ -57,18 +75,15 @@
       "      <note>",
       "        <pitch><step>" + pitch.step + "</step>" + alterXML + "<octave>" + pitch.octave + "</octave></pitch>",
       "        <duration>" + value + "</duration>",
-      "        <type>" + escapeXML(MUSICXML_TYPES[note.duration] || note.duration) + "</type>",
+      "        <voice>1</voice>",
+      "        <type>" + escapeXML(xmlType(entry.duration)) + "</type>",
       "      </note>"
     ].join("\n");
   }
 
   function clefToXML(clef) {
-    if (clef === "F") {
-      return "<sign>F</sign><line>4</line>";
-    }
-    if (clef === "C") {
-      return "<sign>C</sign><line>3</line>";
-    }
+    if (clef === "F") return "<sign>F</sign><line>4</line>";
+    if (clef === "C") return "<sign>C</sign><line>3</line>";
     return "<sign>G</sign><line>2</line>";
   }
 
@@ -76,32 +91,53 @@
     return beats * DIVISIONS * (4 / beatType);
   }
 
-  function splitIntoMeasures(notes, capacity) {
-    const measures = [[]];
-    let used = 0;
+  function isMeasureRestEntry(entry) {
+    return entry && entry.kind === "rest" && entry.duration === "whole";
+  }
 
-    notes.forEach(function (note) {
-      const value = durationValue(note.duration);
+  function splitIntoMeasures(entries, capacity) {
+    const measures = [{ entries: [], used: 0, explicitMeasureRest: false }];
+
+    entries.forEach(function (entry) {
+      let current = measures[measures.length - 1];
+
+      // Pitkä + Tauko = kokotahdin tauko. Se saa oman tahdin.
+      if (isMeasureRestEntry(entry)) {
+        if (current.used > 0 || current.entries.length > 0) {
+          current = { entries: [], used: 0, explicitMeasureRest: false };
+          measures.push(current);
+        }
+
+        current.entries.push(entry);
+        current.used = capacity;
+        current.explicitMeasureRest = true;
+        measures.push({ entries: [], used: 0, explicitMeasureRest: false });
+        return;
+      }
+
+      const value = durationValue(entry.duration);
 
       if (value > capacity) {
-        throw new Error("Nuotin aika-arvo ei mahdu yhteen tahtiin tässä BASE-versiossa.");
+        throw new Error("Aika-arvo ei mahdu yhteen tahtiin tässä BASE-versiossa.");
       }
 
-      if (used > 0 && used + value > capacity) {
-        measures.push([]);
-        used = 0;
+      if (current.used > 0 && current.used + value > capacity) {
+        current = { entries: [], used: 0, explicitMeasureRest: false };
+        measures.push(current);
       }
 
-      measures[measures.length - 1].push(note);
-      used += value;
+      current.entries.push(entry);
+      current.used += value;
 
-      if (used === capacity) {
-        measures.push([]);
-        used = 0;
+      if (current.used === capacity) {
+        measures.push({ entries: [], used: 0, explicitMeasureRest: false });
       }
     });
 
-    if (measures.length > 1 && measures[measures.length - 1].length === 0) {
+    if (
+      measures.length > 1 &&
+      measures[measures.length - 1].entries.length === 0
+    ) {
       measures.pop();
     }
 
@@ -143,14 +179,24 @@
     const capacity = measureCapacity(beats, beatType);
     const measures = splitIntoMeasures(score.notes, capacity);
 
-    const measuresXML = measures.map(function (notes, index) {
+    const measuresXML = measures.map(function (measure, index) {
       const parts = ["    <measure number=\"" + (index + 1) + "\">"];
+
       if (index === 0) {
         parts.push(attributesToXML(score, beats, beatType, fifths));
       }
-      if (notes.length) {
-        parts.push(notes.map(noteToXML).join("\n"));
+
+      if (measure.entries.length) {
+        parts.push(
+          measure.entries.map(function (entry) {
+            return entryToXML(entry, {
+              measureRest: measure.explicitMeasureRest,
+              measureCapacity: capacity
+            });
+          }).join("\n")
+        );
       }
+
       parts.push("    </measure>");
       return parts.join("\n");
     }).join("\n");
@@ -162,7 +208,7 @@
   </work>
   <identification>
     <encoding>
-      <software>Pikakirjoitin 3 BASE 0.8</software>
+      <software>Pikakirjoitin 3 BASE 0.9</software>
     </encoding>
   </identification>
   <part-list>
@@ -176,7 +222,5 @@ ${measuresXML}
 </score-partwise>`;
   }
 
-  window.PikakirjoitinMusicXML = {
-    createMusicXML: createMusicXML
-  };
+  window.PikakirjoitinMusicXML = { createMusicXML: createMusicXML };
 })();

@@ -13,7 +13,8 @@
         autoResize: true,
         backend: "svg",
         drawingParameters: "compacttight",
-        autoBeam: true
+        autoBeam: true,
+        autoGenerateMultipleRestMeasuresFromRestMeasures: true
       });
     }
 

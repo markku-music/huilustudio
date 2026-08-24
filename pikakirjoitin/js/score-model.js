@@ -1,15 +1,16 @@
 (function () {
   "use strict";
 
-  let nextNoteId = 1;
+  let nextEntryId = 1;
 
-  function makeId() {
-    return "n" + (nextNoteId++);
+  function makeId(prefix) {
+    return (prefix || "e") + (nextEntryId++);
   }
 
-  function cloneNote(note) {
-    const copy = Object.assign({}, note);
-    if (!copy.id) copy.id = makeId();
+  function cloneEntry(entry) {
+    const copy = Object.assign({}, entry);
+    if (!copy.kind) copy.kind = "note";
+    if (!copy.id) copy.id = makeId(copy.kind === "rest" ? "r" : "n");
     return copy;
   }
 
@@ -24,9 +25,7 @@
       clef: config.clef || "G",
       key: Number.isInteger(config.key) ? config.key : 0,
       time: Array.isArray(config.time) ? config.time.slice(0, 2) : [4, 4],
-      notes: Array.isArray(config.notes)
-        ? config.notes.map(cloneNote)
-        : []
+      notes: Array.isArray(config.notes) ? config.notes.map(cloneEntry) : []
     };
   }
 
@@ -39,7 +38,8 @@
     }
 
     const created = {
-      id: makeId(),
+      id: makeId("n"),
+      kind: "note",
       pitch: String(note.pitch),
       duration: String(note.duration)
     };
@@ -48,25 +48,46 @@
     return created;
   }
 
-  function getNote(score, id) {
+  function addRest(score, rest) {
+    if (!score || !Array.isArray(score.notes)) {
+      throw new Error("Score Model puuttuu tai on virheellinen.");
+    }
+
+    const config = rest || {};
+    if (!config.duration) {
+      throw new Error("Lisättävän tauon aika-arvo puuttuu.");
+    }
+
+    const created = {
+      id: makeId("r"),
+      kind: "rest",
+      duration: String(config.duration)
+    };
+
+    score.notes.push(created);
+    return created;
+  }
+
+  function getEntry(score, id) {
     if (!score || !Array.isArray(score.notes)) return null;
-    return score.notes.find(function (note) {
-      return note.id === id;
+    return score.notes.find(function (entry) {
+      return entry.id === id;
     }) || null;
   }
 
   function setDuration(score, id, duration) {
-    const note = getNote(score, id);
-    if (!note) return false;
-
-    note.duration = String(duration);
+    const entry = getEntry(score, id);
+    if (!entry) return false;
+    entry.duration = String(duration);
     return true;
   }
 
   window.PikakirjoitinScoreModel = {
     createScore: createScore,
     addNote: addNote,
-    getNote: getNote,
+    addRest: addRest,
+    getEntry: getEntry,
+    getNote: getEntry,
     setDuration: setDuration
   };
 })();
