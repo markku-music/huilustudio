@@ -43,3 +43,7 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.7.6: Oikeaan reunaan lisätty pystysuuntainen OSMD-rivivälisäädin. Se säätää EngravingRules.MinimumDistanceBetweenSystems-arvoa välillä 5.0–15.0 staff spacea, askel 0.5, oletus 9.0. Ylös = väljempi, alas = tiiviimpi. Arvo näkyy vedon aikana ja tallentuu localStorageen. Muutos renderöidään reaaliaikaisesti.
 
 0.22.7.7: Oikean reunan rivivälisäädin tehty kaksinkertaisen korkeaksi. Suunta käännetty: ylös = tiiviimpi riviväli, alas = väljempi. Myös nuolinäppäinten suunta vastaa tätä logiikkaa.
+
+0.22.7.8: Rivivälisäätimen alapuolinen turha ikoni-/paneelialue poistettu kokonaan. Paneeli on nyt vain varsinaisen pystykiskon korkuinen. Riviväliarvon localStorage-tallennus säilyy ennallaan.
+
+0.22.7.9: Rivivälisäätimen arvoa ei enää tallenneta localStorageen. Jokainen uusi sivun lataus/käynnistys alkaa aina oletusarvosta 9.0 staff spacea. Muut sovelluksen muistettavat asetukset säilyvät ennallaan.

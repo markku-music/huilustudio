@@ -481,7 +481,7 @@ button { font: inherit; }
   right: max(0px, env(safe-area-inset-right));
   top: clamp(112px, 24dvh, 235px);
   width: 48px;
-  height: 428px;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -557,21 +557,6 @@ button { font: inherit; }
   will-change: top;
 }
 
-.system-spacing-icon {
-  width: 25px;
-  height: 18px;
-  display: grid;
-  align-content: space-between;
-  opacity: .86;
-  pointer-events: none;
-}
-
-.system-spacing-icon span {
-  display: block;
-  height: 2px;
-  border-radius: 2px;
-  background: #eef3f8;
-}
 
 .system-spacing-rail:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--pk-selection-color) 60%, white);
@@ -580,7 +565,6 @@ button { font: inherit; }
 @media (max-height: 620px) {
   .system-spacing-rail {
     top: 74px;
-    height: 328px;
   }
   .system-spacing-track {
     height: 236px;

@@ -1,5 +1,3 @@
-const STORAGE_KEY = 'pikakirjoitin2.systemSpacing';
-
 export class SystemSpacingRail {
   #rail;
   #track;
@@ -22,8 +20,7 @@ export class SystemSpacingRail {
     this.#step = Number(step);
     this.#onChange = onChange;
 
-    const saved = Number.parseFloat(localStorage.getItem(STORAGE_KEY));
-    this.#value = Number.isFinite(saved) ? this.#clampAndSnap(saved) : this.#clampAndSnap(value);
+    this.#value = this.#clampAndSnap(value);
 
     this.#rail.setAttribute('aria-valuemin', String(this.#min));
     this.#rail.setAttribute('aria-valuemax', String(this.#max));
@@ -60,7 +57,6 @@ export class SystemSpacingRail {
       return;
     }
     this.#value = value;
-    localStorage.setItem(STORAGE_KEY, String(value));
     this.#updateUi();
     this.#onChange(value, { initial: false });
     if (announce) this.#showBubble();
