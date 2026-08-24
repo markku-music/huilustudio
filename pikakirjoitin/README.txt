@@ -33,3 +33,7 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 
 0.22.7: Enharmoninen nappi piilotetaan, kun valitun nuotin nykyinen kirjoitusasu on sävellajin normaali diatoninen asu (esim. Es Es-duurissa, Fis D-duurissa). Poikkeava enharmoninen kirjoitusasu voi edelleen näyttää napin.
+
+0.22.7.3: Valitun nuotin kosketineditointi huomioi peukalopalkin piste- ja taukomodifikaattorit. Piste + ele tekee pisteellisen aika-arvon; Tauko + ele muuttaa valitun nuotin tauoksi; Piste + Tauko toimii yhdessä. Tauko + pitkä painallus ilman pistettä säilyttää kokotahdin tauko / multirest -logiikan. Valinta poistuu kosketineleen valmistuttua kuten 0.22.7:ssa.
+
+0.22.7.4: Nuottialueen vaakavalinta lukitaan saman kosketuseleen ajaksi heti, kun valinnassa on vähintään kaksi loogista tapahtumaa. Tämän jälkeen iPad/Safarin pystyscrollaus ei saa ottaa elettä haltuun, vaikka sormi karkaisi alaviistoon tai viivaston ulkopuolelle. Yhden tapahtuman/pending-vaiheen normaali pystyscrollaus säilyy ennallaan.

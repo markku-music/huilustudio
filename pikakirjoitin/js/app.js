@@ -118,12 +118,29 @@ const keyboard=new PianoKeyboard({
     if (selected) {
       model.beginAction();
       keyboardEditId = selected.id;
-      // Valitun nuotin editointi: kosketin määrää sävelkorkeuden ja
-      // sama elekartta kuin kirjoituksessa määrää aika-arvon.
+
+      // Valitun nuotin editointi käyttää täsmälleen samoja rytmisiä
+      // peukalopalkin modifikaattoreita kuin uuden tapahtuman kirjoitus.
+      // Kosketin määrää korkeuden, ele aika-arvon, piste lisää pisteen ja
+      // Tauko muuttaa valitun nuotin saman aika-arvon tauoksi.
+      if (thumbState.rest) {
+        model.updateEntry(selected.id, {
+          kind:'rest',
+          duration,
+          dotted:Boolean(thumbState.dot),
+          measureRest:duration === 'whole' && !Boolean(thumbState.dot),
+          tieFromPrevious:false,
+          spellingPreference:null
+        });
+        selection.retainSingle(selected.id);
+        return { id:selected.id, sound:false };
+      }
+
       // Uusi korkeus palautuu sävellajin normaaliin kirjoitusasuun.
       model.updateEntry(selected.id, {
         midi:Number(midi),
         duration,
+        dotted:Boolean(thumbState.dot),
         spellingPreference:null
       });
       selection.retainSingle(selected.id);

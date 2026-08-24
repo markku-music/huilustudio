@@ -464,3 +464,11 @@ button { font: inherit; }
   stroke-linejoin: round;
 }
 .pk-selection-editor .is-delete { color: #8e2f2f; }
+
+/* Kun saman kosketuksen valinta on jo ulottunut vähintään kahteen tapahtumaan,
+   ele on yksiselitteisesti valinta. JS estää touchmove-scrollauksen tämän eleen
+   loppuun; luokka dokumentoi tilan ja auttaa selaimia, jotka huomioivat
+   touch-actionin dynaamisesti. */
+.score-viewport.pk-selection-gesture-locked {
+  touch-action: none;
+}

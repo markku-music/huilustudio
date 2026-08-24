@@ -220,6 +220,7 @@ export class ScoreRangeSelection {
   }
 
   clear() {
+    this.#viewport.classList.remove('pk-selection-gesture-locked');
     this.#selectedIds.clear();
     this.#cursorTarget = null;
     this.#paint();
@@ -232,6 +233,14 @@ export class ScoreRangeSelection {
     this.#viewport.addEventListener('pointermove', ev => this.#pointerMove(ev));
     this.#viewport.addEventListener('pointerup', ev => this.#pointerUp(ev));
     this.#viewport.addEventListener('pointercancel', ev => this.#pointerCancel(ev));
+    // Safari voi yrittää ottaa jo käynnissä olevan vaakavalinnan pan-y-scrollaukseksi,
+    // jos sormi karkaa myöhemmin alaviistoon viivaston ulkopuolelle. Kun sama ele
+    // on jo valinnut vähintään kaksi loogista tapahtumaa, käyttäjän tarkoitus on
+    // yksiselitteinen: lukitaan ele valinnaksi ja estetään natiivi scrollaus vain
+    // tämän kosketuksen loppuun asti.
+    this.#viewport.addEventListener('touchmove', ev => {
+      if (this.#gesture?.selectionLocked) ev.preventDefault();
+    }, { passive:false });
     this.#viewport.addEventListener('scroll', () => {
       if (!this.#selectedIds.size) return;
       this.#restoreCursorFromTarget();
@@ -258,7 +267,8 @@ export class ScoreRangeSelection {
       endEvent: hitEvent || null,
       initialEvent: hitEvent || null,
       previous,
-      maxMove: 0
+      maxMove: 0,
+      selectionLocked: false
     };
 
     // Ensimmäinen kosketus nuottiin tai taukoon antaa palautteen heti.
@@ -347,6 +357,7 @@ export class ScoreRangeSelection {
       }
     }
 
+    this.#viewport.classList.remove('pk-selection-gesture-locked');
     this.#gesture = null;
   }
 
@@ -357,6 +368,7 @@ export class ScoreRangeSelection {
     // iPad/Safari voi lähettää pointercancelin, kun natiivi pan-y-scrollaus
     // ottaa eleen. Pending-vaiheessa palautetaan siksi aiempi valinta.
     if (g.state === 'pending') this.#restoreSelection(g.previous);
+    this.#viewport.classList.remove('pk-selection-gesture-locked');
     this.#gesture = null;
   }
 
@@ -418,6 +430,10 @@ export class ScoreRangeSelection {
       if (event.x >= left - 0.5 && event.x <= right + 0.5) ids.add(event.sourceId);
     }
     this.#selectedIds = ids;
+    if (this.#gesture && ids.size >= 2) {
+      this.#gesture.selectionLocked = true;
+      this.#viewport.classList.add('pk-selection-gesture-locked');
+    }
     this.#paint();
     this.#showCursor(band, endEvent);
     this.#emitChange();
