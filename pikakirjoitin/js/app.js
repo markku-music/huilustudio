@@ -16,18 +16,20 @@ app.setAttribute('aria-hidden','true');
 const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
 
-// Väliaikaiset OSMD:n Y-säätimet yläosan asettelun hakemiseen.
+// Väliaikaiset yläosan Y-säätimet asettelun hakemiseen.
+// T siirtää vain OSMD:n jo piirtämää tempotekstiä renderöinnin jälkeen,
+// eikä muuta nuottirivin geometriaa. S käyttää OSMD:n omaa säveltäjäetäisyyttä.
 // Arvot eivät tallennu muistiin; tarkoitus on löytää hyvät vakioarvot.
 new SystemSpacingRail({
   rail: document.querySelector('#tempoYRail'),
   track: document.querySelector('#tempoYTrack'),
   thumb: document.querySelector('#tempoYThumb'),
   bubble: document.querySelector('#tempoYBubble'),
-  min: 0,
+  min: -6,
   max: 8,
   step: 0.5,
-  value: 0.5,
-  onChange: (value, { initial }) => renderer.setTempoYSpacing(value, { render: !initial })
+  value: 0,
+  onChange: value => renderer.setTempoVisualYOffset(value)
 });
 
 new SystemSpacingRail({

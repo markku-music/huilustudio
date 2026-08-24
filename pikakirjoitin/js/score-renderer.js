@@ -18,6 +18,7 @@ export class ScoreRenderer {
   #titleBottomDistance = 7;
   #titleTopDistance = 9;
   #tempoYSpacing = 0.5;
+  #tempoVisualYOffset = 0;
   #systemComposerDistance = 2;
   #renderListeners = new Set();
 
@@ -113,21 +114,51 @@ export class ScoreRenderer {
     rules.TitleTopDistance = this.#titleTopDistance;
   }
 
-  setTempoYSpacing(value, { render = true } = {}) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) return this.#tempoYSpacing;
-    this.#tempoYSpacing = Math.min(8, Math.max(0, numeric));
-    this.#applyTempoYSpacing();
-    if (render && (this.#lastNotes.length || this.#container.childElementCount)) {
-      this.render(this.#lastNotes);
-    }
-    return this.#tempoYSpacing;
-  }
-
   #applyTempoYSpacing() {
     const rules = this.#osmd?.EngravingRules;
     if (!rules) return;
+    // Pidetään OSMD:n oma tilavaraus oletuksessa. TempoYSpacing ei ole
+    // tempotekstin koordinaatti, vaan vaikuttaa koko systeemin geometriaan.
     rules.TempoYSpacing = this.#tempoYSpacing;
+  }
+
+  setTempoVisualYOffset(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return this.#tempoVisualYOffset;
+    this.#tempoVisualYOffset = Math.min(8, Math.max(-6, numeric));
+    this.#applyTempoVisualYOffset();
+    return this.#tempoVisualYOffset;
+  }
+
+  #findTempoTextElement() {
+    const tempoText = String(this.#settings?.tempoText || '').trim();
+    if (!tempoText) return null;
+
+    // OSMD/VexFlow piirtää sanallisen tempomerkinnän SVG:n text/tspan-solmuksi.
+    // Etsi täsmälleen nykyistä tempotekstiä vastaava solmu ja siirrä vain sitä.
+    const nodes = this.#container.querySelectorAll('svg text, svg tspan');
+    for (const node of nodes) {
+      const content = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (content !== tempoText) continue;
+      return node.closest?.('text') || node;
+    }
+    return null;
+  }
+
+  #applyTempoVisualYOffset() {
+    const text = this.#findTempoTextElement();
+    if (!text) return;
+
+    // OSMD:n VexFlow-drawer käyttää 10 px / staff space. SVG-transformi
+    // ei osallistu ladontaan, joten ensimmäinen nuottirivi ei liiku.
+    const dy = this.#tempoVisualYOffset * 10;
+    const original = text.dataset.pkBaseTransform ?? text.getAttribute('transform') ?? '';
+    if (text.dataset.pkBaseTransform === undefined) {
+      text.dataset.pkBaseTransform = original;
+    }
+    const base = text.dataset.pkBaseTransform || '';
+    const translated = `${base}${base ? ' ' : ''}translate(0 ${dy})`;
+    text.setAttribute('transform', translated);
   }
 
   setSystemComposerDistance(value, { render = true } = {}) {
@@ -249,6 +280,7 @@ export class ScoreRenderer {
         this.#applyTempoYSpacing();
         this.#applySystemComposerDistance();
         await this.#osmd.render();
+        this.#applyTempoVisualYOffset();
         const snapshot = {
           notes: notes.map(note => ({ ...note })),
           settings: { ...this.#settings }

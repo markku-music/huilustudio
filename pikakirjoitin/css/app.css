@@ -473,9 +473,9 @@ button { font: inherit; }
   touch-action: none;
 }
 
-/* Väliaikaiset yläosan OSMD-säätimet. T = TempoYSpacing,
-   S = SystemComposerDistance. Ne käyttävät samaa kiskomekaniikkaa kuin
-   riviväli, mutta ovat nykyisen rivivälisäätimen vasemmalla puolella. */
+/* Väliaikaiset yläosan säätimet. T = vain OSMD:n piirtämän tempotekstin
+   visuaalinen Y-siirto (ei ladontaa), S = SystemComposerDistance.
+   Ne käyttävät samaa kiskomekaniikkaa kuin riviväli. */
 .system-spacing-rail.tempo-y-rail {
   right: calc(max(0px, env(safe-area-inset-right)) + 96px);
   border-right: 1px solid #677281;

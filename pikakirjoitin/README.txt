@@ -55,3 +55,11 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.7.12: Otsikon pystysijainnin kokeilusäädin ja otsikon jälkeisen välin kokeilusäädin poistettu. OSMD EngravingRules.TitleTopDistance lukittu arvoon 9.0 ja TitleBottomDistance arvoon 7.0. Oikean reunan varsinainen rivivälisäädin säilyy, oletusarvo 9.0 eikä arvo tallennu muistiin.
 
 0.22.7.13: Lisätty kaksi väliaikaista OSMD:n Y-säädintä yläosan asettelun hakemiseen. T-säädin muuttaa EngravingRules.TempoYSpacing-arvoa välillä 0.0–8.0 (oletus 0.5) ja S-säädin EngravingRules.SystemComposerDistance-arvoa välillä 0.0–8.0 (oletus 2.0), askel 0.5. Arvot eivät tallennu muistiin. Otsikon TitleTopDistance=9.0, TitleBottomDistance=7.0 ja rivivälin oletus 9.0 säilyvät ennallaan.
+
+
+0.22.7.14 Tempo vain teksti
+- TempoYSpacing pidetään OSMD-oletuksessa 0.5.
+- T-slideri siirtää vain OSMD:n SVG:hen piirtämää tempotekstiä Y-suunnassa.
+- T-slideri ei renderöi eikä siirrä ensimmäistä nuottiriviä.
+- T: -6..8 staff spacea, oletus 0, askel 0.5.
+- S-slideri käyttää edelleen SystemComposerDistance-arvoa.
