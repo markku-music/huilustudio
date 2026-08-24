@@ -16,6 +16,32 @@ app.setAttribute('aria-hidden','true');
 const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
 
+// Väliaikaiset OSMD:n Y-säätimet yläosan asettelun hakemiseen.
+// Arvot eivät tallennu muistiin; tarkoitus on löytää hyvät vakioarvot.
+new SystemSpacingRail({
+  rail: document.querySelector('#tempoYRail'),
+  track: document.querySelector('#tempoYTrack'),
+  thumb: document.querySelector('#tempoYThumb'),
+  bubble: document.querySelector('#tempoYBubble'),
+  min: 0,
+  max: 8,
+  step: 0.5,
+  value: 0.5,
+  onChange: (value, { initial }) => renderer.setTempoYSpacing(value, { render: !initial })
+});
+
+new SystemSpacingRail({
+  rail: document.querySelector('#composerYRail'),
+  track: document.querySelector('#composerYTrack'),
+  thumb: document.querySelector('#composerYThumb'),
+  bubble: document.querySelector('#composerYBubble'),
+  min: 0,
+  max: 8,
+  step: 0.5,
+  value: 2,
+  onChange: (value, { initial }) => renderer.setSystemComposerDistance(value, { render: !initial })
+});
+
 new SystemSpacingRail({
   rail: document.querySelector('#systemSpacingRail'),
   track: document.querySelector('#systemSpacingTrack'),

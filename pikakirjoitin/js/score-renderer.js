@@ -17,6 +17,8 @@ export class ScoreRenderer {
   #minimumSystemDistance = 9;
   #titleBottomDistance = 7;
   #titleTopDistance = 9;
+  #tempoYSpacing = 0.5;
+  #systemComposerDistance = 2;
   #renderListeners = new Set();
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
@@ -51,6 +53,8 @@ export class ScoreRenderer {
     this.#applySystemSpacing();
     this.#applyTitleBottomDistance();
     this.#applyTitleTopDistance();
+    this.#applyTempoYSpacing();
+    this.#applySystemComposerDistance();
     this.#watchWidth();
   }
 
@@ -107,6 +111,40 @@ export class ScoreRenderer {
     const rules = this.#osmd?.EngravingRules;
     if (!rules) return;
     rules.TitleTopDistance = this.#titleTopDistance;
+  }
+
+  setTempoYSpacing(value, { render = true } = {}) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return this.#tempoYSpacing;
+    this.#tempoYSpacing = Math.min(8, Math.max(0, numeric));
+    this.#applyTempoYSpacing();
+    if (render && (this.#lastNotes.length || this.#container.childElementCount)) {
+      this.render(this.#lastNotes);
+    }
+    return this.#tempoYSpacing;
+  }
+
+  #applyTempoYSpacing() {
+    const rules = this.#osmd?.EngravingRules;
+    if (!rules) return;
+    rules.TempoYSpacing = this.#tempoYSpacing;
+  }
+
+  setSystemComposerDistance(value, { render = true } = {}) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return this.#systemComposerDistance;
+    this.#systemComposerDistance = Math.min(8, Math.max(0, numeric));
+    this.#applySystemComposerDistance();
+    if (render && (this.#lastNotes.length || this.#container.childElementCount)) {
+      this.render(this.#lastNotes);
+    }
+    return this.#systemComposerDistance;
+  }
+
+  #applySystemComposerDistance() {
+    const rules = this.#osmd?.EngravingRules;
+    if (!rules) return;
+    rules.SystemComposerDistance = this.#systemComposerDistance;
   }
 
   subscribeRendered(listener) {
@@ -198,6 +236,8 @@ export class ScoreRenderer {
         this.#applySystemSpacing();
         this.#applyTitleBottomDistance();
         this.#applyTitleTopDistance();
+        this.#applyTempoYSpacing();
+        this.#applySystemComposerDistance();
         await this.#osmd.load(buildMusicXml(notes, this.#settings));
         // load() palauttaa OSMD:n Zoom-arvon yhteen. Aseta orientaation
         // mukainen zoom vasta latauksen jälkeen ennen varsinaista renderiä.
@@ -206,6 +246,8 @@ export class ScoreRenderer {
         this.#applySystemSpacing();
         this.#applyTitleBottomDistance();
         this.#applyTitleTopDistance();
+        this.#applyTempoYSpacing();
+        this.#applySystemComposerDistance();
         await this.#osmd.render();
         const snapshot = {
           notes: notes.map(note => ({ ...note })),

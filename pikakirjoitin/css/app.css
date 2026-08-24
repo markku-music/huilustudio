@@ -473,6 +473,30 @@ button { font: inherit; }
   touch-action: none;
 }
 
+/* Väliaikaiset yläosan OSMD-säätimet. T = TempoYSpacing,
+   S = SystemComposerDistance. Ne käyttävät samaa kiskomekaniikkaa kuin
+   riviväli, mutta ovat nykyisen rivivälisäätimen vasemmalla puolella. */
+.system-spacing-rail.tempo-y-rail {
+  right: calc(max(0px, env(safe-area-inset-right)) + 96px);
+  border-right: 1px solid #677281;
+  border-radius: 13px;
+}
+
+.system-spacing-rail.composer-y-rail {
+  right: calc(max(0px, env(safe-area-inset-right)) + 48px);
+  border-right: 1px solid #677281;
+  border-radius: 13px;
+}
+
+.system-spacing-thumb.layout-y-thumb {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 /* Oikean reunan rivivälisäädin. Arvo on OSMD:n staff-space-yksiköissä:
    ylös = tiiviimpi, alas = väljempi. */
 .system-spacing-rail {
