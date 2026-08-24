@@ -474,14 +474,14 @@ button { font: inherit; }
 }
 
 /* Oikean reunan rivivälisäädin. Arvo on OSMD:n staff-space-yksiköissä:
-   ylös = väljempi, alas = tiiviimpi. */
+   ylös = tiiviimpi, alas = väljempi. */
 .system-spacing-rail {
   position: fixed;
   z-index: 70;
   right: max(0px, env(safe-area-inset-right));
   top: clamp(112px, 24dvh, 235px);
   width: 48px;
-  height: 214px;
+  height: 428px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -503,8 +503,8 @@ button { font: inherit; }
 .system-spacing-track {
   position: relative;
   width: 12px;
-  height: 166px;
-  flex: 0 0 166px;
+  height: 332px;
+  flex: 0 0 332px;
   border: 1px solid #778493;
   border-radius: 999px;
   background: #d7dde5;
@@ -580,10 +580,10 @@ button { font: inherit; }
 @media (max-height: 620px) {
   .system-spacing-rail {
     top: 74px;
-    height: 164px;
+    height: 328px;
   }
   .system-spacing-track {
-    height: 118px;
-    flex-basis: 118px;
+    height: 236px;
+    flex-basis: 236px;
   }
 }

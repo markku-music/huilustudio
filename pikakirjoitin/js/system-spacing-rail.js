@@ -49,8 +49,8 @@ export class SystemSpacingRail {
     const rect = this.#track.getBoundingClientRect();
     if (!rect.height) return this.#value;
     const t = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
-    // Ylhäällä maksimi, alhaalla minimi.
-    return this.#clampAndSnap(this.#max - t * (this.#max - this.#min));
+    // Ylhäällä minimi, alhaalla maksimi.
+    return this.#clampAndSnap(this.#min + t * (this.#max - this.#min));
   }
 
   #setValue(next, { announce = true } = {}) {
@@ -69,7 +69,7 @@ export class SystemSpacingRail {
   #updateUi() {
     const range = this.#max - this.#min || 1;
     const normalized = (this.#value - this.#min) / range;
-    const percentFromTop = (1 - normalized) * 100;
+    const percentFromTop = normalized * 100;
     this.#thumb.style.top = `${percentFromTop}%`;
     this.#bubble.style.top = `${percentFromTop}%`;
     this.#bubble.textContent = this.#value.toFixed(1);
@@ -112,8 +112,8 @@ export class SystemSpacingRail {
 
   #onKeyDown(event) {
     let delta = 0;
-    if (event.key === 'ArrowUp' || event.key === 'ArrowRight') delta = this.#step;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowLeft') delta = -this.#step;
+    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') delta = -this.#step;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') delta = this.#step;
     if (event.key === 'Home') {
       event.preventDefault();
       this.#setValue(this.#min);
