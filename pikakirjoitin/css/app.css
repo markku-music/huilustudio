@@ -204,18 +204,46 @@ button {
   background: #2869b8;
 }
 
-.input-help {
-  margin: 0;
-  padding: 8px 12px 10px;
-  background: #20242a;
-  color: #f4f7fa;
-  font-size: 12px;
-  line-height: 1.35;
-  opacity: .74;
-}
-
 @media (max-height: 620px) {
   .keyboard-viewport {
     height: 180px;
+  }
+}
+
+
+.gesture-guide {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, .16);
+  border-top: 1px solid rgba(255, 255, 255, .16);
+}
+
+.gesture-guide span {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 8px;
+  background: #20242a;
+  color: #f4f7fa;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.gesture-guide strong {
+  font-weight: 800;
+}
+
+.key.gesture-down,
+.key.gesture-up,
+.key.gesture-whole {
+  filter: brightness(.92);
+}
+
+@media (max-width: 560px) {
+  .gesture-guide {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

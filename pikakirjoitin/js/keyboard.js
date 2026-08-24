@@ -6,6 +6,9 @@
   const WHITE_COUNT = 35;
   const BLACK_WIDTH = 0.62;
 
+  const LONG_PRESS_MS = 500;
+  const LONG_PRESS_MOVE = 14;
+
   const WHITE_NAMES = {
     0: "C",
     2: "D",
@@ -65,15 +68,17 @@
       this.rail = options.rail;
       this.track = options.track;
       this.thumb = options.thumb;
-      this.onNote = options.onNote;
 
-      this.activePointerId = null;
-      this.activeKey = null;
+      this.onStart = options.onStart;
+      this.onDuration = options.onDuration;
+      this.onFinish = options.onFinish;
+
+      this.active = null;
       this.scrollPointerId = null;
       this.scrollGrabOffset = 0;
 
       this.buildKeys();
-      this.bindNotes();
+      this.bindNoteGestures();
       this.bindScrollRail();
 
       requestAnimationFrame(() => this.centerOnMiddleC());
@@ -106,43 +111,129 @@
       }
     }
 
-    bindNotes() {
-      this.piano.addEventListener("pointerdown", (event) => {
-        const key = event.target.closest(".key");
-        if (!key || this.activePointerId !== null) return;
-        if (event.pointerType === "mouse" && event.button !== 0) return;
+    bindNoteGestures() {
+      this.piano.addEventListener("pointerdown", (event) => this.startNote(event));
+      this.piano.addEventListener("pointermove", (event) => this.moveNote(event));
+      this.piano.addEventListener("pointerup", (event) => this.finishNote(event));
+      this.piano.addEventListener("pointercancel", (event) => this.finishNote(event));
+    }
 
-        event.preventDefault();
-        this.activePointerId = event.pointerId;
-        this.activeKey = key;
-        key.classList.add("active");
+    startNote(event) {
+      const key = event.target.closest(".key");
+      if (!key || this.active) return;
+      if (event.pointerType === "mouse" && event.button !== 0) return;
 
-        try {
-          this.piano.setPointerCapture(event.pointerId);
-        } catch (error) {}
+      event.preventDefault();
 
-        if (typeof this.onNote === "function") {
-          this.onNote(Number(key.dataset.midi), key.dataset.pitch);
-        }
-      });
+      const midi = Number(key.dataset.midi);
+      const pitch = key.dataset.pitch;
 
-      const finish = (event) => {
-        if (event.pointerId !== this.activePointerId) return;
+      // Sama perusidea kuin Pikakirjoitin 2:ssa:
+      // tapahtuma syntyy heti neljäsosana, ja ele voi muuttaa aika-arvon.
+      const startResult = typeof this.onStart === "function"
+        ? this.onStart(midi, pitch, "quarter")
+        : null;
 
-        if (this.activeKey) this.activeKey.classList.remove("active");
+      const noteId = typeof startResult === "object"
+        ? startResult && startResult.id
+        : startResult;
 
-        try {
-          if (this.piano.hasPointerCapture(event.pointerId)) {
-            this.piano.releasePointerCapture(event.pointerId);
-          }
-        } catch (error) {}
+      if (!noteId) return;
 
-        this.activePointerId = null;
-        this.activeKey = null;
+      key.classList.add("active");
+
+      const threshold = clamp(this.viewport.clientHeight * 0.12, 24, 48);
+
+      this.active = {
+        pointerId: event.pointerId,
+        key: key,
+        noteId: noteId,
+        midi: midi,
+        pitch: pitch,
+        startX: event.clientX,
+        startY: event.clientY,
+        threshold: threshold,
+        duration: "quarter",
+        locked: false,
+        timer: null
       };
 
-      this.piano.addEventListener("pointerup", finish);
-      this.piano.addEventListener("pointercancel", finish);
+      try {
+        this.piano.setPointerCapture(event.pointerId);
+      } catch (error) {}
+
+      this.active.timer = window.setTimeout(() => {
+        const active = this.active;
+        if (!active || active.pointerId !== event.pointerId || active.locked) return;
+
+        active.locked = true;
+        active.duration = "whole";
+        active.key.classList.add("gesture-whole");
+
+        if (typeof this.onDuration === "function") {
+          this.onDuration(active.noteId, "whole", active.midi, active.pitch);
+        }
+      }, LONG_PRESS_MS);
+    }
+
+    moveNote(event) {
+      const active = this.active;
+      if (!active || event.pointerId !== active.pointerId || active.locked) return;
+
+      event.preventDefault();
+
+      const dx = event.clientX - active.startX;
+      const dy = event.clientY - active.startY;
+
+      if (Math.hypot(dx, dy) > LONG_PRESS_MOVE) {
+        this.clearLongPress();
+      }
+
+      // Tässä 0.6-versiossa otetaan käyttöön vain PK2:n pystyeleiden ydin.
+      // Vaakasuuntainen liike ei vielä tee 1/16- tai 1/32-nuottia.
+      const vertical = Math.abs(dy) > Math.abs(dx);
+      if (!vertical || Math.abs(dy) < active.threshold) return;
+
+      active.locked = true;
+      active.duration = dy > 0 ? "eighth" : "half";
+
+      active.key.classList.add(dy > 0 ? "gesture-down" : "gesture-up");
+
+      if (typeof this.onDuration === "function") {
+        this.onDuration(active.noteId, active.duration, active.midi, active.pitch);
+      }
+    }
+
+    finishNote(event) {
+      const active = this.active;
+      if (!active || event.pointerId !== active.pointerId) return;
+
+      this.clearLongPress();
+
+      active.key.classList.remove(
+        "active",
+        "gesture-down",
+        "gesture-up",
+        "gesture-whole"
+      );
+
+      if (typeof this.onFinish === "function") {
+        this.onFinish(active.noteId, active.duration, active.midi, active.pitch);
+      }
+
+      try {
+        if (this.piano.hasPointerCapture(event.pointerId)) {
+          this.piano.releasePointerCapture(event.pointerId);
+        }
+      } catch (error) {}
+
+      this.active = null;
+    }
+
+    clearLongPress() {
+      if (!this.active || !this.active.timer) return;
+      clearTimeout(this.active.timer);
+      this.active.timer = null;
     }
 
     centerOnMiddleC() {
