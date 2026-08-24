@@ -12,7 +12,8 @@
       osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay(containerId, {
         autoResize: true,
         backend: "svg",
-        drawingParameters: "compacttight"
+        drawingParameters: "compacttight",
+        autoBeam: true
       });
     }
 

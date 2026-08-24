@@ -162,7 +162,7 @@
   </work>
   <identification>
     <encoding>
-      <software>Pikakirjoitin 3 BASE 0.7</software>
+      <software>Pikakirjoitin 3 BASE 0.8</software>
     </encoding>
   </identification>
   <part-list>
