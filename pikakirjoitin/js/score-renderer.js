@@ -15,8 +15,8 @@ export class ScoreRenderer {
   #portraitReferenceWidth = 0;
   #currentZoom = 1;
   #minimumSystemDistance = 9;
-  #titleBottomDistance = 1;
-  #titleTopDistance = 5;
+  #titleBottomDistance = 7;
+  #titleTopDistance = 9;
   #renderListeners = new Set();
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
