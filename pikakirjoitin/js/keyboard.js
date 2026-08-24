@@ -189,15 +189,20 @@
         this.clearLongPress();
       }
 
-      // Tässä 0.6-versiossa otetaan käyttöön vain PK2:n pystyeleiden ydin.
-      // Vaakasuuntainen liike ei vielä tee 1/16- tai 1/32-nuottia.
-      const vertical = Math.abs(dy) > Math.abs(dx);
-      if (!vertical || Math.abs(dy) < active.threshold) return;
+      const horizontal = Math.abs(dx) > Math.abs(dy);
+      const primaryDistance = horizontal ? Math.abs(dx) : Math.abs(dy);
+      if (primaryDistance < active.threshold) return;
 
       active.locked = true;
-      active.duration = dy > 0 ? "eighth" : "half";
 
-      active.key.classList.add(dy > 0 ? "gesture-down" : "gesture-up");
+      if (horizontal) {
+        // Pikakirjoitin 2 Core: oikealle 1/16, vasemmalle 1/32.
+        active.duration = dx > 0 ? "sixteenth" : "thirty-second";
+        active.key.classList.add(dx > 0 ? "gesture-right" : "gesture-left");
+      } else {
+        active.duration = dy > 0 ? "eighth" : "half";
+        active.key.classList.add(dy > 0 ? "gesture-down" : "gesture-up");
+      }
 
       if (typeof this.onDuration === "function") {
         this.onDuration(active.noteId, active.duration, active.midi, active.pitch);
@@ -214,6 +219,8 @@
         "active",
         "gesture-down",
         "gesture-up",
+        "gesture-right",
+        "gesture-left",
         "gesture-whole"
       );
 

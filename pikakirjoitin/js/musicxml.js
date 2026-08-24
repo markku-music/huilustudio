@@ -1,13 +1,19 @@
 (function () {
   "use strict";
 
-  const DIVISIONS = 4;
+  const DIVISIONS = 8;
   const DURATION_VALUES = {
-    whole: 16,
-    half: 8,
-    quarter: 4,
-    eighth: 2,
-    "16th": 1
+    whole: 32,
+    half: 16,
+    quarter: 8,
+    eighth: 4,
+    sixteenth: 2,
+    "thirty-second": 1
+  };
+
+  const MUSICXML_TYPES = {
+    sixteenth: "16th",
+    "thirty-second": "32nd"
   };
 
   function escapeXML(value) {
@@ -51,7 +57,7 @@
       "      <note>",
       "        <pitch><step>" + pitch.step + "</step>" + alterXML + "<octave>" + pitch.octave + "</octave></pitch>",
       "        <duration>" + value + "</duration>",
-      "        <type>" + escapeXML(note.duration) + "</type>",
+      "        <type>" + escapeXML(MUSICXML_TYPES[note.duration] || note.duration) + "</type>",
       "      </note>"
     ].join("\n");
   }
@@ -156,7 +162,7 @@
   </work>
   <identification>
     <encoding>
-      <software>Pikakirjoitin 3 BASE 0.6</software>
+      <software>Pikakirjoitin 3 BASE 0.7</software>
     </encoding>
   </identification>
   <part-list>

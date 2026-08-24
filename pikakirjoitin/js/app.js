@@ -16,7 +16,9 @@
     whole: "1/1",
     half: "1/2",
     quarter: "1/4",
-    eighth: "1/8"
+    eighth: "1/8",
+    sixteenth: "1/16",
+    "thirty-second": "1/32"
   };
 
   function updateStatus(message, className) {
@@ -111,7 +113,7 @@
     });
 
     renderScore().then(function () {
-      updateStatus("Valmis · napauta 1/4 · alas 1/8 · ylös 1/2 · pitkä 1/1.", "ok");
+      updateStatus("Valmis · ← 1/32 · ↓ 1/8 · napauta 1/4 · ↑ 1/2 · → 1/16 · pitkä 1/1.", "ok");
     }).catch(function (error) {
       console.error(error);
       updateStatus(
