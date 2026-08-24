@@ -43,3 +43,9 @@ Muutos 0.22.7.7
 - Tallennetut ladonta-asetukset säilyvät localStoragessa seuraaville käynnistyskerroille.
 - Pikakirjoittimen oletukset palauttaa compact + nykyiset perusarvot. OSMD-oletukset palauttaa default + OSMD:n perusarvot.
 - Varsinaiseen nuotinsyöttöön, valintaan, audioon, portrait/landscape-zoomaukseen tai MusicXML-tekstirakenteisiin ei tehty muutoksia.
+
+
+0.22.7.8 – OSMD-asetusten tallennus korjattu
+- Tallenna rakentaa varsinaisen ScoreRendererin OSMD-instanssin aina uudelleen.
+- Valittu drawingParameters-preset ja kaikki yhdeksän EngravingRules-arvoa tulevat näin varmasti myös pää-nuottiin.
+- Esikatselun toimintaa ja oletusarvoja ei muutettu.

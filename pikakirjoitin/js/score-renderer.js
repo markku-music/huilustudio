@@ -65,10 +65,20 @@ export class ScoreRenderer {
 
   async setLayoutSettings(nextSettings) {
     const next = sanitizeLayoutSettings(nextSettings);
-    const presetChanged = next.drawingParameters !== this.#layoutSettings.drawingParameters;
+
+    // Asetussivun Tallenna on tietoinen layout-vaihto, ei tavallinen
+    // nuottisisällön renderöinti. Odota mahdollinen käynnissä oleva renderi
+    // loppuun ja rakenna pää-OSMD aina uudelleen valitulla presetillä.
+    // Näin vanhan presetin EngravingRules-tila tai OSMD:n sisäinen layout-
+    // välimuisti ei voi jäädä vaikuttamaan varsinaiseen nuottiin.
+    while (this.#rendering) {
+      await new Promise(resolve => window.setTimeout(resolve, 0));
+    }
+
     this.#layoutSettings = next;
-    if (presetChanged) this.#createOsmd();
-    return this.render(this.#lastNotes);
+    this.#createOsmd();
+    this.#applyPageMargins();
+    await this.render(this.#lastNotes);
   }
 
   setSettings(settings) {
