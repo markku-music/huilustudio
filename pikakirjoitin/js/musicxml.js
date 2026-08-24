@@ -296,6 +296,19 @@
     ].join("\n");
   }
 
+  function hiddenRestXML(duration) {
+    const value = Number(duration);
+    if (!Number.isFinite(value) || value <= 0) return "";
+
+    return [
+      "      <note print-object=\"no\">",
+      "        <rest/>",
+      "        <duration>" + value + "</duration>",
+      "        <voice>1</voice>",
+      "      </note>"
+    ].join("\n");
+  }
+
   function firstMeasureDirectionXML(score) {
     const tempoText = score.metadata && score.metadata.tempoText
       ? String(score.metadata.tempoText).trim()
@@ -359,8 +372,9 @@
         );
       }
 
+      let directionXML = "";
       if (index === 0) {
-        const directionXML = firstMeasureDirectionXML(score);
+        directionXML = firstMeasureDirectionXML(score);
         if (directionXML) parts.push(directionXML);
       }
 
@@ -373,6 +387,12 @@
             });
           }).join("\n")
         );
+      } else if (index === 0 && directionXML) {
+        // OSMD 2.1.2 tarvitsee ensimmäiseen tahtiin rytmisen aikapisteen,
+        // kun siinä on direction/words mutta ei vielä yhtään näkyvää nuottia.
+        // Sama ratkaisu on käytössä toimivassa Pikakirjoitin 2 Coressa:
+        // näkymätön tauko täyttää tyhjän tahdin, mutta ei näy nuottikuvassa.
+        parts.push(hiddenRestXML(measure.capacity || capacity));
       }
 
       parts.push("    </measure>");
@@ -387,7 +407,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.11</software>
+      <software>Pikakirjoitin 3 BASE 0.11.1</software>
     </encoding>
   </identification>
   <part-list>

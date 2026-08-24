@@ -1,49 +1,26 @@
-Pikakirjoitin 3 · BASE 0.11 · Aloitusikkuna + ääni
+Pikakirjoitin 3 · BASE 0.11.1 · Tempoteksti korjattu
 
 Pohja:
-- BASE 0.10.1 Piste Flyout
-- Score Model -> MusicXML -> OSMD 2.1.2
-- Tauko, kokotahdin tauko, explicit multirest
-- yksi piste + oikealle avautuva kahden pisteen flyout
+- BASE 0.11 Aloitusikkuna + ääni
+
+Korjaus:
+Jos aloitusikkunassa oli tempoteksti ja nuottikuva oli vielä täysin tyhjä,
+OSMD 2.1.2:n ensimmäiseen tahtiin tuli direction/words ilman yhtään rytmistä
+tapahtumaa. Tämä aiheutti aloituksen epäonnistumisen.
+
+Korjaus on samaa periaatetta kuin toimivassa Pikakirjoitin 2 Coressa:
+- tempoteksti pysyy MusicXML:n <direction><words>...</words></direction>-rakenteena
+- jos ensimmäisessä tahdissa ei ole vielä yhtään nuottia/taukoa,
+  lisätään vain XML:ään näkymätön print-object="no" -tauko
+- näkymätön tauko ei piirry nuottiin
+- heti kun ensimmäinen oikea tapahtuma kirjoitetaan, näkymätöntä täyttötaukoa
+  ei enää tarvita eikä generoida
+
+Muut 0.11:n toiminnot säilyvät:
+- P2 Core -aloitusikkuna
+- AudioEngine
+- nimi, säveltäjä, tempo, sävellaji, tahtilaji, kohotahti, viritys ja avain
+- pisteflyout
+- tauot, kokotahdin tauot ja explicit multirest
 - OSMD autoBeam
-
-Uutta:
-1. Pikakirjoitin 2 Core 0.22.7.8:n aloitusikkuna on tuotu Pikakirjoitin 3:een.
-2. Pikakirjoitin 2 Core 0.22.7.8:n AudioEngine on tuotu Pikakirjoitin 3:een.
-3. ALOITA-painike avaa AudioContextin ennen varsinaista käyttöä.
-4. Kosketin soi heti pointerdownissa ja sammuu pointerupissa.
-5. Taukoa kirjoitettaessa koskettimesta ei lähde ääntä.
-
-AudioEngine, sama perusratkaisu kuin P2 Coressa:
-- yksi jatkuva triangle-oskillaattori
-- NOTE_GAIN 0.16
-- attack 0.012 s
-- release 0.06 s
-- latencyHint: interactive
-
-Aloitusikkunasta kytketty toimintaan:
-- Nimi -> Score Model / MusicXML work-title
-- Säveltäjä -> MusicXML creator
-- Tempoteksti -> MusicXML direction/words
-- Sävellaji -> Score Model key / MusicXML fifths
-- Tahtilaji -> Score Model time / MusicXML time
-- C -> MusicXML common time
-- Cut C -> MusicXML cut time
-- Kohotahti -> ensimmäisen tahdin pickup-kapasiteetti / implicit measure
-- Viritys C, Bb, Eb, F -> äänen transponointi kuten P2 Coressa
-- Nuottiavain -> G / C / F
-- Nuottiavaimen mukaan koskettimiston aloituskohta
-- Värimaailma -> aloitusikkunan P2 Core -teemalogiikka
-
-Äänen transponointi kuten P2 Coressa:
-- C: 0
-- Bb: -2
-- Eb: -9
-- F: -7
-
-Säilytetty muuttumattomana:
-- OSMD 2.1.2 vendor-tiedosto
-- pisteiden MusicXML-logiikka
-- explicit multirest
-- nykyinen peukalopalkin pisteflyout
-- koskettimen aika-arvoeleet
+- OSMD 2.1.2 vendor muuttumaton
