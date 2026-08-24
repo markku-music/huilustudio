@@ -48,22 +48,5 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 
 0.22.7.9: Rivivälisäätimen arvoa ei enää tallenneta localStorageen. Jokainen uusi sivun lataus/käynnistys alkaa aina oletusarvosta 9.0 staff spacea. Muut sovelluksen muistettavat asetukset säilyvät ennallaan.
 
-0.22.7.10: Lisätty väliaikainen pystysäädin otsikon ja ensimmäisen nuottirivin välin hakemiseen. Säädin muuttaa suoraan OSMD EngravingRules.TitleBottomDistance -arvoa välillä 0.0–8.0 staff spacea, askel 0.5, oletus 1.0. Arvo ei tallennu muistiin.
 
-0.22.7.11: Lisätty väliaikainen O-säädin otsikon pystysijainnille. Se muuttaa suoraan OSMD EngravingRules.TitleTopDistance -arvoa välillä 2.0–12.0 staff spacea, askel 0.5, oletus 5.0. Nykyiset 15 mm sivumarginaalit, TitleBottomDistance-säädin ja rivivälisäädin säilyvät ennallaan. Arvo ei tallennu muistiin.
-
-0.22.7.12: Otsikon pystysijainnin kokeilusäädin ja otsikon jälkeisen välin kokeilusäädin poistettu. OSMD EngravingRules.TitleTopDistance lukittu arvoon 9.0 ja TitleBottomDistance arvoon 7.0. Oikean reunan varsinainen rivivälisäädin säilyy, oletusarvo 9.0 eikä arvo tallennu muistiin.
-
-0.22.7.13: Lisätty kaksi väliaikaista OSMD:n Y-säädintä yläosan asettelun hakemiseen. T-säädin muuttaa EngravingRules.TempoYSpacing-arvoa välillä 0.0–8.0 (oletus 0.5) ja S-säädin EngravingRules.SystemComposerDistance-arvoa välillä 0.0–8.0 (oletus 2.0), askel 0.5. Arvot eivät tallennu muistiin. Otsikon TitleTopDistance=9.0, TitleBottomDistance=7.0 ja rivivälin oletus 9.0 säilyvät ennallaan.
-
-
-0.22.7.14 Tempo vain teksti
-- TempoYSpacing pidetään OSMD-oletuksessa 0.5.
-- T-slideri siirtää vain OSMD:n SVG:hen piirtämää tempotekstiä Y-suunnassa.
-- T-slideri ei renderöi eikä siirrä ensimmäistä nuottiriviä.
-- T: -6..8 staff spacea, oletus 0, askel 0.5.
-- S-slideri käyttää edelleen SystemComposerDistance-arvoa.
-
-0.22.7.15: Tempo- ja säveltäjä-Y-testisäätimet siirtävät vain OSMD:n piirtämiä SVG-tekstielementtejä. Kaikki samaa tekstiä vastaavat päällekkäiset text-elementit siirretään yhdessä. Kumpikaan säädin ei renderöi nuottia uudelleen.
-
-0.22.7.17: Rivivälisäätimen näkymän vakaus muutettu järjestelmäankkurointiin. Ennen rivivälirenderöintiä talletetaan näkymässä ylimpänä olevan OSMD MusicSystemin ensimmäisen viivaston ruutu-Y. Renderöinnin jälkeen sama järjestelmä palautetaan samaan ruutukohtaan scrollTop-korjauksella. Tämä estää tempo- ja säveltäjätekstien aiheuttaman ensimmäisen rivin hypyn usean järjestelmän sivuilla. Pelkkä scrollTop-palautus jää fallbackiksi.
+0.22.7.18: Tempoteksti irrotettu OSMD:n ladonnasta. OSMD ei renderöi tempo-directionia näytölle; tempoteksti piirretään omana nuottipaperiin ankkuroituna, vapaasti X/Y-suunnassa vedettävänä elementtinä. Otsikko, säveltäjä ja muu nuottikuva pysyvät OSMD:n hallinnassa.

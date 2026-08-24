@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 2 Core 0.22.7.5 – Portrait-nuottikoko lukittu</title>
+  <title>Pikakirjoitin 2 Core 0.22.7.18 – Tempo irti OSMD:stä</title>
   <link rel="stylesheet" href="css/app.css">
   <script src="vendor/osmd/opensheetmusicdisplay.min.js"></script>
 </head>
@@ -139,8 +139,9 @@
 
   <main class="app" id="app" aria-hidden="true" inert>
     <section class="score-viewport" id="scoreViewport" aria-label="Nuottipaperi">
-      <div class="score-document">
+      <div class="score-document" id="scoreDocument">
         <div id="osmdContainer" aria-hidden="true"></div>
+        <div class="tempo-overlay" id="tempoOverlay" hidden aria-label="Tempoteksti. Vedä siirtääksesi."></div>
       </div>
     </section>
 
@@ -154,24 +155,6 @@
       <button class="thumb-toggle tie-thumb-button" type="button" data-toggle="tie" aria-label="Sidekaari seuraavaan saman sävelen nuottiin" aria-pressed="false">
         <img src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
       </button>
-    </aside>
-
-    <aside class="system-spacing-rail tempo-y-rail" id="tempoYRail" role="slider" tabindex="0"
-           aria-label="Tempotekstin pystysiirto" aria-orientation="vertical">
-      <div class="system-spacing-bubble" id="tempoYBubble" hidden>0.0</div>
-      <div class="system-spacing-track" id="tempoYTrack" aria-hidden="true">
-        <div class="system-spacing-fill"></div>
-        <div class="system-spacing-thumb layout-y-thumb" id="tempoYThumb">T</div>
-      </div>
-    </aside>
-
-    <aside class="system-spacing-rail composer-y-rail" id="composerYRail" role="slider" tabindex="0"
-           aria-label="Säveltäjän pystyetäisyys" aria-orientation="vertical">
-      <div class="system-spacing-bubble" id="composerYBubble" hidden>0.0</div>
-      <div class="system-spacing-track" id="composerYTrack" aria-hidden="true">
-        <div class="system-spacing-fill"></div>
-        <div class="system-spacing-thumb layout-y-thumb" id="composerYThumb">S</div>
-      </div>
     </aside>
 
     <aside class="system-spacing-rail" id="systemSpacingRail" role="slider" tabindex="0"
