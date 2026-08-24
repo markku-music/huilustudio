@@ -14,6 +14,7 @@ export class ScoreRenderer {
   #lastMarginWidth = 0;
   #portraitReferenceWidth = 0;
   #currentZoom = 1;
+  #minimumSystemDistance = 9;
   #renderListeners = new Set();
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
@@ -45,11 +46,29 @@ export class ScoreRenderer {
     });
     this.#osmd.setPageFormat?.(layout.format);
     this.#applyPageMargins();
+    this.#applySystemSpacing();
     this.#watchWidth();
   }
 
   setSettings(settings) {
     this.#settings = { ...settings };
+  }
+
+  setMinimumSystemDistance(value, { render = true } = {}) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return this.#minimumSystemDistance;
+    this.#minimumSystemDistance = Math.min(15, Math.max(5, numeric));
+    this.#applySystemSpacing();
+    if (render && (this.#lastNotes.length || this.#container.childElementCount)) {
+      this.render(this.#lastNotes);
+    }
+    return this.#minimumSystemDistance;
+  }
+
+  #applySystemSpacing() {
+    const rules = this.#osmd?.EngravingRules;
+    if (!rules) return;
+    rules.MinimumDistanceBetweenSystems = this.#minimumSystemDistance;
   }
 
   subscribeRendered(listener) {
@@ -138,11 +157,13 @@ export class ScoreRenderer {
         const notes = this.#pending;
         this.#pending = null;
         this.#applyPageMargins();
+        this.#applySystemSpacing();
         await this.#osmd.load(buildMusicXml(notes, this.#settings));
         // load() palauttaa OSMD:n Zoom-arvon yhteen. Aseta orientaation
         // mukainen zoom vasta latauksen jälkeen ennen varsinaista renderiä.
         this.#applyOrientationZoom();
         this.#applyPageMargins();
+        this.#applySystemSpacing();
         await this.#osmd.render();
         const snapshot = {
           notes: notes.map(note => ({ ...note })),

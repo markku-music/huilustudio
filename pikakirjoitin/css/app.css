@@ -472,3 +472,118 @@ button { font: inherit; }
 .score-viewport.pk-selection-gesture-locked {
   touch-action: none;
 }
+
+/* Oikean reunan rivivälisäädin. Arvo on OSMD:n staff-space-yksiköissä:
+   ylös = väljempi, alas = tiiviimpi. */
+.system-spacing-rail {
+  position: fixed;
+  z-index: 70;
+  right: max(0px, env(safe-area-inset-right));
+  top: clamp(112px, 24dvh, 235px);
+  width: 48px;
+  height: 214px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 7px 8px;
+  border: 1px solid #677281;
+  border-right: 0;
+  border-radius: 13px 0 0 13px;
+  background: rgba(32, 36, 42, .95);
+  box-shadow: -5px 7px 18px rgba(16, 24, 32, .27);
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: ns-resize;
+  outline-offset: -3px;
+}
+
+.system-spacing-track {
+  position: relative;
+  width: 12px;
+  height: 166px;
+  flex: 0 0 166px;
+  border: 1px solid #778493;
+  border-radius: 999px;
+  background: #d7dde5;
+  box-shadow: inset 0 1px 3px rgba(28, 39, 53, .23);
+}
+
+.system-spacing-fill {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: #9ba6b4;
+}
+
+.system-spacing-thumb {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 60%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #f6f8fb;
+  border-radius: 50%;
+  background: var(--pk-selection-color);
+  box-shadow: 0 2px 6px rgba(0,0,0,.32);
+  pointer-events: none;
+  will-change: top;
+}
+
+.system-spacing-bubble {
+  position: absolute;
+  right: 52px;
+  top: 60%;
+  min-width: 43px;
+  padding: 5px 7px;
+  transform: translateY(-50%);
+  border-radius: 8px;
+  background: rgba(27, 39, 53, .96);
+  color: #fff;
+  box-shadow: 0 3px 9px rgba(0,0,0,.23);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+  will-change: top;
+}
+
+.system-spacing-icon {
+  width: 25px;
+  height: 18px;
+  display: grid;
+  align-content: space-between;
+  opacity: .86;
+  pointer-events: none;
+}
+
+.system-spacing-icon span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: #eef3f8;
+}
+
+.system-spacing-rail:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--pk-selection-color) 60%, white);
+}
+
+@media (max-height: 620px) {
+  .system-spacing-rail {
+    top: 74px;
+    height: 164px;
+  }
+  .system-spacing-track {
+    height: 118px;
+    flex-basis: 118px;
+  }
+}

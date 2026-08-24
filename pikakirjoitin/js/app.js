@@ -6,6 +6,7 @@ import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
+import { SystemSpacingRail } from './system-spacing-rail.js';
 import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
 
 const app=document.querySelector('#app');
@@ -14,6 +15,18 @@ app.setAttribute('aria-hidden','true');
 
 const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
+
+new SystemSpacingRail({
+  rail: document.querySelector('#systemSpacingRail'),
+  track: document.querySelector('#systemSpacingTrack'),
+  thumb: document.querySelector('#systemSpacingThumb'),
+  bubble: document.querySelector('#systemSpacingBubble'),
+  min: 5,
+  max: 15,
+  step: 0.5,
+  value: 9,
+  onChange: (value, { initial }) => renderer.setMinimumSystemDistance(value, { render: !initial })
+});
 const audio=new AudioEngine();
 const selection=new ScoreRangeSelection({
   viewport:document.querySelector('#scoreViewport'),

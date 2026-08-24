@@ -39,3 +39,5 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.7.4: Nuottialueen vaakavalinta lukitaan saman kosketuseleen ajaksi heti, kun valinnassa on vähintään kaksi loogista tapahtumaa. Tämän jälkeen iPad/Safarin pystyscrollaus ei saa ottaa elettä haltuun, vaikka sormi karkaisi alaviistoon tai viivaston ulkopuolelle. Yhden tapahtuman/pending-vaiheen normaali pystyscrollaus säilyy ennallaan.
 
 0.22.7.5: Portrait määrittää OSMD:n nuottikoon. Landscape käyttää portrait-sisältöleveyteen suhteutettua zoomia. OSMD autoResize poistettu; sovelluksen ResizeObserver hoitaa orientaation vaihdon.
+
+0.22.7.6: Oikeaan reunaan lisätty pystysuuntainen OSMD-rivivälisäädin. Se säätää EngravingRules.MinimumDistanceBetweenSystems-arvoa välillä 5.0–15.0 staff spacea, askel 0.5, oletus 9.0. Ylös = väljempi, alas = tiiviimpi. Arvo näkyy vedon aikana ja tallentuu localStorageen. Muutos renderöidään reaaliaikaisesti.
