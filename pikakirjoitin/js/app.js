@@ -17,8 +17,8 @@ const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
 
 // Väliaikaiset yläosan Y-säätimet asettelun hakemiseen.
-// T siirtää vain OSMD:n jo piirtämää tempotekstiä renderöinnin jälkeen,
-// eikä muuta nuottirivin geometriaa. S käyttää OSMD:n omaa säveltäjäetäisyyttä.
+// T ja S siirtävät vain OSMD:n jo piirtämiä tekstielementtejä renderöinnin jälkeen.
+// Kumpikaan ei muuta nuottirivin geometriaa tai käynnistä uutta renderöintiä.
 // Arvot eivät tallennu muistiin; tarkoitus on löytää hyvät vakioarvot.
 new SystemSpacingRail({
   rail: document.querySelector('#tempoYRail'),
@@ -37,11 +37,11 @@ new SystemSpacingRail({
   track: document.querySelector('#composerYTrack'),
   thumb: document.querySelector('#composerYThumb'),
   bubble: document.querySelector('#composerYBubble'),
-  min: 0,
+  min: -6,
   max: 8,
   step: 0.5,
-  value: 2,
-  onChange: (value, { initial }) => renderer.setSystemComposerDistance(value, { render: !initial })
+  value: 0,
+  onChange: value => renderer.setComposerVisualYOffset(value)
 });
 
 new SystemSpacingRail({

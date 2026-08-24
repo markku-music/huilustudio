@@ -19,6 +19,7 @@ export class ScoreRenderer {
   #titleTopDistance = 9;
   #tempoYSpacing = 0.5;
   #tempoVisualYOffset = 0;
+  #composerVisualYOffset = 0;
   #systemComposerDistance = 2;
   #renderListeners = new Set();
 
@@ -130,35 +131,60 @@ export class ScoreRenderer {
     return this.#tempoVisualYOffset;
   }
 
-  #findTempoTextElement() {
-    const tempoText = String(this.#settings?.tempoText || '').trim();
-    if (!tempoText) return null;
+  #findExactTextElements(value) {
+    const target = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!target) return [];
 
-    // OSMD/VexFlow piirtää sanallisen tempomerkinnän SVG:n text/tspan-solmuksi.
-    // Etsi täsmälleen nykyistä tempotekstiä vastaava solmu ja siirrä vain sitä.
+    // OSMD/VexFlow voi tuottaa samasta näkyvästä tekstistä useamman päällekkäisen
+    // text/tspan-solmun. Palauta kaikki uniikit <text>-elementit, jotta niitä
+    // siirretään yhtenä ryhmänä eikä yksi kopio jää alkuperäiseen paikkaan.
+    const found = [];
+    const seen = new Set();
     const nodes = this.#container.querySelectorAll('svg text, svg tspan');
     for (const node of nodes) {
       const content = String(node.textContent || '').replace(/\s+/g, ' ').trim();
-      if (content !== tempoText) continue;
-      return node.closest?.('text') || node;
+      if (content !== target) continue;
+      const text = node.closest?.('text') || node;
+      if (seen.has(text)) continue;
+      seen.add(text);
+      found.push(text);
     }
-    return null;
+    return found;
+  }
+
+  #applyVisualYOffset(elements, staffSpaces) {
+    const dy = Number(staffSpaces || 0) * 10;
+    for (const text of elements) {
+      const original = text.dataset.pkBaseTransform ?? text.getAttribute('transform') ?? '';
+      if (text.dataset.pkBaseTransform === undefined) {
+        text.dataset.pkBaseTransform = original;
+      }
+      const base = text.dataset.pkBaseTransform || '';
+      const translated = `${base}${base ? ' ' : ''}translate(0 ${dy})`;
+      text.setAttribute('transform', translated);
+    }
   }
 
   #applyTempoVisualYOffset() {
-    const text = this.#findTempoTextElement();
-    if (!text) return;
+    this.#applyVisualYOffset(
+      this.#findExactTextElements(this.#settings?.tempoText),
+      this.#tempoVisualYOffset
+    );
+  }
 
-    // OSMD:n VexFlow-drawer käyttää 10 px / staff space. SVG-transformi
-    // ei osallistu ladontaan, joten ensimmäinen nuottirivi ei liiku.
-    const dy = this.#tempoVisualYOffset * 10;
-    const original = text.dataset.pkBaseTransform ?? text.getAttribute('transform') ?? '';
-    if (text.dataset.pkBaseTransform === undefined) {
-      text.dataset.pkBaseTransform = original;
-    }
-    const base = text.dataset.pkBaseTransform || '';
-    const translated = `${base}${base ? ' ' : ''}translate(0 ${dy})`;
-    text.setAttribute('transform', translated);
+  setComposerVisualYOffset(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return this.#composerVisualYOffset;
+    this.#composerVisualYOffset = Math.min(8, Math.max(-6, numeric));
+    this.#applyComposerVisualYOffset();
+    return this.#composerVisualYOffset;
+  }
+
+  #applyComposerVisualYOffset() {
+    this.#applyVisualYOffset(
+      this.#findExactTextElements(this.#settings?.composer),
+      this.#composerVisualYOffset
+    );
   }
 
   setSystemComposerDistance(value, { render = true } = {}) {
@@ -281,6 +307,7 @@ export class ScoreRenderer {
         this.#applySystemComposerDistance();
         await this.#osmd.render();
         this.#applyTempoVisualYOffset();
+        this.#applyComposerVisualYOffset();
         const snapshot = {
           notes: notes.map(note => ({ ...note })),
           settings: { ...this.#settings }

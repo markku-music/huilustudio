@@ -63,3 +63,5 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 - T-slideri ei renderöi eikä siirrä ensimmäistä nuottiriviä.
 - T: -6..8 staff spacea, oletus 0, askel 0.5.
 - S-slideri käyttää edelleen SystemComposerDistance-arvoa.
+
+0.22.7.15: Tempo- ja säveltäjä-Y-testisäätimet siirtävät vain OSMD:n piirtämiä SVG-tekstielementtejä. Kaikki samaa tekstiä vastaavat päällekkäiset text-elementit siirretään yhdessä. Kumpikaan säädin ei renderöi nuottia uudelleen.
