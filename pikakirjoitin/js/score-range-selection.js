@@ -186,9 +186,6 @@ export class ScoreRangeSelection {
       });
     }
 
-    if (segments.length !== visuals.length) {
-      console.warn(`Tapahtumien kartoitus: MusicXML-segmenttejä ${segments.length}, SVG-tapahtumia ${visuals.length}.`);
-    }
     this.#paint();
     this.#restoreCursorFromTarget();
     this.#emitChange();
