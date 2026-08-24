@@ -1,25 +1,20 @@
-Pikakirjoitin 3 · BASE 0.4 · Kahdeksan säveltä
+Pikakirjoitin 3 · BASE 0.5 · Pikakirjoitin 2 -koskettimisto
 
-Tämän version tarkoitus:
-- Testata ensimmäistä oikeaa 8-sävelistä syöttöä.
-- Sävelet: C4, D4, E4, F4, G4, A4, B4 (suomalainen H) ja C5.
-- Jokainen kosketus lisää Score Modeliin yhden neljäsosanuotin.
-- Score Model muutetaan MusicXML:ksi.
-- OSMD 2.1.2 renderöi MusicXML:n.
-- 4/4-tahtijako syntyy edelleen automaattisesti.
+Tässä versiossa Pikakirjoitin 3:n yksinkertainen 8-sävelinen testikoskettimisto
+on korvattu Pikakirjoitin 2:n koskettimiston rakenteen mukaisella pianokoskettimistolla.
 
-Tietovirta:
-Kosketin → Score Model → MusicXML → OSMD 2.1.2 → nuottikuva
+Mukana:
+- sama perusrakenne kuin Pikakirjoitin 2:ssa: valkoiset ja mustat koskettimet
+- MIDI-alue 36–95
+- 35 valkoista kosketinta
+- leveä vieritettävä pianopinta
+- yläpuolella Pikakirjoitin 2:n tyylinen sininen SIIRRÄ KOSKETTIMISTOA -liukukahva
+- oletuskohta keskimmäisen C:n ympärillä
+- suomalaiset H-nimet
+- mustat koskettimet kirjoittavat tässä vaiheessa ylennetyn sävelen (#)
+- jokainen kosketus kirjoittaa edelleen vain neljäsosanuotin
+- Score Model → MusicXML → OSMD 2.1.2 säilyy ennallaan
 
-Huom:
-MusicXML käyttää sävelnimeä B luonnolliselle h-sävelelle.
-Käyttöliittymässä näytetään suomalaisen käytännön mukaisesti H.
-
-Tässä BASE-versiossa ei vielä ole:
-- mustia koskettimia / muunnesäveliä
-- aika-arvoeleitä
-- taukoja
-- valintaa tai editointia
-- undo/redo-toimintoa
-
-Tavoite on pitää jokainen kehitysaskel mahdollisimman pieni ja testattava.
+Tässä vaiheessa ei vielä tuotu Pikakirjoitin 2:n aika-arvoeleitä, peukalopalkkia,
+undo/redo-toimintoja tai äänimoottoria. Tarkoitus on testata ensin koskettimiston
+rakenne erillisenä askeleena.

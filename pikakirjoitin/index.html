@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.4</title>
+  <title>Pikakirjoitin 3 · BASE 0.5</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.4 · 8 säveltä → Score Model → MusicXML → OSMD 2.1.2</p>
+      <p>BASE 0.5 · Pikakirjoitin 2 -koskettimisto → Score Model → MusicXML → OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
@@ -20,34 +20,23 @@
       <p id="status" class="status" aria-live="polite">Valitse sävel.</p>
     </section>
 
-    <section class="input-panel" aria-label="Nuottien syöttö">
-      <div class="note-keyboard" role="group" aria-label="Sävelkoskettimet C4–C5">
-        <button class="note-key" type="button" data-pitch="C4" data-label="C" aria-label="Lisää C4-neljäsosanuotti">
-          <span class="key-note">C</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="D4" data-label="D" aria-label="Lisää D4-neljäsosanuotti">
-          <span class="key-note">D</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="E4" data-label="E" aria-label="Lisää E4-neljäsosanuotti">
-          <span class="key-note">E</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="F4" data-label="F" aria-label="Lisää F4-neljäsosanuotti">
-          <span class="key-note">F</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="G4" data-label="G" aria-label="Lisää G4-neljäsosanuotti">
-          <span class="key-note">G</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="A4" data-label="A" aria-label="Lisää A4-neljäsosanuotti">
-          <span class="key-note">A</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="B4" data-label="H" aria-label="Lisää H4-neljäsosanuotti">
-          <span class="key-note">H</span><span class="key-value">1/4</span>
-        </button>
-        <button class="note-key" type="button" data-pitch="C5" data-label="C" aria-label="Lisää C5-neljäsosanuotti">
-          <span class="key-note">C</span><span class="key-octave">5</span><span class="key-value">1/4</span>
-        </button>
+    <section class="keyboard-panel" aria-label="Koskettimisto">
+      <div class="keyboard-scroll-rail" id="keyboardScrollRail" role="slider" tabindex="0"
+           aria-label="Siirrä koskettimistoa" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="keyboard-scroll-track" id="keyboardScrollTrack">
+          <div class="keyboard-scroll-thumb" id="keyboardScrollThumb">SIIRRÄ KOSKETTIMISTOA</div>
+        </div>
       </div>
-      <p class="input-help">C–D–E–F–G–A–H–C. Jokainen painallus lisää yhden neljäsosanuotin.</p>
+
+      <div class="keyboard-viewport" id="keyboardViewport">
+        <div class="piano" id="piano">
+          <div class="white-keys" id="whiteKeys"></div>
+        </div>
+      </div>
+
+      <p class="input-help">
+        Pikakirjoitin 2:n koskettimisto. Tässä vaiheessa jokainen kosketus kirjoittaa vielä neljäsosanuotin.
+      </p>
     </section>
   </main>
 
@@ -55,6 +44,7 @@
   <script src="js/score-model.js"></script>
   <script src="js/musicxml.js"></script>
   <script src="js/renderer.js"></script>
+  <script src="js/keyboard.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
