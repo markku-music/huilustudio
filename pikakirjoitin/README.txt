@@ -47,6 +47,3 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.7.8: Rivivälisäätimen alapuolinen turha ikoni-/paneelialue poistettu kokonaan. Paneeli on nyt vain varsinaisen pystykiskon korkuinen. Riviväliarvon localStorage-tallennus säilyy ennallaan.
 
 0.22.7.9: Rivivälisäätimen arvoa ei enää tallenneta localStorageen. Jokainen uusi sivun lataus/käynnistys alkaa aina oletusarvosta 9.0 staff spacea. Muut sovelluksen muistettavat asetukset säilyvät ennallaan.
-
-
-0.22.7.18: Tempoteksti irrotettu OSMD:n ladonnasta. OSMD ei renderöi tempo-directionia näytölle; tempoteksti piirretään omana nuottipaperiin ankkuroituna, vapaasti X/Y-suunnassa vedettävänä elementtinä. Otsikko, säveltäjä ja muu nuottikuva pysyvät OSMD:n hallinnassa.

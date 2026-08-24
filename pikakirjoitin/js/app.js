@@ -6,7 +6,6 @@ import { StartScreen } from './start-screen.js';
 import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
-import { TempoOverlay } from './tempo-overlay.js';
 import { SystemSpacingRail } from './system-spacing-rail.js';
 import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
 
@@ -16,11 +15,6 @@ app.setAttribute('aria-hidden','true');
 
 const model=new ScoreModel();
 const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
-const tempoOverlay=new TempoOverlay({
-  documentElement:document.querySelector('#scoreDocument'),
-  osmdContainer:document.querySelector('#osmdContainer'),
-  element:document.querySelector('#tempoOverlay')
-});
 
 new SystemSpacingRail({
   rail: document.querySelector('#systemSpacingRail'),
@@ -41,7 +35,6 @@ const selection=new ScoreRangeSelection({
 let keyboardEditId = null;
 renderer.subscribeRendered(snapshot=>{
   selection.refresh(snapshot);
-  tempoOverlay.syncToPage();
   // Kosketineditoinnin aikana OSMD rakentaa SVG:n kokonaan uudelleen.
   // Palauta sama looginen nuotti valituksi jokaisen renderöinnin jälkeen.
   if (keyboardEditId && model.getEntry(keyboardEditId)?.kind === 'note') {
@@ -218,7 +211,6 @@ new StartScreen({
   onStart:async nextSettings=>{
     settings={...nextSettings};
     renderer.setSettings(settings);
-    tempoOverlay.setText(settings.tempoText || '');
     await renderer.render(model.notes);
     requestAnimationFrame(()=>keyboard.scrollToMidi(settings.keyboardStartMidi));
   }

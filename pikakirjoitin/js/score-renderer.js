@@ -158,7 +158,7 @@ export class ScoreRenderer {
         this.#pending = null;
         this.#applyPageMargins();
         this.#applySystemSpacing();
-        await this.#osmd.load(buildMusicXml(notes, { ...this.#settings, suppressTempoDirection:true }));
+        await this.#osmd.load(buildMusicXml(notes, this.#settings));
         // load() palauttaa OSMD:n Zoom-arvon yhteen. Aseta orientaation
         // mukainen zoom vasta latauksen jälkeen ennen varsinaista renderiä.
         this.#applyOrientationZoom();
