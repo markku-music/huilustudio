@@ -7,10 +7,16 @@
     return (prefix || "e") + (nextEntryId++);
   }
 
+  function normalizeDots(value) {
+    const dots = Number(value) || 0;
+    return dots >= 2 ? 2 : dots >= 1 ? 1 : 0;
+  }
+
   function cloneEntry(entry) {
     const copy = Object.assign({}, entry);
     if (!copy.kind) copy.kind = "note";
     if (!copy.id) copy.id = makeId(copy.kind === "rest" ? "r" : "n");
+    copy.dots = normalizeDots(copy.dots);
     return copy;
   }
 
@@ -41,7 +47,8 @@
       id: makeId("n"),
       kind: "note",
       pitch: String(note.pitch),
-      duration: String(note.duration)
+      duration: String(note.duration),
+      dots: normalizeDots(note.dots)
     };
 
     score.notes.push(created);
@@ -61,7 +68,8 @@
     const created = {
       id: makeId("r"),
       kind: "rest",
-      duration: String(config.duration)
+      duration: String(config.duration),
+      dots: normalizeDots(config.dots)
     };
 
     score.notes.push(created);
@@ -82,12 +90,20 @@
     return true;
   }
 
+  function setDots(score, id, dots) {
+    const entry = getEntry(score, id);
+    if (!entry) return false;
+    entry.dots = normalizeDots(dots);
+    return true;
+  }
+
   window.PikakirjoitinScoreModel = {
     createScore: createScore,
     addNote: addNote,
     addRest: addRest,
     getEntry: getEntry,
     getNote: getEntry,
-    setDuration: setDuration
+    setDuration: setDuration,
+    setDots: setDots
   };
 })();

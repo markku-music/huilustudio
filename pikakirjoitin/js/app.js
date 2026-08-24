@@ -11,7 +11,7 @@
   });
 
   let rendering = Promise.resolve();
-  let thumbState = { rest: false };
+  let thumbState = { rest: false, dots: 0 };
 
   const durationLabels = {
     whole: "1/1",
@@ -48,21 +48,38 @@
     return String(pitch).replace("B", "H");
   }
 
+  function dotWord(dots) {
+    if (dots === 2) return "kaksipisteinen ";
+    if (dots === 1) return "pisteellinen ";
+    return "";
+  }
+
   function entryLabel(entry, pitch, duration) {
+    const dots = entry ? Number(entry.dots) || 0 : 0;
+
     if (entry && entry.kind === "rest") {
-      return duration === "whole"
-        ? "kokotahdin tauko"
-        : durationLabels[duration] + "-tauko";
+      if (duration === "whole" && dots === 0) {
+        return "kokotahdin tauko";
+      }
+      return dotWord(dots) + durationLabels[duration] + "-tauko";
     }
-    return displayPitch(pitch) + " " + durationLabels[duration];
+
+    return displayPitch(pitch) + " " +
+      dotWord(dots) + durationLabels[duration];
   }
 
   function startEntry(midi, pitch, duration) {
+    const dots = thumbState.dots || 0;
+
     const entry = thumbState.rest
-      ? window.PikakirjoitinScoreModel.addRest(score, { duration: duration })
+      ? window.PikakirjoitinScoreModel.addRest(score, {
+          duration: duration,
+          dots: dots
+        })
       : window.PikakirjoitinScoreModel.addNote(score, {
           pitch: pitch,
-          duration: duration
+          duration: duration,
+          dots: dots
         });
 
     updateStatus(entryLabel(entry, pitch, duration) + " · ele kesken…");
@@ -112,17 +129,26 @@
     });
   }
 
+  function describeThumbState(state) {
+    const parts = [];
+
+    if (state.rest) parts.push("Tauko");
+    if (state.dots === 1) parts.push("1 piste");
+    if (state.dots === 2) parts.push("2 pistettä");
+
+    return parts.length
+      ? parts.join(" + ") + " pohjassa · tee aika-arvoele koskettimella."
+      : "";
+  }
+
   function start() {
     new window.PikakirjoitinThumbRail.ThumbRail({
       rail: document.getElementById("thumbRail"),
       boundsElement: document.querySelector(".score-card"),
       onChange: function (state) {
         thumbState = state;
-        if (state.rest) {
-          updateStatus(
-            "Tauko pohjassa · valitse aika-arvo koskettimen eleellä."
-          );
-        }
+        const description = describeThumbState(state);
+        if (description) updateStatus(description);
       }
     });
 
@@ -140,7 +166,7 @@
 
     renderScore().then(function () {
       updateStatus(
-        "Valmis · pidä Tauko pohjassa + tee aika-arvoele koskettimella.",
+        "Valmis · peukalopalkissa Tauko, yksi piste ja kaksi pistettä.",
         "ok"
       );
     }).catch(function (error) {

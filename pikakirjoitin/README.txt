@@ -1,41 +1,52 @@
-Pikakirjoitin 3 · BASE 0.9.1 · Explicit MusicXML Multirest
+Pikakirjoitin 3 · BASE 0.10 · Peukalopalkin pisteet
 
 Pohja:
-- Pikakirjoitin 3 BASE 0.9
-- peukalopalkin Tauko
-- kaikki kuusi aika-arvoelettä
+- BASE 0.9.1 Explicit Multirest
 - OSMD 2.1.2
-- OSMD:n autoBeam
+- Score Model -> MusicXML -> OSMD
+- OSMD autoBeam
+- eksplisiittinen MusicXML multirest
 
-Korjaus:
-OSMD:n automaattista multirest-arvausta ei enää käytetä.
+Uutta peukalopalkissa:
+- Tauko
+- ● = yksi piste
+- ●● = kaksi pistettä
 
-Kun Score Modelissa on:
-- 1 peräkkäinen kokotahdin tauko -> tavallinen kokotauko
-- 2 peräkkäistä kokotahdin taukoa -> MusicXML: <multiple-rest>2</multiple-rest>
-- 3 peräkkäistä kokotahdin taukoa -> MusicXML: <multiple-rest>3</multiple-rest>
-- jne.
+Käyttö:
+- pidä ● pohjassa ja tee koskettimella normaali aika-arvoele
+- pidä ●● pohjassa ja tee koskettimella normaali aika-arvoele
+- Tauko + ● toimii yhtä aikaa
+- Tauko + ●● toimii yhtä aikaa
 
-MusicXML-rakenne kirjoitetaan ryhmän ENSIMMÄISEN tahdin attributes-osaan:
+Esimerkkejä:
+- ● + napautus = pisteellinen 1/4-nuotti
+- ● + alas = pisteellinen 1/8-nuotti
+- ●● + napautus = kaksipisteinen 1/4-nuotti
+- Tauko + ● + alas = pisteellinen 1/8-tauko
+- Tauko + ●● + oikealle = kaksipisteinen 1/16-tauko
 
-<attributes>
-  ...
-  <measure-style>
-    <multiple-rest>N</multiple-rest>
-  </measure-style>
-</attributes>
+Score Model:
+- jokaisella note/rest-tapahtumalla on dots: 0, 1 tai 2
 
-Jos multirest alkaa myöhemmästä tahdista, ensimmäiseen ryhmän tahtiin lisätään oma
-attributes/measure-style-rakenne.
+MusicXML:
+- yksi piste -> <dot/>
+- kaksi pistettä -> <dot/><dot/>
+- OSMD piirtää pisteet, Pikakirjoitin ei piirrä niitä itse
 
-Tärkeää:
-- kaikki alkuperäiset tahdit säilyvät MusicXML:ssä
-- jokainen kokotahdin tauko on edelleen <rest measure="yes"/>
-- Pikakirjoitin päättää vain, mitkä peräkkäiset kokotahdin tauot kuuluvat samaan ryhmään
-- OSMD 2.1.2 piirtää varsinaisen multirestin
+DIVISIONS:
+- muutettu 8 -> 32
+- tämä mahdollistaa myös kaksipisteisen 1/32-arvon kokonaislukuna
+- 1/32 = 4
+- pisteellinen 1/32 = 6
+- kaksipisteinen 1/32 = 7
+
+Kokotahdin tauko / multirest:
+- pisteetön pitkä + Tauko = edelleen oikea kokotahdin tauko
+- peräkkäiset kokotahdin tauot muodostavat edelleen MusicXML multiple-rest -ryhmän
+- pisteellinen pitkä tauko EI ole kokotahdin tauko
+- 4/4:ssa yli tahdin meneviä pisteellisiä pitkiä arvoja ei vielä sidota automaattisesti yli tahtiviivan
+
+OSMD:
+- autoBeam = true
 - autoGenerateMultipleRestMeasuresFromRestMeasures = false
-- autoBeam = true säilyy
-
-Tavoite:
-Myös kappaleen alussa olevat 2, 3, 4... peräkkäiset kokotahdin tauot
-muodostuvat yhdeksi multirestiksi ensimmäisestä tahdista lähtien.
+- OSMD 2.1.2 -vendor-tiedostoa ei muutettu

@@ -1,14 +1,14 @@
 (function () {
   "use strict";
 
-  const DIVISIONS = 8;
+  const DIVISIONS = 32;
   const DURATION_VALUES = {
-    whole: 32,
-    half: 16,
-    quarter: 8,
-    eighth: 4,
-    sixteenth: 2,
-    "thirty-second": 1
+    whole: 128,
+    half: 64,
+    quarter: 32,
+    eighth: 16,
+    sixteenth: 8,
+    "thirty-second": 4
   };
 
   const MUSICXML_TYPES = {
@@ -36,14 +36,43 @@
     };
   }
 
-  function durationValue(duration) {
+  function normalizeDots(value) {
+    const dots = Number(value) || 0;
+    return dots >= 2 ? 2 : dots >= 1 ? 1 : 0;
+  }
+
+  function baseDurationValue(duration) {
     const value = DURATION_VALUES[duration];
     if (!value) throw new Error("Tuntematon aika-arvo: " + duration);
     return value;
   }
 
+  function durationValue(entryOrDuration, dotsOverride) {
+    const duration = typeof entryOrDuration === "string"
+      ? entryOrDuration
+      : entryOrDuration.duration;
+
+    const dots = typeof entryOrDuration === "string"
+      ? normalizeDots(dotsOverride)
+      : normalizeDots(entryOrDuration.dots);
+
+    const base = baseDurationValue(duration);
+
+    if (dots === 1) return base * 3 / 2;
+    if (dots === 2) return base * 7 / 4;
+    return base;
+  }
+
   function xmlType(duration) {
     return MUSICXML_TYPES[duration] || duration;
+  }
+
+  function dotsToXML(dots) {
+    const count = normalizeDots(dots);
+    if (count === 0) return [];
+    return Array.from({ length: count }, function () {
+      return "        <dot/>";
+    });
   }
 
   function entryToXML(entry, options) {
@@ -53,32 +82,42 @@
     if (entry.kind === "rest") {
       const value = isMeasureRest
         ? Number(config.measureCapacity)
-        : durationValue(entry.duration);
+        : durationValue(entry);
 
-      return [
+      const parts = [
         "      <note>",
         isMeasureRest ? "        <rest measure=\"yes\"/>" : "        <rest/>",
         "        <duration>" + value + "</duration>",
         "        <voice>1</voice>",
-        "        <type>" + (isMeasureRest ? "whole" : escapeXML(xmlType(entry.duration))) + "</type>",
-        "      </note>"
-      ].join("\n");
+        "        <type>" + (isMeasureRest ? "whole" : escapeXML(xmlType(entry.duration))) + "</type>"
+      ];
+
+      if (!isMeasureRest) {
+        parts.push.apply(parts, dotsToXML(entry.dots));
+      }
+
+      parts.push("      </note>");
+      return parts.join("\n");
     }
 
     const pitch = parsePitch(entry.pitch);
-    const value = durationValue(entry.duration);
+    const value = durationValue(entry);
     const alterXML = pitch.alter !== 0
       ? "<alter>" + pitch.alter + "</alter>"
       : "";
 
-    return [
+    const parts = [
       "      <note>",
       "        <pitch><step>" + pitch.step + "</step>" + alterXML + "<octave>" + pitch.octave + "</octave></pitch>",
       "        <duration>" + value + "</duration>",
       "        <voice>1</voice>",
-      "        <type>" + escapeXML(xmlType(entry.duration)) + "</type>",
-      "      </note>"
-    ].join("\n");
+      "        <type>" + escapeXML(xmlType(entry.duration)) + "</type>"
+    ];
+
+    parts.push.apply(parts, dotsToXML(entry.dots));
+    parts.push("      </note>");
+
+    return parts.join("\n");
   }
 
   function clefToXML(clef) {
@@ -92,7 +131,10 @@
   }
 
   function isMeasureRestEntry(entry) {
-    return entry && entry.kind === "rest" && entry.duration === "whole";
+    return entry &&
+      entry.kind === "rest" &&
+      entry.duration === "whole" &&
+      normalizeDots(entry.dots) === 0;
   }
 
   function splitIntoMeasures(entries, capacity) {
@@ -101,7 +143,6 @@
     entries.forEach(function (entry) {
       let current = measures[measures.length - 1];
 
-      // Pitkä + Tauko = kokotahdin tauko. Se saa oman tahdin.
       if (isMeasureRestEntry(entry)) {
         if (current.used > 0 || current.entries.length > 0) {
           current = { entries: [], used: 0, explicitMeasureRest: false };
@@ -115,7 +156,7 @@
         return;
       }
 
-      const value = durationValue(entry.duration);
+      const value = durationValue(entry);
 
       if (value > capacity) {
         throw new Error("Aika-arvo ei mahdu yhteen tahtiin tässä BASE-versiossa.");
@@ -163,8 +204,6 @@
 
       const count = end - index;
 
-      // Yksi kokotahdin tauko pysyy tavallisena kokotaukona.
-      // Kahdesta alkaen MusicXML kertoo OSMD:lle ryhmän eksplisiittisesti.
       if (count >= 2) {
         measures[index].multipleRestCount = count;
       }
@@ -234,6 +273,7 @@
       ? score.metadata.partName
       : "Huilu";
     const capacity = measureCapacity(beats, beatType);
+
     const measures = annotateMultipleRests(
       splitIntoMeasures(score.notes, capacity)
     );
@@ -279,7 +319,7 @@
   </work>
   <identification>
     <encoding>
-      <software>Pikakirjoitin 3 BASE 0.9.1</software>
+      <software>Pikakirjoitin 3 BASE 0.10</software>
     </encoding>
   </identification>
   <part-list>

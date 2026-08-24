@@ -16,7 +16,7 @@
       this.onChange = options.onChange;
       this.activePointers = new Map();
       this.dragPointerId = null;
-      this.stateValue = { rest: false };
+      this.stateValue = { rest: false, dots: 0 };
       this.ratio = 0.52;
 
       this.restorePosition();
@@ -45,24 +45,25 @@
       event.preventDefault();
       event.stopPropagation();
 
+      const modifier = button.dataset.modifier;
+      if (!["rest", "dot1", "dot2"].includes(modifier)) return;
+
       const rect = this.rail.getBoundingClientRect();
 
       this.activePointers.set(event.pointerId, {
         button: button,
+        modifier: modifier,
         startX: event.clientX,
         startY: event.clientY,
         startTop: rect.top,
         dragging: false
       });
 
-      button.classList.add("active");
-      button.setAttribute("aria-pressed", "true");
-      this.stateValue.rest = true;
-      this.emit();
-
       try {
         button.setPointerCapture(event.pointerId);
       } catch (error) {}
+
+      this.updateStateAndButtons();
     }
 
     pointerMove(event) {
@@ -102,6 +103,7 @@
 
       event.preventDefault();
       event.stopPropagation();
+
       this.activePointers.delete(event.pointerId);
 
       try {
@@ -110,18 +112,39 @@
         }
       } catch (error) {}
 
-      if (this.activePointers.size === 0) {
-        active.button.classList.remove("active");
-        active.button.setAttribute("aria-pressed", "false");
-        this.stateValue.rest = false;
-        this.emit();
-      }
-
       if (this.dragPointerId === event.pointerId) {
         this.dragPointerId = null;
         this.rail.classList.remove("is-dragging");
         this.savePosition();
       }
+
+      this.updateStateAndButtons();
+    }
+
+    updateStateAndButtons() {
+      let rest = false;
+      let dots = 0;
+
+      for (const active of this.activePointers.values()) {
+        if (active.modifier === "rest") rest = true;
+        if (active.modifier === "dot1") dots = Math.max(dots, 1);
+        if (active.modifier === "dot2") dots = Math.max(dots, 2);
+      }
+
+      this.stateValue = { rest: rest, dots: dots };
+
+      this.rail.querySelectorAll(".thumb-modifier").forEach((button) => {
+        const modifier = button.dataset.modifier;
+        const isActive =
+          (modifier === "rest" && rest) ||
+          (modifier === "dot1" && Array.from(this.activePointers.values()).some(a => a.modifier === "dot1")) ||
+          (modifier === "dot2" && Array.from(this.activePointers.values()).some(a => a.modifier === "dot2"));
+
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+
+      this.emit();
     }
 
     bounds() {

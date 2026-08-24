@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.9.1</title>
+  <title>Pikakirjoitin 3 · BASE 0.10</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.9.1 · MusicXML Multirest · OSMD 2.1.2</p>
+      <p>BASE 0.10 · Peukalopalkin pisteet · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
@@ -24,6 +24,16 @@
       <button class="thumb-modifier" type="button" data-modifier="rest"
               aria-label="Pidä pohjassa: tauko" aria-pressed="false">
         <img src="assets/rest.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+
+      <button class="thumb-modifier thumb-dot" type="button" data-modifier="dot1"
+              aria-label="Pidä pohjassa: yksi piste" aria-pressed="false">
+        <span aria-hidden="true">●</span>
+      </button>
+
+      <button class="thumb-modifier thumb-dot thumb-dot-double" type="button" data-modifier="dot2"
+              aria-label="Pidä pohjassa: kaksi pistettä" aria-pressed="false">
+        <span aria-hidden="true">●●</span>
       </button>
     </aside>
 
