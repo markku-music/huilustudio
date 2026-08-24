@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.22.7.5 – Portrait-nuottikoko lukittu – SIIVOTTU
+Pikakirjoitin 2 Core 0.22.7.6 – OSMD-tekstit
 
 Tämä paketti on siivottu jatkokehityksen pohjaksi ilman toiminnallisia muutoksia.
 
@@ -22,3 +22,12 @@ Siivous tässä paketissa
 - Poistettu tuotantoon jäänyt tapahtumakartoituksen console.warn-diagnostiikka.
 - README päivitetty vastaamaan tämän paketin todellista nykytilaa.
 - Sovelluksen toiminnallista logiikkaa, CSS-asettelua, assetteja tai OSMD-kirjastoa ei muutettu.
+
+
+Muutos 0.22.7.6
+- Otsikko käyttää MusicXML:n <work><work-title>-rakennetta ja OSMD piirtää sen.
+- Säveltäjä käyttää <identification><creator type="composer">-rakennetta ja OSMD piirtää sen.
+- Tempoteksti käyttää ensimmäisen tahdin <direction placement="above"><direction-type><words>... -rakennetta ja OSMD sijoittaa sen.
+- Teksteille ei käytetä omia HTML/SVG-elementtejä, X/Y-siirtoja tai jälkikäsittelyä.
+- OSMD:n drawingParameters muutettu compacttight -> compact, jotta erittäin tiukan presetin ylimääräiset systeemivälipakotukset eivät ohjaa tekstien ympärillä olevaa ladontaa.
+- Ei rivivälisäädintä eikä muita uusia käyttöliittymäelementtejä.

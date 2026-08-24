@@ -29,7 +29,9 @@ export class ScoreRenderer {
       // ei aiheuta OSMD:n ja sovelluksen kahta päällekkäistä renderöintiä.
       autoResize: false,
       pageFormat: layout.format,
-      drawingParameters: 'compacttight',
+      // Käytetään OSMD:n omaa compact-ladontaa. Emme pakota compacttight-
+      // presetin ylimääräisiä systeemiväli- tai tekstiladontamuutoksia.
+      drawingParameters: 'compact',
       drawTitle: true,
       drawSubtitle: false,
       drawComposer: true,

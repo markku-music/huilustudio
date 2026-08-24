@@ -27,6 +27,27 @@ function timeSymbol(v){ return v==='C'?' symbol="common"':v==='cutC'?' symbol="c
 function clefXml(v){ const [sign,line]=({treble:['G',2],alto:['C',3],bass:['F',4]})[v]||['G',2]; return `<clef><sign>${sign}</sign><line>${line}</line></clef>`; }
 
 
+
+function sheetMetadataXml(settings={}) {
+  // Otsikko ja säveltäjä annetaan OSMD:lle MusicXML:n natiiveina tietoina.
+  // Niille ei aseteta sovelluksessa omia X/Y-koordinaatteja.
+  const title = settings.title
+    ? `<work><work-title>${esc(settings.title)}</work-title></work>`
+    : '';
+  const composer = settings.composer
+    ? `<identification><creator type="composer">${esc(settings.composer)}</creator></identification>`
+    : '';
+  return `${title}${composer}`;
+}
+
+function tempoDirectionXml(settings={}) {
+  // Tempoteksti on OSMD:n normaali ensimmäisen tahdin direction/words-ilmaisu.
+  // placement="above" on ainoa sijoitusohje; OSMD hoitaa varsinaisen ladonnan.
+  return settings.tempoText
+    ? `<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type></direction>`
+    : '';
+}
+
 function explicitMultiRestRuns(measures) {
   const starts = new Map();
   for (let i = 0; i < measures.length; ) {
@@ -55,13 +76,12 @@ export function buildMusicXml(notes, settings={}){
   const multiRestStarts = explicitMultiRestRuns(measures);
   const xmlMeasures=measures.map((measure,index)=>{
     const attr=attributesXml({ index, settings, beats, beatType, multiRestCount: multiRestStarts.get(index) || 0 });
-    const tempo=index===0&&settings.tempoText?`<direction placement="above"><direction-type><words>${esc(settings.tempoText)}</words></direction-type></direction>`:'';
+    const tempo = index === 0 ? tempoDirectionXml(settings) : '';
     const beamTags=beamTagsForMeasure(measure.notes, beats, beatType, { osmdCompatible: true });
     const content=measure.notes.length?measure.notes.map((note,noteIndex)=>noteXml(note,beamTags[noteIndex],noteIndex,measure.notes,settings)).join('')+hiddenRestXml(measure.capacity-measure.used):hiddenRestXml(measure.capacity);
     const number=pickupCapacity?(index===0?0:index):index+1,implicit=pickupCapacity&&index===0?' implicit="yes"':'';
     return `<measure number="${number}"${implicit}>${attr}${tempo}${content}</measure>`;
   }).join('');
-  const title=settings.title?`<work><work-title>${esc(settings.title)}</work-title></work>`:'';
-  const creator=settings.composer?`<identification><creator type="composer">${esc(settings.composer)}</creator></identification>`:'';
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="3.1">${title}${creator}<part-list><score-part id="P1"><part-name>Pikakirjoitin</part-name></score-part></part-list><part id="P1">${xmlMeasures}</part></score-partwise>`;
+  const metadata = sheetMetadataXml(settings);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="3.1">${metadata}<part-list><score-part id="P1"><part-name>Pikakirjoitin</part-name></score-part></part-list><part id="P1">${xmlMeasures}</part></score-partwise>`;
 }
