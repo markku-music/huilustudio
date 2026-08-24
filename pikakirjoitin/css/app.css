@@ -84,20 +84,26 @@ button {
 }
 
 .input-panel {
-  display: flex;
-  align-items: center;
-  gap: 14px;
   margin-top: 16px;
 }
 
+.note-keyboard {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(72px, 1fr));
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
 .note-key {
-  width: 92px;
+  min-width: 72px;
   height: 116px;
-  flex: 0 0 auto;
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 5px;
+  gap: 4px;
   border: 1px solid rgba(0, 0, 0, 0.16);
   border-radius: 14px;
   background: #fff;
@@ -120,9 +126,16 @@ button {
 }
 
 .key-note {
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 760;
   line-height: 1;
+}
+
+.key-octave {
+  margin-top: -8px;
+  font-size: 11px;
+  font-weight: 760;
+  opacity: 0.48;
 }
 
 .key-value {
@@ -132,19 +145,14 @@ button {
 }
 
 .input-help {
-  margin: 0;
-  max-width: 340px;
+  margin: 8px 2px 0;
   font-size: 14px;
   line-height: 1.35;
   opacity: 0.68;
 }
 
-@media (max-width: 560px) {
-  .input-panel {
-    align-items: flex-start;
-  }
-
-  .input-help {
-    padding-top: 8px;
+@media (max-width: 720px) {
+  .note-keyboard {
+    grid-template-columns: repeat(8, 72px);
   }
 }

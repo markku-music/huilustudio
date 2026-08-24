@@ -31,9 +31,9 @@
     return rendering;
   }
 
-  function addCQuarter() {
+  function addQuarter(pitch, label) {
     window.PikakirjoitinScoreModel.addNote(score, {
-      pitch: "C4",
+      pitch: pitch,
       duration: "quarter"
     });
 
@@ -42,7 +42,8 @@
     renderScore().then(function () {
       const count = score.notes.length;
       updateStatus(
-        "OK · " + count + (count === 1 ? " nuotti" : " nuottia") + " Score Modelissa.",
+        "OK · " + label + " lisätty · " + count +
+          (count === 1 ? " nuotti" : " nuottia") + " Score Modelissa.",
         "ok"
       );
     }).catch(function (error) {
@@ -52,11 +53,16 @@
   }
 
   function start() {
-    const keyC = document.getElementById("key-c");
-    keyC.addEventListener("click", addCQuarter);
+    const keys = document.querySelectorAll(".note-key");
+
+    keys.forEach(function (key) {
+      key.addEventListener("click", function () {
+        addQuarter(key.dataset.pitch, key.dataset.label || key.dataset.pitch);
+      });
+    });
 
     renderScore().then(function () {
-      updateStatus("Valmis · paina C-kosketinta.", "ok");
+      updateStatus("Valmis · valitse sävel C–H tai ylempi C.", "ok");
     }).catch(function (error) {
       console.error(error);
       updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");

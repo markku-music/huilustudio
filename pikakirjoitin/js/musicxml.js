@@ -156,7 +156,7 @@
   </work>
   <identification>
     <encoding>
-      <software>Pikakirjoitin 3 BASE 0.3</software>
+      <software>Pikakirjoitin 3 BASE 0.4</software>
     </encoding>
   </identification>
   <part-list>
