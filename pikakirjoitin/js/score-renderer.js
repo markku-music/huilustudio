@@ -22,9 +22,12 @@ export class ScoreRenderer {
   #composerVisualYOffset = 0;
   #systemComposerDistance = 2;
   #renderListeners = new Set();
+  #viewport = null;
+  #restoreViewportScrollTop = null;
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
     this.#container = container;
+    this.#viewport = container.closest?.('.score-viewport') || null;
     this.#layout = layout;
 
     const OSMD = window.opensheetmusicdisplay?.OpenSheetMusicDisplay;
@@ -70,6 +73,10 @@ export class ScoreRenderer {
     this.#minimumSystemDistance = Math.min(15, Math.max(5, numeric));
     this.#applySystemSpacing();
     if (render && (this.#lastNotes.length || this.#container.childElementCount)) {
+      // Rivivälin muuttaminen rakentaa koko SVG:n uudelleen. Safari/Chrome voi
+      // samalla yrittää ankkuroida scrollia eri DOM-solmuun. Tallenna täsmälleen
+      // nykyinen nuottipaperin scrollTop ja palauta se renderin valmistuttua.
+      if (this.#viewport) this.#restoreViewportScrollTop = this.#viewport.scrollTop;
       this.render(this.#lastNotes);
     }
     return this.#minimumSystemDistance;
@@ -308,6 +315,16 @@ export class ScoreRenderer {
         await this.#osmd.render();
         this.#applyTempoVisualYOffset();
         this.#applyComposerVisualYOffset();
+
+        // Palauta rivivälisäätimen renderöintiä edeltänyt näkymä ennen kuin
+        // selain ehtii maalata seuraavan ruudun. Näin itse rivivälit muuttuvat,
+        // mutta koko nuottipaperi ei hypähdä pystysuunnassa.
+        if (this.#viewport && this.#restoreViewportScrollTop !== null) {
+          const top = this.#restoreViewportScrollTop;
+          this.#restoreViewportScrollTop = null;
+          this.#viewport.scrollTop = top;
+        }
+
         const snapshot = {
           notes: notes.map(note => ({ ...note })),
           settings: { ...this.#settings }

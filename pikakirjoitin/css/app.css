@@ -42,6 +42,10 @@ button { font: inherit; }
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  /* OSMD rakentaa SVG:n uudelleen riviväliä säädettäessä. Selaimen oma
+     scroll anchoring saa silloin näkymän nytkähtämään. Pidetään pystyscrolli
+     täysin sovelluksen luonnollisessa scrollTop-koordinaatissa. */
+  overflow-anchor: none;
   padding: 12px 12px 22px;
 }
 
