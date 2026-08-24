@@ -18,6 +18,11 @@ body {
 body {
   min-height: 100vh;
   padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
 }
 
 .app-shell {
@@ -64,6 +69,7 @@ body {
 
 .status {
   margin: 8px 2px 0;
+  min-height: 1.25em;
   font-size: 13px;
   opacity: 0.58;
 }
@@ -75,4 +81,70 @@ body {
 .status.error {
   opacity: 1;
   font-weight: 700;
+}
+
+.input-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.note-key {
+  width: 92px;
+  height: 116px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 14px;
+  background: #fff;
+  color: #171717;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.note-key:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.note-key:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+.key-note {
+  font-size: 42px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.key-value {
+  font-size: 13px;
+  font-weight: 720;
+  opacity: 0.55;
+}
+
+.input-help {
+  margin: 0;
+  max-width: 340px;
+  font-size: 14px;
+  line-height: 1.35;
+  opacity: 0.68;
+}
+
+@media (max-width: 560px) {
+  .input-panel {
+    align-items: flex-start;
+  }
+
+  .input-help {
+    padding-top: 8px;
+  }
 }

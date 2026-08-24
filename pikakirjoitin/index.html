@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.2</title>
+  <title>Pikakirjoitin 3 · BASE 0.3</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.2 · Score Model → MusicXML → OSMD 2.1.2</p>
+      <p>BASE 0.3 · Kosketin → Score Model → MusicXML → OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
       <div id="osmd-container"></div>
-      <p id="status" class="status" aria-live="polite">Rakennetaan nuottikuvaa…</p>
+      <p id="status" class="status" aria-live="polite">Paina C-kosketinta.</p>
+    </section>
+
+    <section class="input-panel" aria-label="Nuottien syöttö">
+      <button id="key-c" class="note-key" type="button" aria-label="Lisää C4-neljäsosanuotti">
+        <span class="key-note">C</span>
+        <span class="key-value">1/4</span>
+      </button>
+      <p class="input-help">Jokainen painallus lisää yhden C4-neljäsosanuotin.</p>
     </section>
   </main>
 

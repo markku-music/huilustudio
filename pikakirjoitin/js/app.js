@@ -1,25 +1,66 @@
 (function () {
   "use strict";
 
-  async function start() {
+  const score = window.PikakirjoitinScoreModel.createScore({
+    title: "Pikakirjoitin 3",
+    partName: "Huilu",
+    clef: "G",
+    key: 0,
+    time: [4, 4],
+    notes: []
+  });
+
+  let rendering = Promise.resolve();
+
+  function updateStatus(message, className) {
     const status = document.getElementById("status");
+    status.textContent = message;
+    status.className = "status" + (className ? " " + className : "");
+  }
 
-    try {
-      const score = window.PikakirjoitinScoreModel.createTestScore();
-      const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
+  function renderScore() {
+    const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
 
-      // Kehitystä varten: tästä näkee aina täsmälleen OSMD:lle syötetyn XML:n.
-      console.log("Pikakirjoitin 3 Score Model:", score);
-      console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
+    console.log("Pikakirjoitin 3 Score Model:", score);
+    console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
 
-      await window.PikakirjoitinRenderer.renderMusicXML(musicXML, "osmd-container");
-      status.textContent = "OK · Score Model → MusicXML → OSMD 2.1.2 · C–D–E–F näkyy edelleen samana.";
-      status.className = "status ok";
-    } catch (error) {
+    rendering = rendering.then(function () {
+      return window.PikakirjoitinRenderer.renderMusicXML(musicXML, "osmd-container");
+    });
+
+    return rendering;
+  }
+
+  function addCQuarter() {
+    window.PikakirjoitinScoreModel.addNote(score, {
+      pitch: "C4",
+      duration: "quarter"
+    });
+
+    updateStatus("Piirretään…");
+
+    renderScore().then(function () {
+      const count = score.notes.length;
+      updateStatus(
+        "OK · " + count + (count === 1 ? " nuotti" : " nuottia") + " Score Modelissa.",
+        "ok"
+      );
+    }).catch(function (error) {
       console.error(error);
-      status.textContent = "Virhe: " + (error && error.message ? error.message : String(error));
-      status.className = "status error";
-    }
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+    });
+  }
+
+  function start() {
+    const keyC = document.getElementById("key-c");
+    keyC.addEventListener("click", addCQuarter);
+
+    renderScore().then(function () {
+      updateStatus("Valmis · paina C-kosketinta.", "ok");
+    }).catch(function (error) {
+      console.error(error);
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+    });
   }
 
   if (document.readyState === "loading") {

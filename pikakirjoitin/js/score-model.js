@@ -6,7 +6,7 @@
 
     return {
       metadata: {
-        title: config.title || "Pikakirjoitin 3 · Score Model -testi",
+        title: config.title || "Pikakirjoitin 3",
         partName: config.partName || "Huilu"
       },
       clef: config.clef || "G",
@@ -18,19 +18,24 @@
     };
   }
 
-  function createTestScore() {
-    return createScore({
-      notes: [
-        { pitch: "C5", duration: "quarter" },
-        { pitch: "D5", duration: "quarter" },
-        { pitch: "E5", duration: "quarter" },
-        { pitch: "F5", duration: "quarter" }
-      ]
+  function addNote(score, note) {
+    if (!score || !Array.isArray(score.notes)) {
+      throw new Error("Score Model puuttuu tai on virheellinen.");
+    }
+    if (!note || !note.pitch || !note.duration) {
+      throw new Error("Lisättävä nuotti on virheellinen.");
+    }
+
+    score.notes.push({
+      pitch: String(note.pitch),
+      duration: String(note.duration)
     });
+
+    return score;
   }
 
   window.PikakirjoitinScoreModel = {
     createScore: createScore,
-    createTestScore: createTestScore
+    addNote: addNote
   };
 })();
