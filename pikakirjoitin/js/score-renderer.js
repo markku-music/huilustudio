@@ -1,5 +1,6 @@
 import { buildMusicXml } from './musicxml.js';
 import { DEFAULT_PAGE_LAYOUT, marginsToOsmdUnits } from './page-layout.js';
+import { LAYOUT_DEFAULTS, LAYOUT_FIELDS, sanitizeLayoutSettings } from './layout-settings.js';
 
 export class ScoreRenderer {
   #container;
@@ -15,23 +16,29 @@ export class ScoreRenderer {
   #portraitReferenceWidth = 0;
   #currentZoom = 1;
   #renderListeners = new Set();
+  #layoutSettings = { ...LAYOUT_DEFAULTS };
 
-  constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
+  constructor(container, { layout = DEFAULT_PAGE_LAYOUT, layoutSettings = LAYOUT_DEFAULTS } = {}) {
     this.#container = container;
     this.#layout = layout;
+    this.#layoutSettings = sanitizeLayoutSettings(layoutSettings);
+    this.#createOsmd();
+    this.#applyPageMargins();
+    this.#watchWidth();
+  }
 
+  #createOsmd() {
     const OSMD = window.opensheetmusicdisplay?.OpenSheetMusicDisplay;
     if (!OSMD) throw new Error('OSMD ei latautunut.');
 
-    this.#osmd = new OSMD(container, {
+    this.#container.replaceChildren();
+    this.#osmd = new OSMD(this.#container, {
       backend: 'svg',
       // Resize hoidetaan omalla ResizeObserverilla, jotta orientaation vaihto
       // ei aiheuta OSMD:n ja sovelluksen kahta päällekkäistä renderöintiä.
       autoResize: false,
-      pageFormat: layout.format,
-      // Käytetään OSMD:n omaa compact-ladontaa. Emme pakota compacttight-
-      // presetin ylimääräisiä systeemiväli- tai tekstiladontamuutoksia.
-      drawingParameters: 'compact',
+      pageFormat: this.#layout.format,
+      drawingParameters: this.#layoutSettings.drawingParameters,
       drawTitle: true,
       drawSubtitle: false,
       drawComposer: true,
@@ -45,9 +52,23 @@ export class ScoreRenderer {
       // arvaamalla omalla automatiikallaan.
       autoGenerateMultipleRestMeasuresFromRestMeasures: false
     });
-    this.#osmd.setPageFormat?.(layout.format);
-    this.#applyPageMargins();
-    this.#watchWidth();
+    this.#osmd.setPageFormat?.(this.#layout.format);
+  }
+
+  #applyLayoutSettings() {
+    const rules = this.#osmd?.EngravingRules;
+    if (!rules) return;
+    for (const field of LAYOUT_FIELDS) {
+      rules[field.key] = Number(this.#layoutSettings[field.key]);
+    }
+  }
+
+  async setLayoutSettings(nextSettings) {
+    const next = sanitizeLayoutSettings(nextSettings);
+    const presetChanged = next.drawingParameters !== this.#layoutSettings.drawingParameters;
+    this.#layoutSettings = next;
+    if (presetChanged) this.#createOsmd();
+    return this.render(this.#lastNotes);
   }
 
   setSettings(settings) {
@@ -141,6 +162,9 @@ export class ScoreRenderer {
         this.#pending = null;
         this.#applyPageMargins();
         await this.#osmd.load(buildMusicXml(notes, this.#settings));
+        // Aseta käyttäjän OSMD-ladonta suoraan EngravingRules-arvoihin.
+        // Näin otsikko, tempo ja säveltäjä pysyvät OSMD:n omassa layoutissa.
+        this.#applyLayoutSettings();
         // load() palauttaa OSMD:n Zoom-arvon yhteen. Aseta orientaation
         // mukainen zoom vasta latauksen jälkeen ennen varsinaista renderiä.
         this.#applyOrientationZoom();

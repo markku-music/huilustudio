@@ -1,4 +1,4 @@
-Pikakirjoitin 2 Core 0.22.7.6 – OSMD-tekstit
+Pikakirjoitin 2 Core 0.22.7.7 – OSMD-asetukset
 
 Tämä paketti on siivottu jatkokehityksen pohjaksi ilman toiminnallisia muutoksia.
 
@@ -31,3 +31,15 @@ Muutos 0.22.7.6
 - Teksteille ei käytetä omia HTML/SVG-elementtejä, X/Y-siirtoja tai jälkikäsittelyä.
 - OSMD:n drawingParameters muutettu compacttight -> compact, jotta erittäin tiukan presetin ylimääräiset systeemivälipakotukset eivät ohjaa tekstien ympärillä olevaa ladontaa.
 - Ei rivivälisäädintä eikä muita uusia käyttöliittymäelementtejä.
+
+
+Muutos 0.22.7.7
+- Lisätty erillinen täysruutuinen OSMD-asetussivu kirjoitusnäkymän rataskuvakkeesta.
+- Ladontatiloina default, compact ja compacttight. Oletus säilyy compact.
+- Säädettävissä SheetTitleHeight, TitleTopDistance, TitleBottomDistance, SheetComposerHeight, SystemComposerDistance, SystemLyricistDistance, InstantaneousTempoTextHeight, ContinuousTempoTextHeight ja TempoYSpacing.
+- Jokaisessa arvossa liukusäädin ja tarkka numeroarvo.
+- Asetussivulla oma OSMD-esikatselu otsikolla, Allegro-tempolla, säveltäjällä, sanoittajalla ja kahdella systeemillä.
+- Esikatselumuutokset eivät muuta varsinaista nuottia ennen Tallenna-painiketta.
+- Tallennetut ladonta-asetukset säilyvät localStoragessa seuraaville käynnistyskerroille.
+- Pikakirjoittimen oletukset palauttaa compact + nykyiset perusarvot. OSMD-oletukset palauttaa default + OSMD:n perusarvot.
+- Varsinaiseen nuotinsyöttöön, valintaan, audioon, portrait/landscape-zoomaukseen tai MusicXML-tekstirakenteisiin ei tehty muutoksia.

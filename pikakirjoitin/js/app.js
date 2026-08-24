@@ -7,13 +7,16 @@ import { ScoreRangeSelection } from './score-range-selection.js';
 import { ThumbRail } from './thumb-rail.js';
 import { SelectionEditor } from './selection-editor.js';
 import { spellMidi, isDiatonicKeySpelling } from './pitch-spelling.js';
+import { loadLayoutSettings } from './layout-settings.js';
+import { SettingsPage } from './settings-page.js';
 
 const app=document.querySelector('#app');
 app.inert=true;
 app.setAttribute('aria-hidden','true');
 
 const model=new ScoreModel();
-const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'));
+const initialLayoutSettings = loadLayoutSettings();
+const renderer=new ScoreRenderer(document.querySelector('#osmdContainer'), { layoutSettings: initialLayoutSettings });
 const audio=new AudioEngine();
 const selection=new ScoreRangeSelection({
   viewport:document.querySelector('#scoreViewport'),
@@ -180,6 +183,18 @@ const keyboard=new PianoKeyboard({
 
 const undoButton=document.querySelector('#undoButton');
 const redoButton=document.querySelector('#redoButton');
+
+const settingsPage = new SettingsPage({
+  page: document.querySelector('#settingsPage'),
+  mainApp: app,
+  initialSettings: initialLayoutSettings,
+  onSave: async layoutSettings => {
+    selection.clear();
+    await renderer.setLayoutSettings(layoutSettings);
+  }
+});
+
+document.querySelector('#settingsButton').addEventListener('click', () => settingsPage.open());
 
 model.subscribeHistory(({canUndo,canRedo})=>{
   undoButton.disabled=!canUndo;
