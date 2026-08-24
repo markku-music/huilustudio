@@ -12,6 +12,8 @@ export class ScoreRenderer {
   #resizeObserver = null;
   #resizeTimer = 0;
   #lastMarginWidth = 0;
+  #portraitReferenceWidth = 0;
+  #currentZoom = 1;
   #renderListeners = new Set();
 
   constructor(container, { layout = DEFAULT_PAGE_LAYOUT } = {}) {
@@ -23,7 +25,9 @@ export class ScoreRenderer {
 
     this.#osmd = new OSMD(container, {
       backend: 'svg',
-      autoResize: true,
+      // Resize hoidetaan omalla ResizeObserverilla, jotta orientaation vaihto
+      // ei aiheuta OSMD:n ja sovelluksen kahta päällekkäistä renderöintiä.
+      autoResize: false,
       pageFormat: layout.format,
       drawingParameters: 'compacttight',
       drawTitle: true,
@@ -59,9 +63,46 @@ export class ScoreRenderer {
     if (!this.#rendering) return this.#drain();
   }
 
+  #isPortraitViewport() {
+    const viewport = window.visualViewport;
+    const width = Number(viewport?.width || window.innerWidth || 0);
+    const height = Number(viewport?.height || window.innerHeight || 0);
+    return !width || !height || height >= width;
+  }
+
+  #portraitWidthEstimate(currentContainerWidth) {
+    if (this.#portraitReferenceWidth > 0) return this.#portraitReferenceWidth;
+
+    // Jos sovellus avataan suoraan vaakatasoon, arvioi saman laitteen
+    // portrait-sisältöleveys viewportin lyhyemmän sivun suhteesta.
+    const viewport = window.visualViewport;
+    const viewportWidth = Math.max(1, Number(viewport?.width || window.innerWidth || currentContainerWidth));
+    const viewportHeight = Math.max(1, Number(viewport?.height || window.innerHeight || viewportWidth));
+    const portraitViewportWidth = Math.min(viewportWidth, viewportHeight);
+    return Math.max(1, currentContainerWidth * portraitViewportWidth / viewportWidth);
+  }
+
+  #applyOrientationZoom() {
+    const width = this.#container.clientWidth || this.#container.offsetWidth || 1;
+
+    if (this.#isPortraitViewport()) {
+      // Portrait on nuottikoon referenssi. Päivitä leveys aina kun portraitissa
+      // tapahtuu oikea layout-muutos (esim. split view), mutta pidä zoom 100 %.
+      this.#portraitReferenceWidth = width;
+      this.#currentZoom = 1;
+    } else {
+      const referenceWidth = this.#portraitWidthEstimate(width);
+      // Landscape skaalataan samassa suhteessa kuin sivu leveni portraitiin
+      // nähden. Näin nuottien suhteellinen koko säilyy portraitin kaltaisena.
+      this.#currentZoom = Math.max(1, Math.min(1.6, width / Math.max(1, referenceWidth)));
+    }
+
+    this.#osmd.Zoom = this.#currentZoom;
+  }
+
   #applyPageMargins() {
     const width = this.#container.clientWidth || this.#container.offsetWidth || 1;
-    const zoom = Number(this.#osmd.Zoom ?? this.#osmd.zoom ?? 1) || 1;
+    const zoom = Number(this.#currentZoom || this.#osmd.Zoom || this.#osmd.zoom || 1) || 1;
     const margins = marginsToOsmdUnits(width, this.#layout, zoom);
     const rules = this.#osmd.EngravingRules;
     if (!rules) return;
@@ -98,6 +139,9 @@ export class ScoreRenderer {
         this.#pending = null;
         this.#applyPageMargins();
         await this.#osmd.load(buildMusicXml(notes, this.#settings));
+        // load() palauttaa OSMD:n Zoom-arvon yhteen. Aseta orientaation
+        // mukainen zoom vasta latauksen jälkeen ennen varsinaista renderiä.
+        this.#applyOrientationZoom();
         this.#applyPageMargins();
         await this.#osmd.render();
         const snapshot = {

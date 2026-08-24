@@ -37,3 +37,5 @@ ylennysmerkkisissä ylennyksinä. Mollin korotettu johtosävel käsitellään er
 0.22.7.3: Valitun nuotin kosketineditointi huomioi peukalopalkin piste- ja taukomodifikaattorit. Piste + ele tekee pisteellisen aika-arvon; Tauko + ele muuttaa valitun nuotin tauoksi; Piste + Tauko toimii yhdessä. Tauko + pitkä painallus ilman pistettä säilyttää kokotahdin tauko / multirest -logiikan. Valinta poistuu kosketineleen valmistuttua kuten 0.22.7:ssa.
 
 0.22.7.4: Nuottialueen vaakavalinta lukitaan saman kosketuseleen ajaksi heti, kun valinnassa on vähintään kaksi loogista tapahtumaa. Tämän jälkeen iPad/Safarin pystyscrollaus ei saa ottaa elettä haltuun, vaikka sormi karkaisi alaviistoon tai viivaston ulkopuolelle. Yhden tapahtuman/pending-vaiheen normaali pystyscrollaus säilyy ennallaan.
+
+0.22.7.5: Portrait määrittää OSMD:n nuottikoon. Landscape käyttää portrait-sisältöleveyteen suhteutettua zoomia. OSMD autoResize poistettu; sovelluksen ResizeObserver hoitaa orientaation vaihdon.
