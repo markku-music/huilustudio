@@ -1,38 +1,41 @@
-Pikakirjoitin 3 · BASE 0.9 · Peukalopalkki + Tauko
+Pikakirjoitin 3 · BASE 0.9.1 · Explicit MusicXML Multirest
 
 Pohja:
-- Pikakirjoitin 3 BASE 0.8
+- Pikakirjoitin 3 BASE 0.9
+- peukalopalkin Tauko
+- kaikki kuusi aika-arvoelettä
 - OSMD 2.1.2
-- OSMD:n automaattipalkitus
-- täydet aika-arvoeleet
+- OSMD:n autoBeam
 
-Uutta:
-- Pikakirjoitin 2:n peukalopalkin mukainen vasemman reunan palkki
-- tässä BASE-vaiheessa palkissa on vain Tauko
-- Tauko on momentaarinen modifioija: pidä sitä pohjassa toisella sormella
-- koskettimen ele määrää edelleen aika-arvon
-- samaa taukonappia voi vetää pystysuunnassa peukalopalkin siirtämiseksi
-- palkin pystysijainti tallennetaan localStorageen
+Korjaus:
+OSMD:n automaattista multirest-arvausta ei enää käytetä.
 
-Yhdistelmät:
-- Tauko + napautus = 1/4-tauko
-- Tauko + alas = 1/8-tauko
-- Tauko + ylös = 1/2-tauko
-- Tauko + oikealle = 1/16-tauko
-- Tauko + vasemmalle = 1/32-tauko
-- Tauko + pitkä painallus = kokotahdin tauko
+Kun Score Modelissa on:
+- 1 peräkkäinen kokotahdin tauko -> tavallinen kokotauko
+- 2 peräkkäistä kokotahdin taukoa -> MusicXML: <multiple-rest>2</multiple-rest>
+- 3 peräkkäistä kokotahdin taukoa -> MusicXML: <multiple-rest>3</multiple-rest>
+- jne.
 
-OSMD-yhteistyö:
-- tavallinen tauko kirjoitetaan MusicXML:ään <rest/>
-- kokotahdin tauko kirjoitetaan <rest measure="yes"/>
-- kokotahdin tauon kesto tulee tahtilajin todellisesta kapasiteetista
-- OSMD piirtää taukosymbolit
-- OSMD:n autoBeam pysyy käytössä
-- autoGenerateMultipleRestMeasuresFromRestMeasures on kytketty päälle,
-  jotta peräkkäiset kokotahdin tauot ovat valmiiksi OSMD-yhteensopivia
+MusicXML-rakenne kirjoitetaan ryhmän ENSIMMÄISEN tahdin attributes-osaan:
 
-Ei vielä:
-- piste/pisteet
-- muut peukalopalkin napit
-- undo/redo
-- äänimoottori
+<attributes>
+  ...
+  <measure-style>
+    <multiple-rest>N</multiple-rest>
+  </measure-style>
+</attributes>
+
+Jos multirest alkaa myöhemmästä tahdista, ensimmäiseen ryhmän tahtiin lisätään oma
+attributes/measure-style-rakenne.
+
+Tärkeää:
+- kaikki alkuperäiset tahdit säilyvät MusicXML:ssä
+- jokainen kokotahdin tauko on edelleen <rest measure="yes"/>
+- Pikakirjoitin päättää vain, mitkä peräkkäiset kokotahdin tauot kuuluvat samaan ryhmään
+- OSMD 2.1.2 piirtää varsinaisen multirestin
+- autoGenerateMultipleRestMeasuresFromRestMeasures = false
+- autoBeam = true säilyy
+
+Tavoite:
+Myös kappaleen alussa olevat 2, 3, 4... peräkkäiset kokotahdin tauot
+muodostuvat yhdeksi multirestiksi ensimmäisestä tahdista lähtien.

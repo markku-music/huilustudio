@@ -14,7 +14,7 @@
         backend: "svg",
         drawingParameters: "compacttight",
         autoBeam: true,
-        autoGenerateMultipleRestMeasuresFromRestMeasures: true
+        autoGenerateMultipleRestMeasuresFromRestMeasures: false
       });
     }
 

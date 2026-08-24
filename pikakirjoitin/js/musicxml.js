@@ -144,8 +144,49 @@
     return measures;
   }
 
-  function attributesToXML(score, beats, beatType, fifths) {
+  function annotateMultipleRests(measures) {
+    let index = 0;
+
+    while (index < measures.length) {
+      if (!measures[index].explicitMeasureRest) {
+        index += 1;
+        continue;
+      }
+
+      let end = index + 1;
+      while (
+        end < measures.length &&
+        measures[end].explicitMeasureRest
+      ) {
+        end += 1;
+      }
+
+      const count = end - index;
+
+      // Yksi kokotahdin tauko pysyy tavallisena kokotaukona.
+      // Kahdesta alkaen MusicXML kertoo OSMD:lle ryhmän eksplisiittisesti.
+      if (count >= 2) {
+        measures[index].multipleRestCount = count;
+      }
+
+      index = end;
+    }
+
+    return measures;
+  }
+
+  function measureStyleXML(count) {
+    if (!Number.isInteger(count) || count < 2) return "";
+
     return [
+      "        <measure-style>",
+      "          <multiple-rest>" + count + "</multiple-rest>",
+      "        </measure-style>"
+    ].join("\n");
+  }
+
+  function attributesToXML(score, beats, beatType, fifths, multipleRestCount) {
+    const parts = [
       "      <attributes>",
       "        <divisions>" + DIVISIONS + "</divisions>",
       "        <key>",
@@ -157,7 +198,23 @@
       "        </time>",
       "        <clef>",
       "          " + clefToXML(score.clef),
-      "        </clef>",
+      "        </clef>"
+    ];
+
+    const style = measureStyleXML(multipleRestCount);
+    if (style) parts.push(style);
+
+    parts.push("      </attributes>");
+    return parts.join("\n");
+  }
+
+  function measureStyleAttributesXML(multipleRestCount) {
+    const style = measureStyleXML(multipleRestCount);
+    if (!style) return "";
+
+    return [
+      "      <attributes>",
+      style,
       "      </attributes>"
     ].join("\n");
   }
@@ -177,13 +234,27 @@
       ? score.metadata.partName
       : "Huilu";
     const capacity = measureCapacity(beats, beatType);
-    const measures = splitIntoMeasures(score.notes, capacity);
+    const measures = annotateMultipleRests(
+      splitIntoMeasures(score.notes, capacity)
+    );
 
     const measuresXML = measures.map(function (measure, index) {
       const parts = ["    <measure number=\"" + (index + 1) + "\">"];
 
       if (index === 0) {
-        parts.push(attributesToXML(score, beats, beatType, fifths));
+        parts.push(
+          attributesToXML(
+            score,
+            beats,
+            beatType,
+            fifths,
+            measure.multipleRestCount || 0
+          )
+        );
+      } else if (measure.multipleRestCount >= 2) {
+        parts.push(
+          measureStyleAttributesXML(measure.multipleRestCount)
+        );
       }
 
       if (measure.entries.length) {
@@ -208,7 +279,7 @@
   </work>
   <identification>
     <encoding>
-      <software>Pikakirjoitin 3 BASE 0.9</software>
+      <software>Pikakirjoitin 3 BASE 0.9.1</software>
     </encoding>
   </identification>
   <part-list>
