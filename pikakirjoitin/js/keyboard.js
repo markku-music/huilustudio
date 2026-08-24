@@ -71,6 +71,8 @@
 
       this.onStart = options.onStart;
       this.onDuration = options.onDuration;
+      this.onSoundStart = options.onSoundStart;
+      this.onSoundStop = options.onSoundStop;
       this.onFinish = options.onFinish;
 
       this.active = null;
@@ -137,6 +139,9 @@
       const noteId = typeof startResult === "object"
         ? startResult && startResult.id
         : startResult;
+      const playSound = typeof startResult === "object"
+        ? startResult.sound !== false
+        : true;
 
       if (!noteId) return;
 
@@ -155,12 +160,17 @@
         threshold: threshold,
         duration: "quarter",
         locked: false,
+        soundOn: playSound,
         timer: null
       };
 
       try {
         this.piano.setPointerCapture(event.pointerId);
       } catch (error) {}
+
+      if (playSound && typeof this.onSoundStart === "function") {
+        this.onSoundStart(midi);
+      }
 
       this.active.timer = window.setTimeout(() => {
         const active = this.active;
@@ -223,6 +233,10 @@
         "gesture-left",
         "gesture-whole"
       );
+
+      if (active.soundOn && typeof this.onSoundStop === "function") {
+        this.onSoundStop();
+      }
 
       if (typeof this.onFinish === "function") {
         this.onFinish(active.noteId, active.duration, active.midi, active.pitch);

@@ -1,17 +1,34 @@
 (function () {
   "use strict";
 
+  const app = document.getElementById("app");
+  if (app) {
+    app.inert = true;
+    app.setAttribute("aria-hidden", "true");
+  }
+
   const score = window.PikakirjoitinScoreModel.createScore({
     title: "Pikakirjoitin 3",
+    composer: "",
+    tempoText: "",
     partName: "Huilu",
     clef: "G",
     key: 0,
     time: [4, 4],
+    timeSymbol: "",
+    pickupDuration: 0,
     notes: []
   });
 
+  const audio = new window.PikakirjoitinAudio.AudioEngine();
+
   let rendering = Promise.resolve();
   let thumbState = { rest: false, dots: 0 };
+  let keyboard = null;
+  let settings = {
+    transpose: 0,
+    keyboardStartMidi: 60
+  };
 
   const durationLabels = {
     whole: "1/1",
@@ -92,7 +109,10 @@
       );
     });
 
-    return { id: entry.id };
+    return {
+      id: entry.id,
+      sound: entry.kind !== "rest"
+    };
   }
 
   function changeDuration(id, duration, midi, pitch) {
@@ -141,6 +161,62 @@
       : "";
   }
 
+  function timeSettings(value) {
+    if (value === "C") {
+      return { time: [4, 4], symbol: "common" };
+    }
+
+    if (value === "cutC") {
+      return { time: [2, 2], symbol: "cut" };
+    }
+
+    const parts = String(value || "4/4").split("/").map(Number);
+    return {
+      time: [parts[0] || 4, parts[1] || 4],
+      symbol: ""
+    };
+  }
+
+  function clefValue(value) {
+    if (value === "alto") return "C";
+    if (value === "bass") return "F";
+    return "G";
+  }
+
+  async function applyStartSettings(nextSettings) {
+    settings = Object.assign({}, nextSettings);
+
+    const meter = timeSettings(settings.timeSignature);
+
+    score.metadata.title = settings.title || "Pikakirjoitin 3";
+    score.metadata.composer = settings.composer || "";
+    score.metadata.tempoText = settings.tempoText || "";
+
+    score.key = Number.isInteger(settings.keySignature)
+      ? settings.keySignature
+      : 0;
+
+    score.time = meter.time;
+    score.timeSymbol = meter.symbol;
+    score.pickupDuration = Number(settings.pickupDuration) || 0;
+    score.clef = clefValue(settings.clef);
+
+    await renderScore();
+
+    requestAnimationFrame(function () {
+      if (keyboard) {
+        keyboard.scrollToMidi(
+          Number(settings.keyboardStartMidi) || 60
+        );
+      }
+    });
+
+    updateStatus(
+      "Valmis · ääni on käytössä ja kirjoitus voi alkaa.",
+      "ok"
+    );
+  }
+
   function start() {
     new window.PikakirjoitinThumbRail.ThumbRail({
       rail: document.getElementById("thumbRail"),
@@ -152,7 +228,7 @@
       }
     });
 
-    new window.PikakirjoitinKeyboard.PianoKeyboard({
+    keyboard = new window.PikakirjoitinKeyboard.PianoKeyboard({
       piano: document.getElementById("piano"),
       whiteKeys: document.getElementById("whiteKeys"),
       viewport: document.getElementById("keyboardViewport"),
@@ -161,20 +237,26 @@
       thumb: document.getElementById("keyboardScrollThumb"),
       onStart: startEntry,
       onDuration: changeDuration,
+      onSoundStart: function (midi) {
+        audio.noteOn(Number(midi) + (Number(settings.transpose) || 0));
+      },
+      onSoundStop: function () {
+        audio.noteOff();
+      },
       onFinish: finishEntry
     });
 
-    renderScore().then(function () {
-      updateStatus(
-        "Valmis · peukalopalkissa Tauko, yksi piste ja kaksi pistettä.",
-        "ok"
-      );
-    }).catch(function (error) {
+    renderScore().catch(function (error) {
       console.error(error);
       updateStatus(
         "Virhe: " + (error && error.message ? error.message : String(error)),
         "error"
       );
+    });
+
+    new window.PikakirjoitinStartScreen.StartScreen({
+      audio: audio,
+      onStart: applyStartSettings
     });
   }
 

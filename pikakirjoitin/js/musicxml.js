@@ -137,22 +137,43 @@
       normalizeDots(entry.dots) === 0;
   }
 
-  function splitIntoMeasures(entries, capacity) {
-    const measures = [{ entries: [], used: 0, explicitMeasureRest: false }];
+  function splitIntoMeasures(entries, capacity, pickupCapacity) {
+    const hasPickup = Number(pickupCapacity) > 0 && Number(pickupCapacity) < capacity;
+
+    function makeMeasure(measureCapacity, implicit) {
+      return {
+        entries: [],
+        used: 0,
+        capacity: measureCapacity,
+        implicit: Boolean(implicit),
+        explicitMeasureRest: false
+      };
+    }
+
+    const measures = [
+      makeMeasure(hasPickup ? Number(pickupCapacity) : capacity, hasPickup)
+    ];
 
     entries.forEach(function (entry) {
       let current = measures[measures.length - 1];
 
       if (isMeasureRestEntry(entry)) {
-        if (current.used > 0 || current.entries.length > 0) {
-          current = { entries: [], used: 0, explicitMeasureRest: false };
+        // Kokotahdin tauko on aina täysi tahti.
+        // Jos kohotahti on vielä täysin tyhjä, sitä ei jätetä erilliseksi
+        // tyhjäksi tahdiksi ennen ensimmäistä kokotaukoa.
+        if (current.implicit && current.entries.length === 0) {
+          current.capacity = capacity;
+          current.implicit = false;
+        } else if (current.used > 0 || current.entries.length > 0) {
+          current = makeMeasure(capacity, false);
           measures.push(current);
         }
 
         current.entries.push(entry);
         current.used = capacity;
+        current.capacity = capacity;
         current.explicitMeasureRest = true;
-        measures.push({ entries: [], used: 0, explicitMeasureRest: false });
+        measures.push(makeMeasure(capacity, false));
         return;
       }
 
@@ -162,16 +183,27 @@
         throw new Error("Aika-arvo ei mahdu yhteen tahtiin tässä BASE-versiossa.");
       }
 
-      if (current.used > 0 && current.used + value > capacity) {
-        current = { entries: [], used: 0, explicitMeasureRest: false };
+      // Jos ensimmäinen tapahtuma ei mahdu valittuun kohotahtiin,
+      // käytä tavallista ensimmäistä tahtia tyhjän kohotahdin sijasta.
+      if (
+        current.implicit &&
+        current.entries.length === 0 &&
+        value > current.capacity
+      ) {
+        current.capacity = capacity;
+        current.implicit = false;
+      }
+
+      if (current.used > 0 && current.used + value > current.capacity) {
+        current = makeMeasure(capacity, false);
         measures.push(current);
       }
 
       current.entries.push(entry);
       current.used += value;
 
-      if (current.used === capacity) {
-        measures.push({ entries: [], used: 0, explicitMeasureRest: false });
+      if (current.used === current.capacity) {
+        measures.push(makeMeasure(capacity, false));
       }
     });
 
@@ -225,13 +257,19 @@
   }
 
   function attributesToXML(score, beats, beatType, fifths, multipleRestCount) {
+    const timeSymbol = score.timeSymbol === "common"
+      ? ' symbol="common"'
+      : score.timeSymbol === "cut"
+        ? ' symbol="cut"'
+        : "";
+
     const parts = [
       "      <attributes>",
       "        <divisions>" + DIVISIONS + "</divisions>",
       "        <key>",
       "          <fifths>" + fifths + "</fifths>",
       "        </key>",
-      "        <time>",
+      "        <time" + timeSymbol + ">",
       "          <beats>" + beats + "</beats>",
       "          <beat-type>" + beatType + "</beat-type>",
       "        </time>",
@@ -258,6 +296,22 @@
     ].join("\n");
   }
 
+  function firstMeasureDirectionXML(score) {
+    const tempoText = score.metadata && score.metadata.tempoText
+      ? String(score.metadata.tempoText).trim()
+      : "";
+
+    if (!tempoText) return "";
+
+    return [
+      "      <direction placement=\"above\">",
+      "        <direction-type>",
+      "          <words>" + escapeXML(tempoText) + "</words>",
+      "        </direction-type>",
+      "      </direction>"
+    ].join("\n");
+  }
+
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -272,14 +326,22 @@
     const partName = score.metadata && score.metadata.partName
       ? score.metadata.partName
       : "Huilu";
+    const composer = score.metadata && score.metadata.composer
+      ? score.metadata.composer
+      : "";
     const capacity = measureCapacity(beats, beatType);
 
+    // StartScreenin pickupDuration käyttää samaa vanhan Coren yksikköä,
+    // jossa kokonainen = 32. Nykyisessä XML:ssä kokonainen = 4*DIVISIONS.
+    const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
+
     const measures = annotateMultipleRests(
-      splitIntoMeasures(score.notes, capacity)
+      splitIntoMeasures(score.notes, capacity, pickupCapacity)
     );
 
     const measuresXML = measures.map(function (measure, index) {
-      const parts = ["    <measure number=\"" + (index + 1) + "\">"];
+      const implicit = measure.implicit ? ' implicit="yes"' : "";
+      const parts = ["    <measure number=\"" + (index + 1) + "\"" + implicit + ">"];
 
       if (index === 0) {
         parts.push(
@@ -295,6 +357,11 @@
         parts.push(
           measureStyleAttributesXML(measure.multipleRestCount)
         );
+      }
+
+      if (index === 0) {
+        const directionXML = firstMeasureDirectionXML(score);
+        if (directionXML) parts.push(directionXML);
       }
 
       if (measure.entries.length) {
@@ -318,8 +385,9 @@
     <work-title>${escapeXML(title)}</work-title>
   </work>
   <identification>
-    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.10</software>
+${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
+` : ""}    <encoding>
+      <software>Pikakirjoitin 3 BASE 0.11</software>
     </encoding>
   </identification>
   <part-list>

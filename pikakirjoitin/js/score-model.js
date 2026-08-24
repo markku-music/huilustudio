@@ -26,11 +26,15 @@
     return {
       metadata: {
         title: config.title || "Pikakirjoitin 3",
+        composer: config.composer || "",
+        tempoText: config.tempoText || "",
         partName: config.partName || "Huilu"
       },
       clef: config.clef || "G",
       key: Number.isInteger(config.key) ? config.key : 0,
       time: Array.isArray(config.time) ? config.time.slice(0, 2) : [4, 4],
+      timeSymbol: config.timeSymbol || "",
+      pickupDuration: Number(config.pickupDuration) || 0,
       notes: Array.isArray(config.notes) ? config.notes.map(cloneEntry) : []
     };
   }
