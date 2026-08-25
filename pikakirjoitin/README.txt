@@ -1,36 +1,37 @@
-Pikakirjoitin 3 · BASE 0.14.3 · Slur klikkaus eteen, kirjoitus taakse
+Pikakirjoitin 3 · BASE 0.14.4 · Valinta + slur-korvaus
 
-Korjattu peukalopakin Slur-logiikka kahdeksi eri tilanteeksi:
+Pohja:
+- BASE 0.14.3 Slur klikkaus eteen, kirjoitus taakse
 
-1. UUTTA NUOTTIA KIRJOITETTAESSA
-- kirjoita ensimmäinen nuotti normaalisti
-- pidä Slur pohjassa ja kirjoita seuraava nuotti
-- juuri kirjoitettu nuotti kytkeytyy slurilla EDELLISEEN nuottiin
+1. ENSIMMÄISEN / HARVAN NUOTIN VALINTA PARANNETTU
+- valinnan hit-alue ei perustu enää vain nuotinpään pieneen laatikkoon
+- hit-alue käyttää koko VexFlow-nuottiryhmää (nuotinpää, varsi jne.)
+- nuotinpään väritys säilyy silti ennallaan
+- osuma-alueen paddingia kasvatettu maltillisesti
+- lisäksi viivaston sisällä on rajattu lähimmän nuotin fallback:
+  jos napautus osuu hieman harvan yksittäisen nuotin sivuun, lähin nuotti
+  voidaan silti valita
+- tyhjään nuottipaperiin napautus säilyy edelleen valinnan poistona silloin,
+  kun mitään nuottia ei ole riittävän lähellä
+
+Tämä korjaa erityisesti tilanteen, jossa ensimmäisessä tahdissa on vain yksi
+nuotti ja siihen osuminen oli ajoittain epävarmaa.
+
+2. KELLUVAN PALKIN SLUR KORVAA VANHAT SISÄISET SLURIT
+- valitse vähintään kaksi nuottia
+- jos valinta-alueen sisällä on jo yksi tai useampia slurreja, ne poistetaan
+- niiden tilalle tehdään yksi uusi slur ensimmäisestä viimeiseen valittuun nuottiin
+- valinnan ulkopuolelle jatkuvia slurreja ei poisteta
+- jos valinta-alueella on jo täsmälleen yksi sama slur eikä muita sisäisiä slurreja,
+  painike säilyttää aiemman toggle-käytöksen ja poistaa sen
 
 Esimerkki:
-C normaalisti
-Slur pohjassa + D
-=> slur C-D
+B-C slur + C-D slur
+valitse B C D
+paina kelluvan palkin Slur
+=> vanhat B-C ja C-D poistuvat, tilalle yksi B-D slur
 
-2. OLEMASSA OLEVAA NUOTTIA KLIKATTAESSA / VALITTAESSA
-- pidä Slur pohjassa
-- napauta yhtä olemassa olevaa nuottia
-- valittu nuotti kytkeytyy slurilla SEURAAVAAN nuottiin
-
-Esimerkki:
-nuotit C D E ovat jo olemassa
-Slur pohjassa + klikkaa D
-=> slur D-E
-
-Jos klikattu nuotti on kappaleen viimeinen:
-- se jää odottamaan seuraavaa myöhemmin kirjoitettavaa nuottia
-- seuraava kirjoitettu nuotti sulkee slurin
-
-Tauot ohitetaan sekä edellistä että seuraavaa nuottia etsittäessä.
-
-Kelluvan editoripalkin Slur säilyy ennallaan:
-- vähintään kahden nuotin valinta
-- yksi slur ensimmäisestä viimeiseen valittuun
-- toggle lisää/poistaa saman slurin
-
-Muu BASE 0.14.2:n toiminta säilyy ennallaan.
+Muu BASE 0.14.3:n toiminta säilyy ennallaan:
+- kirjoittaessa Slur pohjassa uusi nuotti kytkeytyy edelliseen
+- olemassa olevaa nuottia klikatessa Slur pohjassa valittu kytkeytyy seuraavaan
+- älytauot, enharmoninen, poisto ja valinnan muu logiikka ennallaan

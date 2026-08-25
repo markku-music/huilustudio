@@ -615,21 +615,59 @@
 
     const startId = entries[0].id;
     const endId = entries[entries.length - 1].id;
+    const indexMap = noteIndexMap(score);
+    const startIndex = indexMap.get(startId);
+    const endIndex = indexMap.get(endId);
 
-    if (hasSlur(score, startId, endId)) {
+    // Kaikki slurit, joiden molemmat päät ovat valitun nuottijakson sisällä,
+    // kuuluvat tähän muokkausalueeseen. Kelluvasta palkista annettu uusi slur
+    // korvaa ne yhdellä kaarella ensimmäisestä viimeiseen valittuun nuottiin.
+    const internalSlurs = (score.slurs || []).filter(function (slur) {
+      const a = indexMap.get(slur.startId);
+      const b = indexMap.get(slur.endId);
+      return (
+        Number.isInteger(a) &&
+        Number.isInteger(b) &&
+        a >= startIndex &&
+        b <= endIndex
+      );
+    });
+
+    const exactOnly =
+      internalSlurs.length === 1 &&
+      internalSlurs[0].startId === startId &&
+      internalSlurs[0].endId === endId;
+
+    // Säilytetään aiempi toggle-käytös siinä ainoassa yksiselitteisessä
+    // tilanteessa, jossa valinnalla on jo täsmälleen tämä yksi slur.
+    if (exactOnly) {
       return {
         changed: removeSlur(score, startId, endId),
         active: false,
         startId: startId,
-        endId: endId
+        endId: endId,
+        replacedCount: 0
       };
     }
 
+    const internalIds = new Set(internalSlurs.map(function (slur) {
+      return slur.id;
+    }));
+
+    if (internalIds.size) {
+      score.slurs = (score.slurs || []).filter(function (slur) {
+        return !internalIds.has(slur.id);
+      });
+    }
+
+    const added = addSlur(score, startId, endId);
+
     return {
-      changed: addSlur(score, startId, endId),
+      changed: Boolean(added || internalIds.size),
       active: true,
       startId: startId,
-      endId: endId
+      endId: endId,
+      replacedCount: internalIds.size
     };
   }
 

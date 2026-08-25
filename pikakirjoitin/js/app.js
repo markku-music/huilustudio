@@ -365,7 +365,14 @@
         }
         renderScore().then(function () {
           selection.retainIds(ids);
-          updateStatus(result.active ? "Slur lisätty valittujen nuottien ylle." : "Slur poistettu valinnasta.", "ok");
+          updateStatus(
+            result.active
+              ? (result.replacedCount
+                  ? "Aiemmat valinta-alueen slurit korvattu uudella slurilla."
+                  : "Slur lisätty valittujen nuottien ylle.")
+              : "Slur poistettu valinnasta.",
+            "ok"
+          );
         }).catch(function (error) {
           console.error(error);
           updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");

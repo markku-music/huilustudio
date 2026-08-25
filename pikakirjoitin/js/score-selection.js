@@ -6,8 +6,10 @@ const VERTICAL_DOMINANCE = 1.5;
 const STAFF_EXTRA_Y = 15;
 const SAME_LINE_TOLERANCE = 1.8;
 const TAP_MOVE_TOLERANCE = 9;
-const EVENT_HIT_PADDING_X = 22;
-const EVENT_HIT_PADDING_Y = 20;
+const EVENT_HIT_PADDING_X = 30;
+const EVENT_HIT_PADDING_Y = 24;
+const EVENT_NEAREST_FALLBACK_X = 48;
+const EVENT_NEAREST_FALLBACK_Y = 34;
 
 function rectCenterX(rect) { return rect.left + rect.width / 2; }
 function rectCenterY(rect) { return rect.top + rect.height / 2; }
@@ -118,10 +120,12 @@ function collectVisualEvents(container) {
       const head = group.querySelector('.vf-notehead');
       const element = head || group;
       const rect = element.getBoundingClientRect();
+      const hitRect = group.getBoundingClientRect();
       return {
         element,
         kind: head ? 'note' : 'rest',
         rect,
+        hitRect,
         x: rectCenterX(rect),
         y: rectCenterY(rect)
       };
@@ -132,7 +136,7 @@ function collectVisualEvents(container) {
     .filter(element => element.getBoundingClientRect().width > 0)
     .map(element => {
       const rect = element.getBoundingClientRect();
-      return { element, kind:'note', rect, x:rectCenterX(rect), y:rectCenterY(rect) };
+      return { element, kind:'note', rect, hitRect:rect, x:rectCenterX(rect), y:rectCenterY(rect) };
     });
 }
 
@@ -416,19 +420,41 @@ class ScoreRangeSelection {
   }
 
   #eventAt(x,y) {
-    // Nuotin/tauon näkyvää symbolia huomattavasti suurempi näkymätön kosketusalue.
-    // Jos osuma-alueet limittyvät, valitaan geometrisesti lähin tapahtuma.
+    // Osuma-alue perustuu koko VexFlow-nuottiryhmään (nuotinpää + varsi +
+    // palkki/merkinnät), vaikka valinnan väri kohdistetaan edelleen vain
+    // nuotinpään/tauon symboliin. Tämä tekee etenkin harvan ensimmäisen tahdin
+    // yksittäisestä nuotista paljon helpommin napautettavan.
     const candidates = this.#events.filter(event => {
-      const r = event.rect;
+      const r = event.hitRect || event.rect;
       return x >= r.left - EVENT_HIT_PADDING_X && x <= r.right + EVENT_HIT_PADDING_X &&
              y >= r.top - EVENT_HIT_PADDING_Y && y <= r.bottom + EVENT_HIT_PADDING_Y;
     });
-    if (!candidates.length) return null;
-    return candidates.reduce((best, event) => {
-      const d = Math.hypot(x-event.x, y-event.y);
-      const bestD = Math.hypot(x-best.x, y-best.y);
-      return d < bestD ? event : best;
-    }, candidates[0]);
+
+    if (candidates.length) {
+      return candidates.reduce((best, event) => {
+        const d = Math.hypot(x-event.x, y-event.y);
+        const bestD = Math.hypot(x-best.x, y-best.y);
+        return d < bestD ? event : best;
+      }, candidates[0]);
+    }
+
+    // Hallittu fallback: jos napautus on viivaston alueella mutta osuu hieman
+    // harvan yksittäisen nuotin sivuun, hyväksytään lähin nuotti vain rajatun
+    // etäisyyden sisällä. Tämä ei muuta tyhjään paperiin napautusta yleisesti
+    // valinnaksi.
+    const band = this.#bandAt(x, y);
+    if (!band) return null;
+
+    const nearest = this.#nearestEventInBand(band, x);
+    if (!nearest) return null;
+
+    const horizontal = Math.abs(x - nearest.x);
+    const vertical = Math.abs(y - nearest.y);
+
+    return (
+      horizontal <= EVENT_NEAREST_FALLBACK_X &&
+      vertical <= EVENT_NEAREST_FALLBACK_Y
+    ) ? nearest : null;
   }
 
   #selectSingleEvent(event) {
