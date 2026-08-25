@@ -333,6 +333,44 @@
     updateStatus("Valmis · ääni on käytössä ja kirjoitus voi alkaa.", "ok");
   }
 
+  function slurChoiceLabel(slur) {
+    const start = window.PikakirjoitinScoreModel.getEntry(score, slur.startId);
+    const end = window.PikakirjoitinScoreModel.getEntry(score, slur.endId);
+
+    const startName = start && start.pitch ? displayPitch(start.pitch) : "alku";
+    const endName = end && end.pitch ? displayPitch(end.pitch) : "loppu";
+
+    return startName + "–" + endName;
+  }
+
+  function slurChoicesForSingleNote(noteId) {
+    return window.PikakirjoitinScoreModel.slursAtNote(score, noteId)
+      .map(function (slur) {
+        return {
+          id: slur.id,
+          label: slurChoiceLabel(slur)
+        };
+      });
+  }
+
+  function removeSlurByIdAndKeepSelection(slurId) {
+    const ids = selectedIds();
+    if (!slurId || !ids.length) return;
+
+    if (window.PikakirjoitinScoreModel.removeSlurById(score, slurId)) {
+      renderScore().then(function () {
+        selection.retainIds(ids);
+        updateStatus("Slur poistettu.", "ok");
+      }).catch(function (error) {
+        console.error(error);
+        updateStatus(
+          "Virhe: " + (error && error.message ? error.message : String(error)),
+          "error"
+        );
+      });
+    }
+  }
+
   function setupSelection() {
     selection = new window.PikakirjoitinSelection.ScoreRangeSelection({
       viewport: document.querySelector(".score-card"),
@@ -354,7 +392,25 @@
       onSlur: function () {
         const ids = selectedIds();
         if (!ids.length) return;
-        const result = window.PikakirjoitinScoreModel.toggleSlurForSelection(score, ids);
+
+        // Yksi nuotti: kelluvan palkin Slur poistaa sen kohdalla olevan
+        // ainoan slurin. Jos slurreja on useita, editori avaa flyoutin.
+        if (ids.length === 1) {
+          const slurs = window.PikakirjoitinScoreModel.slursAtNote(
+            score,
+            ids[0]
+          );
+
+          if (slurs.length === 1) {
+            removeSlurByIdAndKeepSelection(slurs[0].id);
+          }
+          return;
+        }
+
+        // Useampi nuotti: 0.14.4:n korvauslogiikka säilyy.
+        const result =
+          window.PikakirjoitinScoreModel.toggleSlurForSelection(score, ids);
+
         if (!result.changed) {
           if (result.reason === "need_two_notes") {
             updateStatus("Slur vaatii vähintään kaksi valittua nuottia.", "error");
@@ -363,6 +419,7 @@
           }
           return;
         }
+
         renderScore().then(function () {
           selection.retainIds(ids);
           updateStatus(
@@ -375,8 +432,15 @@
           );
         }).catch(function (error) {
           console.error(error);
-          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+          updateStatus(
+            "Virhe: " + (error && error.message ? error.message : String(error)),
+            "error"
+          );
         });
+      },
+
+      onSlurChoice: function (slurId) {
+        removeSlurByIdAndKeepSelection(slurId);
       },
 
       onRest: function () {
@@ -434,14 +498,34 @@
       const anchor = state.anchor || lastSelectionEditorAnchor;
       if (!anchor) return;
 
+      const singleSlurChoices =
+        single && single.kind === "note"
+          ? slurChoicesForSingleNote(single.id)
+          : [];
+
+      const canCreateMultiSlur =
+        window.PikakirjoitinScoreModel.canCreateSlurFromSelection(score, ids);
+
       selectionEditor.update({
         visible: true,
         x: anchor.x,
         staffTop: anchor.staffTop,
         staffBottom: anchor.staffBottom,
-        canEnharmonic: Boolean(single && single.kind === "note" && window.PikakirjoitinScoreModel.canEnharmonic(score, single.id)),
-        canSlur: window.PikakirjoitinScoreModel.canCreateSlurFromSelection(score, ids),
-        slurActive: window.PikakirjoitinScoreModel.hasSlurForSelection(score, ids)
+        canEnharmonic: Boolean(
+          single &&
+          single.kind === "note" &&
+          window.PikakirjoitinScoreModel.canEnharmonic(score, single.id)
+        ),
+        singleSelection: state.count === 1,
+        slurChoices: singleSlurChoices,
+        canSlur:
+          state.count === 1
+            ? singleSlurChoices.length > 0
+            : canCreateMultiSlur,
+        slurActive:
+          state.count === 1
+            ? singleSlurChoices.length > 0
+            : window.PikakirjoitinScoreModel.hasSlurForSelection(score, ids)
       });
     });
   }

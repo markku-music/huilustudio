@@ -1,37 +1,28 @@
-Pikakirjoitin 3 · BASE 0.14.4 · Valinta + slur-korvaus
+Pikakirjoitin 3 · BASE 0.14.5 · Slurien poisto
 
 Pohja:
-- BASE 0.14.3 Slur klikkaus eteen, kirjoitus taakse
+- BASE 0.14.4 Valinta + slur-korvaus
 
-1. ENSIMMÄISEN / HARVAN NUOTIN VALINTA PARANNETTU
-- valinnan hit-alue ei perustu enää vain nuotinpään pieneen laatikkoon
-- hit-alue käyttää koko VexFlow-nuottiryhmää (nuotinpää, varsi jne.)
-- nuotinpään väritys säilyy silti ennallaan
-- osuma-alueen paddingia kasvatettu maltillisesti
-- lisäksi viivaston sisällä on rajattu lähimmän nuotin fallback:
-  jos napautus osuu hieman harvan yksittäisen nuotin sivuun, lähin nuotti
-  voidaan silti valita
-- tyhjään nuottipaperiin napautus säilyy edelleen valinnan poistona silloin,
-  kun mitään nuottia ei ole riittävän lähellä
+Yhden nuotin valinnassa kelluvan palkin Slur toimii poistotyökaluna.
 
-Tämä korjaa erityisesti tilanteen, jossa ensimmäisessä tahdissa on vain yksi
-nuotti ja siihen osuminen oli ajoittain epävarmaa.
+Jos nuotin kohdalla ei kulje sluria:
+- Slur-painike on passiivinen.
 
-2. KELLUVAN PALKIN SLUR KORVAA VANHAT SISÄISET SLURIT
-- valitse vähintään kaksi nuottia
-- jos valinta-alueen sisällä on jo yksi tai useampia slurreja, ne poistetaan
-- niiden tilalle tehdään yksi uusi slur ensimmäisestä viimeiseen valittuun nuottiin
-- valinnan ulkopuolelle jatkuvia slurreja ei poisteta
-- jos valinta-alueella on jo täsmälleen yksi sama slur eikä muita sisäisiä slurreja,
-  painike säilyttää aiemman toggle-käytöksen ja poistaa sen
+Jos nuotin kohdalla kulkee täsmälleen yksi slur:
+- Slur-painike näkyy aktiivisena.
+- Napautus poistaa kyseisen slurin.
 
-Esimerkki:
-B-C slur + C-D slur
-valitse B C D
-paina kelluvan palkin Slur
-=> vanhat B-C ja C-D poistuvat, tilalle yksi B-D slur
+Jos nuotin kohdalla kulkee useita slurreja:
+- Slur-painike näkyy aktiivisena.
+- Napautus avaa flyoutin.
+- Flyout näyttää slurit niiden alku- ja loppusävelen nimillä, esimerkiksi C4–F4.
+- Valittu slur poistetaan, muut säilyvät.
 
-Muu BASE 0.14.3:n toiminta säilyy ennallaan:
-- kirjoittaessa Slur pohjassa uusi nuotti kytkeytyy edelliseen
-- olemassa olevaa nuottia klikatessa Slur pohjassa valittu kytkeytyy seuraavaan
-- älytauot, enharmoninen, poisto ja valinnan muu logiikka ennallaan
+Nuotti lasketaan slurin kohdalla olevaksi myös silloin, kun se on pitkän slurin
+sisällä eikä vain slurin alku- tai loppunuottina.
+
+Useamman nuotin valinta toimii edelleen kuten BASE 0.14.4:
+- valinnan sisäiset vanhat slurit korvataan yhdellä uudella slurilla
+- jos valinnalla on jo täsmälleen sama yksi slur, toggle poistaa sen
+
+Muu BASE 0.14.4:n toiminta säilyy ennallaan.

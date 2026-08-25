@@ -554,6 +554,56 @@
     return null;
   }
 
+  function slursAtNote(score, noteId) {
+    if (!score || !Array.isArray(score.notes) || !Array.isArray(score.slurs)) {
+      return [];
+    }
+
+    const entry = getEntry(score, noteId);
+    if (!entry || entry.kind !== "note") return [];
+
+    const indexMap = noteIndexMap(score);
+    const noteIndex = indexMap.get(noteId);
+    if (!Number.isInteger(noteIndex)) return [];
+
+    return score.slurs
+      .filter(function (slur) {
+        const startIndex = indexMap.get(slur.startId);
+        const endIndex = indexMap.get(slur.endId);
+
+        return (
+          Number.isInteger(startIndex) &&
+          Number.isInteger(endIndex) &&
+          startIndex <= noteIndex &&
+          noteIndex <= endIndex
+        );
+      })
+      .slice()
+      .sort(function (a, b) {
+        const aStart = indexMap.get(a.startId);
+        const aEnd = indexMap.get(a.endId);
+        const bStart = indexMap.get(b.startId);
+        const bEnd = indexMap.get(b.endId);
+
+        const aSpan = aEnd - aStart;
+        const bSpan = bEnd - bStart;
+        if (aSpan !== bSpan) return aSpan - bSpan;
+        if (aStart !== bStart) return aStart - bStart;
+        return aEnd - bEnd;
+      });
+  }
+
+  function removeSlurById(score, slurId) {
+    if (!score || !Array.isArray(score.slurs) || !slurId) return false;
+
+    const before = score.slurs.length;
+    score.slurs = score.slurs.filter(function (slur) {
+      return slur.id !== slurId;
+    });
+
+    return score.slurs.length !== before;
+  }
+
   function hasSlur(score, startId, endId) {
     return Boolean(
       score && Array.isArray(score.slurs) &&
@@ -699,7 +749,9 @@
     previousNoteId: previousNoteId,
     addSlur: addSlur,
     removeSlur: removeSlur,
+    removeSlurById: removeSlurById,
     hasSlur: hasSlur,
+    slursAtNote: slursAtNote,
     canCreateSlurFromSelection: canCreateSlurFromSelection,
     toggleSlurForSelection: toggleSlurForSelection,
     hasSlurForSelection: hasSlurForSelection

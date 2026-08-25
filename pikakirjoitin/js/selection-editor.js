@@ -16,11 +16,15 @@
                alt="" aria-hidden="true">
         </button>
 
-        <button type="button" data-action="slur"
-                aria-label="Lisää tai poista slur" title="Lisää tai poista slur">
-          <img class="pk-slur-icon" src="assets/slur.svg"
-               alt="" aria-hidden="true">
-        </button>
+        <div class="pk-slur-control">
+          <button type="button" data-action="slur"
+                  aria-label="Slur" title="Slur" aria-haspopup="false"
+                  aria-expanded="false">
+            <img class="pk-slur-icon" src="assets/slur.svg"
+                 alt="" aria-hidden="true">
+          </button>
+          <div class="pk-slur-flyout" role="menu" hidden></div>
+        </div>
 
         <button type="button" data-action="rest"
                 aria-label="Muuta valinta tauoksi" title="Muuta valinta tauoksi">
@@ -37,13 +41,32 @@
         </button>`;
 
       document.body.appendChild(root);
+
       this.root = root;
+      this.slurButton = root.querySelector('[data-action="slur"]');
+      this.slurFlyout = root.querySelector(".pk-slur-flyout");
+      this.currentSlurChoices = [];
+      this.singleSelection = false;
 
       root.addEventListener("pointerdown", function (event) {
         event.stopPropagation();
       });
 
-      root.addEventListener("click", function (event) {
+      root.addEventListener("click", (event) => {
+        const choice = event.target.closest("[data-slur-id]");
+        if (choice) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const slurId = choice.dataset.slurId;
+          this.closeSlurFlyout();
+
+          if (slurId && typeof config.onSlurChoice === "function") {
+            config.onSlurChoice(slurId);
+          }
+          return;
+        }
+
         const button = event.target.closest("button[data-action]");
         if (!button || button.disabled) return;
 
@@ -52,17 +75,72 @@
 
         if (button.dataset.action === "enharmonic") {
           if (typeof config.onEnharmonic === "function") config.onEnharmonic();
+          return;
         }
+
         if (button.dataset.action === "slur") {
-          if (typeof config.onSlur === "function") config.onSlur();
+          if (this.singleSelection && this.currentSlurChoices.length > 1) {
+            this.toggleSlurFlyout();
+          } else if (typeof config.onSlur === "function") {
+            this.closeSlurFlyout();
+            config.onSlur();
+          }
+          return;
         }
+
         if (button.dataset.action === "rest") {
           if (typeof config.onRest === "function") config.onRest();
+          return;
         }
+
         if (button.dataset.action === "delete") {
           if (typeof config.onDelete === "function") config.onDelete();
         }
       });
+
+      document.addEventListener("pointerdown", (event) => {
+        if (!this.root.contains(event.target)) {
+          this.closeSlurFlyout();
+        }
+      }, { passive:true });
+    }
+
+    renderSlurChoices(choices) {
+      const items = Array.isArray(choices) ? choices : [];
+      this.currentSlurChoices = items.slice();
+      this.slurFlyout.innerHTML = "";
+
+      items.forEach((choice) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pk-slur-choice";
+        button.dataset.slurId = choice.id;
+        button.setAttribute("role", "menuitem");
+        button.setAttribute(
+          "aria-label",
+          "Poista slur " + (choice.label || "")
+        );
+        button.innerHTML = `
+          <img src="assets/slur.svg" alt="" aria-hidden="true">
+          <span>${choice.label || "Slur"}</span>`;
+        this.slurFlyout.appendChild(button);
+      });
+    }
+
+    toggleSlurFlyout() {
+      if (!this.currentSlurChoices.length) return;
+
+      const willOpen = this.slurFlyout.hidden;
+      this.slurFlyout.hidden = !willOpen;
+      this.slurButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    }
+
+    closeSlurFlyout() {
+      if (!this.slurFlyout) return;
+      this.slurFlyout.hidden = true;
+      if (this.slurButton) {
+        this.slurButton.setAttribute("aria-expanded", "false");
+      }
     }
 
     update(options) {
@@ -70,6 +148,7 @@
       const visible = Boolean(config.visible);
 
       if (!visible) {
+        this.closeSlurFlyout();
         this.root.hidden = true;
         return;
       }
@@ -78,10 +157,28 @@
       enharmonic.hidden = !config.canEnharmonic;
       enharmonic.disabled = !config.canEnharmonic;
 
-      const slur = this.root.querySelector('[data-action="slur"]');
-      slur.disabled = !config.canSlur;
-      slur.classList.toggle("active", Boolean(config.slurActive));
-      slur.setAttribute("aria-pressed", config.slurActive ? "true" : "false");
+      this.singleSelection = Boolean(config.singleSelection);
+      this.renderSlurChoices(config.slurChoices || []);
+
+      this.slurButton.disabled = !config.canSlur;
+      this.slurButton.classList.toggle("active", Boolean(config.slurActive));
+      this.slurButton.setAttribute(
+        "aria-pressed",
+        config.slurActive ? "true" : "false"
+      );
+
+      const hasChoiceFlyout =
+        this.singleSelection &&
+        this.currentSlurChoices.length > 1;
+
+      this.slurButton.setAttribute(
+        "aria-haspopup",
+        hasChoiceFlyout ? "menu" : "false"
+      );
+
+      if (!hasChoiceFlyout) {
+        this.closeSlurFlyout();
+      }
 
       this.root.hidden = false;
 
@@ -103,6 +200,7 @@
     }
 
     hide() {
+      this.closeSlurFlyout();
       this.root.hidden = true;
     }
   }
