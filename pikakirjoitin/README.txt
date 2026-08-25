@@ -1,56 +1,32 @@
-Pikakirjoitin 3 · BASE 0.16.0 · Rivien muokkaus
+Pikakirjoitin 3 · BASE 0.16.1 · Landscape-rivinvaihtomerkit kohdistettu
 
 Pohja:
-- virallinen BASE 0.15.1
+- BASE 0.16.0 Rivien muokkaus
 
-Peukalopakin alin nappi:
-- ↵ Rivien muokkaus
-- toggle, ei paina-ja-pidä
-- aktiivisena sininen
+Korjattu:
+- ↵-rivinvaihtomerkit olivat portraitissa oikein mutta landscapessa
+  väärissä x-kohdissa.
 
-Kun Rivien muokkaus on pois:
-- ↵-merkkejä ei näy nuottipaperilla
-- viimeisen rivin venytyskahvaa ei näy
+Syy:
+- 0.16.0 muutti OSMD:n sisäisiä nuottikoordinaatteja ruutukoordinaateiksi
+  laskennallisella zoom + SVG -skaalauskaavalla.
+- landscape-tilassa OSMD:n zoomattu SVG voi saada vielä oman todellisen
+  DOM-skaalansa, joten laskennallinen x-koordinaatti ei aina vastannut
+  näkyvää tahtiviivaa.
 
-Kun Rivien muokkaus on päällä:
+Uusi ratkaisu:
+- näkyvien viivastojen paikat tunnistetaan suoraan renderöidyn SVG:n
+  getBoundingClientRect()-geometriasta
+- käytössä on sama geometrinen viivastotunnistusperiaate kuin toimivassa
+  nuottien valinnassa
+- kunkin tahdin suhteellinen paikka otetaan VexFlow-staven x/width-arvoista
+- suhteellinen paikka muunnetaan suoraan näkyvän viivaston todelliseen
+  DOM-leveyteen
 
-Rivinvaihto
-- mahdollisten tahtiviivojen yläpuolella näkyy haalea ↵
-- haalea ↵ = ei pakotettua rivinvaihtoa
-- napautus lisää rivinvaihdon
-- aktiivinen ↵ muuttuu siniseksi
-- sinisen ↵-merkin napautus poistaa rivinvaihdon
-- viimeisen tahdin jälkeen ei näytetä ↵-merkkiä
+Tämän ansiosta:
+- ↵ kohdistuu samaan tahtiviivaan portraitissa ja landscapessa
+- OSMD Zoom, CSS-skaala ja iPadin orientaation vaihto eivät enää tarvitse
+  erillistä x-korjauskerrointa
+- myös viimeisen rivin ↔-kahva käyttää samaa korjattua rivigeometriaa
 
-Rivinvaihto tallennetaan Score Modeliin:
-score.layout.systemBreaks
-
-MusicXML:
-- seuraavan tahdin alkuun tulee <print new-system="yes"/>
-
-OSMD:
-- newSystemFromXML:true
-- OSMD tekee varsinaisen rivijaon
-
-Viimeisen rivin venytys
-- viimeisen nuottirivin lopussa näkyy ↔-vetokahva
-- kahvaa vedetään vaakasuunnassa
-- sormen nostossa OSMD renderöi viimeisen rivin uudelleen
-- SVG:tä ei venytetä CSS:llä
-- käytössä OSMD:n LastSystemMaxScalingFactor
-- oletus 1.4 säilyttää BASE 0.15.1:n ulkoasun
-- sallittu alue 1...6
-
-Venytys tallennetaan Score Modeliin:
-score.layout.lastSystemMaxScalingFactor
-
-BASE 0.15.1:n muu toiminta säilyy:
-- portrait/landscape nuottikoon lukitus
-- landscape-valinta
-- A4 ja scrollaus
-- slurit ja slurien poisto
-- älytauot
-- enharmoninen
-- peukalopakin Tauko, pisteet ja Slur
-- koskettimisto
-- OSMD 2.1.2 vendor muuttumattomana
+Muu BASE 0.16.0:n toiminta on jätetty ennalleen.

@@ -188,94 +188,310 @@
     return Number.isFinite(number) ? number : fallback;
   }
 
+  function rectCenterY(rect) {
+    return rect.top + rect.height / 2;
+  }
+
+  function unionWidth(intervals) {
+    if (!intervals.length) return 0;
+
+    const sorted = intervals
+      .map(function (pair) {
+        return pair[0] <= pair[1]
+          ? [pair[0], pair[1]]
+          : [pair[1], pair[0]];
+      })
+      .sort(function (a, b) { return a[0] - b[0]; });
+
+    let total = 0;
+    let start = sorted[0][0];
+    let end = sorted[0][1];
+
+    for (let i = 1; i < sorted.length; i += 1) {
+      const a = sorted[i][0];
+      const b = sorted[i][1];
+
+      if (a <= end + 2) {
+        end = Math.max(end, b);
+      } else {
+        total += end - start;
+        start = a;
+        end = b;
+      }
+    }
+
+    return total + end - start;
+  }
+
+  /*
+   * Sama geometrinen viivastotunnistus kuin score-selectionissa.
+   * Tärkeä etu: getBoundingClientRect() antaa jo valmiiksi oikeat
+   * ruutukoordinaatit myös landscape-zoomauksen ja CSS-skaalauksen jälkeen.
+   */
+  function detectRenderedStaffBands() {
+    if (!container) return [];
+
+    const bands = [];
+    const pageSvgs = Array.from(container.querySelectorAll("svg"))
+      .filter(function (svg) {
+        return svg.getBoundingClientRect().width > 80;
+      });
+
+    pageSvgs.forEach(function (svg) {
+      const pageRect = svg.getBoundingClientRect();
+      if (pageRect.width <= 0 || pageRect.height <= 0) return;
+
+      const raw = [];
+
+      Array.from(svg.querySelectorAll("path,line,rect")).forEach(function (el) {
+        if (el.closest(".vf-notehead")) return;
+
+        const rect = el.getBoundingClientRect();
+
+        if (rect.width < Math.max(28, pageRect.width * 0.045)) return;
+        if (rect.height > 3.2) return;
+        if (rect.right < pageRect.left || rect.left > pageRect.right) return;
+
+        raw.push({
+          y: rectCenterY(rect),
+          left: rect.left,
+          right: rect.right
+        });
+      });
+
+      raw.sort(function (a, b) { return a.y - b.y; });
+
+      const rows = [];
+
+      raw.forEach(function (item) {
+        let row = rows[rows.length - 1];
+
+        if (!row || Math.abs(item.y - row.y) > 1.8) {
+          row = {
+            y: item.y,
+            ys: [item.y],
+            intervals: [[item.left, item.right]]
+          };
+          rows.push(row);
+        } else {
+          row.ys.push(item.y);
+          row.intervals.push([item.left, item.right]);
+          row.y =
+            row.ys.reduce(function (sum, value) {
+              return sum + value;
+            }, 0) / row.ys.length;
+        }
+      });
+
+      const lineRows = rows
+        .map(function (row) {
+          return {
+            y: row.y,
+            coverage: unionWidth(row.intervals),
+            left: Math.min.apply(
+              null,
+              row.intervals.map(function (value) { return value[0]; })
+            ),
+            right: Math.max.apply(
+              null,
+              row.intervals.map(function (value) { return value[1]; })
+            )
+          };
+        })
+        .filter(function (row) {
+          return row.coverage >= Math.max(70, pageRect.width * 0.15);
+        })
+        .sort(function (a, b) { return a.y - b.y; });
+
+      for (let i = 0; i <= lineRows.length - 5;) {
+        const five = lineRows.slice(i, i + 5);
+        const gaps = five.slice(1).map(function (row, index) {
+          return row.y - five[index].y;
+        });
+
+        const average =
+          gaps.reduce(function (sum, value) {
+            return sum + value;
+          }, 0) / gaps.length;
+
+        const even =
+          average >= 3 &&
+          average <= 28 &&
+          gaps.every(function (gap) {
+            return Math.abs(gap - average) <=
+              Math.max(2.2, average * 0.28);
+          });
+
+        if (!even) {
+          i += 1;
+          continue;
+        }
+
+        bands.push({
+          staffTop: five[0].y,
+          staffBottom: five[4].y,
+          left: Math.min.apply(
+            null,
+            five.map(function (row) { return row.left; })
+          ),
+          right: Math.max.apply(
+            null,
+            five.map(function (row) { return row.right; })
+          )
+        });
+
+        i += 5;
+      }
+    });
+
+    return bands.sort(function (a, b) {
+      return a.staffTop - b.staffTop;
+    });
+  }
+
   function getMeasureLayout() {
     if (!osmd || !osmd.GraphicSheet || !container) return [];
 
     const list = osmd.GraphicSheet.MeasureList || [];
-    const unitPixels = 10 * currentZoom;
-
-    // OSMD:n SVG voi olla CSS:llä skaalattu. Kalibroidaan GraphicalMusicSheet-
-    // koordinaatit todelliseen ruutukoordinaattiin SVG:n viewBoxin avulla.
-    const svg = container.querySelector("svg");
     const containerRect = container.getBoundingClientRect();
-    let offsetX = 0;
-    let offsetY = 0;
-    let cssScaleX = 1;
-    let cssScaleY = 1;
+    const bands = detectRenderedStaffBands();
 
-    if (svg) {
-      const svgRect = svg.getBoundingClientRect();
-      offsetX = svgRect.left - containerRect.left;
-      offsetY = svgRect.top - containerRect.top;
+    /*
+     * Ryhmitellään tahdit niiden ParentStaffLine-olion mukaan.
+     * Yksi ryhmä = yksi näkyvä nuottirivi tässä yksiviivastoisessa
+     * Pikakirjoittimessa.
+     */
+    const systems = [];
+    const systemMap = new Map();
+    const measureRows = [];
 
-      const viewBox = svg.viewBox && svg.viewBox.baseVal;
-      const baseWidth =
-        viewBox && viewBox.width
-          ? viewBox.width
-          : parseFloat(svg.getAttribute("width")) || svgRect.width;
-      const baseHeight =
-        viewBox && viewBox.height
-          ? viewBox.height
-          : parseFloat(svg.getAttribute("height")) || svgRect.height;
-
-      if (baseWidth > 0) cssScaleX = svgRect.width / baseWidth;
-      if (baseHeight > 0) cssScaleY = svgRect.height / baseHeight;
-    }
-
-    function pxX(unitValue) {
-      return offsetX + unitValue * unitPixels * cssScaleX;
-    }
-
-    function pxY(unitValue) {
-      return offsetY + unitValue * unitPixels * cssScaleY;
-    }
-
-    return list.map(function (staffMeasures, measureIndex) {
-      if (!Array.isArray(staffMeasures)) return null;
+    list.forEach(function (staffMeasures, measureIndex) {
+      if (!Array.isArray(staffMeasures)) return;
 
       const measure = staffMeasures.find(function (item) {
         return Boolean(item);
       });
 
-      if (!measure || !measure.PositionAndShape) return null;
-
-      const box = measure.PositionAndShape;
-      const absolute = box.AbsolutePosition || { x:0, y:0 };
-      const borderLeft = finite(box.BorderLeft, 0);
-      const borderRight = finite(
-        box.BorderRight,
-        box.Size ? finite(box.Size.width, 0) : 0
-      );
+      if (!measure) return;
 
       const staffLine = measure.ParentStaffLine;
-      const staffBox = staffLine && staffLine.PositionAndShape;
-      const staffAbsolute =
-        staffBox && staffBox.AbsolutePosition
-          ? staffBox.AbsolutePosition
-          : absolute;
+      if (!staffLine) return;
 
-      const staffTopUnits =
-        finite(staffAbsolute.y, 0) +
-        (staffBox ? finite(staffBox.BorderTop, 0) : 0);
+      let system = systemMap.get(staffLine);
 
-      const staffBottomUnits =
-        finite(staffAbsolute.y, 0) +
-        (staffBox ? finite(staffBox.BorderBottom, 4) : 4);
+      if (!system) {
+        system = {
+          staffLine: staffLine,
+          measures: []
+        };
+        systemMap.set(staffLine, system);
+        systems.push(system);
+      }
 
-      const system = measure.ParentMusicSystem;
-      const systemBox = system && system.PositionAndShape;
-      const systemAbsolute =
-        systemBox && systemBox.AbsolutePosition
-          ? systemBox.AbsolutePosition
-          : staffAbsolute;
+      const stave =
+        typeof measure.getVFStave === "function"
+          ? measure.getVFStave()
+          : measure.stave;
+
+      if (!stave) return;
+
+      const x =
+        typeof stave.getX === "function"
+          ? Number(stave.getX())
+          : Number(stave.x);
+
+      const width =
+        typeof stave.getWidth === "function"
+          ? Number(stave.getWidth())
+          : Number(stave.width);
+
+      if (!Number.isFinite(x) || !Number.isFinite(width) || width <= 0) {
+        return;
+      }
+
+      const row = {
+        measureIndex: measureIndex,
+        staffLine: staffLine,
+        staveStart: x,
+        staveEnd: x + width
+      };
+
+      system.measures.push(row);
+      measureRows.push(row);
+    });
+
+    /*
+     * Jos SVG:n viivastotunnistus jostain syystä ei löydä kaikkia rivejä,
+     * emme arvaa zoom-kertoimella väärää kohtaa. Käytetään tällöin vanhaa
+     * OSMD-yksikköfallbackia vain kyseiselle riville.
+     */
+    const fallbackUnitPixels = 10 * currentZoom;
+
+    return measureRows.map(function (row) {
+      const systemIndex = systems.findIndex(function (system) {
+        return system.staffLine === row.staffLine;
+      });
+
+      const system = systems[systemIndex];
+      const band = bands[systemIndex];
+
+      if (system && band) {
+        const minX = Math.min.apply(
+          null,
+          system.measures.map(function (item) {
+            return item.staveStart;
+          })
+        );
+
+        const maxX = Math.max.apply(
+          null,
+          system.measures.map(function (item) {
+            return item.staveEnd;
+          })
+        );
+
+        const logicalWidth = Math.max(1, maxX - minX);
+        const renderedWidth = Math.max(1, band.right - band.left);
+
+        const startRatio =
+          (row.staveStart - minX) / logicalWidth;
+
+        const endRatio =
+          (row.staveEnd - minX) / logicalWidth;
+
+        return {
+          measureIndex: row.measureIndex,
+          startX:
+            (band.left - containerRect.left) +
+            startRatio * renderedWidth,
+          endX:
+            (band.left - containerRect.left) +
+            endRatio * renderedWidth,
+          staffTop: band.staffTop - containerRect.top,
+          staffBottom: band.staffBottom - containerRect.top,
+          systemTop: band.staffTop - containerRect.top
+        };
+      }
+
+      /*
+       * Fallback pidetään vain varmistuksena. Normaali portrait- ja
+       * landscape-kohdistus kulkee yllä olevan DOM-geometrian kautta.
+       */
+      const staffLine = row.staffLine;
+      const box = staffLine && staffLine.PositionAndShape;
+      const absolute =
+        box && box.AbsolutePosition
+          ? box.AbsolutePosition
+          : { x:0, y:0 };
 
       return {
-        measureIndex: measureIndex,
-        startX: pxX(finite(absolute.x, 0) + borderLeft),
-        endX: pxX(finite(absolute.x, 0) + borderRight),
-        staffTop: pxY(staffTopUnits),
-        staffBottom: pxY(staffBottomUnits),
-        systemTop: pxY(finite(systemAbsolute.y, staffAbsolute.y))
+        measureIndex: row.measureIndex,
+        startX: row.staveStart * currentZoom,
+        endX: row.staveEnd * currentZoom,
+        staffTop: Number(absolute.y || 0) * fallbackUnitPixels,
+        staffBottom:
+          (Number(absolute.y || 0) + 4) * fallbackUnitPixels,
+        systemTop: Number(absolute.y || 0) * fallbackUnitPixels
       };
     });
   }
