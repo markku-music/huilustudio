@@ -1,7 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-  <ellipse cx="16" cy="22" rx="5.3" ry="3.8" fill="currentColor" stroke="none"/>
-  <ellipse cx="48" cy="22" rx="5.3" ry="3.8" fill="currentColor" stroke="none"/>
-  <path d="M12 16 C 22 6, 42 6, 52 16"/>
-  <path d="M12 17.5 C 22 10, 42 10, 52 17.5" stroke-width="1.7"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 3796 3796" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(152.077,0,0,160.367,-1594.23,-5331.04)">
+        <g id="path2088">
+            <path d="M35.444,43.182C35.444,43.182 28.832,46.196 22.467,46.196C16.536,46.196 10.483,43.182 10.483,43.182C10.483,43.182 16.165,47.69 22.496,47.69C28.827,47.69 35.444,43.182 35.444,43.182Z"/>
+        </g>
+    </g>
 </svg>
