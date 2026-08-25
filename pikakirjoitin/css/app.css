@@ -60,18 +60,47 @@ button {
 .score-card {
   flex: 1 1 auto;
   min-height: 0;
-  width: calc(100% - 24px);
-  margin: 0 auto;
-  padding: 22px 18px 18px;
-  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 12px 12px 32px;
+  overflow-x: auto;
   overflow-y: auto;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  background: #dfe3e8;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, .06);
+  scroll-padding: 12px;
+}
+
+/*
+ * 0.14.7: A4 on nyt oikea sisäinen "paperi".
+ *
+ * vmin tekee ratkaisevan tempun:
+ * - portraitissa vmin = näytön leveys
+ * - landscapessa vmin = näytön korkeus
+ *
+ * Kun sama iPad käännetään, lyhyempi sivu pysyy käytännössä samana.
+ * Siksi A4-paperin leveys ja OSMD:n nuottikoko eivät enää veny
+ * landscape-näkymän koko leveydelle.
+ *
+ * Leveys vastaa samalla vanhan portrait-näkymän score-card-leveyttä:
+ * 100vw - 24px. Paperin sisäinen 18px marginaali säilyttää OSMD:n
+ * portrait-sisäleveyden käytännössä samana kuin ennen muutosta.
+ */
+.a4-paper {
+  width: calc(100vmin - 24px);
+  min-width: calc(100vmin - 24px);
+  aspect-ratio: 210 / 297;
+  margin: 0 auto;
+  padding: 22px 18px 18px;
+  overflow: visible;
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(0, 0, 0, .11);
+  border-radius: 2px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .14);
 }
 
 #osmd-container {
@@ -85,7 +114,9 @@ button {
 }
 
 .status {
-  margin: 8px 2px 0;
+  width: calc(100vmin - 24px);
+  max-width: calc(100% - 4px);
+  margin: 8px auto 0;
   min-height: 1.25em;
   font-size: 13px;
   opacity: 0.58;
@@ -485,9 +516,24 @@ button {
    Nuottialue on ainoa pystysuunnassa vierivä pääalue. */
 @media (max-width: 720px) {
   .score-card {
-    width: calc(100% - 16px);
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  /*
+   * Vanha mobiili-portrait oli 100vw - 16px ja siinä 12px sisämarginaalit.
+   * Sama geometria säilytetään nyt A4-paperissa, mutta vmin lukitsee sen
+   * myös landscapeen.
+   */
+  .a4-paper {
+    width: calc(100vmin - 16px);
+    min-width: calc(100vmin - 16px);
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .status {
+    width: calc(100vmin - 16px);
   }
 }
 
