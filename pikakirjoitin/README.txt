@@ -1,38 +1,50 @@
-Pikakirjoitin 3 · BASE 0.18.5 · Vanha monisormikone siirretty
+Pikakirjoitin 3 · BASE 0.17.0 · Tie peukalopakissa
 
-Lähtöpiste:
-- käyttäjän toimiva Pikakirjoitin_3_BASE_0.17.0_Tie_Peukalopakki(1).zip
-- Tie-, Slur-, nuottimalli-, OSMD-, koskettimisto- ja rivieditorit on jätetty ennalleen
+Pohja:
+- BASE 0.16.2 Älytauot yksitellen
 
-Monisormi:
-- toteutus perustuu suoraan käyttäjän samalla iPadilla toimivaksi testaamaan
-  Pikakirjoitin_1.1.59_Nuotinvalinta_Vakautettu(1).zip-versioon
-- Touch Events lukitsevat Safarin scroll/pinchin 2+ sormella
-- Pointer Events tekevät varsinaisen tilakoneen
-- ensimmäinen pointer kaapataan heti score-cardille kuten vanhassa versiossa
-- 2 sormea -> Undo heti
-- 3 sormea -> 2-sormen väliaikainen Undo palautetaan Redolla ja avataan Kappaleen tiedot
-- P3:n yhden sormen ScoreSelection perutaan hallitusti, kun toinen sormi tulee
+Uusi Tie / sidekaari:
+- peukalopakissa Slur-napin ja ↵ Rivien muokkaus -napin välissä
+- käytössä täsmälleen käyttäjän lähettämä tie(1).svg
+- kuvake on sama kuin aiemmassa Pikakirjoitin 2:ssa
 
-Vanhan toimivan version kosketusympäristö on myös siirretty:
-- html/body overscroll-behavior:none
-- html/body touch-action:manipulation
-- body position:fixed + inset:0
-- app-shell position:fixed + inset:0 + touch-action:manipulation
-- score-card säilyy touch-action:pan-y ja -webkit-overflow-scrolling:touch
+Käyttö:
+1. kirjoita ensimmäinen nuotti
+2. napauta Tie-nappia kerran
+3. nappi muuttuu siniseksi ja jää odottamaan
+4. kirjoita seuraava tapahtuma
+5. Tie kulutetaan heti ja nappi sammuu automaattisesti
 
-Undo:
-- palauttaa koko Score Model -tilan ja kappaleasetukset
-- historia kattaa nuotin kirjoituksen/muokkauksen, enharmonisen vaihdon, tauoksi muuttamisen,
-  poiston, Slurin, rivinvaihdon, viimeisen rivin venytyksen ja kappaleen tietojen muutokset
-- ALOITA UUSI tallennetaan Undo-historiaan, joten vanha kappale voidaan palauttaa 2-sormen Undolla
+Tie syntyy vain, kun:
+- edellinen tapahtuma on nuotti
+- uusi tapahtuma on nuotti
+- tapahtumat ovat välittömästi peräkkäisiä
+- sävelkorkeus on sama
 
-Kappaleen tiedot:
-- 3 sormea avaa nykyiset tiedot
-- PÄIVITÄ TIEDOT säilyttää nuotit
-- ALOITA UUSI tyhjentää kappaleen mutta on Undo-palautettava
-- × sulkee muuttamatta mitään
+Jos seuraava tapahtuma on:
+- eri sävel -> Tie ei synny ja nappi sammuu
+- tauko -> Tie ei synny ja nappi sammuu
+- ensimmäinen nuotti ilman edeltäjää -> Tie ei synny ja nappi sammuu
 
-Välimuistin varmistus:
-- CSS- ja JS-resursseihin on lisätty ?v=0.18.5, jotta iPad/Safari ei käyttäisi vahingossa
-  saman URL-polun vanhaa app.js/score-selection.js-versiota.
+Enharmoninen sama sävel:
+- esim. C#4 ja Db4 tunnistetaan samaksi soivaksi sävelkorkeudeksi
+
+Tietomalli:
+- manuaaliset tiet tallennetaan score.ties-taulukkoon
+- tie on suhde kahden loogisen nuotti-id:n välillä
+- poistaminen tai sävelkorkeuden muuttaminen siivoaa kelvottoman tien
+- tie ei siirry vahingossa toiseen nuottipariin, jos toinen pää poistetaan
+
+MusicXML / OSMD:
+- manuaalinen tie muunnetaan tavallisiksi <tie> ja <tied> -merkinnöiksi
+- OSMD 2.1.2 piirtää sidekaaren
+- olemassa oleva automaattinen tie tahtiviivan yli säilyy
+- manuaalinen tie ja automaattinen tahdinylitystie voivat muodostaa saman
+  yhtenäisen tie-ketjun ilman erillistä SVG-piirtoa
+
+Slur:
+- Slurin nykyinen paina-ja-pidä-logiikka on jätetty ennalleen
+- Slur ja Tie voivat olla samalla nuottiparilla yhtä aikaa MusicXML:n
+  omilla erillisillä notaatioilla
+
+Muu BASE 0.16.2:n toiminta on jätetty ennalleen.

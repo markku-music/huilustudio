@@ -48,7 +48,6 @@ class StartScreen {
   #onStart;
   #els;
   #themeStyle;
-  #reopenMode = false;
 
   constructor({ audio, onStart }) {
     this.#audio = audio;
@@ -71,7 +70,6 @@ class StartScreen {
     const byId = id => document.getElementById(id);
     return {
       modal:byId('projectModal'), form:byId('projectForm'), startButton:byId('projectSaveButton'), status:byId('startStatus'),
-      closeButton:byId('projectCloseButton'), startActions:byId('projectStartActions'), newProjectButton:byId('projectNewButton'),
       newProjectStartButton:byId('newProjectStartButton'), openProjectButton:byId('openProjectButton'),
       titleInput:byId('titleInput'), tempoInput:byId('tempoInput'), composerInput:byId('composerInput'), themeSelect:byId('themeSelect'),
       keySignatureSelect:byId('keySignatureSelect'), keyTrigger:byId('keyTrigger'), keyTriggerValue:byId('keyTriggerValue'), keyWheelPopover:byId('keyWheelPopover'), keyWheelSlots:byId('keyWheelSlots'), keyWheelClose:byId('keyWheelClose'),
@@ -83,8 +81,6 @@ class StartScreen {
   #bind() {
     const e=this.#els;
     e.newProjectStartButton.addEventListener('click', ev => { ev.preventDefault(); e.titleInput.focus(); });
-    e.closeButton.addEventListener('click', ev => { ev.preventDefault(); this.closeProjectSettings(); });
-    e.newProjectButton.addEventListener('click', ev => this.#submit(ev, 'new'));
     e.keyTrigger.addEventListener('click', ev => this.#openKeyWheel(ev));
     e.keyWheelSlots.addEventListener('click', ev => this.#chooseKeyWheelSlot(ev));
     e.keyWheelClose.addEventListener('click', () => this.#closeKeyWheel());
@@ -102,77 +98,7 @@ class StartScreen {
       if(ev.key!=='Escape') return;
       if(!e.meterWheelPopover.hidden){ ev.preventDefault(); this.#closeMeterWheel(); }
       else if(!e.keyWheelPopover.hidden){ ev.preventDefault(); this.#closeKeyWheel(); }
-      else if(this.#reopenMode){ ev.preventDefault(); this.closeProjectSettings(); }
     });
-  }
-
-  syncSettings(config = {}) {
-    const e=this.#els;
-    if(typeof config.title==='string') e.titleInput.value=config.title;
-    if(typeof config.composer==='string') e.composerInput.value=config.composer;
-    if(typeof config.tempoText==='string') e.tempoInput.value=config.tempoText;
-
-    if(config.themeId && THEME_DEFINITIONS[config.themeId]) e.themeSelect.value=config.themeId;
-
-    const keyOptions=[...e.keySignatureSelect.options];
-    const keyOption=keyOptions.find(option => {
-      if(+option.value !== Number(config.keySignature ?? 0)) return false;
-      if(config.keyMode && option.dataset.mode !== config.keyMode) return false;
-      if(config.keyTonic && option.dataset.tonic !== config.keyTonic) return false;
-      return true;
-    });
-    if(keyOption) e.keySignatureSelect.selectedIndex=keyOption.index;
-
-    if(config.timeSignature && [...e.timeSignatureSelect.options].some(option=>option.value===config.timeSignature)) e.timeSignatureSelect.value=config.timeSignature;
-    if(config.tuning && [...e.tuningSelect.options].some(option=>option.value===config.tuning)) e.tuningSelect.value=config.tuning;
-    if(config.clef && [...e.clefSelect.options].some(option=>option.value===config.clef)) e.clefSelect.value=config.clef;
-
-    this.#syncKeyPicker();
-    this.#syncMeterPicker();
-    this.#syncPickupOptions();
-
-    const requestedPickup=Number(config.pickupDuration)||0;
-    const available=[0,...[...e.pickupChoices.querySelectorAll('.pickup-choice')].map(button=>Number(button.dataset.units)||0)];
-    e.pickupSelect.value=String(available.includes(requestedPickup)?requestedPickup:0);
-    this.#syncPickupButtons();
-    this.#syncNotationChoices();
-    this.#applyTheme(this.#currentThemeId());
-  }
-
-  openProjectSettings(config = {}) {
-    this.#reopenMode=true;
-    this.syncSettings(config);
-    const e=this.#els;
-    e.status.textContent='';
-    e.startButton.disabled=false;
-    e.newProjectButton.disabled=false;
-    e.startButton.textContent='PÄIVITÄ TIEDOT';
-    e.newProjectButton.hidden=false;
-    e.startActions.hidden=true;
-    e.closeButton.hidden=false;
-    e.modal.hidden=false;
-
-    const app=document.getElementById('app');
-    if(app){ app.inert=true; app.setAttribute('aria-hidden','true'); }
-    requestAnimationFrame(()=>e.titleInput.focus());
-  }
-
-  closeProjectSettings() {
-    if(!this.#reopenMode) return;
-    this.#closeKeyWheel();
-    this.#closeMeterWheel();
-    const e=this.#els;
-    e.modal.hidden=true;
-    e.status.textContent='';
-    e.closeButton.hidden=true;
-    e.newProjectButton.hidden=true;
-    e.newProjectButton.disabled=false;
-    e.startActions.hidden=false;
-    e.startButton.disabled=false;
-    e.startButton.textContent='ALOITA';
-    this.#reopenMode=false;
-    const app=document.getElementById('app');
-    if(app){ app.inert=false; app.removeAttribute('aria-hidden'); }
   }
 
   #selectedKeyInfo(){ const o=this.#els.keySignatureSelect.selectedOptions[0]; return {fifths:+(o?.value||0),mode:o?.dataset.mode||'major',tonic:o?.dataset.tonic||'C',name:o?.textContent||'C-duuri'}; }
@@ -217,50 +143,16 @@ class StartScreen {
 
   #settings(){ const e=this.#els,key=this.#selectedKeyInfo(); return { title:e.titleInput.value.trim(), composer:e.composerInput.value.trim(), tempoText:e.tempoInput.value.trim(), themeId:this.#currentThemeId(), keySignature:key.fifths, keyMode:key.mode, keyTonic:key.tonic, keySignatureName:key.name, timeSignature:e.timeSignatureSelect.value, pickupDuration:Number(e.pickupSelect.value)||0, tuning:e.tuningSelect.value, transpose:TUNING_TRANSPOSES[e.tuningSelect.value]||0, clef:e.clefSelect.value||'treble', keyboardStartMidi:CLEF_KEYBOARD_STARTS[e.clefSelect.value]??60 }; }
 
-  async #submit(ev, requestedAction=null){
+  async #submit(ev){
     ev.preventDefault();
     const e=this.#els;
-    const reopened=this.#reopenMode;
-    const newProject=reopened && requestedAction==='new';
-    const updateExisting=reopened && !newProject;
-
-    e.startButton.disabled=true;
-    e.newProjectButton.disabled=true;
-    e.status.textContent='Avataan ääni…';
-
+    e.startButton.disabled=true; e.status.textContent='Avataan ääni…';
     const ok=await this.#audio.unlock();
-    if(!ok){
-      e.startButton.disabled=false;
-      e.newProjectButton.disabled=false;
-      e.status.textContent='Äänen avaaminen epäonnistui. Yritä uudelleen.';
-      return;
-    }
-
-    const settings=this.#settings();
-    this.#savePreferences();
-    this.#applyTheme(settings.themeId);
-
-    try { await this.#onStart?.(settings,{newProject,updateExisting}); }
-    catch(err){
-      console.error(err);
-      e.startButton.disabled=false;
-      e.newProjectButton.disabled=false;
-      e.status.textContent='Aloitus epäonnistui.';
-      return;
-    }
-
-    this.#reopenMode=false;
-    e.closeButton.hidden=true;
-    e.newProjectButton.hidden=true;
-    e.newProjectButton.disabled=false;
-    e.startActions.hidden=false;
-    e.startButton.disabled=false;
-    e.startButton.textContent='ALOITA';
-    e.modal.hidden=true;
-    const app=document.getElementById('app');
-    app.inert=false;
-    app.removeAttribute('aria-hidden');
-    e.status.textContent='';
+    if(!ok){ e.startButton.disabled=false; e.status.textContent='Äänen avaaminen epäonnistui. Napauta ALOITA uudelleen.'; return; }
+    const settings=this.#settings(); this.#savePreferences(); this.#applyTheme(settings.themeId);
+    try { await this.#onStart?.(settings); }
+    catch(err){ console.error(err); e.startButton.disabled=false; e.status.textContent='Aloitus epäonnistui.'; return; }
+    e.modal.hidden=true; const app=document.getElementById('app'); app.inert=false; app.removeAttribute('aria-hidden'); e.status.textContent='';
   }
 }
 

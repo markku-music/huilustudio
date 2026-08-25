@@ -15,15 +15,9 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  overscroll-behavior: none;
-  touch-action: manipulation;
 }
 
 body {
-  position: fixed;
-  inset: 0;
-  -webkit-user-select: none;
-  user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -34,9 +28,6 @@ button {
 }
 
 .app-shell {
-  position: fixed;
-  inset: 0;
-  touch-action: manipulation;
   width: 100%;
   height: 100dvh;
   min-height: 0;
@@ -477,7 +468,7 @@ button {
 /* Pikakirjoitin 1.x:n loppuun kehitetty aloitusikkuna */
 .project-modal{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));background:#17202bd9;overflow:auto}
 .project-modal[hidden]{display:none}
-.project-card{position:relative;width:min(660px,100%);max-height:100%;overflow:auto;padding:clamp(20px,4vw,32px);border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
+.project-card{width:min(660px,100%);max-height:100%;overflow:auto;padding:clamp(20px,4vw,32px);border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
 .project-start-actions{display:flex;gap:8px;margin:0 0 14px}
 .project-start-action{flex:1;min-height:38px;padding:7px 12px;border:1px solid #aebbc9;border-radius:9px;background:#fff;color:#263342;font-size:12px;font-weight:850;letter-spacing:.03em;touch-action:manipulation;cursor:pointer}
 .project-start-action[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
@@ -913,36 +904,3 @@ button {
     0 0 0 3px rgba(35, 101, 170, .2),
     0 4px 10px rgba(24, 34, 45, .24);
 }
-
-
-/* ==========================================================
- * BASE 0.18.5 · iPad-kosketusympäristö vanhan 1.1.59:n mukaan
- * ========================================================== */
-
-.project-close-button {
-  position:absolute;
-  z-index:5;
-  top:10px;
-  right:10px;
-  width:38px;
-  height:38px;
-  display:grid;
-  place-items:center;
-  padding:0;
-  border:0;
-  border-radius:50%;
-  background:rgba(255,255,255,.92);
-  color:#334150;
-  box-shadow:0 2px 8px rgba(20,30,40,.15);
-  font:800 25px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  cursor:pointer;
-  touch-action:manipulation;
-}
-.project-close-button[hidden]{display:none;}
-.project-close-button:focus-visible{outline:3px solid #62a7ff;outline-offset:2px;}
-
-.project-submit-actions{display:flex;gap:10px;margin-top:20px;}
-.project-submit-actions .start-button{flex:1 1 0;width:auto;margin-top:0;}
-.project-new-button{border:1px solid #2365aa !important;background:#fff !important;color:#174d83 !important;}
-.project-new-button:disabled{opacity:.62;cursor:wait;}
-@media (max-width:520px){.project-submit-actions{flex-direction:column;}}

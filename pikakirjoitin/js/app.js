@@ -26,7 +26,6 @@
   let thumbState = { rest: false, dots: 0, slur: false, tie: false, layout: false };
   let keyboard = null;
   let thumbRail = null;
-  let startScreen = null;
   let selection = null;
   let selectionEditor = null;
   let layoutEditor = null;
@@ -34,21 +33,6 @@
   let lastSelectionEditorAnchor = null;
   let pendingSelectedSlurStartId = null;
   const noteInputMeta = new Map();
-
-  const UNDO_LIMIT = 100;
-  const undoStack = [];
-
-  // BASE 0.18.5: tämä on tarkoituksella sama kaksikerroksinen malli kuin
-  // vanhassa 1.1.59:ssa, jossa ele toimii samalla iPadilla:
-  // Touch Events lukitsevat Safarin scroll/pinchin, Pointer Events tekevät
-  // varsinaisen 2/3-sormen tilakoneen.
-  const scorePointers = new Set();
-  const scoreTouchIds = new Set();
-  let scoreGesture = 0;
-  let scoreUndoneAction = null;
-  let scoreMultiTouchLocked = false;
-  let scoreMultiTouchScrollTop = 0;
-  let scoreMultiTouchScrollLeft = 0;
 
   let settings = {
     transpose: 0,
@@ -70,255 +54,6 @@
     const status = document.getElementById("status");
     status.textContent = message;
     status.className = "status" + (className ? " " + className : "");
-  }
-
-  function clonePlain(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
-
-  function captureHistoryState() {
-    return {
-      score: clonePlain(score),
-      settings: clonePlain(settings)
-    };
-  }
-
-  function historySnapshot(label) {
-    return { label: label || "muutos", before: captureHistoryState() };
-  }
-
-  function commitHistory(snapshot) {
-    if (!snapshot) return;
-    undoStack.push(snapshot);
-    if (undoStack.length > UNDO_LIMIT) undoStack.splice(0, undoStack.length - UNDO_LIMIT);
-  }
-
-  function pushHistory(label) {
-    commitHistory(historySnapshot(label));
-  }
-
-  function replaceScoreState(nextScore) {
-    Object.keys(score).forEach(function (key) { delete score[key]; });
-    Object.assign(score, clonePlain(nextScore));
-    score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
-    window.PikakirjoitinScoreModel.cleanupTies(score);
-    window.PikakirjoitinScoreModel.cleanupSlurs(score);
-  }
-
-  function restoreHistoryState(state) {
-    if (!state) return;
-    replaceScoreState(state.score);
-    settings = clonePlain(state.settings || {});
-    keyboardEditId = null;
-    pendingSelectedSlurStartId = null;
-    noteInputMeta.clear();
-    audio.noteOff();
-    if (selection) selection.clear();
-    if (startScreen) startScreen.syncSettings(settings);
-  }
-
-  // Synchronous score-state change, exactly like the old working version.
-  // Render is queued afterwards. This is important because a third finger may
-  // immediately redo the temporary 2-finger Undo before the first render ends.
-  function undoLastChange() {
-    const snapshot = undoStack.pop();
-    if (!snapshot) {
-      updateStatus("Ei kumottavaa.", "ok");
-      return null;
-    }
-
-    const action = {
-      label: snapshot.label,
-      before: snapshot.before,
-      after: captureHistoryState(),
-      historyEntry: snapshot
-    };
-
-    restoreHistoryState(snapshot.before);
-    renderScore().then(function () {
-      updateStatus("Kumottu · " + snapshot.label + ".", "ok");
-    }).catch(function (error) {
-      console.error(error);
-    });
-
-    return action;
-  }
-
-  function redoChange(action) {
-    if (!action || !action.after) return false;
-    restoreHistoryState(action.after);
-    undoStack.push(action.historyEntry || { label:action.label || "muutos", before:action.before });
-    if (undoStack.length > UNDO_LIMIT) undoStack.splice(0, undoStack.length - UNDO_LIMIT);
-    renderScore().catch(function (error) { console.error(error); });
-    return true;
-  }
-
-  function openProjectSettingsFromGesture() {
-    audio.noteOff();
-    if (startScreen) startScreen.openProjectSettings(settings);
-  }
-
-  function keepOuterViewportFixed() {
-    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
-  }
-
-  // Sama touch-lock kuin toimivassa Pikakirjoitin 1.1.59:ssa.
-  function startScoreTouchLock(event) {
-    const viewport = document.querySelector(".score-card");
-    if (!viewport) return;
-
-    for (const touch of event.changedTouches || []) {
-      scoreTouchIds.add(touch.identifier);
-    }
-
-    if (scoreTouchIds.size >= 2 && !scoreMultiTouchLocked) {
-      scoreMultiTouchLocked = true;
-      scoreMultiTouchScrollTop = viewport.scrollTop;
-      scoreMultiTouchScrollLeft = viewport.scrollLeft;
-    }
-
-    if (scoreMultiTouchLocked) {
-      if (event.cancelable) event.preventDefault();
-      viewport.scrollTop = scoreMultiTouchScrollTop;
-      viewport.scrollLeft = scoreMultiTouchScrollLeft;
-      keepOuterViewportFixed();
-    }
-  }
-
-  function moveScoreTouchLock(event) {
-    const viewport = document.querySelector(".score-card");
-    if (!viewport || !scoreMultiTouchLocked) return;
-    if (event.cancelable) event.preventDefault();
-    viewport.scrollTop = scoreMultiTouchScrollTop;
-    viewport.scrollLeft = scoreMultiTouchScrollLeft;
-    keepOuterViewportFixed();
-  }
-
-  function endScoreTouchLock(event) {
-    const viewport = document.querySelector(".score-card");
-    if (!viewport) return;
-
-    for (const touch of event.changedTouches || []) {
-      scoreTouchIds.delete(touch.identifier);
-    }
-
-    if (scoreMultiTouchLocked) {
-      if (event.cancelable) event.preventDefault();
-      viewport.scrollTop = scoreMultiTouchScrollTop;
-      viewport.scrollLeft = scoreMultiTouchScrollLeft;
-      keepOuterViewportFixed();
-    }
-
-    if (!scoreTouchIds.size) {
-      scoreMultiTouchLocked = false;
-      scoreMultiTouchScrollTop = 0;
-      scoreMultiTouchScrollLeft = 0;
-    }
-  }
-
-  function preventScoreNativeGesture(event) {
-    if (scoreMultiTouchLocked && event.cancelable) event.preventDefault();
-  }
-
-  // Tämä 0 -> 2 -> 3 -tilakone on siirretty tarkoituksella lähes rivilleen
-  // vanhasta toimivasta 1.1.59:stä. P3-spesifi lisäys on vain se, että
-  // keskeneräinen yhden sormen ScoreSelection perutaan kun toinen sormi tulee.
-  function startScoreGesture(event) {
-    const viewport = document.querySelector(".score-card");
-    if (!viewport) return;
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-
-    if (!scorePointers.size) {
-      scoreGesture = 0;
-      scoreUndoneAction = null;
-    }
-
-    scorePointers.add(event.pointerId);
-    try { viewport.setPointerCapture(event.pointerId); } catch {}
-
-    if (scorePointers.size >= 2 && selection) {
-      selection.cancelActiveGesture({ restore:true });
-    }
-
-    if (scorePointers.size >= 3 && scoreGesture !== 3) {
-      if (scoreGesture === 2 && scoreUndoneAction) {
-        redoChange(scoreUndoneAction);
-      }
-      scoreGesture = 3;
-      scoreUndoneAction = null;
-      updateStatus("3 sormea · Kappaleen tiedot", "ok");
-      openProjectSettingsFromGesture();
-    } else if (scorePointers.size === 2 && scoreGesture === 0) {
-      scoreGesture = 2;
-      scoreUndoneAction = undoLastChange();
-    }
-
-    // Vanha sovellus ei tarvinnut tätä, koska sillä oli vain yksi score-elekone.
-    // P3:ssa estämme erillistä ScoreSelectionia näkemästä 2./3. pointerdownia.
-    if (scoreGesture !== 0) {
-      if (event.cancelable) event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  }
-
-  function moveScoreGesture(event) {
-    if (!scorePointers.has(event.pointerId)) return;
-    if (scoreGesture === 0) return;
-    if (event.cancelable) event.preventDefault();
-    event.stopImmediatePropagation();
-  }
-
-  function endScoreGesture(event) {
-    if (!scorePointers.has(event.pointerId)) return;
-
-    const wasMultiGesture = scoreGesture !== 0;
-    const viewport = document.querySelector(".score-card");
-    scorePointers.delete(event.pointerId);
-
-    try {
-      if (viewport && viewport.hasPointerCapture(event.pointerId)) {
-        viewport.releasePointerCapture(event.pointerId);
-      }
-    } catch {}
-
-    if (!scorePointers.size) {
-      scoreGesture = 0;
-      scoreUndoneAction = null;
-    }
-
-    if (wasMultiGesture) {
-      if (event.cancelable) event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  }
-
-  function resetScoreGestureState() {
-    scorePointers.clear();
-    scoreTouchIds.clear();
-    scoreGesture = 0;
-    scoreUndoneAction = null;
-    scoreMultiTouchLocked = false;
-    scoreMultiTouchScrollTop = 0;
-    scoreMultiTouchScrollLeft = 0;
-  }
-
-  function setupScoreMultitouch() {
-    const viewport = document.querySelector(".score-card");
-    if (!viewport) return;
-
-    // Täsmälleen vanhan toimivan version listener-järjestys.
-    viewport.addEventListener("touchstart", startScoreTouchLock, { passive:false, capture:true });
-    viewport.addEventListener("touchmove", moveScoreTouchLock, { passive:false, capture:true });
-    viewport.addEventListener("touchend", endScoreTouchLock, { passive:false, capture:true });
-    viewport.addEventListener("touchcancel", endScoreTouchLock, { passive:false, capture:true });
-    viewport.addEventListener("gesturestart", preventScoreNativeGesture, { passive:false, capture:true });
-    viewport.addEventListener("gesturechange", preventScoreNativeGesture, { passive:false, capture:true });
-    viewport.addEventListener("pointerdown", startScoreGesture);
-    viewport.addEventListener("pointermove", moveScoreGesture, { passive:false });
-    viewport.addEventListener("pointerup", endScoreGesture);
-    viewport.addEventListener("pointercancel", endScoreGesture);
-
-    window.addEventListener("blur", resetScoreGestureState);
   }
 
   function refreshSelectionFromRenderedScore() {
@@ -402,9 +137,7 @@
         return;
       }
 
-      const undoSnapshot = historySnapshot("Slur");
       if (window.PikakirjoitinScoreModel.addSlur(score, startId, nextId)) {
-        commitHistory(undoSnapshot);
         renderScore().then(function () {
           selection.retainSingle(startId);
           updateStatus("Slur lisätty valitusta nuotista seuraavaan nuottiin.", "ok");
@@ -427,7 +160,6 @@
   }
 
   function startEntry(midi, pitch, duration) {
-    pushHistory(selectedSingleNote() ? "Nuotin muokkaus" : "Nuotin kirjoitus");
     const dots = thumbState.dots || 0;
     const selected = selectedSingleNote();
 
@@ -631,27 +363,7 @@
     return "G";
   }
 
-  async function applyStartSettings(nextSettings, context) {
-    const isNewProject = Boolean(context && context.newProject);
-    const isUpdateExisting = Boolean(context && context.updateExisting);
-
-    if (isNewProject) {
-      pushHistory("Uusi nuotti");
-      if (selection) selection.clear();
-      keyboardEditId = null;
-      pendingSelectedSlurStartId = null;
-      noteInputMeta.clear();
-      score.notes = [];
-      score.ties = [];
-      score.slurs = [];
-      score.layout = window.PikakirjoitinScoreModel.normalizeLayout();
-    } else if (isUpdateExisting) {
-      const before = JSON.stringify({settings:settings,scoreMeta:{metadata:score.metadata,key:score.key,time:score.time,timeSymbol:score.timeSymbol,pickupDuration:score.pickupDuration,clef:score.clef}});
-      const meterPreview = timeSettings(nextSettings.timeSignature);
-      const after = JSON.stringify({settings:nextSettings,scoreMeta:{metadata:{title:nextSettings.title || "Pikakirjoitin 3",composer:nextSettings.composer || "",tempoText:nextSettings.tempoText || "",partName:score.metadata.partName},key:Number.isInteger(nextSettings.keySignature)?nextSettings.keySignature:0,time:meterPreview.time,timeSymbol:meterPreview.symbol,pickupDuration:Number(nextSettings.pickupDuration)||0,clef:clefValue(nextSettings.clef)}});
-      if (before !== after) pushHistory("Kappaleen tietojen päivitys");
-    }
-
+  async function applyStartSettings(nextSettings) {
     settings = Object.assign({}, nextSettings);
     const meter = timeSettings(settings.timeSignature);
 
@@ -664,20 +376,15 @@
     score.pickupDuration = Number(settings.pickupDuration) || 0;
     score.clef = clefValue(settings.clef);
 
-    if (isUpdateExisting) {
-      const measureCount = window.PikakirjoitinMusicXML.getMeasureCount(score);
-      window.PikakirjoitinScoreModel.cleanupSystemBreaks(score, measureCount);
-    }
-
     await renderScore();
 
     requestAnimationFrame(function () {
-      if (keyboard) keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+      if (keyboard) {
+        keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+      }
     });
 
-    if (isNewProject) updateStatus("Uusi nuotti aloitettu.", "ok");
-    else if (isUpdateExisting) updateStatus("Kappaleen tiedot päivitetty.", "ok");
-    else updateStatus("Valmis · ääni on käytössä ja kirjoitus voi alkaa.", "ok");
+    updateStatus("Valmis · ääni on käytössä ja kirjoitus voi alkaa.", "ok");
   }
 
   function slurChoiceLabel(slur) {
@@ -704,9 +411,7 @@
     const ids = selectedIds();
     if (!slurId || !ids.length) return;
 
-    const undoSnapshot = historySnapshot("Slur");
     if (window.PikakirjoitinScoreModel.removeSlurById(score, slurId)) {
-      commitHistory(undoSnapshot);
       renderScore().then(function () {
         selection.retainIds(ids);
         updateStatus("Slur poistettu.", "ok");
@@ -757,7 +462,6 @@
           onToggleSystemBreak: function (
             startMeasureIndex
           ) {
-            pushHistory("Rivinvaihto");
             const active =
               window.PikakirjoitinScoreModel
                 .toggleSystemBreak(
@@ -801,8 +505,6 @@
           },
 
           onLastSystemFactorCommit: function (factor) {
-            const previousFactor = window.PikakirjoitinScoreModel.getLastSystemMaxScalingFactor(score);
-            if (Math.abs(Number(factor) - Number(previousFactor)) > 0.001) pushHistory("Viimeisen rivin venytys");
             window.PikakirjoitinScoreModel
               .setLastSystemMaxScalingFactor(
                 score,
@@ -850,9 +552,7 @@
       onEnharmonic: function () {
         const note = selectedSingleNote();
         if (!note) return;
-        const undoSnapshot = historySnapshot("Enharmoninen");
         if (window.PikakirjoitinScoreModel.toggleEnharmonic(score, note.id)) {
-          commitHistory(undoSnapshot);
           renderScore().then(function () {
             selection.retainSingle(note.id);
             updateStatus("Enharmoninen kirjoitusasu vaihdettu.", "ok");
@@ -879,7 +579,6 @@
         }
 
         // Useampi nuotti: 0.14.4:n korvauslogiikka säilyy.
-        const undoSnapshot = historySnapshot("Slur");
         const result =
           window.PikakirjoitinScoreModel.toggleSlurForSelection(score, ids);
 
@@ -892,7 +591,6 @@
           return;
         }
 
-        commitHistory(undoSnapshot);
         renderScore().then(function () {
           selection.retainIds(ids);
           updateStatus(
@@ -920,10 +618,8 @@
         const ids = selectedIds();
         if (!ids.length) return;
 
-        const undoSnapshot = historySnapshot("Tauoksi muuttaminen");
         const result = window.PikakirjoitinScoreModel.convertSelectionToRests(score, ids);
         if (!result.changed) return;
-        commitHistory(undoSnapshot);
 
         renderScore().then(function () {
           selection.retainIds(result.ids);
@@ -944,9 +640,7 @@
       onDelete: function () {
         const ids = selectedIds();
         if (!ids.length) return;
-        const undoSnapshot = historySnapshot("Poisto");
         if (window.PikakirjoitinScoreModel.deleteEntries(score, ids)) {
-          commitHistory(undoSnapshot);
           selection.clear();
           renderScore().then(function () {
             updateStatus(ids.length === 1 ? "Tapahtuma poistettu." : ids.length + " tapahtumaa poistettu.", "ok");
@@ -1015,7 +709,6 @@
   }
 
   function start() {
-    setupScoreMultitouch();
     setupSelection();
     setupSystemLayoutEditor();
 
@@ -1106,7 +799,7 @@
       updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
 
-    startScreen = new window.PikakirjoitinStartScreen.StartScreen({
+    new window.PikakirjoitinStartScreen.StartScreen({
       audio: audio,
       onStart: applyStartSettings
     });
