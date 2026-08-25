@@ -39,19 +39,9 @@ button {
 }
 
 .test-header {
-  position: relative;
-  z-index: 20;
   flex: 0 0 auto;
   margin: 0;
   padding: 12px max(18px, env(safe-area-inset-right)) 10px max(18px, env(safe-area-inset-left));
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.header-copy {
-  min-width: 0;
 }
 
 .test-header h1 {
@@ -496,98 +486,34 @@ button {
 }
 
 
-/* 0.11.4: OSMD:n tekstien kaiverrusetäisyydet pienen rattaan takana. */
-.engraving-settings {
-  position: relative;
-  flex: 0 0 auto;
-}
+/* 0.11.4: aloitusikkunan ryhmitelty tempovalikko */
+.tempo-picker{position:relative;display:grid;min-width:0}
+.tempo-trigger{width:100%;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 11px;border:1px solid #9ba6b4;border-radius:9px;background:#fff;color:#18202a;text-align:left;touch-action:manipulation;cursor:pointer}
+.tempo-trigger-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:650}
+.tempo-trigger-icon{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border:1.5px solid #60758c;border-radius:50%;font-size:14px;line-height:1;opacity:.9}
+.tempo-trigger:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
 
-.engraving-gear {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid rgba(0, 0, 0, .14);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, .82);
-  color: #25282c;
-  font-size: 21px;
-  line-height: 1;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
+.tempo-popover{position:fixed;z-index:982;inset:0;display:grid;place-items:center;padding:14px;background:#17202b8f;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.tempo-popover[hidden]{display:none}
+.tempo-card{width:min(560px,calc(100vw - 28px));max-height:min(76vh,720px);display:flex;flex-direction:column;border:1px solid #aebac8;border-radius:18px;background:#fff;box-shadow:0 24px 60px #0007;overflow:hidden}
+.tempo-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 10px;border-bottom:1px solid #e0e6ed}
+.tempo-title{font-size:16px;font-weight:850;letter-spacing:.01em;color:#25313d}
+.tempo-close{width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #c4cfdb;border-radius:50%;background:#fff;color:#4e5c6c;font-size:20px;line-height:1;cursor:pointer}
+.tempo-search-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #e8edf3}
+.tempo-search{flex:1 1 auto;min-width:0;min-height:42px;padding:8px 12px;border:1px solid #9ba6b4;border-radius:10px;background:#fff;color:#18202a;font-size:16px}
+.tempo-clear-button{flex:0 0 auto;min-height:42px;padding:0 12px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font-size:13px;font-weight:800;white-space:nowrap;touch-action:manipulation;cursor:pointer}
+.tempo-groups{padding:10px 16px 16px;overflow:auto;-webkit-overflow-scrolling:touch}
+.tempo-group{margin:0 0 14px}
+.tempo-group:last-child{margin-bottom:0}
+.tempo-group-title{margin:0 0 8px;color:#4e5c6c;font-size:12px;font-weight:850;letter-spacing:.04em;text-transform:uppercase}
+.tempo-group-options{display:flex;flex-wrap:wrap;gap:7px}
+.tempo-option{min-height:36px;padding:7px 10px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font-size:14px;font-weight:700;line-height:1.15;touch-action:manipulation;cursor:pointer}
+.tempo-option[hidden],.tempo-group[hidden]{display:none!important}
+.tempo-option[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
+.tempo-option:focus-visible,.tempo-clear-button:focus-visible,.tempo-close:focus-visible,.tempo-search:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
 
-.engraving-gear[aria-expanded="true"] {
-  background: #fff;
-  border-color: rgba(0, 0, 0, .25);
-}
-
-.engraving-popover {
-  position: absolute;
-  z-index: 60;
-  top: 40px;
-  right: 0;
-  width: 238px;
-  padding: 10px;
-  border: 1px solid rgba(0, 0, 0, .15);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, .98);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
-}
-
-.engraving-popover[hidden] {
-  display: none;
-}
-
-.engraving-popover-title {
-  margin: 0 0 7px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  opacity: .52;
-}
-
-.engraving-row {
-  min-height: 34px;
-  display: grid;
-  grid-template-columns: 78px 1fr;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.engraving-row select {
-  width: 100%;
-  min-width: 0;
-  height: 30px;
-  padding: 2px 24px 2px 7px;
-  border: 1px solid rgba(0, 0, 0, .18);
-  border-radius: 7px;
-  background: #fff;
-  color: #171717;
-  font: 600 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.engraving-reset {
-  width: 100%;
-  min-height: 30px;
-  margin-top: 7px;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 7px;
-  background: rgba(0, 0, 0, .055);
-  color: #30343a;
-  font-size: 11px;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-@media (max-width: 520px) {
-  .engraving-popover {
-    width: 220px;
-  }
+@media (max-width:520px){
+  .tempo-card{width:min(100vw - 20px,560px);max-height:80vh;border-radius:16px}
+  .tempo-search-row{flex-wrap:wrap}
+  .tempo-clear-button{width:100%}
 }

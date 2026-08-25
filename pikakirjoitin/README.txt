@@ -1,37 +1,41 @@
-Pikakirjoitin 3 · BASE 0.11.4 · OSMD tekstiasetukset
+Pikakirjoitin 3 · BASE 0.11.4 · Aloitusikkunan tempovalikko
 
 Pohja:
 - käyttäjän palauttama BASE 0.11.3 OSMD Oletus Otsikko Säveltäjä
 
-Uutta:
-Pikakirjoittimen yläreunassa on pieni ratas.
-Rattaan takana on kolme pientä pudotusvalikkoa:
+Muutos:
+Aloitusikkunan vapaa tempotekstikenttä on korvattu ryhmitellyllä tempovalikolla.
 
-1. Otsikko
-   -> OSMD EngravingRules.TitleTopDistance
-   -> OSMD 2.1.2 oletus 5.0
+Käyttö:
+- napauta Tempo-kenttää
+- avautuu popup-valikko
+- yläreunassa on hakukenttä
+- listassa ovat kaikki OSMD 2.1.2:n tunnistamat tempo-/tempomuutos-tekstit,
+  ryhmiteltynä kuuteen ryhmään
+- napauttamalla vaihtoehtoa tempoteksti valitaan
+- "Ei tempoa" tyhjentää valinnan
 
-2. Säveltäjä
-   -> OSMD EngravingRules.SystemComposerDistance
-   -> OSMD 2.1.2 oletus 2.0
+Ryhmät:
+- Hyvin hitaat
+- Hitaat
+- Kävelyvauhti ja keskitempo
+- Nopeat
+- Hyvin nopeat
+- Tempon muutokset
 
-3. Tempo
-   -> OSMD EngravingRules.TempoYSpacing
-   -> OSMD 2.1.2 oletus 0.5
+Tekninen toteutus:
+- valinta tallennetaan edelleen tempoInput-arvoksi
+- app.js ja MusicXML-logiikka pysyvät ennallaan
+- Score Modeliin menee valittu tempoText
+- MusicXML:ään kirjoitetaan edelleen <direction><words>...</words></direction>
+- OSMD 2.1.2 piirtää tekstin kuten ennenkin
 
-Asetukset:
-- vaikuttavat heti nykyiseen nuottikuvaan
-- tallentuvat selaimen localStorageen
-- palautuvat seuraavalla avauskerralla
-- "Palauta oletukset" palauttaa 5.0 / 2.0 / 0.5
-
-OSMD:
-- drawingParameters: "default"
-- drawTitle: true
-- drawComposer: true
-- autoBeam: true
-- autoGenerateMultipleRestMeasuresFromRestMeasures: false
-- vain nämä kolme tekstien kaiverrussääntöä ylikirjoitetaan käyttäjän valinnoilla
-- vendor/opensheetmusicdisplay.min.js on täysin muuttumaton
-
-Muu Pikakirjoittimen toiminta on 0.11.3:sta ennallaan.
+Muu toiminta säilyy ennallaan:
+- aloitusikkuna
+- ääni
+- otsikko ja säveltäjä OSMD:n kautta
+- sävellaji, tahtilaji, kohotahti, viritys ja avain
+- pisteflyout
+- kokotahdin tauot ja explicit multirestit
+- koskettimisto alareunassa
+- OSMD vendor muuttumattomana
