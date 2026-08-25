@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset='utf-8'><script src='vendor/osmd/opensheetmusicdisplay.min.js'></script><style>body{font-family:sans-serif}.box{width:900px;border:1px solid #aaa;margin:12px}.label{font-weight:bold;margin:6px}</style></head><body>
+<div class='label'>A original begin/end tertiary</div><div id='a' class='box'></div>
+<div class='label'>B no beam tags, auto</div><div id='b' class='box'></div>
+<div class='label'>C tertiary forward/back hooks</div><div id='c' class='box'></div>
+<script>
+function xml(mode){
+ const beams = mode==='A' ? [
+  '<beam number="1">begin</beam><beam number="2">begin</beam><beam number="3">begin</beam>',
+  '<beam number="1">continue</beam><beam number="2">continue</beam><beam number="3">end</beam>',
+  '<beam number="1">end</beam><beam number="2">end</beam>'
+ ] : mode==='C' ? [
+  '<beam number="1">begin</beam><beam number="2">begin</beam><beam number="3">forward hook</beam>',
+  '<beam number="1">continue</beam><beam number="2">continue</beam><beam number="3">backward hook</beam>',
+  '<beam number="1">end</beam><beam number="2">end</beam>'
+ ] : ['','',''];
+ return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><part-list><score-part id="P1"><part-name>Music</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>24</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>
+ <note><pitch><step>C</step><octave>5</octave></pitch><duration>3</duration><voice>1</voice><type>32nd</type>${beams[0]}</note>
+ <note><pitch><step>D</step><octave>5</octave></pitch><duration>3</duration><voice>1</voice><type>32nd</type>${beams[1]}</note>
+ <note><pitch><step>E</step><octave>5</octave></pitch><duration>6</duration><voice>1</voice><type>16th</type>${beams[2]}</note>
+ <note><rest/><duration>84</duration><voice>1</voice><type>half</type></note>
+ </measure></part></score-partwise>`
+}
+(async()=>{for(const [id,m] of [['a','A'],['b','B'],['c','C']]){const osmd=new opensheetmusicdisplay.OpenSheetMusicDisplay(id,{backend:'svg',autoResize:false,drawingParameters:'compacttight',drawTitle:false,drawPartNames:false});await osmd.load(xml(m));osmd.render();}})();
+</script></body></html>
