@@ -1,34 +1,33 @@
-Pikakirjoitin 3 · BASE 0.14.7 · A4-paperi lukittu
+Pikakirjoitin 3 · BASE 0.14.8 · A4 koko leveys, yksi paperi
 
 Pohja:
-- BASE 0.14.6 Uusi slur-kuvake
+- BASE 0.14.7 A4-paperi lukittu
 
-Uutta:
-- nuottialueella on heti kokonainen A4-suhteinen paperi (210:297)
-- paperi on valkoinen sivu harmaan vieritysalueen sisällä
-- tyhjäkin kappale näyttää koko A4-sivun korkeuden
-- A4-paperia voi vierittää pystysuunnassa
-- koskettimisto pysyy edelleen alareunassa
+Muutokset:
 
-Portrait / landscape:
-- paperin leveys perustuu CSS:n vmin-mittaan
-- portraitissa se vastaa käytännössä näytön leveyttä
-- landscapessa se vastaa saman laitteen lyhyempää sivua
-- tästä seuraa, ettei paperi eikä OSMD-nuottikuva veny landscape-näkymän
-  koko leveydelle
-- nuotin koko ja suhde paperiin pysyvät käytännössä samana kuin portraitissa
+1. A4 täyttää koko näytön leveyden
+- portraitissa A4 täyttää score-alueen koko leveyden
+- landscapessa A4 täyttää myös koko leveämmän näytön leveyden
+- paperia ei enää lukita portrait-leveyteen vmin-mitalla
 
-Portrait-geometria:
-- tabletilla paperin leveys vastaa vanhaa score-card-leveyttä (viewport - 24 px)
-- paperin 18 px sisämarginaali säilyttää OSMD:n käytettävissä olevan leveyden
-  samana kuin ennen muutosta
-- pienillä näytöillä säilytetään vastaavasti vanha mobiiligeometria
-  (viewport - 16 px, 12 px sisämarginaalit)
+2. A4-suhde säilyy
+- paperin suhde on aina 210:297
+- landscape-näkymässä paperi suurenee leveämmäksi ja samalla korkeammaksi
+- paperia vieritetään pystysuunnassa
 
-Huomio:
-- tämä versio tekee ensimmäisestä sivusta aidon A4-mittoisen työpinnan.
-- Jos nuottisisältö myöhemmin kasvaa A4-korkeutta pidemmäksi, nykyinen DOM
-  voi kasvattaa sivua. Varsinainen automaattinen monisivutus voidaan tehdä
-  seuraavana erillisenä vaiheena.
+3. Nuotti pysyy samassa suhteessa paperiin
+- OSMD-kontti skaalautuu paperin leveyden mukana
+- paperin sisämarginaalit ovat prosentteina, eivät kiinteinä pikseleinä
+- siksi marginaalit ja nuottikuva suurenevat yhdessä paperin kanssa
 
-Muu BASE 0.14.6:n toiminta säilyy ennallaan.
+4. Vain yksi näkyvä paperi
+- .a4-paper on ainoa valkoinen paperipinta
+- OSMD-kontin ja SVG:n tausta, reunat, outline ja varjot on poistettu
+- A4-paperin oma ylimääräinen reunus ja varjo on poistettu
+- näin nuottipaperin päällä ei pitäisi näkyä toista laatikkoa tai omia reunoja
+
+5. Koskettimisto ja vieritys
+- koskettimisto pysyy alareunassa
+- A4-paperia vieritetään score-alueessa pystysuunnassa
+
+Muu BASE 0.14.7:n toiminta säilyy ennallaan.
