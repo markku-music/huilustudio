@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.17.0</title>
+  <title>Pikakirjoitin 3 · BASE 0.18.1</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
     <form class="project-card" id="projectForm">
-      <div class="project-start-actions" role="group" aria-label="Projektin aloitustapa">
+      <button class="project-close-button" id="projectCloseButton" type="button"
+              aria-label="Sulje aloitusikkuna" title="Sulje" hidden>×</button>
+      <div class="project-start-actions" id="projectStartActions" role="group" aria-label="Projektin aloitustapa">
         <button class="project-start-action" id="newProjectStartButton" type="button" aria-pressed="true">UUSI NUOTTI</button>
         <button class="project-start-action" id="openProjectButton" type="button" aria-pressed="false" disabled aria-disabled="true" title="Projektin avaaminen lisätään myöhemmin Coreen">AVAA PROJEKTI</button>
       </div>
@@ -198,7 +200,11 @@
           </select>
         </label>
       </div>
-      <button class="start-button" id="projectSaveButton" type="submit">ALOITA</button>
+      <div class="project-submit-actions" id="projectSubmitActions">
+        <button class="start-button" id="projectSaveButton" type="submit">ALOITA</button>
+        <button class="start-button project-new-button" id="projectNewButton"
+                type="button" hidden>ALOITA UUSI</button>
+      </div>
       <div class="start-status" id="startStatus" role="status" aria-live="polite"></div>
     </form>
   </div>
@@ -220,7 +226,7 @@
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.17.0 · Tie peukalopakissa · OSMD 2.1.2</p>
+      <p>BASE 0.18.1 · Kappaleen tiedot / Uusi · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">

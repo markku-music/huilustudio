@@ -1,50 +1,62 @@
-Pikakirjoitin 3 · BASE 0.17.0 · Tie peukalopakissa
+Pikakirjoitin 3 · BASE 0.18.1
+Kappaleen tiedot / Aloita uusi
 
 Pohja:
-- BASE 0.16.2 Älytauot yksitellen
+- BASE 0.18.0
+- 2 sormen Undo ja 3 sormen Kappaleen tiedot -ele säilyvät
 
-Uusi Tie / sidekaari:
-- peukalopakissa Slur-napin ja ↵ Rivien muokkaus -napin välissä
-- käytössä täsmälleen käyttäjän lähettämä tie(1).svg
-- kuvake on sama kuin aiemmassa Pikakirjoitin 2:ssa
+3 SORMEN ELE
 
-Käyttö:
-1. kirjoita ensimmäinen nuotti
-2. napauta Tie-nappia kerran
-3. nappi muuttuu siniseksi ja jää odottamaan
-4. kirjoita seuraava tapahtuma
-5. Tie kulutetaan heti ja nappi sammuu automaattisesti
+Kolmen sormen lyhyt napautus nuottipaperilla avaa nykyisen
+Kappaleen tiedot -ikkunan nykyisillä arvoilla valmiiksi täytettynä.
 
-Tie syntyy vain, kun:
-- edellinen tapahtuma on nuotti
-- uusi tapahtuma on nuotti
-- tapahtumat ovat välittömästi peräkkäisiä
-- sävelkorkeus on sama
+Ikkunassa on nyt kolme mahdollista poistumistapaa:
 
-Jos seuraava tapahtuma on:
-- eri sävel -> Tie ei synny ja nappi sammuu
-- tauko -> Tie ei synny ja nappi sammuu
-- ensimmäinen nuotti ilman edeltäjää -> Tie ei synny ja nappi sammuu
+1. PÄIVITÄ TIEDOT
+- ensisijainen sininen nappi
+- päivittää nykyisen kappaleen tiedot
+- nuotteja ja taukoja ei tyhjennetä
+- Tie-suhteet säilyvät
+- Slurit säilyvät
+- rivinvaihdot säilyvät siltä osin kuin ne ovat uuden tahtirakenteen
+  jälkeen edelleen olemassa
+- viimeisen rivin venytys säilyy
+- koko päivitys on yksi Undo-askel
 
-Enharmoninen sama sävel:
-- esim. C#4 ja Db4 tunnistetaan samaksi soivaksi sävelkorkeudeksi
+Päivitettäviä tietoja ovat nykyisen aloitusikkunan kentät:
+- nimi
+- säveltäjä
+- tempoteksti
+- sävellaji
+- tahtilaji
+- kohotahti
+- transponointi / viritys
+- nuottiavain
+- värimaailma
 
-Tietomalli:
-- manuaaliset tiet tallennetaan score.ties-taulukkoon
-- tie on suhde kahden loogisen nuotti-id:n välillä
-- poistaminen tai sävelkorkeuden muuttaminen siivoaa kelvottoman tien
-- tie ei siirry vahingossa toiseen nuottipariin, jos toinen pää poistetaan
+Jos tahtilaji tai kohotahti muuttaa tahtien määrää:
+- vain uuden kappalerakenteen ulkopuolelle jääneet pakotetut
+  rivinvaihdot siivotaan pois
+- muuten layout säilyy
 
-MusicXML / OSMD:
-- manuaalinen tie muunnetaan tavallisiksi <tie> ja <tied> -merkinnöiksi
-- OSMD 2.1.2 piirtää sidekaaren
-- olemassa oleva automaattinen tie tahtiviivan yli säilyy
-- manuaalinen tie ja automaattinen tahdinylitystie voivat muodostaa saman
-  yhtenäisen tie-ketjun ilman erillistä SVG-piirtoa
+2. ALOITA UUSI
+- erillinen reunustettu nappi
+- tyhjentää score-sisällön vasta napautettaessa
+- aloittaa uuden kappaleen ikkunassa olevilla tiedoilla
+- toiminto on yksi Undo-askel
+- 2 sormen Undo voi siis palauttaa edellisen kappaleen
 
-Slur:
-- Slurin nykyinen paina-ja-pidä-logiikka on jätetty ennalleen
-- Slur ja Tie voivat olla samalla nuottiparilla yhtä aikaa MusicXML:n
-  omilla erillisillä notaatioilla
+3. ×
+- sulkee ikkunan
+- ei muuta nykyistä kappaletta lainkaan
 
-Muu BASE 0.16.2:n toiminta on jätetty ennalleen.
+Kun sovellus avataan ensimmäisen kerran:
+- aloitusikkuna toimii kuten ennen
+- näkyy vain ALOITA
+- PÄIVITÄ TIEDOT / ALOITA UUSI -kaksikko näkyy vain,
+  kun ikkuna avataan uudelleen 3 sormen eleellä
+
+2 SORMEN ELE
+- Undo säilyy ennallaan
+
+Muu BASE 0.18.0:n toiminta on jätetty ennalleen.

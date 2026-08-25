@@ -251,6 +251,21 @@ class ScoreRangeSelection {
     this.#emitChange();
   }
 
+  cancelActiveGesture() {
+    const g = this.#gesture;
+    if (!g) return false;
+
+    this.#restoreSelection(g.previous);
+
+    try {
+      this.#viewport.releasePointerCapture(g.pointerId);
+    } catch {}
+
+    this.#viewport.classList.remove('pk-selection-gesture-locked');
+    this.#gesture = null;
+    return true;
+  }
+
   #bind() {
     this.#viewport.addEventListener('pointerdown', ev => this.#pointerDown(ev));
     this.#viewport.addEventListener('pointermove', ev => this.#pointerMove(ev));
