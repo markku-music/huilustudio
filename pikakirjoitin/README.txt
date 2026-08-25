@@ -1,40 +1,38 @@
-Pikakirjoitin 3 · BASE 0.18.4 · DocumentTouch monisormi
+Pikakirjoitin 3 · BASE 0.18.5 · Vanha monisormikone siirretty
 
-LÄHTÖPISTE
-- käyttäjän uudelleen lähettämä toimiva BASE 0.17.0 Tie peukalopakissa
-- epäonnistuneita 0.18.x-versioita EI käytetty ScoreSelection-pohjana
+Lähtöpiste:
+- käyttäjän toimiva Pikakirjoitin_3_BASE_0.17.0_Tie_Peukalopakki(1).zip
+- Tie-, Slur-, nuottimalli-, OSMD-, koskettimisto- ja rivieditorit on jätetty ennalleen
 
-MIKÄ ON TÄSSÄ OIKEASTI ERI
-- 0.18.0-0.18.3 yrittivät havaita monisormen ScoreSelectionin / score-cardin
-  omista eventeistä
-- 0.18.4 kuuntelee iPadin natiiveja touchstart/touchmove/touchend-eventtejä
-  document-tasolla CAPTURE-vaiheessa
-- näin A4-paperi, OSMD, overlayt tai ScoreSelectionin omat pointer-kuuntelijat
-  eivät voi estää touchstart-havaintoa ennen koordinaattoria
-- Pointer Eventsejä EI käytetä monisormen lukumäärän tunnistamiseen
+Monisormi:
+- toteutus perustuu suoraan käyttäjän samalla iPadilla toimivaksi testaamaan
+  Pikakirjoitin_1.1.59_Nuotinvalinta_Vakautettu(1).zip-versioon
+- Touch Events lukitsevat Safarin scroll/pinchin 2+ sormella
+- Pointer Events tekevät varsinaisen tilakoneen
+- ensimmäinen pointer kaapataan heti score-cardille kuten vanhassa versiossa
+- 2 sormea -> Undo heti
+- 3 sormea -> 2-sormen väliaikainen Undo palautetaan Redolla ja avataan Kappaleen tiedot
+- P3:n yhden sormen ScoreSelection perutaan hallitusti, kun toinen sormi tulee
 
-ELEET
-2 sormea nuottipaperille:
-- Undo tehdään heti, kun toinen score-touch ilmestyy
+Vanhan toimivan version kosketusympäristö on myös siirretty:
+- html/body overscroll-behavior:none
+- html/body touch-action:manipulation
+- body position:fixed + inset:0
+- app-shell position:fixed + inset:0 + touch-action:manipulation
+- score-card säilyy touch-action:pan-y ja -webkit-overflow-scrolling:touch
 
-3 sormea nuottipaperille:
-- 2-sormen hetkellinen Undo palautetaan Redolla
-- Kappaleen tiedot avautuu
-- PÄIVITÄ TIEDOT = nykyisen kappaleen tiedot vaihtuvat, score säilyy
-- ALOITA UUSI = uusi tyhjä score
-- × = peruuta
+Undo:
+- palauttaa koko Score Model -tilan ja kappaleasetukset
+- historia kattaa nuotin kirjoituksen/muokkauksen, enharmonisen vaihdon, tauoksi muuttamisen,
+  poiston, Slurin, rivinvaihdon, viimeisen rivin venytyksen ja kappaleen tietojen muutokset
+- ALOITA UUSI tallennetaan Undo-historiaan, joten vanha kappale voidaan palauttaa 2-sormen Undolla
 
-MONISORMEN AIKANA
-- ensimmäisen sormen mahdollinen ScoreSelection-ele perutaan julkisella
-  cancelActiveGesture()-metodilla
-- score-cardin scrollTop/scrollLeft lukitaan
-- touchmove preventDefault
-- gesturestart/gesturechange/gestureend preventDefault
+Kappaleen tiedot:
+- 3 sormea avaa nykyiset tiedot
+- PÄIVITÄ TIEDOT säilyttää nuotit
+- ALOITA UUSI tyhjentää kappaleen mutta on Undo-palautettava
+- × sulkee muuttamatta mitään
 
-UNDO-HISTORIA
-- käytössä snapshot-historia kuten aiemmassa 0.18.3-kokeessa
-- kirjoitus, muokkaus, poisto, tauot, enharmoninen, slur, rivinvaihto ja
-  viimeisen rivin venytys ovat Undo-askeleita
-- Uusi nuotti on yksi Undo-askel
-
-Muu BASE 0.17.0:n toiminta säilytetty.
+Välimuistin varmistus:
+- CSS- ja JS-resursseihin on lisätty ?v=0.18.5, jotta iPad/Safari ei käyttäisi vahingossa
+  saman URL-polun vanhaa app.js/score-selection.js-versiota.

@@ -251,14 +251,13 @@ class ScoreRangeSelection {
     this.#emitChange();
   }
 
-  cancelActiveGesture() {
+  // Monisormikone on erillinen, kuten vanhassa toimivassa Pikakirjoittimessa.
+  // Kun toinen sormi tulee, se voi perua vain keskeneräisen yhden sormen
+  // valintaeleen ilman että ScoreSelection itse yrittää tulkita monisormia.
+  cancelActiveGesture({ restore = true } = {}) {
     const g = this.#gesture;
     if (!g) return false;
-
-    // Toinen sormi vaihtaa yhden sormen valintaeleen monisormieleeksi.
-    // Palautetaan täsmälleen elettä edeltänyt valinta eikä jätetä
-    // ensimmäisen sormen hetkellistä valintaa näkyviin.
-    this.#restoreSelection(g.previous);
+    if (restore && g.previous) this.#restoreSelection(g.previous);
     try {
       if (this.#viewport.hasPointerCapture?.(g.pointerId)) {
         this.#viewport.releasePointerCapture(g.pointerId);
