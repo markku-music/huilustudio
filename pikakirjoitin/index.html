@@ -138,8 +138,77 @@
 
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
-      <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.11.4 · Tempoteksti Y +5 · OSMD 2.1.2</p>
+      <div class="header-copy">
+        <h1>Pikakirjoitin 3</h1>
+        <p>BASE 0.11.4 · OSMD tekstiasetukset · OSMD 2.1.2</p>
+      </div>
+
+      <div class="engraving-settings">
+        <button class="engraving-gear" id="engravingGear" type="button"
+                aria-label="Nuottikuvan tekstiasetukset"
+                aria-haspopup="true" aria-expanded="false"
+                aria-controls="engravingPopover">⚙︎</button>
+
+        <div class="engraving-popover" id="engravingPopover" hidden>
+          <div class="engraving-popover-title">OSMD-etäisyydet</div>
+
+          <label class="engraving-row" for="titleDistanceSelect">
+            <span>Otsikko</span>
+            <select id="titleDistanceSelect"
+                    aria-label="Otsikon etäisyys"
+                    title="OSMD EngravingRules.TitleTopDistance">
+              <option value="2">2.0</option>
+              <option value="2.5">2.5</option>
+              <option value="3">3.0</option>
+              <option value="3.5">3.5</option>
+              <option value="4">4.0</option>
+              <option value="4.5">4.5</option>
+              <option value="5" selected>5.0 · oletus</option>
+              <option value="5.5">5.5</option>
+              <option value="6">6.0</option>
+              <option value="6.5">6.5</option>
+              <option value="7">7.0</option>
+            </select>
+          </label>
+
+          <label class="engraving-row" for="composerDistanceSelect">
+            <span>Säveltäjä</span>
+            <select id="composerDistanceSelect"
+                    aria-label="Säveltäjän etäisyys"
+                    title="OSMD EngravingRules.SystemComposerDistance">
+              <option value="0.5">0.5</option>
+              <option value="1">1.0</option>
+              <option value="1.5">1.5</option>
+              <option value="2" selected>2.0 · oletus</option>
+              <option value="2.5">2.5</option>
+              <option value="3">3.0</option>
+              <option value="3.5">3.5</option>
+              <option value="4">4.0</option>
+            </select>
+          </label>
+
+          <label class="engraving-row" for="tempoSpacingSelect">
+            <span>Tempo</span>
+            <select id="tempoSpacingSelect"
+                    aria-label="Tempotekstin etäisyys"
+                    title="OSMD EngravingRules.TempoYSpacing">
+              <option value="0">0.0</option>
+              <option value="0.25">0.25</option>
+              <option value="0.5" selected>0.5 · oletus</option>
+              <option value="0.75">0.75</option>
+              <option value="1">1.0</option>
+              <option value="1.25">1.25</option>
+              <option value="1.5">1.5</option>
+              <option value="1.75">1.75</option>
+              <option value="2">2.0</option>
+            </select>
+          </label>
+
+          <button class="engraving-reset" id="engravingReset" type="button">
+            Palauta oletukset
+          </button>
+        </div>
+      </div>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">

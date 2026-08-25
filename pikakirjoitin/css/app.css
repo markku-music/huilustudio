@@ -39,9 +39,19 @@ button {
 }
 
 .test-header {
+  position: relative;
+  z-index: 20;
   flex: 0 0 auto;
   margin: 0;
   padding: 12px max(18px, env(safe-area-inset-right)) 10px max(18px, env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-copy {
+  min-width: 0;
 }
 
 .test-header h1 {
@@ -482,5 +492,102 @@ button {
     width: calc(100% - 16px);
     padding-left: 12px;
     padding-right: 12px;
+  }
+}
+
+
+/* 0.11.4: OSMD:n tekstien kaiverrusetäisyydet pienen rattaan takana. */
+.engraving-settings {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.engraving-gear {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, .14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .82);
+  color: #25282c;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.engraving-gear[aria-expanded="true"] {
+  background: #fff;
+  border-color: rgba(0, 0, 0, .25);
+}
+
+.engraving-popover {
+  position: absolute;
+  z-index: 60;
+  top: 40px;
+  right: 0;
+  width: 238px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+}
+
+.engraving-popover[hidden] {
+  display: none;
+}
+
+.engraving-popover-title {
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .52;
+}
+
+.engraving-row {
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.engraving-row select {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 2px 24px 2px 7px;
+  border: 1px solid rgba(0, 0, 0, .18);
+  border-radius: 7px;
+  background: #fff;
+  color: #171717;
+  font: 600 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.engraving-reset {
+  width: 100%;
+  min-height: 30px;
+  margin-top: 7px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, .055);
+  color: #30343a;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .engraving-popover {
+    width: 220px;
   }
 }
