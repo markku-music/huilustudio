@@ -8,13 +8,49 @@
     quarter: 32,
     eighth: 16,
     sixteenth: 8,
-    "thirty-second": 4
+    "thirty-second": 4,
+    "sixty-fourth": 2,
+    "one-hundred-twenty-eighth": 1
   };
 
   const MUSICXML_TYPES = {
     sixteenth: "16th",
-    "thirty-second": "32nd"
+    "thirty-second": "32nd",
+    "sixty-fourth": "64th",
+    "one-hundred-twenty-eighth": "128th"
   };
+
+  // Vain MusicXML-renderöintiin käytettävät mahdolliset palat.
+  // 64th/128th syntyvät vain poikkeuksellisen tarkassa tahtiviivan rajassa.
+  const RENDER_DURATION_CHOICES = [
+    { value:224, duration:"whole", dots:2 },
+    { value:192, duration:"whole", dots:1 },
+    { value:128, duration:"whole", dots:0 },
+
+    { value:112, duration:"half", dots:2 },
+    { value:96,  duration:"half", dots:1 },
+    { value:64,  duration:"half", dots:0 },
+
+    { value:56,  duration:"quarter", dots:2 },
+    { value:48,  duration:"quarter", dots:1 },
+    { value:32,  duration:"quarter", dots:0 },
+
+    { value:28,  duration:"eighth", dots:2 },
+    { value:24,  duration:"eighth", dots:1 },
+    { value:16,  duration:"eighth", dots:0 },
+
+    { value:14,  duration:"sixteenth", dots:2 },
+    { value:12,  duration:"sixteenth", dots:1 },
+    { value:8,   duration:"sixteenth", dots:0 },
+
+    { value:7,   duration:"thirty-second", dots:2 },
+    { value:6,   duration:"thirty-second", dots:1 },
+    { value:4,   duration:"thirty-second", dots:0 },
+
+    { value:3,   duration:"sixty-fourth", dots:1 },
+    { value:2,   duration:"sixty-fourth", dots:0 },
+    { value:1,   duration:"one-hundred-twenty-eighth", dots:0 }
+  ];
 
   function escapeXML(value) {
     return String(value)
@@ -75,6 +111,27 @@
     });
   }
 
+  function tieElementsToXML(entry) {
+    if (!entry || entry.kind === "rest") {
+      return { ties: [], notations: [] };
+    }
+
+    const ties = [];
+    const notations = [];
+
+    if (entry.tieStop) {
+      ties.push('        <tie type="stop"/>');
+      notations.push('          <tied type="stop"/>');
+    }
+
+    if (entry.tieStart) {
+      ties.push('        <tie type="start"/>');
+      notations.push('          <tied type="start"/>');
+    }
+
+    return { ties: ties, notations: notations };
+  }
+
   function entryToXML(entry, options) {
     const config = options || {};
     const isMeasureRest = Boolean(config.measureRest);
@@ -106,17 +163,30 @@
       ? "<alter>" + pitch.alter + "</alter>"
       : "";
 
+    const tieXML = tieElementsToXML(entry);
+
     const parts = [
       "      <note>",
       "        <pitch><step>" + pitch.step + "</step>" + alterXML + "<octave>" + pitch.octave + "</octave></pitch>",
-      "        <duration>" + value + "</duration>",
-      "        <voice>1</voice>",
-      "        <type>" + escapeXML(xmlType(entry.duration)) + "</type>"
+      "        <duration>" + value + "</duration>"
     ];
 
-    parts.push.apply(parts, dotsToXML(entry.dots));
-    parts.push("      </note>");
+    parts.push.apply(parts, tieXML.ties);
 
+    parts.push(
+      "        <voice>1</voice>",
+      "        <type>" + escapeXML(xmlType(entry.duration)) + "</type>"
+    );
+
+    parts.push.apply(parts, dotsToXML(entry.dots));
+
+    if (tieXML.notations.length) {
+      parts.push("        <notations>");
+      parts.push.apply(parts, tieXML.notations);
+      parts.push("        </notations>");
+    }
+
+    parts.push("      </note>");
     return parts.join("\n");
   }
 
@@ -137,8 +207,67 @@
       normalizeDots(entry.dots) === 0;
   }
 
+  function decomposeRenderValue(value) {
+    const target = Math.round(Number(value));
+
+    if (!Number.isInteger(target) || target <= 0) {
+      throw new Error("Virheellinen renderöitävä rytmikesto: " + value);
+    }
+
+    const best = new Array(target + 1).fill(null);
+    best[0] = [];
+
+    for (let total = 1; total <= target; total += 1) {
+      for (const choice of RENDER_DURATION_CHOICES) {
+        if (choice.value > total) continue;
+
+        const previous = best[total - choice.value];
+        if (!previous) continue;
+
+        const candidate = previous.concat([choice]);
+
+        if (!best[total] || candidate.length < best[total].length) {
+          best[total] = candidate;
+        }
+      }
+    }
+
+    if (!best[target]) {
+      throw new Error(
+        "Rytmikestoa " + target + " ei voitu jakaa nuottiarvoiksi."
+      );
+    }
+
+    return best[target]
+      .slice()
+      .sort(function (a, b) {
+        return b.value - a.value;
+      });
+  }
+
+  function makeRenderPiece(entry, choice, tieStop, tieStart) {
+    const piece = {
+      id: entry.id,
+      sourceId: entry.id,
+      kind: entry.kind || "note",
+      duration: choice.duration,
+      dots: choice.dots
+    };
+
+    if (entry.pitch) piece.pitch = entry.pitch;
+
+    if (piece.kind !== "rest") {
+      piece.tieStop = Boolean(tieStop);
+      piece.tieStart = Boolean(tieStart);
+    }
+
+    return piece;
+  }
+
   function splitIntoMeasures(entries, capacity, pickupCapacity) {
-    const hasPickup = Number(pickupCapacity) > 0 && Number(pickupCapacity) < capacity;
+    const hasPickup =
+      Number(pickupCapacity) > 0 &&
+      Number(pickupCapacity) < capacity;
 
     function makeMeasure(measureCapacity, implicit) {
       return {
@@ -151,16 +280,32 @@
     }
 
     const measures = [
-      makeMeasure(hasPickup ? Number(pickupCapacity) : capacity, hasPickup)
+      makeMeasure(
+        hasPickup ? Number(pickupCapacity) : capacity,
+        hasPickup
+      )
     ];
 
+    function currentMeasure() {
+      return measures[measures.length - 1];
+    }
+
+    function ensureWritableMeasure() {
+      let current = currentMeasure();
+
+      if (current.used >= current.capacity) {
+        current = makeMeasure(capacity, false);
+        measures.push(current);
+      }
+
+      return current;
+    }
+
     entries.forEach(function (entry) {
-      let current = measures[measures.length - 1];
+      let current = ensureWritableMeasure();
 
       if (isMeasureRestEntry(entry)) {
-        // Kokotahdin tauko on aina täysi tahti.
-        // Jos kohotahti on vielä täysin tyhjä, sitä ei jätetä erilliseksi
-        // tyhjäksi tahdiksi ennen ensimmäistä kokotaukoa.
+        // Kokotahdin tauko säilyttää vanhan erityismerkityksensä.
         if (current.implicit && current.entries.length === 0) {
           current.capacity = capacity;
           current.implicit = false;
@@ -177,30 +322,45 @@
         return;
       }
 
-      const value = durationValue(entry);
+      let remaining = durationValue(entry);
+      let consumed = 0;
 
-      if (value > capacity) {
-        throw new Error("Aika-arvo ei mahdu yhteen tahtiin tässä BASE-versiossa.");
+      while (remaining > 0) {
+        current = ensureWritableMeasure();
+
+        const available = current.capacity - current.used;
+        const chunkValue = Math.min(remaining, available);
+        const choices = decomposeRenderValue(chunkValue);
+
+        choices.forEach(function (choice) {
+          const remainingAfterPiece = remaining - choice.value;
+
+          const tieStop =
+            entry.kind !== "rest" &&
+            consumed > 0;
+
+          const tieStart =
+            entry.kind !== "rest" &&
+            remainingAfterPiece > 0;
+
+          current.entries.push(
+            makeRenderPiece(
+              entry,
+              choice,
+              tieStop,
+              tieStart
+            )
+          );
+
+          current.used += choice.value;
+          consumed += choice.value;
+          remaining = remainingAfterPiece;
+        });
+
+        if (current.used === current.capacity && remaining > 0) {
+          measures.push(makeMeasure(capacity, false));
+        }
       }
-
-      // Jos ensimmäinen tapahtuma ei mahdu valittuun kohotahtiin,
-      // käytä tavallista ensimmäistä tahtia tyhjän kohotahdin sijasta.
-      if (
-        current.implicit &&
-        current.entries.length === 0 &&
-        value > current.capacity
-      ) {
-        current.capacity = capacity;
-        current.implicit = false;
-      }
-
-      if (current.used > 0 && current.used + value > current.capacity) {
-        current = makeMeasure(capacity, false);
-        measures.push(current);
-      }
-
-      current.entries.push(entry);
-      current.used += value;
 
       if (current.used === current.capacity) {
         measures.push(makeMeasure(capacity, false));
@@ -407,7 +567,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.11.1</software>
+      <software>Pikakirjoitin 3 BASE 0.12</software>
     </encoding>
   </identification>
   <part-list>

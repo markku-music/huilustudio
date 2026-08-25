@@ -1,28 +1,30 @@
-Pikakirjoitin 3 · BASE 0.11.4 · Ryhmitelty tempovalikko
+Pikakirjoitin 3 · BASE 0.12 · Automaattinen tie yli tahtiviivan
 
 Pohja:
-- käyttäjän palauttama BASE 0.11.3 OSMD Oletus Otsikko Säveltäjä
+- BASE 0.11.4 Ryhmitelty tempovalikko
 
-Muutos:
-- VAIN aloitusikkunan Tempoteksti-kenttä muutettiin tavalliseksi HTML <select> -valikoksi.
-- Ei lisätty omaa popupia.
-- Ei lisätty uusia JavaScript-eventtejä.
-- Tahtilajivalitsinta ei muutettu lainkaan.
-- start-screen.js on täysin sama kuin 0.11.3:ssa.
+Nuotti yli tahtiviivan:
+- Score Modelissa käyttäjän nuotti säilyy yhtenä tapahtumana
+- MusicXML-generaattori pilkkoo sen vain renderöintiä varten
+- ensimmäinen pala saa tie-startin
+- viimeinen pala saa tie-stopin
+- useamman tahtiviivan ylityksessä keskimmäinen pala saa stop + start
+- OSMD 2.1.2 piirtää sidekaaren
 
-Valikko:
-- Ei tempotekstiä
-- Hyvin hitaat
-- Hitaat
-- Kävelyvauhti ja keskitempo
-- Nopeat
-- Hyvin nopeat
-- Tempon muutokset
+Tauko yli tahtiviivan:
+- tauko pilkotaan oikeisiin tahtiin
+- taukojen väliin ei tehdä sidekaarta
 
-Teknisesti:
-- selectin id on edelleen tempoInput
-- nykyinen start-screen.js lukee edelleen tempoInput.value.trim()
-- valittu teksti kulkee samaa vanhaa reittiä:
-  aloitusikkuna -> Score Model -> MusicXML <words> -> OSMD
+Kokotahdin tauko:
+- pitkä painallus + Tauko säilyttää nykyisen erityistoiminnan
+- explicit multirest säilyy
 
-Muu Pikakirjoitin on muuttumaton.
+Rajatapaukset:
+- generaattori hajottaa tarvittaessa tahtiviivan palan useammaksi
+  nuottiarvoksi
+- vain aivan tarkassa rajatapauksessa voidaan käyttää sisäisesti
+  1/64- tai 1/128-palaa
+- käyttäjän koskettimistoon ei lisätty uusia aika-arvoja
+
+Muu toiminta on 0.11.4:stä ennallaan.
+OSMD vendor on muuttumaton.
