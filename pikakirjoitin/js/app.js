@@ -29,7 +29,7 @@
   let selectionEditor = null;
   let keyboardEditId = null;
   let lastSelectionEditorAnchor = null;
-  let pendingSlurStartId = null;
+  let pendingSelectedSlurStartId = null;
   const noteInputMeta = new Map();
 
   let settings = {
@@ -109,28 +109,29 @@
     return entry && entry.kind === "note" ? entry : null;
   }
 
-  function applyThumbSlurFromSelectedNote(sourceId) {
-    const start = window.PikakirjoitinScoreModel.getEntry(score, sourceId);
+  function applyThumbSlurFromSelectedNote(startId) {
+    const start = window.PikakirjoitinScoreModel.getEntry(score, startId);
 
     if (!start || start.kind !== "note") {
       updateStatus("Slur voi alkaa vain nuotista.");
       return;
     }
 
-    const nextId = window.PikakirjoitinScoreModel.nextNoteId(score, sourceId);
+    const nextId = window.PikakirjoitinScoreModel.nextNoteId(score, startId);
 
-    // Jos seuraava nuotti on jo olemassa, kaari syntyy heti.
+    // Olemassa olevaa nuottia klikattaessa suunta on eteenpäin:
+    // valittu nuotti -> seuraava nuotti.
     if (nextId) {
-      pendingSlurStartId = null;
+      pendingSelectedSlurStartId = null;
 
-      if (window.PikakirjoitinScoreModel.hasSlur(score, sourceId, nextId)) {
+      if (window.PikakirjoitinScoreModel.hasSlur(score, startId, nextId)) {
         updateStatus("Slur on jo valitusta nuotista seuraavaan nuottiin.", "ok");
         return;
       }
 
-      if (window.PikakirjoitinScoreModel.addSlur(score, sourceId, nextId)) {
+      if (window.PikakirjoitinScoreModel.addSlur(score, startId, nextId)) {
         renderScore().then(function () {
-          selection.retainSingle(sourceId);
+          selection.retainSingle(startId);
           updateStatus("Slur lisätty valitusta nuotista seuraavaan nuottiin.", "ok");
         }).catch(function (error) {
           console.error(error);
@@ -144,9 +145,9 @@
       return;
     }
 
-    // Jos valittu nuotti on tällä hetkellä viimeinen nuotti, sama ajatus
-    // jatkuu kirjoittamiseen: seuraava myöhemmin kirjoitettu nuotti sulkee slurin.
-    pendingSlurStartId = sourceId;
+    // Jos klikattu nuotti on viimeinen, se jää odottamaan seuraavaa
+    // myöhemmin kirjoitettavaa nuottia.
+    pendingSelectedSlurStartId = startId;
     updateStatus("Slur alkaa valitusta nuotista · odottaa seuraavaa nuottia.", "ok");
   }
 
@@ -230,20 +231,37 @@
     const entry = window.PikakirjoitinScoreModel.getEntry(score, targetId);
     const meta = noteInputMeta.get(targetId) || {};
 
-    if (entry && !meta.fromEdit) {
-      if (entry.kind === "note" && pendingSlurStartId && pendingSlurStartId !== targetId) {
-        window.PikakirjoitinScoreModel.addSlur(score, pendingSlurStartId, targetId);
+    if (entry && !meta.fromEdit && entry.kind === "note") {
+      // Jos olemassa oleva viimeinen nuotti klikattiin Slur pohjassa,
+      // seuraava kirjoitettu nuotti sulkee sen eteenpäin-slurin.
+      if (
+        pendingSelectedSlurStartId &&
+        pendingSelectedSlurStartId !== targetId
+      ) {
+        window.PikakirjoitinScoreModel.addSlur(
+          score,
+          pendingSelectedSlurStartId,
+          targetId
+        );
+        pendingSelectedSlurStartId = null;
       }
 
-      if (entry.kind === "note" && meta.startedWithSlur) {
-        pendingSlurStartId = targetId;
-      } else if (entry.kind === "note" && pendingSlurStartId && pendingSlurStartId !== targetId) {
-        pendingSlurStartId = null;
+      // Uutta nuottia KIRJOITETTAESSA Slur-modifieri toimii vastakkaiseen
+      // suuntaan: juuri kirjoitettu nuotti kytkeytyy edelliseen nuottiin.
+      if (meta.startedWithSlur) {
+        const previousId = window.PikakirjoitinScoreModel.previousNoteId(
+          score,
+          targetId
+        );
+
+        if (previousId) {
+          window.PikakirjoitinScoreModel.addSlur(score, previousId, targetId);
+        }
       }
     }
 
     if (entry && entry.kind === "rest" && meta.startedWithSlur) {
-      updateStatus("Slur voi alkaa vain nuotista. Tauko kirjoitettiin normaalisti.");
+      updateStatus("Slur voidaan kytkeä vain nuottiin. Tauko kirjoitettiin normaalisti.");
     }
 
     noteInputMeta.delete(targetId);
@@ -255,7 +273,10 @@
 
       let message = "OK · " + entryLabel(entry, pitch, duration) + " · " + count + (count === 1 ? " tapahtuma" : " tapahtumaa");
       if (!meta.fromEdit && entry && entry.kind === "note" && meta.startedWithSlur) {
-        message += " · slur odottaa seuraavaa nuottia";
+        const previousId = window.PikakirjoitinScoreModel.previousNoteId(score, targetId);
+        message += previousId
+          ? " · slur edellisestä nuotista"
+          : " · ei edellistä nuottia";
       }
       updateStatus(message, "ok");
       keyboardEditId = null;

@@ -535,6 +535,25 @@
     return null;
   }
 
+  function previousNoteId(score, endId) {
+    if (!score || !Array.isArray(score.notes)) return null;
+
+    const endIndex = score.notes.findIndex(function (entry) {
+      return entry.id === endId;
+    });
+
+    if (endIndex <= 0) return null;
+
+    for (let index = endIndex - 1; index >= 0; index -= 1) {
+      const entry = score.notes[index];
+      if (entry && entry.kind === "note") {
+        return entry.id;
+      }
+    }
+
+    return null;
+  }
+
   function hasSlur(score, startId, endId) {
     return Boolean(
       score && Array.isArray(score.slurs) &&
@@ -639,6 +658,7 @@
     durationUnits: durationUnits,
     cleanupSlurs: cleanupSlurs,
     nextNoteId: nextNoteId,
+    previousNoteId: previousNoteId,
     addSlur: addSlur,
     removeSlur: removeSlur,
     hasSlur: hasSlur,

@@ -1,28 +1,36 @@
-Pikakirjoitin 3 · BASE 0.14.1 · Slur valitusta seuraavaan
+Pikakirjoitin 3 · BASE 0.14.3 · Slur klikkaus eteen, kirjoitus taakse
 
-Pohja:
-- BASE 0.14 Slur editoriin ja peukalopakkiin
+Korjattu peukalopakin Slur-logiikka kahdeksi eri tilanteeksi:
 
-Uusi peukalopakin Slur-toiminto:
-- pidä peukalopakin Slur-painiketta pohjassa
-- napauta/valitse yksi olemassa oleva nuotti
-- kun sormi nousee nuotista, Pikakirjoitin lisää slurin automaattisesti
-  valitusta nuotista seuraavaan nuottiin
-- "seuraava nuotti" tarkoittaa seuraavaa oikeaa nuottia Score Modelissa;
-  mahdolliset välissä olevat tauot ohitetaan
+1. UUTTA NUOTTIA KIRJOITETTAESSA
+- kirjoita ensimmäinen nuotti normaalisti
+- pidä Slur pohjassa ja kirjoita seuraava nuotti
+- juuri kirjoitettu nuotti kytkeytyy slurilla EDELLISEEN nuottiin
 
-Jos valittu nuotti on kappaleen viimeinen nuotti:
-- siitä tulee slurin odottava alku
-- seuraava myöhemmin kirjoitettu nuotti sulkee slurin
-- tämä käyttää samaa pending-slur-logiikkaa kuin 0.14:n
-  "Slur pohjassa uutta nuottia kirjoitettaessa" -toiminto
+Esimerkki:
+C normaalisti
+Slur pohjassa + D
+=> slur C-D
 
-Turvallisuus:
-- toiminto käynnistyy vasta valinnan valmistuttua pointerupissa,
-  ei heti pointerdownissa
-- peukalopakin Slur toimii tässä add-only-modifierina:
-  jos slur valitusta seuraavaan on jo olemassa, sitä ei poisteta
-- kelluvan editoripalkin Slur-nappi säilyy edelleen toggle-toimintona
-  useamman nuotin valinnalle
+2. OLEMASSA OLEVAA NUOTTIA KLIKATTAESSA / VALITTAESSA
+- pidä Slur pohjassa
+- napauta yhtä olemassa olevaa nuottia
+- valittu nuotti kytkeytyy slurilla SEURAAVAAN nuottiin
 
-Muu 0.14:n toiminta säilyy ennallaan.
+Esimerkki:
+nuotit C D E ovat jo olemassa
+Slur pohjassa + klikkaa D
+=> slur D-E
+
+Jos klikattu nuotti on kappaleen viimeinen:
+- se jää odottamaan seuraavaa myöhemmin kirjoitettavaa nuottia
+- seuraava kirjoitettu nuotti sulkee slurin
+
+Tauot ohitetaan sekä edellistä että seuraavaa nuottia etsittäessä.
+
+Kelluvan editoripalkin Slur säilyy ennallaan:
+- vähintään kahden nuotin valinta
+- yksi slur ensimmäisestä viimeiseen valittuun
+- toggle lisää/poistaa saman slurin
+
+Muu BASE 0.14.2:n toiminta säilyy ennallaan.
