@@ -1,36 +1,24 @@
-Pikakirjoitin 3 · BASE 0.11.3 · OSMD oletus + otsikko/säveltäjä
+Pikakirjoitin 3 · BASE 0.11.4 · Tempoteksti Y +5
 
 Pohja:
-- BASE 0.11.2 Koskettimisto alareunassa
+- BASE 0.11.3 OSMD default + otsikko/säveltäjä
 
-Muutos rendererissä:
-- drawingParameters: "compacttight" -> "default"
+Muutos:
+- tempotekstin MusicXML <words> -elementtiin lisätty relative-y="5"
+- X-sijaintiin ei kosketa
+- OSMD saa edelleen tehdä normaalin oletussijoittelunsa
+- relative-y="5" nostaa tempotekstiä hieman OSMD:n oletuspaikasta
+
+Esimerkki:
+<words relative-y="5">Andante</words>
+
+Muut toiminnot ovat ennallaan:
+- OSMD drawingParameters: default
 - drawTitle: true
 - drawComposer: true
-
-Tämän jälkeen OSMD käyttää normaalia default-piirto-/kaiverruspresettiään.
-Otsikko ja säveltäjä tulevat edelleen MusicXML:stä, ja OSMD piirtää ne.
-
-Pikakirjoittimen toiminnalliset poikkeukset OSMD:n puhtaista oletuksista
-säilytetään tarkoituksella:
 - autoBeam: true
-  Pikakirjoitin käyttää OSMD:n automaattista palkitusta.
-  OSMD 2.1.2:n puhdas oletus tälle olisi false.
-- autoGenerateMultipleRestMeasuresFromRestMeasures: false
-  Pikakirjoitin muodostaa multirestit eksplisiittisesti MusicXML:ään.
-  OSMD 2.1.2:n puhdas oletus tälle olisi true.
-
-Lisäksi:
-- autoResize: true
-- backend: "svg"
-
-Muut toiminnot ovat 0.11.2:sta ennallaan:
-- P2 Core -aloitusikkuna
-- ääni
-- tempoteksti OSMD:n kautta
-- nimi ja säveltäjä MusicXML:ssä
-- sävellaji, tahtilaji, kohotahti, viritys ja avain
-- pisteflyout
-- tauot ja explicit multirestit
+- explicit multirest
+- aloitusikkuna ja ääni
 - koskettimisto alareunassa
+- pisteflyout
 - Score Model -> MusicXML -> OSMD 2.1.2

@@ -319,7 +319,7 @@
     return [
       "      <direction placement=\"above\">",
       "        <direction-type>",
-      "          <words>" + escapeXML(tempoText) + "</words>",
+      "          <words relative-y=\"5\">" + escapeXML(tempoText) + "</words>",
       "        </direction-type>",
       "      </direction>"
     ].join("\n");
@@ -407,7 +407,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.11.1</software>
+      <software>Pikakirjoitin 3 BASE 0.11.4</software>
     </encoding>
   </identification>
   <part-list>
