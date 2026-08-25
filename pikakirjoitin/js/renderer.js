@@ -12,7 +12,17 @@
       osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay(containerId, {
         autoResize: true,
         backend: "svg",
-        drawingParameters: "compacttight",
+
+        // OSMD:n normaali piirto-/kaiverruspresetti.
+        // Tässä presetissä otsikko ja säveltäjä ovat oletuksena näkyvissä.
+        drawingParameters: "default",
+        drawTitle: true,
+        drawComposer: true,
+
+        // Nämä kaksi ovat Pikakirjoittimen toiminnallisia valintoja,
+        // eivät ulkoasun tiivistyksiä:
+        // - OSMD palkittaa kirjoitetut lyhyet nuotit automaattisesti.
+        // - multirestit tulevat jo MusicXML:stä eksplisiittisesti.
         autoBeam: true,
         autoGenerateMultipleRestMeasuresFromRestMeasures: false
       });
