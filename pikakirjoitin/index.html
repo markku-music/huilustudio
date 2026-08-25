@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.16.2</title>
+  <title>Pikakirjoitin 3 · BASE 0.17.0</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -220,7 +220,7 @@
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.16.2 · Älytauot yksitellen · OSMD 2.1.2</p>
+      <p>BASE 0.17.0 · Tie peukalopakissa · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
@@ -257,6 +257,14 @@
       <button class="thumb-modifier" type="button" data-modifier="slur"
               aria-label="Slur: kirjoittaessa kytke edelliseen, nuottia valitessa seuraavaan" aria-pressed="false">
         <img class="thumb-slur-icon" src="assets/slur.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+
+      <button class="thumb-modifier thumb-tie-button" type="button"
+              data-modifier="tie"
+              aria-label="Tie / sidekaari: seuraava saman sävelen nuotti sidotaan edelliseen"
+              aria-pressed="false"
+              title="Tie / sidekaari">
+        <img class="thumb-tie-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
       </button>
 
       <button class="thumb-modifier thumb-layout-toggle" id="lineEditButton"

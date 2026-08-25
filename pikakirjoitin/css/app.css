@@ -400,6 +400,12 @@ button {
   object-fit: contain;
 }
 
+.thumb-tie-icon {
+  width: 36px !important;
+  height: 36px !important;
+  object-fit: contain;
+}
+
 .thumb-dot-flyout {
   position: absolute;
   z-index: 1;

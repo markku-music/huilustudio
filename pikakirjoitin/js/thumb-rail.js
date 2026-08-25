@@ -18,7 +18,7 @@
 
       this.activePointers = new Map();
       this.dragPointerId = null;
-      this.stateValue = { rest: false, dots: 0, slur: false, layout: false };
+      this.stateValue = { rest: false, dots: 0, slur: false, tie: false, layout: false };
       this.ratio = 0.52;
 
       this.dotWrap = this.rail.querySelector(".thumb-dot-wrap");
@@ -36,6 +36,12 @@
       return Object.assign({}, this.stateValue);
     }
 
+    setToggle(name, value) {
+      if (!["tie", "layout"].includes(name)) return;
+      this.stateValue[name] = Boolean(value);
+      this.updateStateAndButtons();
+    }
+
     bind() {
       this.rail.addEventListener("pointerdown", (event) => this.pointerDown(event));
       this.rail.addEventListener("pointermove", (event) => this.pointerMove(event));
@@ -50,17 +56,18 @@
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
       const modifier = button.dataset.modifier;
-      if (!["rest", "dot1", "dot2", "slur", "layout"].includes(modifier)) return;
+      if (!["rest", "dot1", "dot2", "slur", "tie", "layout"].includes(modifier)) return;
 
       event.preventDefault();
       event.stopPropagation();
 
       if (modifier === "dot2") return;
 
-      // Rivien muokkaus on toggle, muut peukalopakin työkalut ovat
-      // edelleen paina-ja-pidä-modifiereita.
-      if (modifier === "layout") {
-        this.stateValue.layout = !this.stateValue.layout;
+      // Tie on kertakäyttöinen toggle: napautus virittää sen seuraavaa
+      // syötettyä tapahtumaa varten. Rivien muokkaus on tavallinen toggle.
+      // Muut peukalopakin työkalut ovat paina-ja-pidä-modifiereita.
+      if (modifier === "tie" || modifier === "layout") {
+        this.stateValue[modifier] = !this.stateValue[modifier];
         this.updateStateAndButtons();
         return;
       }
@@ -188,6 +195,7 @@
       let rest = false;
       let dots = 0;
       let slur = false;
+      const tie = Boolean(this.stateValue.tie);
       const layout = Boolean(this.stateValue.layout);
 
       for (const active of this.activePointers.values()) {
@@ -204,7 +212,7 @@
         }
       }
 
-      this.stateValue = { rest: rest, dots: dots, slur: slur, layout: layout };
+      this.stateValue = { rest: rest, dots: dots, slur: slur, tie: tie, layout: layout };
 
       const restButton = this.rail.querySelector('[data-modifier="rest"]');
       if (restButton) {
@@ -216,6 +224,12 @@
       if (slurButton) {
         slurButton.classList.toggle("active", slur);
         slurButton.setAttribute("aria-pressed", slur ? "true" : "false");
+      }
+
+      const tieButton = this.rail.querySelector('[data-modifier="tie"]');
+      if (tieButton) {
+        tieButton.classList.toggle("active", tie);
+        tieButton.setAttribute("aria-pressed", tie ? "true" : "false");
       }
 
       const layoutButton = this.rail.querySelector('[data-modifier="layout"]');

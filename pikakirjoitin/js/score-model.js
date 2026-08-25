@@ -3,6 +3,7 @@
 
   let nextEntryId = 1;
   let nextSlurId = 1;
+  let nextTieId = 1;
 
   const DURATION_UNITS = {
     whole: 128,
@@ -21,6 +22,40 @@
 
   function makeSlurId() {
     return "s" + (nextSlurId++);
+  }
+
+  function makeTieId() {
+    return "t" + (nextTieId++);
+  }
+
+  function pitchMidiValue(pitch) {
+    const match = /^([A-G])([#b]?)(-?\d+)$/.exec(String(pitch || ""));
+    if (!match) return null;
+
+    const semitones = {
+      C: 0,
+      D: 2,
+      E: 4,
+      F: 5,
+      G: 7,
+      A: 9,
+      B: 11
+    };
+
+    const alter =
+      match[2] === "#" ? 1 :
+      match[2] === "b" ? -1 :
+      0;
+
+    return (Number(match[3]) + 1) * 12 +
+      semitones[match[1]] +
+      alter;
+  }
+
+  function sameSoundingPitch(a, b) {
+    const first = pitchMidiValue(a);
+    const second = pitchMidiValue(b);
+    return first !== null && second !== null && first === second;
   }
 
   function normalizeDots(value) {
@@ -43,6 +78,15 @@
       id: slur.id || makeSlurId(),
       startId: String(slur.startId),
       endId: String(slur.endId)
+    };
+  }
+
+  function cloneTie(tie) {
+    if (!tie || !tie.startId || !tie.endId) return null;
+    return {
+      id: tie.id || makeTieId(),
+      startId: String(tie.startId),
+      endId: String(tie.endId)
     };
   }
 
@@ -150,12 +194,16 @@
       timeSymbol: config.timeSymbol || "",
       pickupDuration: Number(config.pickupDuration) || 0,
       notes: Array.isArray(config.notes) ? config.notes.map(cloneEntry) : [],
+      ties: Array.isArray(config.ties)
+        ? config.ties.map(cloneTie).filter(Boolean)
+        : [],
       slurs: Array.isArray(config.slurs)
         ? config.slurs.map(cloneSlur).filter(Boolean)
         : [],
       layout: normalizeLayout(config.layout)
     };
 
+    cleanupTies(score);
     cleanupSlurs(score);
     return score;
   }
@@ -216,6 +264,93 @@
       map.set(entry.id, index);
     });
     return map;
+  }
+
+  function cleanupTies(score) {
+    if (!score) return [];
+    if (!Array.isArray(score.ties)) score.ties = [];
+
+    const entryMap = new Map();
+    (score.notes || []).forEach(function (entry, index) {
+      if (entry && entry.id) {
+        entryMap.set(entry.id, { entry: entry, index: index });
+      }
+    });
+
+    const seen = new Set();
+
+    score.ties = score.ties.filter(function (tie) {
+      if (!tie || !tie.startId || !tie.endId) return false;
+      if (tie.startId === tie.endId) return false;
+
+      const start = entryMap.get(tie.startId);
+      const end = entryMap.get(tie.endId);
+
+      if (!start || !end) return false;
+      if (start.entry.kind !== "note" || end.entry.kind !== "note") return false;
+
+      // Tie yhdistää vain kaksi peräkkäistä rytmistä tapahtumaa.
+      if (end.index !== start.index + 1) return false;
+
+      if (!sameSoundingPitch(start.entry.pitch, end.entry.pitch)) return false;
+
+      const key = tie.startId + "->" + tie.endId;
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      if (!tie.id) tie.id = makeTieId();
+      return true;
+    });
+
+    return score.ties;
+  }
+
+  function hasTie(score, startId, endId) {
+    return Boolean(
+      score &&
+      Array.isArray(score.ties) &&
+      score.ties.find(function (tie) {
+        return tie.startId === startId && tie.endId === endId;
+      })
+    );
+  }
+
+  function addTie(score, startId, endId) {
+    if (!score) return false;
+    if (!Array.isArray(score.ties)) score.ties = [];
+
+    const indexMap = noteIndexMap(score);
+    const start = getEntry(score, startId);
+    const end = getEntry(score, endId);
+
+    if (!start || !end) return false;
+    if (start.kind !== "note" || end.kind !== "note") return false;
+    if (!indexMap.has(startId) || !indexMap.has(endId)) return false;
+
+    // Manuaalinen tie saa yhdistää vain välittömästi peräkkäiset tapahtumat.
+    if (indexMap.get(endId) !== indexMap.get(startId) + 1) return false;
+    if (!sameSoundingPitch(start.pitch, end.pitch)) return false;
+    if (hasTie(score, startId, endId)) return false;
+
+    score.ties.push({
+      id: makeTieId(),
+      startId: startId,
+      endId: endId
+    });
+
+    cleanupTies(score);
+    return true;
+  }
+
+  function removeTie(score, startId, endId) {
+    if (!score || !Array.isArray(score.ties)) return false;
+
+    const before = score.ties.length;
+    score.ties = score.ties.filter(function (tie) {
+      return !(tie.startId === startId && tie.endId === endId);
+    });
+
+    return score.ties.length !== before;
   }
 
   function cleanupSlurs(score) {
@@ -283,11 +418,12 @@
     if (entry.kind === "rest") {
       delete entry.pitch;
       if (entry.dots > 0) entry.measureRest = false;
-      cleanupSlurs(score);
     } else {
       entry.measureRest = false;
     }
 
+    cleanupTies(score);
+    cleanupSlurs(score);
     return true;
   }
 
@@ -301,7 +437,10 @@
       return !selected.has(entry.id);
     });
     const changed = score.notes.length !== before;
-    if (changed) cleanupSlurs(score);
+    if (changed) {
+      cleanupTies(score);
+      cleanupSlurs(score);
+    }
     return changed;
   }
 
@@ -569,6 +708,7 @@
       }
 
       if (runStart === runEnd) {
+        cleanupTies(score);
         cleanupSlurs(score);
         return { changed:true, ids:[entry.id], merged:false };
       }
@@ -588,6 +728,7 @@
         ...rests
       );
 
+      cleanupTies(score);
       cleanupSlurs(score);
 
       return {
@@ -628,6 +769,7 @@
       });
     });
 
+    cleanupTies(score);
     cleanupSlurs(score);
     return { changed:true, ids:newIds };
   }
@@ -890,6 +1032,11 @@
     canEnharmonic: canEnharmonic,
     toggleEnharmonic: toggleEnharmonic,
     durationUnits: durationUnits,
+    sameSoundingPitch: sameSoundingPitch,
+    cleanupTies: cleanupTies,
+    addTie: addTie,
+    removeTie: removeTie,
+    hasTie: hasTie,
     cleanupSlurs: cleanupSlurs,
     nextNoteId: nextNoteId,
     previousNoteId: previousNoteId,

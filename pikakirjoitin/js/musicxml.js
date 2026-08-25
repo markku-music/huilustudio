@@ -250,6 +250,70 @@
     return { startIds: startIds, stopIds: stopIds };
   }
 
+  function pitchMidiValue(pitch) {
+    const match = /^([A-G])([#b]?)(-?\d+)$/.exec(String(pitch || ""));
+    if (!match) return null;
+
+    const semitones = {
+      C: 0,
+      D: 2,
+      E: 4,
+      F: 5,
+      G: 7,
+      A: 9,
+      B: 11
+    };
+
+    const alter =
+      match[2] === "#" ? 1 :
+      match[2] === "b" ? -1 :
+      0;
+
+    return (Number(match[3]) + 1) * 12 +
+      semitones[match[1]] +
+      alter;
+  }
+
+  function sameSoundingPitch(a, b) {
+    const first = pitchMidiValue(a);
+    const second = pitchMidiValue(b);
+    return first !== null && second !== null && first === second;
+  }
+
+  function buildManualTieMarkers(score) {
+    const startIds = new Set();
+    const stopIds = new Set();
+    const ties = Array.isArray(score && score.ties) ? score.ties : [];
+    const notes = Array.isArray(score && score.notes) ? score.notes : [];
+
+    const indexMap = new Map();
+    notes.forEach(function (entry, index) {
+      if (entry && entry.id) indexMap.set(entry.id, index);
+    });
+
+    ties.forEach(function (tie) {
+      if (!tie || !tie.startId || !tie.endId) return;
+
+      const startIndex = indexMap.get(tie.startId);
+      const endIndex = indexMap.get(tie.endId);
+
+      if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex)) return;
+      if (endIndex !== startIndex + 1) return;
+
+      const start = notes[startIndex];
+      const end = notes[endIndex];
+
+      if (!start || !end) return;
+      if (start.kind !== "note" || end.kind !== "note") return;
+      if (!sameSoundingPitch(start.pitch, end.pitch)) return;
+
+      startIds.add(start.id);
+      stopIds.add(end.id);
+    });
+
+    return { startIds: startIds, stopIds: stopIds };
+  }
+
   function makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart) {
     const piece = {
       id: entry.id,
@@ -271,7 +335,7 @@
     return piece;
   }
 
-  function splitIntoMeasures(entries, capacity, pickupCapacity, slurMarkers) {
+  function splitIntoMeasures(entries, capacity, pickupCapacity, slurMarkers, manualTieMarkers) {
     const hasPickup = Number(pickupCapacity) > 0 && Number(pickupCapacity) < capacity;
 
     function makeMeasure(measureCapacity, implicit) {
@@ -320,6 +384,16 @@
       let consumed = 0;
       const hasSourceSlurStart = Boolean(slurMarkers && slurMarkers.startIds && slurMarkers.startIds.has(entry.id));
       const hasSourceSlurStop = Boolean(slurMarkers && slurMarkers.stopIds && slurMarkers.stopIds.has(entry.id));
+      const hasManualTieStart = Boolean(
+        manualTieMarkers &&
+        manualTieMarkers.startIds &&
+        manualTieMarkers.startIds.has(entry.id)
+      );
+      const hasManualTieStop = Boolean(
+        manualTieMarkers &&
+        manualTieMarkers.stopIds &&
+        manualTieMarkers.stopIds.has(entry.id)
+      );
 
       while (remaining > 0) {
         current = ensureWritableMeasure();
@@ -332,8 +406,19 @@
           const remainingAfterPiece = remaining - choice.value;
           const isLastPiece = remainingAfterPiece <= 0;
 
-          const tieStop = entry.kind !== "rest" && consumed > 0;
-          const tieStart = entry.kind !== "rest" && remainingAfterPiece > 0;
+          const tieStop =
+            entry.kind !== "rest" &&
+            (
+              consumed > 0 ||
+              (hasManualTieStop && isFirstPiece)
+            );
+
+          const tieStart =
+            entry.kind !== "rest" &&
+            (
+              remainingAfterPiece > 0 ||
+              (hasManualTieStart && isLastPiece)
+            );
           const slurStart = entry.kind !== "rest" && hasSourceSlurStart && isFirstPiece;
           const slurStop = entry.kind !== "rest" && hasSourceSlurStop && isLastPiece;
 
@@ -504,6 +589,7 @@
     const capacity = measureCapacity(beats, beatType);
     const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
     const slurMarkers = buildSlurMarkers(score);
+    const manualTieMarkers = buildManualTieMarkers(score);
     const systemBreaks = new Set(
       score.layout && Array.isArray(score.layout.systemBreaks)
         ? score.layout.systemBreaks
@@ -515,7 +601,8 @@
         score.notes,
         capacity,
         pickupCapacity,
-        slurMarkers
+        slurMarkers,
+        manualTieMarkers
       )
     );
 
@@ -559,7 +646,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.16.2</software>
+      <software>Pikakirjoitin 3 BASE 0.17.0</software>
     </encoding>
   </identification>
   <part-list>

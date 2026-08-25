@@ -1,35 +1,50 @@
-Pikakirjoitin 3 · BASE 0.16.2 · Älytauot yksitellen
+Pikakirjoitin 3 · BASE 0.17.0 · Tie peukalopakissa
 
 Pohja:
-- BASE 0.16.1 Landscape-rivinvaihtomerkit kohdistettu
+- BASE 0.16.2 Älytauot yksitellen
 
-Muutos:
-- kun yksi nuotti muutetaan Tauko-toiminnolla tauoksi ja sen vieressä
-  on jo tavallisia taukoja, koko yhtenäinen paikallinen taukojakso
-  kirjoitetaan uudelleen järkevinä taukoina.
+Uusi Tie / sidekaari:
+- peukalopakissa Slur-napin ja ↵ Rivien muokkaus -napin välissä
+- käytössä täsmälleen käyttäjän lähettämä tie(1).svg
+- kuvake on sama kuin aiemmassa Pikakirjoitin 2:ssa
 
-Esimerkkejä 4/4:
-- kaksi peräkkäistä 1/8-nuottia yksitellen tauoksi -> tarvittaessa 1/4-tauko
-- kaksi peräkkäistä 1/4-nuottia tahdin alussa -> tarvittaessa 1/2-tauko
-- koko tyhjäksi muodostuva tahti -> kokotahdin tauko
+Käyttö:
+1. kirjoita ensimmäinen nuotti
+2. napauta Tie-nappia kerran
+3. nappi muuttuu siniseksi ja jää odottamaan
+4. kirjoita seuraava tapahtuma
+5. Tie kulutetaan heti ja nappi sammuu automaattisesti
 
-Metrinen rakenne säilyy:
-- taukoa ei yhdistetä tahdin yli yhdeksi vääränlaiseksi symboliksi
-- 4/4:n isku- ja puolikasrajat huomioidaan
-- 6/8, 9/8 ja 12/8 käyttävät edelleen olemassa olevaa
-  kolmen kahdeksasosan ryhmittelyä
-- käytössä on sama buildSmartRests()-logiikka kuin monivalinnan
-  Tauko-toiminnossa
+Tie syntyy vain, kun:
+- edellinen tapahtuma on nuotti
+- uusi tapahtuma on nuotti
+- tapahtumat ovat välittömästi peräkkäisiä
+- sävelkorkeus on sama
 
-Turvarajaus:
-- automaattinen paikallinen yhdistäminen ei ylitä jo olemassa olevan
-  eksplisiittisen kokotahdin tauon (measureRest) rajaa.
-- näin aikaisempi kokotauko- ja multirest-logiikka säilyy koskemattomana.
+Jos seuraava tapahtuma on:
+- eri sävel -> Tie ei synny ja nappi sammuu
+- tauko -> Tie ei synny ja nappi sammuu
+- ensimmäinen nuotti ilman edeltäjää -> Tie ei synny ja nappi sammuu
 
-Jos uuden tauon vieressä ei ole taukoa:
-- toiminta säilyy täsmälleen ennallaan
-- sama tapahtuma-id säilyy
-- esim. 3/4:ssa yksittäisen kokonaisen nuotin muuttaminen tauoksi
-  ei muutu vahingossa kokotahdin tauoksi
+Enharmoninen sama sävel:
+- esim. C#4 ja Db4 tunnistetaan samaksi soivaksi sävelkorkeudeksi
 
-Muu BASE 0.16.1:n toiminta on jätetty ennalleen.
+Tietomalli:
+- manuaaliset tiet tallennetaan score.ties-taulukkoon
+- tie on suhde kahden loogisen nuotti-id:n välillä
+- poistaminen tai sävelkorkeuden muuttaminen siivoaa kelvottoman tien
+- tie ei siirry vahingossa toiseen nuottipariin, jos toinen pää poistetaan
+
+MusicXML / OSMD:
+- manuaalinen tie muunnetaan tavallisiksi <tie> ja <tied> -merkinnöiksi
+- OSMD 2.1.2 piirtää sidekaaren
+- olemassa oleva automaattinen tie tahtiviivan yli säilyy
+- manuaalinen tie ja automaattinen tahdinylitystie voivat muodostaa saman
+  yhtenäisen tie-ketjun ilman erillistä SVG-piirtoa
+
+Slur:
+- Slurin nykyinen paina-ja-pidä-logiikka on jätetty ennalleen
+- Slur ja Tie voivat olla samalla nuottiparilla yhtä aikaa MusicXML:n
+  omilla erillisillä notaatioilla
+
+Muu BASE 0.16.2:n toiminta on jätetty ennalleen.

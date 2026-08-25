@@ -23,8 +23,9 @@
   const audio = new window.PikakirjoitinAudio.AudioEngine();
 
   let rendering = Promise.resolve();
-  let thumbState = { rest: false, dots: 0, slur: false, layout: false };
+  let thumbState = { rest: false, dots: 0, slur: false, tie: false, layout: false };
   let keyboard = null;
+  let thumbRail = null;
   let selection = null;
   let selectionEditor = null;
   let layoutEditor = null;
@@ -195,6 +196,19 @@
 
     if (selection && selectedIds().length) selection.clear();
 
+    // Sama kertakäyttöinen Tie-logiikka kuin Pikakirjoitin 2:ssa:
+    // Tie viritetään napauttamalla ja kulutetaan heti seuraavaan UUTEEN
+    // syötettyyn tapahtumaan riippumatta siitä, onnistuuko side.
+    const tieWasArmed = Boolean(thumbState.tie);
+    if (tieWasArmed && thumbRail) {
+      thumbRail.setToggle("tie", false);
+    }
+
+    const previousEntry =
+      score.notes.length
+        ? score.notes[score.notes.length - 1]
+        : null;
+
     const entry = thumbState.rest
       ? window.PikakirjoitinScoreModel.addRest(score, {
           duration: duration,
@@ -207,7 +221,28 @@
           dots: dots
         });
 
-    noteInputMeta.set(entry.id, { fromEdit: false, startedWithSlur: Boolean(thumbState.slur) });
+    let tieApplied = false;
+
+    if (
+      tieWasArmed &&
+      entry.kind === "note" &&
+      previousEntry &&
+      previousEntry.kind === "note"
+    ) {
+      tieApplied = window.PikakirjoitinScoreModel.addTie(
+        score,
+        previousEntry.id,
+        entry.id
+      );
+    }
+
+    noteInputMeta.set(entry.id, {
+      fromEdit: false,
+      startedWithSlur: Boolean(thumbState.slur),
+      startedWithTie: tieWasArmed,
+      tieApplied: tieApplied
+    });
+
     updateStatus(entryLabel(entry, pitch, duration) + " · ele kesken…");
 
     renderScore().catch(function (error) {
@@ -279,12 +314,24 @@
       }
 
       let message = "OK · " + entryLabel(entry, pitch, duration) + " · " + count + (count === 1 ? " tapahtuma" : " tapahtumaa");
+
       if (!meta.fromEdit && entry && entry.kind === "note" && meta.startedWithSlur) {
         const previousId = window.PikakirjoitinScoreModel.previousNoteId(score, targetId);
         message += previousId
           ? " · slur edellisestä nuotista"
           : " · ei edellistä nuottia";
       }
+
+      if (!meta.fromEdit && meta.startedWithTie) {
+        if (meta.tieApplied) {
+          message += " · tie edellisestä nuotista";
+        } else if (entry && entry.kind === "rest") {
+          message += " · tie kulutettu, taukoon ei muodostu sidekaarta";
+        } else {
+          message += " · tie ei muodostunut, edellisen sävelen on oltava sama";
+        }
+      }
+
       updateStatus(message, "ok");
       keyboardEditId = null;
     }).catch(function (error) {
@@ -685,11 +732,12 @@
       });
     }
 
-    new window.PikakirjoitinThumbRail.ThumbRail({
+    thumbRail = new window.PikakirjoitinThumbRail.ThumbRail({
       rail: document.getElementById("thumbRail"),
       boundsElement: document.querySelector(".score-card"),
       onChange: function (state) {
         const wasLayout = Boolean(thumbState.layout);
+        const wasTie = Boolean(thumbState.tie);
         thumbState = state;
 
         if (
@@ -704,6 +752,16 @@
             state.layout
               ? "Rivien muokkaus päällä."
               : "Rivien muokkaus pois.",
+            "ok"
+          );
+          return;
+        }
+
+        if (Boolean(state.tie) !== wasTie) {
+          updateStatus(
+            state.tie
+              ? "Tie valmiina · seuraava saman sävelen nuotti sidotaan edelliseen."
+              : "Tie pois.",
             "ok"
           );
           return;
