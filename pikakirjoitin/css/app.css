@@ -484,3 +484,119 @@ button {
     padding-right: 12px;
   }
 }
+
+
+/* 0.13: Pikakirjoitin 2:sta tuotu nuottien/taukojen valinta.
+   Nuotista väritetään vain nuotin pää, tauosta itse taukosymboli. */
+#osmd-container .pk-selected-notehead,
+#osmd-container .pk-selected-notehead * {
+  fill: var(--pk-selection-color, #2365aa) !important;
+}
+
+#osmd-container .pk-selected-rest,
+#osmd-container .pk-selected-rest * {
+  fill: var(--pk-selection-color, #2365aa) !important;
+  stroke: var(--pk-selection-color, #2365aa) !important;
+}
+
+.pk-selection-cursor {
+  position: fixed;
+  width: 12px;
+  height: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 84;
+}
+
+.pk-selection-cursor.is-visible { opacity: 1; }
+
+.pk-selection-cursor-triangle {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--pk-selection-color, #2365aa);
+  flex: 0 0 auto;
+}
+
+.pk-selection-cursor-line {
+  width: 2px;
+  height: 14px;
+  margin-top: 1px;
+  border-radius: 1px;
+  background: var(--pk-selection-color, #2365aa);
+  flex: 0 0 auto;
+}
+
+/* Kelluva editori pysyy heti valitun tapahtuman/valinnan vieressä. */
+.pk-selection-editor {
+  position: fixed;
+  z-index: 85;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #7c8794;
+  border-radius: 12px;
+  background: rgba(32, 36, 42, .96);
+  box-shadow: 0 5px 16px rgba(17, 24, 32, .25);
+  touch-action: manipulation;
+}
+
+.pk-selection-editor[hidden] { display: none; }
+
+.pk-selection-editor button {
+  width: 44px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #6d7784;
+  border-radius: 9px;
+  background: #f7f9fb;
+  color: #1e2935;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pk-selection-editor button[hidden] { display: none; }
+.pk-selection-editor button:active { transform: translateY(1px); }
+.pk-selection-editor button:disabled { opacity: .34; cursor: default; }
+
+.pk-selection-editor .pk-enharmonic-icon {
+  display: block;
+  width: 28px;
+  height: 26px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.pk-selection-editor .pk-rest-icon {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.pk-selection-editor svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pk-selection-editor .is-delete { color: #8e2f2f; }
+
+/* Kun vaakavalinta on jo yksiselitteinen, Safari ei saa kaapata elettä scrolliksi. */
+.score-card.pk-selection-gesture-locked {
+  touch-action: none;
+}

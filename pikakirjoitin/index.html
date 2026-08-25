@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.12.2</title>
+  <title>Pikakirjoitin 3 · BASE 0.13</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -24,77 +24,82 @@
             <option value="" selected>Tempo</option>
 
             <optgroup label="Hyvin hitaat">
-              <option>Larghissimo</option>
-              <option>Sehr breit</option>
-              <option>very, very slow</option>
               <option>Grave</option>
+              <option>Larghissimo</option>
               <option>Schwer</option>
+              <option>Sehr breit</option>
               <option>slow and solemn</option>
+              <option>very, very slow</option>
+            
             </optgroup>
 
             <optgroup label="Hitaat">
-              <option>Lento</option>
-              <option>Lent</option>
-              <option>Langsam</option>
-              <option>slowly</option>
-              <option>Largo</option>
+              <option>Adagietto</option>
+              <option>Adagio</option>
               <option>Breit</option>
               <option>broadly</option>
-              <option>Larghetto</option>
               <option>Etwas breit</option>
+              <option>Langsam</option>
+              <option>Larghetto</option>
+              <option>Largo</option>
+              <option>Lent</option>
+              <option>Lento</option>
               <option>rather broadly</option>
-              <option>Adagio</option>
+              <option>rather slow</option>
               <option>Ruhig</option>
               <option>slow and stately</option>
-              <option>Adagietto</option>
-              <option>Ziemlich ruhig</option>
+              <option>slowly</option>
               <option>Ziemlich langsam</option>
-              <option>rather slow</option>
+              <option>Ziemlich ruhig</option>
+            
             </optgroup>
 
             <optgroup label="Kävelyvauhti ja keskitempo">
-              <option>Andante moderato</option>
               <option>Andante</option>
-              <option>Gehend</option>
-              <option>Schreitend</option>
-              <option>at a walking pace</option>
+              <option>Andante moderato</option>
               <option>Andantino</option>
+              <option>at a walking pace</option>
+              <option>Gehend</option>
               <option>Maestoso</option>
-              <option>Moderato</option>
-              <option>Mäßig</option>
-              <option>Modéré</option>
               <option>moderately</option>
+              <option>Moderato</option>
+              <option>Modéré</option>
+              <option>Mäßig</option>
+              <option>Schreitend</option>
+            
             </optgroup>
 
             <optgroup label="Nopeat">
               <option>Allegretto</option>
+              <option>Allegro</option>
+              <option>Allegro Assai</option>
+              <option>Allegro moderato</option>
               <option>Animato</option>
               <option>fast</option>
-              <option>Allegro moderato</option>
-              <option>Allegro</option>
+              <option>Fröhlich</option>
+              <option>Lebendig</option>
+              <option>Lebhaft</option>
+              <option>lively and fast</option>
               <option>Rapide</option>
-              <option>Vite</option>
               <option>Rasch</option>
               <option>Schnell</option>
-              <option>Fröhlich</option>
-              <option>Vivace</option>
-              <option>Allegro Assai</option>
-              <option>Lebhaft</option>
-              <option>Lebendig</option>
-              <option>lively and fast</option>
-              <option>Vivacissimo</option>
-              <option>Sehr lebhaft</option>
               <option>Sehr lebendig</option>
+              <option>Sehr lebhaft</option>
+              <option>Vite</option>
+              <option>Vivace</option>
+              <option>Vivacissimo</option>
+            
             </optgroup>
 
             <optgroup label="Hyvin nopeat">
               <option>Allegrissimo</option>
-              <option>very fast</option>
-              <option>Presto</option>
-              <option>Sehr schnell</option>
               <option>Geschwind</option>
               <option>Prestissimo</option>
+              <option>Presto</option>
+              <option>Sehr schnell</option>
+              <option>very fast</option>
               <option>äußerst schnell</option>
+            
             </optgroup>
           </select>
         </label>
@@ -215,7 +220,7 @@
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.12.2 · Tempo · OSMD 2.1.2</p>
+      <p>BASE 0.13 · Nuottien editointi + älytauot · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
@@ -279,6 +284,8 @@
   <script src="js/start-screen.js"></script>
   <script src="js/thumb-rail.js"></script>
   <script src="js/keyboard.js"></script>
+  <script src="js/score-selection.js"></script>
+  <script src="js/selection-editor.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

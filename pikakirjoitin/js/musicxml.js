@@ -201,10 +201,11 @@
   }
 
   function isMeasureRestEntry(entry) {
-    return entry &&
+    return Boolean(
+      entry &&
       entry.kind === "rest" &&
-      entry.duration === "whole" &&
-      normalizeDots(entry.dots) === 0;
+      entry.measureRest === true
+    );
   }
 
   function decomposeRenderValue(value) {
@@ -485,6 +486,43 @@
     ].join("\n");
   }
 
+  function getLogicalSegments(score) {
+    if (!score || !Array.isArray(score.notes)) return [];
+
+    const beats = Number(score.time && score.time[0]) || 4;
+    const beatType = Number(score.time && score.time[1]) || 4;
+    const capacity = measureCapacity(beats, beatType);
+    const pickupCapacity =
+      (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
+
+    const measures = splitIntoMeasures(
+      score.notes,
+      capacity,
+      pickupCapacity
+    );
+
+    const counts = Object.create(null);
+    const segments = [];
+
+    measures.forEach(function (measure) {
+      measure.entries.forEach(function (entry) {
+        const sourceId = entry.sourceId || entry.id;
+        if (!sourceId) return;
+
+        const segmentIndex = counts[sourceId] || 0;
+        counts[sourceId] = segmentIndex + 1;
+
+        segments.push({
+          sourceId: sourceId,
+          segmentIndex: segmentIndex,
+          kind: entry.kind || "note"
+        });
+      });
+    });
+
+    return segments;
+  }
+
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -567,7 +605,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.12</software>
+      <software>Pikakirjoitin 3 BASE 0.13</software>
     </encoding>
   </identification>
   <part-list>
@@ -581,5 +619,5 @@ ${measuresXML}
 </score-partwise>`;
   }
 
-  window.PikakirjoitinMusicXML = { createMusicXML: createMusicXML };
+  window.PikakirjoitinMusicXML = { createMusicXML: createMusicXML, getLogicalSegments: getLogicalSegments };
 })();
