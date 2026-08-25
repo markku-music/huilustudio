@@ -1,33 +1,35 @@
-Pikakirjoitin 3 · BASE 0.14.8 · A4 koko leveys, yksi paperi
+Pikakirjoitin 3 · BASE 0.14.9 · A4 landscape koko leveys
 
 Pohja:
-- BASE 0.14.7 A4-paperi lukittu
+- toimiva BASE 0.14.7 A4-paperi lukittu
+- rikkinäistä 0.14.8-versiota EI ole käytetty pohjana
 
-Muutokset:
+Muutos on tarkoituksella hyvin pieni.
 
-1. A4 täyttää koko näytön leveyden
-- portraitissa A4 täyttää score-alueen koko leveyden
-- landscapessa A4 täyttää myös koko leveämmän näytön leveyden
-- paperia ei enää lukita portrait-leveyteen vmin-mitalla
+1. Portrait
+- täysin sama A4-mitoitus kuin BASE 0.14.7:ssä
+- score-card, scrollaus ja kosketuselelogiikka ennallaan
 
-2. A4-suhde säilyy
-- paperin suhde on aina 210:297
-- landscape-näkymässä paperi suurenee leveämmäksi ja samalla korkeammaksi
-- paperia vieritetään pystysuunnassa
+2. Landscape
+- A4-paperi käyttää score-cardin koko sisäleveyden
+- score-cardin alkuperäiset 12 px sivupaddingit säilyvät
+- A4-suhde 210:297 säilyy
+- paperi kasvaa samalla korkeammaksi ja sitä scrollataan pystysuunnassa
+- score-cardin scrollausmekanismiin ei ole koskettu
 
-3. Nuotti pysyy samassa suhteessa paperiin
-- OSMD-kontti skaalautuu paperin leveyden mukana
-- paperin sisämarginaalit ovat prosentteina, eivät kiinteinä pikseleinä
-- siksi marginaalit ja nuottikuva suurenevat yhdessä paperin kanssa
+3. Paperin päällä näkyneet omat reunat
+- OSMD-kontin, sen välittömän divin ja SVG:n HTML/CSS-tausta asetetaan läpinäkyväksi
+- niiltä poistetaan CSS-border, outline ja box-shadow
+- varsinainen .a4-paper säilyy ainoana paperipintana
+- OSMD:n nuotinnuslogiikkaan ei kosketa
 
-4. Vain yksi näkyvä paperi
-- .a4-paper on ainoa valkoinen paperipinta
-- OSMD-kontin ja SVG:n tausta, reunat, outline ja varjot on poistettu
-- A4-paperin oma ylimääräinen reunus ja varjo on poistettu
-- näin nuottipaperin päällä ei pitäisi näkyä toista laatikkoa tai omia reunoja
+Turvallisuus:
+- app.js muuttumaton
+- score-selection.js muuttumaton
+- selection-editor.js muuttumaton
+- score-model.js muuttumaton
+- thumb-rail.js muuttumaton
+- OSMD vendor muuttumaton
+- slur-kuvake muuttumaton
 
-5. Koskettimisto ja vieritys
-- koskettimisto pysyy alareunassa
-- A4-paperia vieritetään score-alueessa pystysuunnassa
-
-Muu BASE 0.14.7:n toiminta säilyy ennallaan.
+Ainoa JS-tiedoston muutos on musicxml.js:n ohjelmistoversion tekstissä 0.14.7 -> 0.14.9.
