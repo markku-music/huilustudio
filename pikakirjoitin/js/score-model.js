@@ -536,8 +536,65 @@
         entry.duration === "whole" &&
         normalizeDots(entry.dots) === 0;
 
+      /*
+       * Jos uuden tauon vieressä ei ole taukoja, säilytetään täsmälleen
+       * vanha yhden tapahtuman toiminta ja sama id.
+       *
+       * Jos vieressä on taukoja, laajennetaan käsittely koko yhtenäiseen
+       * taukojaksoon. Näin peräkkäin yksitellen poistettavat nuotit
+       * yhdistyvät samoilla metrisillä säännöillä kuin monivalinnan
+       * "Tauko"-toiminnossa.
+       */
+      let runStart = index;
+      let runEnd = index;
+
+      while (
+        runStart > 0 &&
+        score.notes[runStart - 1] &&
+        score.notes[runStart - 1].kind === "rest" &&
+        !score.notes[runStart - 1].measureRest &&
+        !score.notes[runStart].measureRest
+      ) {
+        runStart -= 1;
+      }
+
+      while (
+        runEnd + 1 < score.notes.length &&
+        score.notes[runEnd + 1] &&
+        score.notes[runEnd + 1].kind === "rest" &&
+        !score.notes[runEnd + 1].measureRest &&
+        !score.notes[runEnd].measureRest
+      ) {
+        runEnd += 1;
+      }
+
+      if (runStart === runEnd) {
+        cleanupSlurs(score);
+        return { changed:true, ids:[entry.id], merged:false };
+      }
+
+      const runPos = positionBeforeIndex(score, runStart);
+      let total = 0;
+
+      for (let runIndex = runStart; runIndex <= runEnd; runIndex += 1) {
+        total += durationUnits(score.notes[runIndex]);
+      }
+
+      const rests = buildSmartRests(score, runPos, total);
+
+      score.notes.splice(
+        runStart,
+        runEnd - runStart + 1,
+        ...rests
+      );
+
       cleanupSlurs(score);
-      return { changed:true, ids:[entry.id] };
+
+      return {
+        changed:true,
+        ids:rests.map(function (rest) { return rest.id; }),
+        merged:true
+      };
     }
 
     const plans = blocks.map(function (block) {

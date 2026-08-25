@@ -576,7 +576,14 @@
 
         renderScore().then(function () {
           selection.retainIds(result.ids);
-          updateStatus(ids.length === 1 ? "Valittu tapahtuma muutettu saman aika-arvon tauoksi." : "Valittu alue kirjoitettu uudelleen järkevinä taukoina.", "ok");
+          updateStatus(
+            ids.length === 1
+              ? (result.merged
+                  ? "Vierekkäiset tauot yhdistetty järkevästi."
+                  : "Valittu tapahtuma muutettu saman aika-arvon tauoksi.")
+              : "Valittu alue kirjoitettu uudelleen järkevinä taukoina.",
+            "ok"
+          );
         }).catch(function (error) {
           console.error(error);
           updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
