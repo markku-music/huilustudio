@@ -18,7 +18,7 @@
 
       this.activePointers = new Map();
       this.dragPointerId = null;
-      this.stateValue = { rest: false, dots: 0, slur: false };
+      this.stateValue = { rest: false, dots: 0, slur: false, layout: false };
       this.ratio = 0.52;
 
       this.dotWrap = this.rail.querySelector(".thumb-dot-wrap");
@@ -50,12 +50,20 @@
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
       const modifier = button.dataset.modifier;
-      if (!["rest", "dot1", "dot2", "slur"].includes(modifier)) return;
+      if (!["rest", "dot1", "dot2", "slur", "layout"].includes(modifier)) return;
 
       event.preventDefault();
       event.stopPropagation();
 
       if (modifier === "dot2") return;
+
+      // Rivien muokkaus on toggle, muut peukalopakin työkalut ovat
+      // edelleen paina-ja-pidä-modifiereita.
+      if (modifier === "layout") {
+        this.stateValue.layout = !this.stateValue.layout;
+        this.updateStateAndButtons();
+        return;
+      }
 
       const rect = this.rail.getBoundingClientRect();
 
@@ -180,6 +188,7 @@
       let rest = false;
       let dots = 0;
       let slur = false;
+      const layout = Boolean(this.stateValue.layout);
 
       for (const active of this.activePointers.values()) {
         if (active.modifier === "rest") {
@@ -195,7 +204,7 @@
         }
       }
 
-      this.stateValue = { rest: rest, dots: dots, slur: slur };
+      this.stateValue = { rest: rest, dots: dots, slur: slur, layout: layout };
 
       const restButton = this.rail.querySelector('[data-modifier="rest"]');
       if (restButton) {
@@ -207,6 +216,12 @@
       if (slurButton) {
         slurButton.classList.toggle("active", slur);
         slurButton.setAttribute("aria-pressed", slur ? "true" : "false");
+      }
+
+      const layoutButton = this.rail.querySelector('[data-modifier="layout"]');
+      if (layoutButton) {
+        layoutButton.classList.toggle("active", layout);
+        layoutButton.setAttribute("aria-pressed", layout ? "true" : "false");
       }
 
       if (this.dot1Button) {

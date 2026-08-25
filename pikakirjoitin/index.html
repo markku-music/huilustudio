@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.15.1</title>
+  <title>Pikakirjoitin 3 · BASE 0.16.0</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -220,12 +220,14 @@
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.15.1 · Landscape-valinta korjattu · OSMD 2.1.2</p>
+      <p>BASE 0.16.0 · Rivien muokkaus · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
       <div class="a4-paper" id="a4Paper">
         <div id="osmd-container"></div>
+        <div class="system-layout-overlay" id="systemLayoutOverlay"
+             aria-hidden="true" hidden></div>
       </div>
       <p id="status" class="status" aria-live="polite">Valitse sävel.</p>
     </section>
@@ -255,6 +257,13 @@
       <button class="thumb-modifier" type="button" data-modifier="slur"
               aria-label="Slur: kirjoittaessa kytke edelliseen, nuottia valitessa seuraavaan" aria-pressed="false">
         <img class="thumb-slur-icon" src="assets/slur.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+
+      <button class="thumb-modifier thumb-layout-toggle" id="lineEditButton"
+              type="button" data-modifier="layout"
+              aria-label="Rivien muokkaus" aria-pressed="false"
+              title="Rivien muokkaus">
+        <span class="thumb-layout-symbol" aria-hidden="true">↵</span>
       </button>
     </aside>
 
@@ -293,6 +302,7 @@
   <script src="js/keyboard.js"></script>
   <script src="js/score-selection.js"></script>
   <script src="js/selection-editor.js"></script>
+  <script src="js/system-layout-editor.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

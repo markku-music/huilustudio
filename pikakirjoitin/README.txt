@@ -1,32 +1,56 @@
-Pikakirjoitin 3 · BASE 0.15.1 · Landscape-valinta korjattu
+Pikakirjoitin 3 · BASE 0.16.0 · Rivien muokkaus
 
 Pohja:
-- BASE 0.15.0 Portrait-nuottikoko lukittu
+- virallinen BASE 0.15.1
 
-Korjaus:
-- Pikakirjoitin 2:n toimivassa portrait-nuottikoko-lukitussa versiossa
-  OSMD-kontilla oli pointer-events:none
-- Pikakirjoitin 3:ssa tämä puuttui
-- zoomattu OSMD/SVG pystyi siksi iPadin landscape-tilassa jäämään
-  kosketuksen vastaanottavaksi kerrokseksi score-cardin päälle
+Peukalopakin alin nappi:
+- ↵ Rivien muokkaus
+- toggle, ei paina-ja-pidä
+- aktiivisena sininen
 
-Nyt:
-- #osmd-container ja sen kaikki lapset ovat pointer-events:none
-- kosketukset menevät aina .score-cardille
-- ScoreRangeSelection laskee nuottiosumat edelleen getBoundingClientRect-
-  geometriasta, joten nuottien napautus ja vaakavalinta toimivat normaalisti
-- OSMD:n nuottikuva säilyy täysin näkyvänä, vain sen oma hit-testing poistuu
+Kun Rivien muokkaus on pois:
+- ↵-merkkejä ei näy nuottipaperilla
+- viimeisen rivin venytyskahvaa ei näy
 
-Säilytetty ennallaan:
-- BASE 0.15.0:n portrait/landscape nuottikoon lukitus
-- A4-paperi ja scrollaus
-- renderer.js
-- score-selection.js
-- score-model
-- slurit
-- peukalopakki
+Kun Rivien muokkaus on päällä:
+
+Rivinvaihto
+- mahdollisten tahtiviivojen yläpuolella näkyy haalea ↵
+- haalea ↵ = ei pakotettua rivinvaihtoa
+- napautus lisää rivinvaihdon
+- aktiivinen ↵ muuttuu siniseksi
+- sinisen ↵-merkin napautus poistaa rivinvaihdon
+- viimeisen tahdin jälkeen ei näytetä ↵-merkkiä
+
+Rivinvaihto tallennetaan Score Modeliin:
+score.layout.systemBreaks
+
+MusicXML:
+- seuraavan tahdin alkuun tulee <print new-system="yes"/>
+
+OSMD:
+- newSystemFromXML:true
+- OSMD tekee varsinaisen rivijaon
+
+Viimeisen rivin venytys
+- viimeisen nuottirivin lopussa näkyy ↔-vetokahva
+- kahvaa vedetään vaakasuunnassa
+- sormen nostossa OSMD renderöi viimeisen rivin uudelleen
+- SVG:tä ei venytetä CSS:llä
+- käytössä OSMD:n LastSystemMaxScalingFactor
+- oletus 1.4 säilyttää BASE 0.15.1:n ulkoasun
+- sallittu alue 1...6
+
+Venytys tallennetaan Score Modeliin:
+score.layout.lastSystemMaxScalingFactor
+
+BASE 0.15.1:n muu toiminta säilyy:
+- portrait/landscape nuottikoon lukitus
+- landscape-valinta
+- A4 ja scrollaus
+- slurit ja slurien poisto
+- älytauot
+- enharmoninen
+- peukalopakin Tauko, pisteet ja Slur
 - koskettimisto
-- OSMD 2.1.2 vendor
-- käyttäjän slur.svg
-
-Ainoa toiminnallinen muutos on OSMD-kerroksen pointer-eventtien poistaminen.
+- OSMD 2.1.2 vendor muuttumattomana

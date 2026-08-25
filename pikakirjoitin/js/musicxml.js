@@ -474,6 +474,22 @@
     return segments;
   }
 
+  function getMeasureCount(score) {
+    if (!score || !Array.isArray(score.notes)) return 0;
+
+    const beats = Number(score.time && score.time[0]) || 4;
+    const beatType = Number(score.time && score.time[1]) || 4;
+    const capacity = measureCapacity(beats, beatType);
+    const pickupCapacity =
+      (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
+
+    return splitIntoMeasures(
+      score.notes,
+      capacity,
+      pickupCapacity
+    ).length;
+  }
+
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -488,12 +504,28 @@
     const capacity = measureCapacity(beats, beatType);
     const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
     const slurMarkers = buildSlurMarkers(score);
+    const systemBreaks = new Set(
+      score.layout && Array.isArray(score.layout.systemBreaks)
+        ? score.layout.systemBreaks
+        : []
+    );
 
-    const measures = annotateMultipleRests(splitIntoMeasures(score.notes, capacity, pickupCapacity, slurMarkers));
+    const measures = annotateMultipleRests(
+      splitIntoMeasures(
+        score.notes,
+        capacity,
+        pickupCapacity,
+        slurMarkers
+      )
+    );
 
     const measuresXML = measures.map(function (measure, index) {
       const implicit = measure.implicit ? ' implicit="yes"' : "";
       const parts = ["    <measure number=\"" + (index + 1) + "\"" + implicit + ">"];
+
+      if (index > 0 && systemBreaks.has(index)) {
+        parts.push('      <print new-system="yes"/>');
+      }
 
       if (index === 0) {
         parts.push(attributesToXML(score, beats, beatType, fifths, measure.multipleRestCount || 0));
@@ -527,7 +559,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.15.1</software>
+      <software>Pikakirjoitin 3 BASE 0.16.0</software>
     </encoding>
   </identification>
   <part-list>
@@ -541,5 +573,9 @@ ${measuresXML}
 </score-partwise>`;
   }
 
-  window.PikakirjoitinMusicXML = { createMusicXML: createMusicXML, getLogicalSegments: getLogicalSegments };
+  window.PikakirjoitinMusicXML = {
+    createMusicXML: createMusicXML,
+    getLogicalSegments: getLogicalSegments,
+    getMeasureCount: getMeasureCount
+  };
 })();

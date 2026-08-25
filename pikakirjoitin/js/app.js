@@ -23,10 +23,11 @@
   const audio = new window.PikakirjoitinAudio.AudioEngine();
 
   let rendering = Promise.resolve();
-  let thumbState = { rest: false, dots: 0, slur: false };
+  let thumbState = { rest: false, dots: 0, slur: false, layout: false };
   let keyboard = null;
   let selection = null;
   let selectionEditor = null;
+  let layoutEditor = null;
   let keyboardEditId = null;
   let lastSelectionEditorAnchor = null;
   let pendingSelectedSlurStartId = null;
@@ -69,9 +70,15 @@
     console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
 
     rendering = rendering.then(function () {
-      return window.PikakirjoitinRenderer.renderMusicXML(musicXML, "osmd-container");
+      return window.PikakirjoitinRenderer.renderMusicXML(
+        musicXML,
+        "osmd-container",
+        "score",
+        score.layout
+      );
     }).then(function (osmd) {
       refreshSelectionFromRenderedScore();
+      if (layoutEditor) layoutEditor.refresh();
       return osmd;
     });
 
@@ -371,6 +378,123 @@
     }
   }
 
+  function setupSystemLayoutEditor() {
+    layoutEditor =
+      new window.PikakirjoitinSystemLayoutEditor
+        .SystemLayoutEditor({
+          overlay:
+            document.getElementById("systemLayoutOverlay"),
+          paper:
+            document.getElementById("a4Paper"),
+          container:
+            document.getElementById("osmd-container"),
+
+          getMeasureLayout: function () {
+            return window.PikakirjoitinRenderer
+              .getMeasureLayout();
+          },
+
+          getMeasureCount: function () {
+            return window.PikakirjoitinMusicXML
+              .getMeasureCount(score);
+          },
+
+          hasContent: function () {
+            return Array.isArray(score.notes) &&
+              score.notes.length > 0;
+          },
+
+          isSystemBreak: function (startMeasureIndex) {
+            return window.PikakirjoitinScoreModel
+              .hasSystemBreak(
+                score,
+                startMeasureIndex
+              );
+          },
+
+          onToggleSystemBreak: function (
+            startMeasureIndex
+          ) {
+            const active =
+              window.PikakirjoitinScoreModel
+                .toggleSystemBreak(
+                  score,
+                  startMeasureIndex
+                );
+
+            const count =
+              window.PikakirjoitinMusicXML
+                .getMeasureCount(score);
+
+            window.PikakirjoitinScoreModel
+              .cleanupSystemBreaks(score, count);
+
+            renderScore()
+              .then(function () {
+                updateStatus(
+                  active
+                    ? "Rivinvaihto lisätty."
+                    : "Rivinvaihto poistettu.",
+                  "ok"
+                );
+              })
+              .catch(function (error) {
+                console.error(error);
+                updateStatus(
+                  "Virhe: " +
+                    (
+                      error && error.message
+                        ? error.message
+                        : String(error)
+                    ),
+                  "error"
+                );
+              });
+          },
+
+          getLastSystemFactor: function () {
+            return window.PikakirjoitinScoreModel
+              .getLastSystemMaxScalingFactor(score);
+          },
+
+          onLastSystemFactorCommit: function (factor) {
+            window.PikakirjoitinScoreModel
+              .setLastSystemMaxScalingFactor(
+                score,
+                factor
+              );
+
+            window.PikakirjoitinRenderer
+              .rerenderLayout(
+                score.layout,
+                "layout"
+              )
+              .then(function () {
+                refreshSelectionFromRenderedScore();
+                if (layoutEditor) {
+                  layoutEditor.refresh();
+                }
+                updateStatus(
+                  "Viimeisen rivin leveys päivitetty.",
+                  "ok"
+                );
+              })
+              .catch(function (error) {
+                console.error(error);
+                updateStatus(
+                  "Virhe: " +
+                    (
+                      error && error.message
+                        ? error.message
+                        : String(error)
+                    ),
+                  "error"
+                );
+              });
+          }
+        });
+  }
+
   function setupSelection() {
     selection = new window.PikakirjoitinSelection.ScoreRangeSelection({
       viewport: document.querySelector(".score-card"),
@@ -532,6 +656,7 @@
 
   function start() {
     setupSelection();
+    setupSystemLayoutEditor();
 
     // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
     // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
@@ -540,8 +665,15 @@
       typeof window.PikakirjoitinRenderer.subscribeRendered === "function"
     ) {
       window.PikakirjoitinRenderer.subscribeRendered(function (snapshot) {
-        if (snapshot && snapshot.reason === "resize") {
+        if (
+          snapshot &&
+          (
+            snapshot.reason === "resize" ||
+            snapshot.reason === "layout"
+          )
+        ) {
           refreshSelectionFromRenderedScore();
+          if (layoutEditor) layoutEditor.refresh();
         }
       });
     }
@@ -550,9 +682,32 @@
       rail: document.getElementById("thumbRail"),
       boundsElement: document.querySelector(".score-card"),
       onChange: function (state) {
+        const wasLayout = Boolean(thumbState.layout);
         thumbState = state;
-        const description = describeThumbState(state);
-        if (description) updateStatus(description);
+
+        if (
+          layoutEditor &&
+          Boolean(state.layout) !== wasLayout
+        ) {
+          layoutEditor.setActive(
+            Boolean(state.layout)
+          );
+
+          updateStatus(
+            state.layout
+              ? "Rivien muokkaus päällä."
+              : "Rivien muokkaus pois.",
+            "ok"
+          );
+          return;
+        }
+
+        const description =
+          describeThumbState(state);
+
+        if (description) {
+          updateStatus(description);
+        }
       }
     });
 

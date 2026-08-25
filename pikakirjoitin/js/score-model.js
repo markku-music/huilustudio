@@ -46,6 +46,94 @@
     };
   }
 
+  function normalizeLayout(layout) {
+    const source = layout || {};
+
+    const breaks = Array.isArray(source.systemBreaks)
+      ? source.systemBreaks
+          .map(function (value) { return Math.round(Number(value)); })
+          .filter(function (value) {
+            return Number.isInteger(value) && value > 0;
+          })
+      : [];
+
+    let factor = Number(source.lastSystemMaxScalingFactor);
+    if (!Number.isFinite(factor)) factor = 1.4;
+
+    return {
+      systemBreaks: Array.from(new Set(breaks)).sort(function (a, b) {
+        return a - b;
+      }),
+      lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor))
+    };
+  }
+
+  function ensureLayout(score) {
+    if (!score) return normalizeLayout();
+    score.layout = normalizeLayout(score.layout);
+    return score.layout;
+  }
+
+  function getSystemBreaks(score) {
+    return ensureLayout(score).systemBreaks.slice();
+  }
+
+  function hasSystemBreak(score, startMeasureIndex) {
+    const index = Math.round(Number(startMeasureIndex));
+    return Number.isInteger(index) &&
+      index > 0 &&
+      ensureLayout(score).systemBreaks.includes(index);
+  }
+
+  function toggleSystemBreak(score, startMeasureIndex) {
+    const index = Math.round(Number(startMeasureIndex));
+    if (!score || !Number.isInteger(index) || index <= 0) return false;
+
+    const layout = ensureLayout(score);
+    const breaks = new Set(layout.systemBreaks);
+
+    if (breaks.has(index)) breaks.delete(index);
+    else breaks.add(index);
+
+    layout.systemBreaks = Array.from(breaks).sort(function (a, b) {
+      return a - b;
+    });
+
+    return breaks.has(index);
+  }
+
+  function cleanupSystemBreaks(score, measureCount) {
+    const count = Math.max(0, Math.round(Number(measureCount) || 0));
+    const layout = ensureLayout(score);
+    const before = layout.systemBreaks.length;
+
+    layout.systemBreaks = layout.systemBreaks.filter(function (index) {
+      return index > 0 && index < count;
+    });
+
+    return layout.systemBreaks.length !== before;
+  }
+
+  function getLastSystemMaxScalingFactor(score) {
+    return ensureLayout(score).lastSystemMaxScalingFactor;
+  }
+
+  function setLastSystemMaxScalingFactor(score, value) {
+    if (!score) return 1.4;
+
+    const layout = ensureLayout(score);
+    let factor = Number(value);
+
+    if (!Number.isFinite(factor)) {
+      factor = layout.lastSystemMaxScalingFactor;
+    }
+
+    layout.lastSystemMaxScalingFactor =
+      Math.max(1, Math.min(6, factor));
+
+    return layout.lastSystemMaxScalingFactor;
+  }
+
   function createScore(options) {
     const config = options || {};
 
@@ -64,7 +152,8 @@
       notes: Array.isArray(config.notes) ? config.notes.map(cloneEntry) : [],
       slurs: Array.isArray(config.slurs)
         ? config.slurs.map(cloneSlur).filter(Boolean)
-        : []
+        : [],
+      layout: normalizeLayout(config.layout)
     };
 
     cleanupSlurs(score);
@@ -754,6 +843,13 @@
     slursAtNote: slursAtNote,
     canCreateSlurFromSelection: canCreateSlurFromSelection,
     toggleSlurForSelection: toggleSlurForSelection,
-    hasSlurForSelection: hasSlurForSelection
+    hasSlurForSelection: hasSlurForSelection,
+    normalizeLayout: normalizeLayout,
+    getSystemBreaks: getSystemBreaks,
+    hasSystemBreak: hasSystemBreak,
+    toggleSystemBreak: toggleSystemBreak,
+    cleanupSystemBreaks: cleanupSystemBreaks,
+    getLastSystemMaxScalingFactor: getLastSystemMaxScalingFactor,
+    setLastSystemMaxScalingFactor: setLastSystemMaxScalingFactor
   };
 })();
