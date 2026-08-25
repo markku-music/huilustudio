@@ -16,6 +16,12 @@
                alt="" aria-hidden="true">
         </button>
 
+        <button type="button" data-action="slur"
+                aria-label="Lisää tai poista slur" title="Lisää tai poista slur">
+          <img class="pk-slur-icon" src="assets/slur.svg"
+               alt="" aria-hidden="true">
+        </button>
+
         <button type="button" data-action="rest"
                 aria-label="Muuta valinta tauoksi" title="Muuta valinta tauoksi">
           <img class="pk-rest-icon" src="assets/rest.svg"
@@ -47,6 +53,9 @@
         if (button.dataset.action === "enharmonic") {
           if (typeof config.onEnharmonic === "function") config.onEnharmonic();
         }
+        if (button.dataset.action === "slur") {
+          if (typeof config.onSlur === "function") config.onSlur();
+        }
         if (button.dataset.action === "rest") {
           if (typeof config.onRest === "function") config.onRest();
         }
@@ -69,9 +78,14 @@
       enharmonic.hidden = !config.canEnharmonic;
       enharmonic.disabled = !config.canEnharmonic;
 
+      const slur = this.root.querySelector('[data-action="slur"]');
+      slur.disabled = !config.canSlur;
+      slur.classList.toggle("active", Boolean(config.slurActive));
+      slur.setAttribute("aria-pressed", config.slurActive ? "true" : "false");
+
       this.root.hidden = false;
 
-      const width = this.root.offsetWidth || 154;
+      const width = this.root.offsetWidth || 206;
       const half = width / 2;
       const x = Number(config.x) || window.innerWidth / 2;
       this.root.style.left =

@@ -23,12 +23,14 @@
   const audio = new window.PikakirjoitinAudio.AudioEngine();
 
   let rendering = Promise.resolve();
-  let thumbState = { rest: false, dots: 0 };
+  let thumbState = { rest: false, dots: 0, slur: false };
   let keyboard = null;
   let selection = null;
   let selectionEditor = null;
   let keyboardEditId = null;
   let lastSelectionEditorAnchor = null;
+  let pendingSlurStartId = null;
+  const noteInputMeta = new Map();
 
   let settings = {
     transpose: 0,
@@ -54,10 +56,8 @@
 
   function refreshSelectionFromRenderedScore() {
     if (!selection) return;
-
     const segments = window.PikakirjoitinMusicXML.getLogicalSegments(score);
     selection.refresh({ segments: segments });
-
     if (keyboardEditId) {
       selection.retainSingle(keyboardEditId);
     }
@@ -65,15 +65,11 @@
 
   function renderScore() {
     const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
-
     console.log("Pikakirjoitin 3 Score Model:", score);
     console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
 
     rendering = rendering.then(function () {
-      return window.PikakirjoitinRenderer.renderMusicXML(
-        musicXML,
-        "osmd-container"
-      );
+      return window.PikakirjoitinRenderer.renderMusicXML(musicXML, "osmd-container");
     }).then(function (osmd) {
       refreshSelectionFromRenderedScore();
       return osmd;
@@ -101,13 +97,10 @@
       return dotWord(dots) + label + "-tauko";
     }
 
-    return displayPitch(pitch || (entry && entry.pitch) || "") + " " +
-      dotWord(dots) + label;
+    return displayPitch(pitch || (entry && entry.pitch) || "") + " " + dotWord(dots) + label;
   }
 
-  function selectedIds() {
-    return selection ? selection.selectedIds : [];
-  }
+  function selectedIds() { return selection ? selection.selectedIds : []; }
 
   function selectedSingleNote() {
     const ids = selectedIds();
@@ -116,15 +109,53 @@
     return entry && entry.kind === "note" ? entry : null;
   }
 
+  function applyThumbSlurFromSelectedNote(sourceId) {
+    const start = window.PikakirjoitinScoreModel.getEntry(score, sourceId);
+
+    if (!start || start.kind !== "note") {
+      updateStatus("Slur voi alkaa vain nuotista.");
+      return;
+    }
+
+    const nextId = window.PikakirjoitinScoreModel.nextNoteId(score, sourceId);
+
+    // Jos seuraava nuotti on jo olemassa, kaari syntyy heti.
+    if (nextId) {
+      pendingSlurStartId = null;
+
+      if (window.PikakirjoitinScoreModel.hasSlur(score, sourceId, nextId)) {
+        updateStatus("Slur on jo valitusta nuotista seuraavaan nuottiin.", "ok");
+        return;
+      }
+
+      if (window.PikakirjoitinScoreModel.addSlur(score, sourceId, nextId)) {
+        renderScore().then(function () {
+          selection.retainSingle(sourceId);
+          updateStatus("Slur lisätty valitusta nuotista seuraavaan nuottiin.", "ok");
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus(
+            "Virhe: " + (error && error.message ? error.message : String(error)),
+            "error"
+          );
+        });
+      }
+
+      return;
+    }
+
+    // Jos valittu nuotti on tällä hetkellä viimeinen nuotti, sama ajatus
+    // jatkuu kirjoittamiseen: seuraava myöhemmin kirjoitettu nuotti sulkee slurin.
+    pendingSlurStartId = sourceId;
+    updateStatus("Slur alkaa valitusta nuotista · odottaa seuraavaa nuottia.", "ok");
+  }
+
   function startEntry(midi, pitch, duration) {
     const dots = thumbState.dots || 0;
     const selected = selectedSingleNote();
 
-    // P2-tyylinen editointi: yksi valittu nuotti muokataan koskettimelta.
-    // Sama ele määrää uuden aika-arvon.
     if (selected) {
       keyboardEditId = selected.id;
-
       if (thumbState.rest) {
         window.PikakirjoitinScoreModel.updateEntry(score, selected.id, {
           kind: "rest",
@@ -143,24 +174,17 @@
       }
 
       const edited = window.PikakirjoitinScoreModel.getEntry(score, selected.id);
+      noteInputMeta.set(selected.id, { fromEdit: true, startedWithSlur: Boolean(thumbState.slur) });
       updateStatus(entryLabel(edited, pitch, duration) + " · muokataan…");
 
       renderScore().catch(function (error) {
         console.error(error);
-        updateStatus(
-          "Virhe: " + (error && error.message ? error.message : String(error)),
-          "error"
-        );
+        updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
       });
 
-      return {
-        id: selected.id,
-        sound: edited && edited.kind !== "rest"
-      };
+      return { id: selected.id, sound: edited && edited.kind !== "rest" };
     }
 
-    // Monivalinta tai taukovalinta ei jää vahingossa päälle uuden nuotin
-    // kirjoittamisen aikana.
     if (selection && selectedIds().length) selection.clear();
 
     const entry = thumbState.rest
@@ -175,38 +199,28 @@
           dots: dots
         });
 
+    noteInputMeta.set(entry.id, { fromEdit: false, startedWithSlur: Boolean(thumbState.slur) });
     updateStatus(entryLabel(entry, pitch, duration) + " · ele kesken…");
 
     renderScore().catch(function (error) {
       console.error(error);
-      updateStatus(
-        "Virhe: " + (error && error.message ? error.message : String(error)),
-        "error"
-      );
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
 
-    return {
-      id: entry.id,
-      sound: entry.kind !== "rest"
-    };
+    return { id: entry.id, sound: entry.kind !== "rest" };
   }
 
   function changeDuration(id, duration, midi, pitch) {
     const targetId = keyboardEditId || id;
-
     if (!window.PikakirjoitinScoreModel.setDuration(score, targetId, duration)) {
       return;
     }
-
     const entry = window.PikakirjoitinScoreModel.getEntry(score, targetId);
     updateStatus(entryLabel(entry, pitch, duration) + " · aika-arvo muutettu");
 
     renderScore().catch(function (error) {
       console.error(error);
-      updateStatus(
-        "Virhe: " + (error && error.message ? error.message : String(error)),
-        "error"
-      );
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
   }
 
@@ -214,57 +228,58 @@
     const count = score.notes.length;
     const targetId = keyboardEditId || id;
     const entry = window.PikakirjoitinScoreModel.getEntry(score, targetId);
+    const meta = noteInputMeta.get(targetId) || {};
+
+    if (entry && !meta.fromEdit) {
+      if (entry.kind === "note" && pendingSlurStartId && pendingSlurStartId !== targetId) {
+        window.PikakirjoitinScoreModel.addSlur(score, pendingSlurStartId, targetId);
+      }
+
+      if (entry.kind === "note" && meta.startedWithSlur) {
+        pendingSlurStartId = targetId;
+      } else if (entry.kind === "note" && pendingSlurStartId && pendingSlurStartId !== targetId) {
+        pendingSlurStartId = null;
+      }
+    }
+
+    if (entry && entry.kind === "rest" && meta.startedWithSlur) {
+      updateStatus("Slur voi alkaa vain nuotista. Tauko kirjoitettiin normaalisti.");
+    }
+
+    noteInputMeta.delete(targetId);
 
     renderScore().then(function () {
       if (keyboardEditId && selection) {
         selection.retainSingle(keyboardEditId);
       }
 
-      updateStatus(
-        "OK · " + entryLabel(entry, pitch, duration) +
-        " · " + count + (count === 1 ? " tapahtuma" : " tapahtumaa"),
-        "ok"
-      );
-
-      // P3:ssa valinta jää editoinnin jälkeen päälle, jotta samaa nuottia
-      // voi muuttaa uudelleen ilman uutta osumaa.
+      let message = "OK · " + entryLabel(entry, pitch, duration) + " · " + count + (count === 1 ? " tapahtuma" : " tapahtumaa");
+      if (!meta.fromEdit && entry && entry.kind === "note" && meta.startedWithSlur) {
+        message += " · slur odottaa seuraavaa nuottia";
+      }
+      updateStatus(message, "ok");
       keyboardEditId = null;
     }).catch(function (error) {
       keyboardEditId = null;
       console.error(error);
-      updateStatus(
-        "Virhe: " + (error && error.message ? error.message : String(error)),
-        "error"
-      );
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
   }
 
   function describeThumbState(state) {
     const parts = [];
-
     if (state.rest) parts.push("Tauko");
     if (state.dots === 1) parts.push("1 piste");
     if (state.dots === 2) parts.push("2 pistettä");
-
-    return parts.length
-      ? parts.join(" + ") + " pohjassa · tee aika-arvoele koskettimella."
-      : "";
+    if (state.slur) parts.push("Slur");
+    return parts.length ? parts.join(" + ") + " pohjassa · tee aika-arvoele koskettimella." : "";
   }
 
   function timeSettings(value) {
-    if (value === "C") {
-      return { time: [4, 4], symbol: "common" };
-    }
-
-    if (value === "cutC") {
-      return { time: [2, 2], symbol: "cut" };
-    }
-
+    if (value === "C") return { time: [4, 4], symbol: "common" };
+    if (value === "cutC") return { time: [2, 2], symbol: "cut" };
     const parts = String(value || "4/4").split("/").map(Number);
-    return {
-      time: [parts[0] || 4, parts[1] || 4],
-      symbol: ""
-    };
+    return { time: [parts[0] || 4, parts[1] || 4], symbol: "" };
   }
 
   function clefValue(value) {
@@ -275,17 +290,12 @@
 
   async function applyStartSettings(nextSettings) {
     settings = Object.assign({}, nextSettings);
-
     const meter = timeSettings(settings.timeSignature);
 
     score.metadata.title = settings.title || "Pikakirjoitin 3";
     score.metadata.composer = settings.composer || "";
     score.metadata.tempoText = settings.tempoText || "";
-
-    score.key = Number.isInteger(settings.keySignature)
-      ? settings.keySignature
-      : 0;
-
+    score.key = Number.isInteger(settings.keySignature) ? settings.keySignature : 0;
     score.time = meter.time;
     score.timeSymbol = meter.symbol;
     score.pickupDuration = Number(settings.pickupDuration) || 0;
@@ -295,16 +305,11 @@
 
     requestAnimationFrame(function () {
       if (keyboard) {
-        keyboard.scrollToMidi(
-          Number(settings.keyboardStartMidi) || 60
-        );
+        keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
       }
     });
 
-    updateStatus(
-      "Valmis · ääni on käytössä ja kirjoitus voi alkaa.",
-      "ok"
-    );
+    updateStatus("Valmis · ääni on käytössä ja kirjoitus voi alkaa.", "ok");
   }
 
   function setupSelection() {
@@ -317,7 +322,6 @@
       onEnharmonic: function () {
         const note = selectedSingleNote();
         if (!note) return;
-
         if (window.PikakirjoitinScoreModel.toggleEnharmonic(score, note.id)) {
           renderScore().then(function () {
             selection.retainSingle(note.id);
@@ -326,56 +330,68 @@
         }
       },
 
+      onSlur: function () {
+        const ids = selectedIds();
+        if (!ids.length) return;
+        const result = window.PikakirjoitinScoreModel.toggleSlurForSelection(score, ids);
+        if (!result.changed) {
+          if (result.reason === "need_two_notes") {
+            updateStatus("Slur vaatii vähintään kaksi valittua nuottia.", "error");
+          } else if (result.reason === "notes_only") {
+            updateStatus("Slur voidaan lisätä vain pelkille nuoteille.", "error");
+          }
+          return;
+        }
+        renderScore().then(function () {
+          selection.retainIds(ids);
+          updateStatus(result.active ? "Slur lisätty valittujen nuottien ylle." : "Slur poistettu valinnasta.", "ok");
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+        });
+      },
+
       onRest: function () {
         const ids = selectedIds();
         if (!ids.length) return;
 
-        const result = window.PikakirjoitinScoreModel.convertSelectionToRests(
-          score,
-          ids
-        );
-
+        const result = window.PikakirjoitinScoreModel.convertSelectionToRests(score, ids);
         if (!result.changed) return;
 
         renderScore().then(function () {
           selection.retainIds(result.ids);
-          updateStatus(
-            ids.length === 1
-              ? "Valittu tapahtuma muutettu saman aika-arvon tauoksi."
-              : "Valittu alue kirjoitettu uudelleen järkevinä taukoina.",
-            "ok"
-          );
+          updateStatus(ids.length === 1 ? "Valittu tapahtuma muutettu saman aika-arvon tauoksi." : "Valittu alue kirjoitettu uudelleen järkevinä taukoina.", "ok");
         }).catch(function (error) {
           console.error(error);
-          updateStatus(
-            "Virhe: " + (error && error.message ? error.message : String(error)),
-            "error"
-          );
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
         });
       },
 
       onDelete: function () {
         const ids = selectedIds();
         if (!ids.length) return;
-
         if (window.PikakirjoitinScoreModel.deleteEntries(score, ids)) {
           selection.clear();
           renderScore().then(function () {
-            updateStatus(
-              ids.length === 1
-                ? "Tapahtuma poistettu."
-                : ids.length + " tapahtumaa poistettu.",
-              "ok"
-            );
+            updateStatus(ids.length === 1 ? "Tapahtuma poistettu." : ids.length + " tapahtumaa poistettu.", "ok");
           });
         }
       }
     });
 
+    selection.subscribeCommit(function (state) {
+      const ids = state.selectedIds || [];
+
+      if (!thumbState.slur || state.count !== 1) return;
+
+      // Tämä laukeaa vasta sormen nostossa. Peukalopakin Slur täytyy siis
+      // olla edelleen pohjassa, kun yhden nuotin valinta valmistuu.
+      applyThumbSlurFromSelectedNote(ids[0]);
+    });
+
     selection.subscribe(function (state) {
-      const single = state.count === 1
-        ? window.PikakirjoitinScoreModel.getEntry(score, state.selectedIds[0])
-        : null;
+      const ids = state.selectedIds || [];
+      const single = state.count === 1 ? window.PikakirjoitinScoreModel.getEntry(score, ids[0]) : null;
 
       if (state.anchor) {
         lastSelectionEditorAnchor = Object.assign({}, state.anchor);
@@ -395,11 +411,9 @@
         x: anchor.x,
         staffTop: anchor.staffTop,
         staffBottom: anchor.staffBottom,
-        canEnharmonic: Boolean(
-          single &&
-          single.kind === "note" &&
-          window.PikakirjoitinScoreModel.canEnharmonic(score, single.id)
-        )
+        canEnharmonic: Boolean(single && single.kind === "note" && window.PikakirjoitinScoreModel.canEnharmonic(score, single.id)),
+        canSlur: window.PikakirjoitinScoreModel.canCreateSlurFromSelection(score, ids),
+        slurActive: window.PikakirjoitinScoreModel.hasSlurForSelection(score, ids)
       });
     });
   }
@@ -437,10 +451,7 @@
 
     renderScore().catch(function (error) {
       console.error(error);
-      updateStatus(
-        "Virhe: " + (error && error.message ? error.message : String(error)),
-        "error"
-      );
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
 
     new window.PikakirjoitinStartScreen.StartScreen({

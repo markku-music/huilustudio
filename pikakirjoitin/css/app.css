@@ -363,6 +363,12 @@ button {
   object-fit: contain;
 }
 
+.thumb-slur-icon {
+  width: 33px !important;
+  height: 22px !important;
+  object-fit: contain;
+}
+
 .thumb-dot-flyout {
   position: absolute;
   z-index: 1;
@@ -599,4 +605,13 @@ button {
 /* Kun vaakavalinta on jo yksiselitteinen, Safari ei saa kaapata elettä scrolliksi. */
 .score-card.pk-selection-gesture-locked {
   touch-action: none;
+}
+
+
+.pk-selection-editor .pk-slur-icon {
+  display:block;
+  width:30px;
+  height:20px;
+  object-fit:contain;
+  pointer-events:none;
 }

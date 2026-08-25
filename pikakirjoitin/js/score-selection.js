@@ -146,6 +146,7 @@ class ScoreRangeSelection {
   #cursor = null;
   #cursorTarget = null;
   #listeners = new Set();
+  #commitListeners = new Set();
 
   constructor({ viewport, container }) {
     this.#viewport = viewport;
@@ -158,6 +159,11 @@ class ScoreRangeSelection {
     this.#listeners.add(listener);
     listener(this.#selectionState());
     return () => this.#listeners.delete(listener);
+  }
+
+  subscribeCommit(listener) {
+    this.#commitListeners.add(listener);
+    return () => this.#commitListeners.delete(listener);
   }
 
   refresh({ segments = [] } = {}) {
@@ -372,6 +378,7 @@ class ScoreRangeSelection {
 
     this.#viewport.classList.remove('pk-selection-gesture-locked');
     this.#gesture = null;
+    this.#emitCommit();
   }
 
   #pointerCancel(ev) {
@@ -538,6 +545,11 @@ class ScoreRangeSelection {
   #emitChange() {
     const state = this.#selectionState();
     for (const listener of this.#listeners) listener(state);
+  }
+
+  #emitCommit() {
+    const state = this.#selectionState();
+    for (const listener of this.#commitListeners) listener(state);
   }
 
   #paint() {

@@ -18,7 +18,7 @@
 
       this.activePointers = new Map();
       this.dragPointerId = null;
-      this.stateValue = { rest: false, dots: 0 };
+      this.stateValue = { rest: false, dots: 0, slur: false };
       this.ratio = 0.52;
 
       this.dotWrap = this.rail.querySelector(".thumb-dot-wrap");
@@ -50,13 +50,11 @@
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
       const modifier = button.dataset.modifier;
-      if (!["rest", "dot1", "dot2"].includes(modifier)) return;
+      if (!["rest", "dot1", "dot2", "slur"].includes(modifier)) return;
 
       event.preventDefault();
       event.stopPropagation();
 
-      // Flyout on normaalisti piilossa eikä aloita omaa elettä.
-      // Varsinainen kahden pisteen valinta tapahtuu liu'uttamalla dot1:stä.
       if (modifier === "dot2") return;
 
       const rect = this.rail.getBoundingClientRect();
@@ -101,7 +99,6 @@
         return;
       }
 
-      // Peukalopalkin pystysiirto tehdään Tauko-painikkeesta.
       if (
         active.modifier === "rest" &&
         !active.dragging &&
@@ -182,6 +179,7 @@
     updateStateAndButtons() {
       let rest = false;
       let dots = 0;
+      let slur = false;
 
       for (const active of this.activePointers.values()) {
         if (active.modifier === "rest") {
@@ -191,14 +189,24 @@
         if (active.modifier === "dot1") {
           dots = Math.max(dots, active.dotSelection || 1);
         }
+
+        if (active.modifier === "slur") {
+          slur = true;
+        }
       }
 
-      this.stateValue = { rest: rest, dots: dots };
+      this.stateValue = { rest: rest, dots: dots, slur: slur };
 
       const restButton = this.rail.querySelector('[data-modifier="rest"]');
       if (restButton) {
         restButton.classList.toggle("active", rest);
         restButton.setAttribute("aria-pressed", rest ? "true" : "false");
+      }
+
+      const slurButton = this.rail.querySelector('[data-modifier="slur"]');
+      if (slurButton) {
+        slurButton.classList.toggle("active", slur);
+        slurButton.setAttribute("aria-pressed", slur ? "true" : "false");
       }
 
       if (this.dot1Button) {

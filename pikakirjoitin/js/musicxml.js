@@ -20,33 +20,25 @@
     "one-hundred-twenty-eighth": "128th"
   };
 
-  // Vain MusicXML-renderöintiin käytettävät mahdolliset palat.
-  // 64th/128th syntyvät vain poikkeuksellisen tarkassa tahtiviivan rajassa.
   const RENDER_DURATION_CHOICES = [
     { value:224, duration:"whole", dots:2 },
     { value:192, duration:"whole", dots:1 },
     { value:128, duration:"whole", dots:0 },
-
     { value:112, duration:"half", dots:2 },
     { value:96,  duration:"half", dots:1 },
     { value:64,  duration:"half", dots:0 },
-
     { value:56,  duration:"quarter", dots:2 },
     { value:48,  duration:"quarter", dots:1 },
     { value:32,  duration:"quarter", dots:0 },
-
     { value:28,  duration:"eighth", dots:2 },
     { value:24,  duration:"eighth", dots:1 },
     { value:16,  duration:"eighth", dots:0 },
-
     { value:14,  duration:"sixteenth", dots:2 },
     { value:12,  duration:"sixteenth", dots:1 },
     { value:8,   duration:"sixteenth", dots:0 },
-
     { value:7,   duration:"thirty-second", dots:2 },
     { value:6,   duration:"thirty-second", dots:1 },
     { value:4,   duration:"thirty-second", dots:0 },
-
     { value:3,   duration:"sixty-fourth", dots:1 },
     { value:2,   duration:"sixty-fourth", dots:0 },
     { value:1,   duration:"one-hundred-twenty-eighth", dots:0 }
@@ -111,7 +103,7 @@
     });
   }
 
-  function tieElementsToXML(entry) {
+  function notationElementsToXML(entry) {
     if (!entry || entry.kind === "rest") {
       return { ties: [], notations: [] };
     }
@@ -127,6 +119,14 @@
     if (entry.tieStart) {
       ties.push('        <tie type="start"/>');
       notations.push('          <tied type="start"/>');
+    }
+
+    if (entry.slurStop) {
+      notations.push('          <slur type="stop" number="1"/>');
+    }
+
+    if (entry.slurStart) {
+      notations.push('          <slur type="start" number="1"/>');
     }
 
     return { ties: ties, notations: notations };
@@ -163,7 +163,7 @@
       ? "<alter>" + pitch.alter + "</alter>"
       : "";
 
-    const tieXML = tieElementsToXML(entry);
+    const notationXML = notationElementsToXML(entry);
 
     const parts = [
       "      <note>",
@@ -171,7 +171,7 @@
       "        <duration>" + value + "</duration>"
     ];
 
-    parts.push.apply(parts, tieXML.ties);
+    parts.push.apply(parts, notationXML.ties);
 
     parts.push(
       "        <voice>1</voice>",
@@ -180,9 +180,9 @@
 
     parts.push.apply(parts, dotsToXML(entry.dots));
 
-    if (tieXML.notations.length) {
+    if (notationXML.notations.length) {
       parts.push("        <notations>");
-      parts.push.apply(parts, tieXML.notations);
+      parts.push.apply(parts, notationXML.notations);
       parts.push("        </notations>");
     }
 
@@ -210,7 +210,6 @@
 
   function decomposeRenderValue(value) {
     const target = Math.round(Number(value));
-
     if (!Number.isInteger(target) || target <= 0) {
       throw new Error("Virheellinen renderöitävä rytmikesto: " + value);
     }
@@ -221,12 +220,9 @@
     for (let total = 1; total <= target; total += 1) {
       for (const choice of RENDER_DURATION_CHOICES) {
         if (choice.value > total) continue;
-
         const previous = best[total - choice.value];
         if (!previous) continue;
-
         const candidate = previous.concat([choice]);
-
         if (!best[total] || candidate.length < best[total].length) {
           best[total] = candidate;
         }
@@ -234,19 +230,27 @@
     }
 
     if (!best[target]) {
-      throw new Error(
-        "Rytmikestoa " + target + " ei voitu jakaa nuottiarvoiksi."
-      );
+      throw new Error("Rytmikestoa " + target + " ei voitu jakaa nuottiarvoiksi.");
     }
 
-    return best[target]
-      .slice()
-      .sort(function (a, b) {
-        return b.value - a.value;
-      });
+    return best[target].slice().sort(function (a, b) { return b.value - a.value; });
   }
 
-  function makeRenderPiece(entry, choice, tieStop, tieStart) {
+  function buildSlurMarkers(score) {
+    const startIds = new Set();
+    const stopIds = new Set();
+    const slurs = Array.isArray(score && score.slurs) ? score.slurs : [];
+
+    slurs.forEach(function (slur) {
+      if (!slur || !slur.startId || !slur.endId) return;
+      startIds.add(slur.startId);
+      stopIds.add(slur.endId);
+    });
+
+    return { startIds: startIds, stopIds: stopIds };
+  }
+
+  function makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart) {
     const piece = {
       id: entry.id,
       sourceId: entry.id,
@@ -260,15 +264,15 @@
     if (piece.kind !== "rest") {
       piece.tieStop = Boolean(tieStop);
       piece.tieStart = Boolean(tieStart);
+      piece.slurStop = Boolean(slurStop);
+      piece.slurStart = Boolean(slurStart);
     }
 
     return piece;
   }
 
-  function splitIntoMeasures(entries, capacity, pickupCapacity) {
-    const hasPickup =
-      Number(pickupCapacity) > 0 &&
-      Number(pickupCapacity) < capacity;
+  function splitIntoMeasures(entries, capacity, pickupCapacity, slurMarkers) {
+    const hasPickup = Number(pickupCapacity) > 0 && Number(pickupCapacity) < capacity;
 
     function makeMeasure(measureCapacity, implicit) {
       return {
@@ -280,25 +284,15 @@
       };
     }
 
-    const measures = [
-      makeMeasure(
-        hasPickup ? Number(pickupCapacity) : capacity,
-        hasPickup
-      )
-    ];
+    const measures = [ makeMeasure(hasPickup ? Number(pickupCapacity) : capacity, hasPickup) ];
 
-    function currentMeasure() {
-      return measures[measures.length - 1];
-    }
-
+    function currentMeasure() { return measures[measures.length - 1]; }
     function ensureWritableMeasure() {
       let current = currentMeasure();
-
       if (current.used >= current.capacity) {
         current = makeMeasure(capacity, false);
         measures.push(current);
       }
-
       return current;
     }
 
@@ -306,7 +300,6 @@
       let current = ensureWritableMeasure();
 
       if (isMeasureRestEntry(entry)) {
-        // Kokotahdin tauko säilyttää vanhan erityismerkityksensä.
         if (current.implicit && current.entries.length === 0) {
           current.capacity = capacity;
           current.implicit = false;
@@ -325,32 +318,27 @@
 
       let remaining = durationValue(entry);
       let consumed = 0;
+      const hasSourceSlurStart = Boolean(slurMarkers && slurMarkers.startIds && slurMarkers.startIds.has(entry.id));
+      const hasSourceSlurStop = Boolean(slurMarkers && slurMarkers.stopIds && slurMarkers.stopIds.has(entry.id));
 
       while (remaining > 0) {
         current = ensureWritableMeasure();
-
         const available = current.capacity - current.used;
         const chunkValue = Math.min(remaining, available);
         const choices = decomposeRenderValue(chunkValue);
 
         choices.forEach(function (choice) {
+          const isFirstPiece = consumed === 0;
           const remainingAfterPiece = remaining - choice.value;
+          const isLastPiece = remainingAfterPiece <= 0;
 
-          const tieStop =
-            entry.kind !== "rest" &&
-            consumed > 0;
-
-          const tieStart =
-            entry.kind !== "rest" &&
-            remainingAfterPiece > 0;
+          const tieStop = entry.kind !== "rest" && consumed > 0;
+          const tieStart = entry.kind !== "rest" && remainingAfterPiece > 0;
+          const slurStart = entry.kind !== "rest" && hasSourceSlurStart && isFirstPiece;
+          const slurStop = entry.kind !== "rest" && hasSourceSlurStop && isLastPiece;
 
           current.entries.push(
-            makeRenderPiece(
-              entry,
-              choice,
-              tieStop,
-              tieStart
-            )
+            makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart)
           );
 
           current.used += choice.value;
@@ -368,10 +356,7 @@
       }
     });
 
-    if (
-      measures.length > 1 &&
-      measures[measures.length - 1].entries.length === 0
-    ) {
+    if (measures.length > 1 && measures[measures.length - 1].entries.length === 0) {
       measures.pop();
     }
 
@@ -380,36 +365,26 @@
 
   function annotateMultipleRests(measures) {
     let index = 0;
-
     while (index < measures.length) {
       if (!measures[index].explicitMeasureRest) {
         index += 1;
         continue;
       }
-
       let end = index + 1;
-      while (
-        end < measures.length &&
-        measures[end].explicitMeasureRest
-      ) {
+      while (end < measures.length && measures[end].explicitMeasureRest) {
         end += 1;
       }
-
       const count = end - index;
-
       if (count >= 2) {
         measures[index].multipleRestCount = count;
       }
-
       index = end;
     }
-
     return measures;
   }
 
   function measureStyleXML(count) {
     if (!Number.isInteger(count) || count < 2) return "";
-
     return [
       "        <measure-style>",
       "          <multiple-rest>" + count + "</multiple-rest>",
@@ -449,18 +424,12 @@
   function measureStyleAttributesXML(multipleRestCount) {
     const style = measureStyleXML(multipleRestCount);
     if (!style) return "";
-
-    return [
-      "      <attributes>",
-      style,
-      "      </attributes>"
-    ].join("\n");
+    return ["      <attributes>", style, "      </attributes>"].join("\n");
   }
 
   function hiddenRestXML(duration) {
     const value = Number(duration);
     if (!Number.isFinite(value) || value <= 0) return "";
-
     return [
       "      <note print-object=\"no\">",
       "        <rest/>",
@@ -471,12 +440,8 @@
   }
 
   function firstMeasureDirectionXML(score) {
-    const tempoText = score.metadata && score.metadata.tempoText
-      ? String(score.metadata.tempoText).trim()
-      : "";
-
+    const tempoText = score.metadata && score.metadata.tempoText ? String(score.metadata.tempoText).trim() : "";
     if (!tempoText) return "";
-
     return [
       "      <direction placement=\"above\">",
       "        <direction-type>",
@@ -488,19 +453,11 @@
 
   function getLogicalSegments(score) {
     if (!score || !Array.isArray(score.notes)) return [];
-
     const beats = Number(score.time && score.time[0]) || 4;
     const beatType = Number(score.time && score.time[1]) || 4;
     const capacity = measureCapacity(beats, beatType);
-    const pickupCapacity =
-      (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
-
-    const measures = splitIntoMeasures(
-      score.notes,
-      capacity,
-      pickupCapacity
-    );
-
+    const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
+    const measures = splitIntoMeasures(score.notes, capacity, pickupCapacity);
     const counts = Object.create(null);
     const segments = [];
 
@@ -508,15 +465,9 @@
       measure.entries.forEach(function (entry) {
         const sourceId = entry.sourceId || entry.id;
         if (!sourceId) return;
-
         const segmentIndex = counts[sourceId] || 0;
         counts[sourceId] = segmentIndex + 1;
-
-        segments.push({
-          sourceId: sourceId,
-          segmentIndex: segmentIndex,
-          kind: entry.kind || "note"
-        });
+        segments.push({ sourceId: sourceId, segmentIndex: segmentIndex, kind: entry.kind || "note" });
       });
     });
 
@@ -531,43 +482,23 @@
     const beats = Number(score.time && score.time[0]) || 4;
     const beatType = Number(score.time && score.time[1]) || 4;
     const fifths = Number.isInteger(score.key) ? score.key : 0;
-    const title = score.metadata && score.metadata.title
-      ? score.metadata.title
-      : "Pikakirjoitin 3";
-    const partName = score.metadata && score.metadata.partName
-      ? score.metadata.partName
-      : "Huilu";
-    const composer = score.metadata && score.metadata.composer
-      ? score.metadata.composer
-      : "";
+    const title = score.metadata && score.metadata.title ? score.metadata.title : "Pikakirjoitin 3";
+    const partName = score.metadata && score.metadata.partName ? score.metadata.partName : "Huilu";
+    const composer = score.metadata && score.metadata.composer ? score.metadata.composer : "";
     const capacity = measureCapacity(beats, beatType);
-
-    // StartScreenin pickupDuration käyttää samaa vanhan Coren yksikköä,
-    // jossa kokonainen = 32. Nykyisessä XML:ssä kokonainen = 4*DIVISIONS.
     const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
+    const slurMarkers = buildSlurMarkers(score);
 
-    const measures = annotateMultipleRests(
-      splitIntoMeasures(score.notes, capacity, pickupCapacity)
-    );
+    const measures = annotateMultipleRests(splitIntoMeasures(score.notes, capacity, pickupCapacity, slurMarkers));
 
     const measuresXML = measures.map(function (measure, index) {
       const implicit = measure.implicit ? ' implicit="yes"' : "";
       const parts = ["    <measure number=\"" + (index + 1) + "\"" + implicit + ">"];
 
       if (index === 0) {
-        parts.push(
-          attributesToXML(
-            score,
-            beats,
-            beatType,
-            fifths,
-            measure.multipleRestCount || 0
-          )
-        );
+        parts.push(attributesToXML(score, beats, beatType, fifths, measure.multipleRestCount || 0));
       } else if (measure.multipleRestCount >= 2) {
-        parts.push(
-          measureStyleAttributesXML(measure.multipleRestCount)
-        );
+        parts.push(measureStyleAttributesXML(measure.multipleRestCount));
       }
 
       let directionXML = "";
@@ -577,19 +508,10 @@
       }
 
       if (measure.entries.length) {
-        parts.push(
-          measure.entries.map(function (entry) {
-            return entryToXML(entry, {
-              measureRest: measure.explicitMeasureRest,
-              measureCapacity: capacity
-            });
-          }).join("\n")
-        );
+        parts.push(measure.entries.map(function (entry) {
+          return entryToXML(entry, { measureRest: measure.explicitMeasureRest, measureCapacity: capacity });
+        }).join("\n"));
       } else if (index === 0 && directionXML) {
-        // OSMD 2.1.2 tarvitsee ensimmäiseen tahtiin rytmisen aikapisteen,
-        // kun siinä on direction/words mutta ei vielä yhtään näkyvää nuottia.
-        // Sama ratkaisu on käytössä toimivassa Pikakirjoitin 2 Coressa:
-        // näkymätön tauko täyttää tyhjän tahdin, mutta ei näy nuottikuvassa.
         parts.push(hiddenRestXML(measure.capacity || capacity));
       }
 
@@ -605,7 +527,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.13</software>
+      <software>Pikakirjoitin 3 BASE 0.14.1</software>
     </encoding>
   </identification>
   <part-list>

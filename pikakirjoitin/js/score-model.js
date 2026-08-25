@@ -2,6 +2,7 @@
   "use strict";
 
   let nextEntryId = 1;
+  let nextSlurId = 1;
 
   const DURATION_UNITS = {
     whole: 128,
@@ -18,6 +19,10 @@
     return (prefix || "e") + (nextEntryId++);
   }
 
+  function makeSlurId() {
+    return "s" + (nextSlurId++);
+  }
+
   function normalizeDots(value) {
     const dots = Number(value) || 0;
     return dots >= 2 ? 2 : dots >= 1 ? 1 : 0;
@@ -32,10 +37,19 @@
     return copy;
   }
 
+  function cloneSlur(slur) {
+    if (!slur || !slur.startId || !slur.endId) return null;
+    return {
+      id: slur.id || makeSlurId(),
+      startId: String(slur.startId),
+      endId: String(slur.endId)
+    };
+  }
+
   function createScore(options) {
     const config = options || {};
 
-    return {
+    const score = {
       metadata: {
         title: config.title || "Pikakirjoitin 3",
         composer: config.composer || "",
@@ -47,8 +61,14 @@
       time: Array.isArray(config.time) ? config.time.slice(0, 2) : [4, 4],
       timeSymbol: config.timeSymbol || "",
       pickupDuration: Number(config.pickupDuration) || 0,
-      notes: Array.isArray(config.notes) ? config.notes.map(cloneEntry) : []
+      notes: Array.isArray(config.notes) ? config.notes.map(cloneEntry) : [],
+      slurs: Array.isArray(config.slurs)
+        ? config.slurs.map(cloneSlur).filter(Boolean)
+        : []
     };
+
+    cleanupSlurs(score);
+    return score;
   }
 
   function addNote(score, note) {
@@ -101,12 +121,48 @@
     }) || null;
   }
 
+  function noteIndexMap(score) {
+    const map = new Map();
+    (score.notes || []).forEach(function (entry, index) {
+      map.set(entry.id, index);
+    });
+    return map;
+  }
+
+  function cleanupSlurs(score) {
+    if (!score) return [];
+    if (!Array.isArray(score.slurs)) score.slurs = [];
+
+    const entryMap = new Map();
+    (score.notes || []).forEach(function (entry, index) {
+      if (entry && entry.id && entry.kind === "note") {
+        entryMap.set(entry.id, { entry: entry, index: index });
+      }
+    });
+
+    const seen = new Set();
+    score.slurs = score.slurs.filter(function (slur) {
+      if (!slur || !slur.startId || !slur.endId) return false;
+      if (slur.startId === slur.endId) return false;
+      const start = entryMap.get(slur.startId);
+      const end = entryMap.get(slur.endId);
+      if (!start || !end) return false;
+      if (start.index >= end.index) return false;
+      const key = slur.startId + "->" + slur.endId;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      if (!slur.id) slur.id = makeSlurId();
+      return true;
+    });
+
+    return score.slurs;
+  }
+
   function setDuration(score, id, duration) {
     const entry = getEntry(score, id);
     if (!entry) return false;
     entry.duration = String(duration);
 
-    // Peukalopakin pitkä Tauko-ele tarkoittaa edelleen kokotahdin taukoa.
     if (entry.kind === "rest") {
       entry.measureRest =
         entry.duration === "whole" &&
@@ -138,6 +194,7 @@
     if (entry.kind === "rest") {
       delete entry.pitch;
       if (entry.dots > 0) entry.measureRest = false;
+      cleanupSlurs(score);
     } else {
       entry.measureRest = false;
     }
@@ -154,7 +211,9 @@
     score.notes = score.notes.filter(function (entry) {
       return !selected.has(entry.id);
     });
-    return score.notes.length !== before;
+    const changed = score.notes.length !== before;
+    if (changed) cleanupSlurs(score);
+    return changed;
   }
 
   function durationUnits(entryOrDuration, dotsOverride) {
@@ -180,7 +239,6 @@
   }
 
   function pickupCapacity(score) {
-    // StartScreenin pickupDuration: kokonainen = 32.
     return (Number(score && score.pickupDuration) || 0) * 4;
   }
 
@@ -199,9 +257,6 @@
       const entry = score.notes[index];
 
       if (entry && entry.kind === "rest" && entry.measureRest) {
-        // Sama semantiikka kuin MusicXML-generaattorissa:
-        // kokotahdin tauko aloittaa uuden täyden tahdin, jos nykyinen
-        // tahti on jo osittain käytetty.
         if (capacity !== full && offset === 0) {
           capacity = full;
         } else if (offset > 0) {
@@ -278,7 +333,6 @@
   }
 
   function chooseSmartRest(score, offset, span, capacity) {
-    // Yksi kokonainen täysi tahti on aina yksi kokotahdin tauko.
     if (
       offset === 0 &&
       capacity === fullMeasureCapacity(score) &&
@@ -287,7 +341,6 @@
       return { value:capacity, duration:"whole", dots:0, measureRest:true };
     }
 
-    // Yhdistetyissä tahtilajeissa ensisijainen ryhmä on pisteellinen neljäsosa.
     if (isCompoundMeter(score)) {
       const group = 48;
       if (offset % group === 0 && span >= group && offset + group <= capacity) {
@@ -295,18 +348,14 @@
       }
     }
 
-    // Muuten käytetään suurinta selkeästi iskulle/alijaolle asettuvaa
-    // pisteetöntä taukoa. Näin 4/4:ssä ei synny esimerkiksi turhaa
-    // neljää kahdeksasosataukoa kahden iskun alueelle.
     for (const choice of SIMPLE_REST_CHOICES) {
       if (choice.value > span) continue;
       if (choice.value > capacity - offset) continue;
       if (choice.value >= 4 && offset % choice.value !== 0) continue;
-      if (choice.duration === "whole") continue; // vain measureRest yllä
+      if (choice.duration === "whole") continue;
       return Object.assign({ measureRest:false }, choice);
     }
 
-    // Harvinaiset pisteelliset / 1/64 / 1/128 -rajatapaukset.
     for (const choice of FALLBACK_REST_CHOICES) {
       if (choice.value <= span && choice.value <= capacity - offset) {
         return Object.assign({ measureRest:false }, choice);
@@ -383,7 +432,6 @@
     const blocks = selectedIndexBlocks(score, selectedIds);
     if (!blocks.length) return { changed:false, ids:[] };
 
-    // Yksi tapahtuma: täsmälleen sama aika-arvo ja pisteet.
     if (blocks.length === 1 && blocks[0].start === blocks[0].end) {
       const index = blocks[0].start;
       const entry = score.notes[index];
@@ -392,9 +440,6 @@
 
       entry.kind = "rest";
       delete entry.pitch;
-
-      // "Saman aika-arvon tauko". Kokotahdin semantiikka vain silloin,
-      // kun tapahtuma todella täyttää kokonaisen täyden tahdin.
       entry.measureRest =
         pos.offset === 0 &&
         pos.capacity === pos.fullCapacity &&
@@ -402,11 +447,10 @@
         entry.duration === "whole" &&
         normalizeDots(entry.dots) === 0;
 
+      cleanupSlurs(score);
       return { changed:true, ids:[entry.id] };
     }
 
-    // Useampi valittu tapahtuma: ei nuotti -> tauko yksi kerrallaan.
-    // Koko valittu aikajakso kirjoitetaan uudelleen metrisesti järkevinä taukoina.
     const plans = blocks.map(function (block) {
       const startPos = positionBeforeIndex(score, block.start);
       let total = 0;
@@ -423,7 +467,6 @@
       };
     });
 
-    // Splice lopusta alkuun, jotta aiemmat indeksit eivät liiku.
     const newIds = [];
     plans.slice().reverse().forEach(function (plan) {
       score.notes.splice(
@@ -433,13 +476,13 @@
       );
     });
 
-    // Palautetaan uusien taukojen id:t nuotin aikajärjestyksessä.
     plans.forEach(function (plan) {
       plan.rests.forEach(function (rest) {
         newIds.push(rest.id);
       });
     });
 
+    cleanupSlurs(score);
     return { changed:true, ids:newIds };
   }
 
@@ -473,6 +516,113 @@
     return true;
   }
 
+  function nextNoteId(score, startId) {
+    if (!score || !Array.isArray(score.notes)) return null;
+
+    const startIndex = score.notes.findIndex(function (entry) {
+      return entry.id === startId;
+    });
+
+    if (startIndex < 0) return null;
+
+    for (let index = startIndex + 1; index < score.notes.length; index += 1) {
+      const entry = score.notes[index];
+      if (entry && entry.kind === "note") {
+        return entry.id;
+      }
+    }
+
+    return null;
+  }
+
+  function hasSlur(score, startId, endId) {
+    return Boolean(
+      score && Array.isArray(score.slurs) &&
+      score.slurs.find(function (slur) {
+        return slur.startId === startId && slur.endId === endId;
+      })
+    );
+  }
+
+  function addSlur(score, startId, endId) {
+    if (!score) return false;
+    if (!Array.isArray(score.slurs)) score.slurs = [];
+    const indexMap = noteIndexMap(score);
+    const start = getEntry(score, startId);
+    const end = getEntry(score, endId);
+    if (!start || !end || start.kind !== "note" || end.kind !== "note") return false;
+    if (!indexMap.has(startId) || !indexMap.has(endId)) return false;
+    if (indexMap.get(startId) >= indexMap.get(endId)) return false;
+    if (hasSlur(score, startId, endId)) return false;
+    score.slurs.push({ id: makeSlurId(), startId: startId, endId: endId });
+    cleanupSlurs(score);
+    return true;
+  }
+
+  function removeSlur(score, startId, endId) {
+    if (!score || !Array.isArray(score.slurs)) return false;
+    const before = score.slurs.length;
+    score.slurs = score.slurs.filter(function (slur) {
+      return !(slur.startId === startId && slur.endId === endId);
+    });
+    return score.slurs.length !== before;
+  }
+
+  function canCreateSlurFromSelection(score, ids) {
+    if (!score || !Array.isArray(score.notes)) return false;
+    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
+    const entries = score.notes.filter(function (entry) {
+      return selected.has(entry.id);
+    });
+    return entries.length >= 2 && entries.every(function (entry) { return entry.kind === "note"; });
+  }
+
+  function toggleSlurForSelection(score, ids) {
+    if (!score || !Array.isArray(score.notes)) {
+      return { changed:false, active:false, reason:"invalid" };
+    }
+
+    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
+    const entries = score.notes.filter(function (entry) {
+      return selected.has(entry.id);
+    });
+
+    if (entries.length < 2) {
+      return { changed:false, active:false, reason:"need_two_notes" };
+    }
+    if (!entries.every(function (entry) { return entry.kind === "note"; })) {
+      return { changed:false, active:false, reason:"notes_only" };
+    }
+
+    const startId = entries[0].id;
+    const endId = entries[entries.length - 1].id;
+
+    if (hasSlur(score, startId, endId)) {
+      return {
+        changed: removeSlur(score, startId, endId),
+        active: false,
+        startId: startId,
+        endId: endId
+      };
+    }
+
+    return {
+      changed: addSlur(score, startId, endId),
+      active: true,
+      startId: startId,
+      endId: endId
+    };
+  }
+
+  function hasSlurForSelection(score, ids) {
+    if (!canCreateSlurFromSelection(score, ids)) return false;
+    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
+    const entries = score.notes.filter(function (entry) {
+      return selected.has(entry.id);
+    });
+    return hasSlur(score, entries[0].id, entries[entries.length - 1].id);
+  }
+
   window.PikakirjoitinScoreModel = {
     createScore: createScore,
     addNote: addNote,
@@ -486,6 +636,14 @@
     convertSelectionToRests: convertSelectionToRests,
     canEnharmonic: canEnharmonic,
     toggleEnharmonic: toggleEnharmonic,
-    durationUnits: durationUnits
+    durationUnits: durationUnits,
+    cleanupSlurs: cleanupSlurs,
+    nextNoteId: nextNoteId,
+    addSlur: addSlur,
+    removeSlur: removeSlur,
+    hasSlur: hasSlur,
+    canCreateSlurFromSelection: canCreateSlurFromSelection,
+    toggleSlurForSelection: toggleSlurForSelection,
+    hasSlurForSelection: hasSlurForSelection
   };
 })();
