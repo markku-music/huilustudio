@@ -38,46 +38,6 @@ const PICKUP_PRESETS = {
 };
 const PICKUP_ICONS = {4:'assets/pickup-eighth.svg',8:'assets/pickup-quarter.svg',12:'assets/pickup-dotted-quarter.svg',16:'assets/pickup-half.svg',24:'assets/pickup-dotted-half.svg'};
 
-const TEMPO_GROUPS = [
-  { title:'Hyvin hitaat', items:[
-    'Larghissimo','Sehr breit','very, very slow',
-    'Grave','Schwer','slow and solemn'
-  ]},
-  { title:'Hitaat', items:[
-    'Lento','Lent','Langsam','slowly',
-    'Largo','Breit','broadly',
-    'Larghetto','Etwas breit','rather broadly',
-    'Adagio','Ruhig','slow and stately',
-    'Adagietto','Ziemlich ruhig','Ziemlich langsam','rather slow'
-  ]},
-  { title:'Kävelyvauhti ja keskitempo', items:[
-    'Andante moderato',
-    'Andante','Gehend','Schreitend','at a walking pace',
-    'Andantino','Maestoso',
-    'Moderato','Mäßig','Modéré','moderately'
-  ]},
-  { title:'Nopeat', items:[
-    'Allegretto','Animato','fast',
-    'Allegro moderato',
-    'Allegro','Rapide','Vite','Rasch','Schnell','Fröhlich',
-    'Vivace','Allegro Assai','Lebhaft','Lebendig','lively and fast',
-    'Vivacissimo','Sehr lebhaft','Sehr lebendig'
-  ]},
-  { title:'Hyvin nopeat', items:[
-    'Allegrissimo','very fast',
-    'Presto','Sehr schnell','Geschwind',
-    'Prestissimo','äußerst schnell'
-  ]},
-  { title:'Tempon muutokset', items:[
-    'tempo primo','a tempo','tempo i','rubato',
-    'doppio movimento',
-    'rallentando',
-    'ritardando','ritard.','rit.','ritard','rall...',
-    'accelerando','accel'
-  ]}
-];
-
-
 function gcd(a,b){ while(b){ [a,b]=[b,a%b]; } return Math.abs(a)||1; }
 function timeParts(value){ if(value==='C') return [4,4]; if(value==='cutC') return [2,2]; const [b,t]=String(value||'4/4').split('/').map(Number); return [b||4,t||4]; }
 function capacity(value){ const [b,t]=timeParts(value); return b*32/t; }
@@ -97,7 +57,6 @@ class StartScreen {
     this.#themeStyle.id = 'dynamicThemeStyle';
     document.head.appendChild(this.#themeStyle);
     this.#restorePreferences();
-    this.#buildTempoPicker();
     this.#buildKeyWheel();
     this.#buildMeterWheel();
     this.#syncPickupOptions();
@@ -112,7 +71,7 @@ class StartScreen {
     return {
       modal:byId('projectModal'), form:byId('projectForm'), startButton:byId('projectSaveButton'), status:byId('startStatus'),
       newProjectStartButton:byId('newProjectStartButton'), openProjectButton:byId('openProjectButton'),
-      titleInput:byId('titleInput'), tempoInput:byId('tempoInput'), tempoTrigger:byId('tempoTrigger'), tempoTriggerValue:byId('tempoTriggerValue'), tempoPopover:byId('tempoPopover'), tempoCard:byId('tempoCard'), tempoSearch:byId('tempoSearch'), tempoGroups:byId('tempoGroups'), tempoClear:byId('tempoClear'), tempoClose:byId('tempoClose'), composerInput:byId('composerInput'), themeSelect:byId('themeSelect'),
+      titleInput:byId('titleInput'), tempoInput:byId('tempoInput'), composerInput:byId('composerInput'), themeSelect:byId('themeSelect'),
       keySignatureSelect:byId('keySignatureSelect'), keyTrigger:byId('keyTrigger'), keyTriggerValue:byId('keyTriggerValue'), keyWheelPopover:byId('keyWheelPopover'), keyWheelSlots:byId('keyWheelSlots'), keyWheelClose:byId('keyWheelClose'),
       timeSignatureSelect:byId('timeSignatureSelect'), meterTrigger:byId('meterTrigger'), meterTriggerValue:byId('meterTriggerValue'), meterWheelPopover:byId('meterWheelPopover'), meterWheelSlots:byId('meterWheelSlots'), meterWheelClose:byId('meterWheelClose'),
       pickupSelect:byId('pickupSelect'), pickupChoices:byId('pickupChoices'), tuningSelect:byId('tuningSelect'), tuningChoices:byId('tuningChoices'), clefSelect:byId('clefSelect'), clefChoices:byId('clefChoices')
@@ -122,21 +81,6 @@ class StartScreen {
   #bind() {
     const e=this.#els;
     e.newProjectStartButton.addEventListener('click', ev => { ev.preventDefault(); e.titleInput.focus(); });
-
-    e.tempoTrigger.addEventListener('click', ev => this.#openTempoPicker(ev));
-    e.tempoGroups.addEventListener('click', ev => this.#chooseTempoOption(ev));
-    e.tempoClose.addEventListener('click', () => this.#closeTempoPicker());
-    e.tempoClear.addEventListener('click', ev => { ev.preventDefault(); this.#clearTempo(); });
-    e.tempoSearch.addEventListener('input', () => this.#filterTempoOptions(e.tempoSearch.value));
-    e.tempoSearch.addEventListener('keydown', ev => {
-      if(ev.key==='Enter'){
-        ev.preventDefault();
-        const first=this.#filterTempoOptions(e.tempoSearch.value);
-        first?.click();
-      }
-    });
-    e.tempoPopover.addEventListener('click', ev => { if(ev.target===e.tempoPopover) this.#closeTempoPicker(); });
-
     e.keyTrigger.addEventListener('click', ev => this.#openKeyWheel(ev));
     e.keyWheelSlots.addEventListener('click', ev => this.#chooseKeyWheelSlot(ev));
     e.keyWheelClose.addEventListener('click', () => this.#closeKeyWheel());
@@ -152,119 +96,9 @@ class StartScreen {
     e.form.addEventListener('submit', ev => this.#submit(ev));
     document.addEventListener('keydown', ev => {
       if(ev.key!=='Escape') return;
-      if(!e.tempoPopover.hidden){ ev.preventDefault(); this.#closeTempoPicker(); }
-      else if(!e.meterWheelPopover.hidden){ ev.preventDefault(); this.#closeMeterWheel(); }
+      if(!e.meterWheelPopover.hidden){ ev.preventDefault(); this.#closeMeterWheel(); }
       else if(!e.keyWheelPopover.hidden){ ev.preventDefault(); this.#closeKeyWheel(); }
     });
-  }
-
-
-  #normalizeTempoSearch(text){
-    return String(text||'')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g,'')
-      .toLocaleLowerCase('fi');
-  }
-
-  #syncTempoPicker(){
-    const e=this.#els, selected=(e.tempoInput.value||'').trim();
-    e.tempoTriggerValue.textContent=selected||'Ei tempotekstiä';
-    e.tempoGroups.querySelectorAll('.tempo-option').forEach(button=>{
-      button.setAttribute('aria-pressed', String(button.dataset.tempo===selected));
-    });
-  }
-
-  #buildTempoPicker(){
-    const root=this.#els.tempoGroups;
-    root.replaceChildren();
-
-    TEMPO_GROUPS.forEach(group=>{
-      const section=document.createElement('section');
-      section.className='tempo-group';
-      section.dataset.groupTitle=group.title;
-
-      const title=document.createElement('h3');
-      title.className='tempo-group-title';
-      title.textContent=group.title;
-      section.appendChild(title);
-
-      const options=document.createElement('div');
-      options.className='tempo-group-options';
-
-      group.items.forEach(label=>{
-        const button=document.createElement('button');
-        button.type='button';
-        button.className='tempo-option';
-        button.dataset.tempo=label;
-        button.textContent=label;
-        button.setAttribute('aria-label', `Valitse tempoteksti ${label}`);
-        button.setAttribute('aria-pressed', 'false');
-        options.appendChild(button);
-      });
-
-      section.appendChild(options);
-      root.appendChild(section);
-    });
-
-    this.#syncTempoPicker();
-    this.#filterTempoOptions('');
-  }
-
-  #filterTempoOptions(query){
-    const e=this.#els, needle=this.#normalizeTempoSearch(query);
-    let firstVisible=null;
-
-    e.tempoGroups.querySelectorAll('.tempo-group').forEach(section=>{
-      let visibleCount=0;
-      const groupText=this.#normalizeTempoSearch(section.dataset.groupTitle||'');
-
-      section.querySelectorAll('.tempo-option').forEach(button=>{
-        const haystack=this.#normalizeTempoSearch(button.dataset.tempo) + ' ' + groupText;
-        const visible=!needle || haystack.includes(needle);
-        button.hidden=!visible;
-        if(visible){
-          visibleCount+=1;
-          if(!firstVisible) firstVisible=button;
-        }
-      });
-
-      section.hidden=visibleCount===0;
-    });
-
-    return firstVisible;
-  }
-
-  #openTempoPicker(ev){
-    ev?.preventDefault();
-    this.#syncTempoPicker();
-    this.#els.tempoSearch.value='';
-    this.#filterTempoOptions('');
-    this.#els.tempoPopover.hidden=false;
-    this.#els.tempoTrigger.setAttribute('aria-expanded','true');
-    requestAnimationFrame(()=>this.#els.tempoSearch.focus());
-  }
-
-  #closeTempoPicker(){
-    const e=this.#els;
-    if(e.tempoPopover.hidden) return;
-    e.tempoPopover.hidden=true;
-    e.tempoTrigger.setAttribute('aria-expanded','false');
-    e.tempoTrigger.focus();
-  }
-
-  #chooseTempoOption(ev){
-    const button=ev.target.closest('.tempo-option');
-    if(!button) return;
-    ev.preventDefault();
-    this.#els.tempoInput.value=button.dataset.tempo||'';
-    this.#syncTempoPicker();
-    this.#closeTempoPicker();
-  }
-
-  #clearTempo(){
-    this.#els.tempoInput.value='';
-    this.#syncTempoPicker();
-    this.#closeTempoPicker();
   }
 
   #selectedKeyInfo(){ const o=this.#els.keySignatureSelect.selectedOptions[0]; return {fifths:+(o?.value||0),mode:o?.dataset.mode||'major',tonic:o?.dataset.tonic||'C',name:o?.textContent||'C-duuri'}; }
@@ -298,12 +132,12 @@ class StartScreen {
   #applyTheme(id){ const t=THEME_DEFINITIONS[id]||THEME_DEFINITIONS.kupari; this.#themeStyle.textContent=`
     :root{--pk-selection-color:${t.accent};}
     body,.app-shell{background:${t.appBg};}
-    .project-start-action[aria-pressed="true"],.notation-choice[aria-pressed="true"],.pickup-choice[aria-pressed="true"],.key-wheel-slot[aria-pressed="true"],.meter-wheel-slot[aria-pressed="true"],.tempo-option[aria-pressed="true"]{border-color:${t.accent};background:${t.accentSoft};color:${t.accentText};box-shadow:inset 0 0 0 1px ${t.accent}55;}
+    .project-start-action[aria-pressed="true"],.notation-choice[aria-pressed="true"],.pickup-choice[aria-pressed="true"],.key-wheel-slot[aria-pressed="true"],.meter-wheel-slot[aria-pressed="true"]{border-color:${t.accent};background:${t.accentSoft};color:${t.accentText};box-shadow:inset 0 0 0 1px ${t.accent}55;}
     .start-button,.keyboard-scroll-thumb{background:${t.panel};color:${t.panelText};}
     .key-trigger-icon,.meter-trigger-icon,.key-trigger-icon::before,.key-trigger-icon::after{border-color:${t.panel};}.key-trigger-icon::after,.meter-trigger-icon::before{background:${t.panel};}
     #osmd-container>div[id^="osmdCanvasPage"]{background:${t.pageBg};box-shadow:0 4px 16px ${t.pageShadow};}
     .project-card{box-shadow:0 24px 70px ${t.pageShadow};}
-    .field select:focus-visible,.field input:focus-visible,.tempo-trigger:focus-visible,.tempo-option:focus-visible,.tempo-clear-button:focus-visible,.tempo-close:focus-visible,.key-trigger:focus-visible,.meter-trigger:focus-visible,.project-start-action:focus-visible,.start-button:focus-visible{outline:3px solid ${t.accent}66;outline-offset:2px;}`; }
+    .field select:focus-visible,.field input:focus-visible,.key-trigger:focus-visible,.meter-trigger:focus-visible,.project-start-action:focus-visible,.start-button:focus-visible{outline:3px solid ${t.accent}66;outline-offset:2px;}`; }
   #restorePreferences(){ try{ const theme=localStorage.getItem(THEME_KEY); if(theme&&THEME_DEFINITIONS[theme])this.#els.themeSelect.value=theme; const clef=localStorage.getItem(CLEF_KEY); if(clef&&Object.hasOwn(CLEF_KEYBOARD_STARTS,clef))this.#els.clefSelect.value=clef; }catch{} }
   #savePreferences(){ try{ localStorage.setItem(THEME_KEY,this.#currentThemeId()); localStorage.setItem(CLEF_KEY,this.#els.clefSelect.value); }catch{} }
 

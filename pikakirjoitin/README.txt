@@ -1,21 +1,17 @@
-Pikakirjoitin 3 · BASE 0.11.4 · Aloitusikkunan tempovalikko
+Pikakirjoitin 3 · BASE 0.11.4 · Ryhmitelty tempovalikko
 
 Pohja:
 - käyttäjän palauttama BASE 0.11.3 OSMD Oletus Otsikko Säveltäjä
 
 Muutos:
-Aloitusikkunan vapaa tempotekstikenttä on korvattu ryhmitellyllä tempovalikolla.
+- VAIN aloitusikkunan Tempoteksti-kenttä muutettiin tavalliseksi HTML <select> -valikoksi.
+- Ei lisätty omaa popupia.
+- Ei lisätty uusia JavaScript-eventtejä.
+- Tahtilajivalitsinta ei muutettu lainkaan.
+- start-screen.js on täysin sama kuin 0.11.3:ssa.
 
-Käyttö:
-- napauta Tempo-kenttää
-- avautuu popup-valikko
-- yläreunassa on hakukenttä
-- listassa ovat kaikki OSMD 2.1.2:n tunnistamat tempo-/tempomuutos-tekstit,
-  ryhmiteltynä kuuteen ryhmään
-- napauttamalla vaihtoehtoa tempoteksti valitaan
-- "Ei tempoa" tyhjentää valinnan
-
-Ryhmät:
+Valikko:
+- Ei tempotekstiä
 - Hyvin hitaat
 - Hitaat
 - Kävelyvauhti ja keskitempo
@@ -23,19 +19,10 @@ Ryhmät:
 - Hyvin nopeat
 - Tempon muutokset
 
-Tekninen toteutus:
-- valinta tallennetaan edelleen tempoInput-arvoksi
-- app.js ja MusicXML-logiikka pysyvät ennallaan
-- Score Modeliin menee valittu tempoText
-- MusicXML:ään kirjoitetaan edelleen <direction><words>...</words></direction>
-- OSMD 2.1.2 piirtää tekstin kuten ennenkin
+Teknisesti:
+- selectin id on edelleen tempoInput
+- nykyinen start-screen.js lukee edelleen tempoInput.value.trim()
+- valittu teksti kulkee samaa vanhaa reittiä:
+  aloitusikkuna -> Score Model -> MusicXML <words> -> OSMD
 
-Muu toiminta säilyy ennallaan:
-- aloitusikkuna
-- ääni
-- otsikko ja säveltäjä OSMD:n kautta
-- sävellaji, tahtilaji, kohotahti, viritys ja avain
-- pisteflyout
-- kokotahdin tauot ja explicit multirestit
-- koskettimisto alareunassa
-- OSMD vendor muuttumattomana
+Muu Pikakirjoitin on muuttumaton.

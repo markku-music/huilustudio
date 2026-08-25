@@ -19,14 +19,101 @@
         <label class="field wide" for="titleInput">
           <input id="titleInput" type="text" autocomplete="off" placeholder="Nimi" aria-label="Nimi">
         </label>
-        <div class="tempo-picker">
-          <input id="tempoInput" type="hidden" value="">
-          <button class="tempo-trigger" id="tempoTrigger" type="button"
-                  aria-haspopup="dialog" aria-expanded="false" aria-controls="tempoPopover">
-            <span class="tempo-trigger-value" id="tempoTriggerValue">Ei tempotekstiä</span>
-            <span class="tempo-trigger-icon" aria-hidden="true">♪</span>
-          </button>
-        </div>
+        <label class="field" for="tempoInput">
+          <select id="tempoInput" aria-label="Tempoteksti">
+            <option value="" selected>Ei tempotekstiä</option>
+
+            <optgroup label="Hyvin hitaat">
+              <option>Larghissimo</option>
+              <option>Sehr breit</option>
+              <option>very, very slow</option>
+              <option>Grave</option>
+              <option>Schwer</option>
+              <option>slow and solemn</option>
+            </optgroup>
+
+            <optgroup label="Hitaat">
+              <option>Lento</option>
+              <option>Lent</option>
+              <option>Langsam</option>
+              <option>slowly</option>
+              <option>Largo</option>
+              <option>Breit</option>
+              <option>broadly</option>
+              <option>Larghetto</option>
+              <option>Etwas breit</option>
+              <option>rather broadly</option>
+              <option>Adagio</option>
+              <option>Ruhig</option>
+              <option>slow and stately</option>
+              <option>Adagietto</option>
+              <option>Ziemlich ruhig</option>
+              <option>Ziemlich langsam</option>
+              <option>rather slow</option>
+            </optgroup>
+
+            <optgroup label="Kävelyvauhti ja keskitempo">
+              <option>Andante moderato</option>
+              <option>Andante</option>
+              <option>Gehend</option>
+              <option>Schreitend</option>
+              <option>at a walking pace</option>
+              <option>Andantino</option>
+              <option>Maestoso</option>
+              <option>Moderato</option>
+              <option>Mäßig</option>
+              <option>Modéré</option>
+              <option>moderately</option>
+            </optgroup>
+
+            <optgroup label="Nopeat">
+              <option>Allegretto</option>
+              <option>Animato</option>
+              <option>fast</option>
+              <option>Allegro moderato</option>
+              <option>Allegro</option>
+              <option>Rapide</option>
+              <option>Vite</option>
+              <option>Rasch</option>
+              <option>Schnell</option>
+              <option>Fröhlich</option>
+              <option>Vivace</option>
+              <option>Allegro Assai</option>
+              <option>Lebhaft</option>
+              <option>Lebendig</option>
+              <option>lively and fast</option>
+              <option>Vivacissimo</option>
+              <option>Sehr lebhaft</option>
+              <option>Sehr lebendig</option>
+            </optgroup>
+
+            <optgroup label="Hyvin nopeat">
+              <option>Allegrissimo</option>
+              <option>very fast</option>
+              <option>Presto</option>
+              <option>Sehr schnell</option>
+              <option>Geschwind</option>
+              <option>Prestissimo</option>
+              <option>äußerst schnell</option>
+            </optgroup>
+
+            <optgroup label="Tempon muutokset">
+              <option>tempo primo</option>
+              <option>a tempo</option>
+              <option>tempo i</option>
+              <option>rubato</option>
+              <option>doppio movimento</option>
+              <option>rallentando</option>
+              <option>ritardando</option>
+              <option>ritard.</option>
+              <option>rit.</option>
+              <option>ritard</option>
+              <option>rall...</option>
+              <option>accelerando</option>
+              <option>accel</option>
+            </optgroup>
+          </select>
+        </label>
         <label class="field" for="composerInput">
           <input id="composerInput" type="text" autocomplete="off" placeholder="Säveltäjä" aria-label="Säveltäjä">
         </label>
@@ -139,30 +226,12 @@
       <button class="meter-wheel-close" id="meterWheelClose" type="button" aria-label="Sulje tahtiosoitusvalinta">×</button>
       <div id="meterWheelSlots"></div>
     </div>
-  
-  <div class="tempo-popover" id="tempoPopover" role="dialog" aria-modal="true" aria-label="Valitse tempoteksti" hidden>
-    <div class="tempo-card" id="tempoCard">
-      <div class="tempo-topbar">
-        <div class="tempo-title">Tempoteksti</div>
-        <button class="tempo-close" id="tempoClose" type="button" aria-label="Sulje tempovalikko">×</button>
-      </div>
-
-      <div class="tempo-search-row">
-        <input class="tempo-search" id="tempoSearch" type="search" inputmode="search"
-               autocomplete="off" spellcheck="false"
-               placeholder="Hae tempoa…" aria-label="Hae tempoa">
-        <button class="tempo-clear-button" id="tempoClear" type="button">Ei tempoa</button>
-      </div>
-
-      <div class="tempo-groups" id="tempoGroups"></div>
-    </div>
   </div>
-
 
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.11.4 · Aloitusikkunan tempovalikko · OSMD 2.1.2</p>
+      <p>BASE 0.11.4 · Ryhmitelty tempovalikko · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
