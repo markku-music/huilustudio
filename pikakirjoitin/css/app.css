@@ -11,14 +11,16 @@
 
 html,
 body {
+  width: 100%;
+  height: 100%;
   margin: 0;
-  min-height: 100%;
+  overflow: hidden;
 }
 
 body {
-  min-height: 100vh;
-  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 button {
@@ -26,12 +28,20 @@ button {
 }
 
 .app-shell {
-  width: min(1100px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .test-header {
-  margin: 0 0 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 12px max(18px, env(safe-area-inset-right)) 10px max(18px, env(safe-area-inset-left));
 }
 
 .test-header h1 {
@@ -48,12 +58,19 @@ button {
 }
 
 .score-card {
-  min-height: 260px;
-  padding: 22px 18px 12px;
-  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: calc(100% - 24px);
+  margin: 0 auto;
+  padding: 22px 18px 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  border-radius: 16px 16px 0 0;
   box-shadow: 0 6px 28px rgba(0, 0, 0, 0.07);
 }
 
@@ -84,16 +101,22 @@ button {
 }
 
 .keyboard-panel {
-  margin-top: 16px;
+  flex: 0 0 clamp(230px, 31dvh, 360px);
+  min-height: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  border: 1px solid #c8ced6;
-  border-radius: 14px;
+  margin-top: 0;
+  border: 0;
+  border-top: 1px solid #c8ced6;
+  border-radius: 0;
   background: #20242a;
-  box-shadow: 0 5px 18px rgba(16, 24, 32, .18);
+  box-shadow: 0 -5px 18px rgba(16, 24, 32, .14);
 }
 
 .keyboard-scroll-rail {
+  flex: 0 0 44px;
   height: 44px;
   padding: 7px 12px;
   background: #eef1f5;
@@ -131,8 +154,10 @@ button {
 }
 
 .keyboard-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  height: clamp(190px, 28dvh, 300px);
+  height: auto;
   overflow: hidden;
   background: #20242a;
   border-top: 5px solid #20242a;
@@ -205,13 +230,14 @@ button {
 }
 
 @media (max-height: 620px) {
-  .keyboard-viewport {
-    height: 180px;
+  .keyboard-panel {
+    flex-basis: 220px;
   }
 }
 
 
 .gesture-guide {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 1px;
@@ -447,3 +473,14 @@ button {
 .notation-choice{min-width:42px;height:40px;padding:0 9px;border:1px solid #b9c4d1;border-radius:10px;background:#fff;color:#263342;font-size:14px;font-weight:800;line-height:1;touch-action:manipulation;cursor:pointer}.notation-choice[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}.notation-choice.icon-choice{min-width:48px;width:48px;padding:0;display:inline-flex;align-items:center;justify-content:center}.notation-choice.icon-choice img{display:block;width:22px;height:34px;pointer-events:none;filter:none}.notation-choice.icon-choice[aria-pressed="true"] img{filter:brightness(0) saturate(100%) invert(25%) sepia(39%) saturate(1864%) hue-rotate(185deg) brightness(92%) contrast(90%)}.notation-choice:focus-visible{outline:3px solid #62a7ff;outline-offset:2px}
 .start-button{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:10px;background:#2365aa;color:#fff;font-size:17px;font-weight:800;cursor:pointer}.start-button:disabled{opacity:.62;cursor:wait}.start-status{min-height:20px;margin-top:8px;text-align:center;color:#5a6675;font-size:12px;font-weight:650}
 @media (max-width:520px){.project-grid{grid-template-columns:1fr}.field.wide{grid-column:auto}.project-card{padding:20px}.pickup-control{grid-column:auto;gap:8px}.pickup-choices{gap:5px}.pickup-choice{min-width:38px;height:40px;padding:0 5px}.notation-settings{grid-column:auto;grid-template-columns:1fr}.notation-setting{justify-content:space-between}.tuning-setting{justify-content:flex-start}}
+
+
+/* 0.11.2: koskettimisto pysyy näkymän alareunassa.
+   Nuottialue on ainoa pystysuunnassa vierivä pääalue. */
+@media (max-width: 720px) {
+  .score-card {
+    width: calc(100% - 16px);
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}

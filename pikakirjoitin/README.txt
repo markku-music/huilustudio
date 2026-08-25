@@ -1,26 +1,31 @@
-Pikakirjoitin 3 · BASE 0.11.1 · Tempoteksti korjattu
+Pikakirjoitin 3 · BASE 0.11.2 · Koskettimisto alareunassa
 
 Pohja:
-- BASE 0.11 Aloitusikkuna + ääni
+- BASE 0.11.1 Tempoteksti korjattu
 
-Korjaus:
-Jos aloitusikkunassa oli tempoteksti ja nuottikuva oli vielä täysin tyhjä,
-OSMD 2.1.2:n ensimmäiseen tahtiin tuli direction/words ilman yhtään rytmistä
-tapahtumaa. Tämä aiheutti aloituksen epäonnistumisen.
+Muutos:
+Käyttöliittymän pystyrakenne on muutettu Pikakirjoitin 2 Coren periaatteeseen:
 
-Korjaus on samaa periaatetta kuin toimivassa Pikakirjoitin 2 Coressa:
-- tempoteksti pysyy MusicXML:n <direction><words>...</words></direction>-rakenteena
-- jos ensimmäisessä tahdissa ei ole vielä yhtään nuottia/taukoa,
-  lisätään vain XML:ään näkymätön print-object="no" -tauko
-- näkymätön tauko ei piirry nuottiin
-- heti kun ensimmäinen oikea tapahtuma kirjoitetaan, näkymätöntä täyttötaukoa
-  ei enää tarvita eikä generoida
+- koko appi täyttää yhden selain-/PWA-näkymän
+- koskettimisto on aina näkymän alareunassa
+- koskettimisto EI kellu nuottipaperin päällä
+- nuottialue käyttää kaiken koskettimiston yläpuolelle jäävän tilan
+- nuottialue vierii pystysuunnassa itsenäisesti
+- koskettimisto ei liiku nuottia vieritettäessä
+- iOS safe-area huomioidaan ylä- ja alareunassa
 
-Muut 0.11:n toiminnot säilyvät:
+Koskettimiston korkeus:
+- normaalisti clamp(230px, 31dvh, 360px)
+- matalassa näkymässä (max-height 620px) 220px
+- scroll-kahva 44px
+- pianokoskettimet käyttävät jäljelle jäävän tilan
+- aika-arvo-ohje pysyy koskettimiston alareunassa
+
+Säilytetty:
 - P2 Core -aloitusikkuna
-- AudioEngine
-- nimi, säveltäjä, tempo, sävellaji, tahtilaji, kohotahti, viritys ja avain
+- ääni
+- tempotekstin 0.11.1-korjaus
 - pisteflyout
-- tauot, kokotahdin tauot ja explicit multirest
-- OSMD autoBeam
-- OSMD 2.1.2 vendor muuttumaton
+- tauot ja multirestit
+- Score Model -> MusicXML -> OSMD
+- OSMD 2.1.2 vendor muuttumattomana
