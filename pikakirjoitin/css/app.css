@@ -907,7 +907,7 @@ button {
 
 
 /* ==========================================================
- * BASE 0.18.3 · Monisormi samassa ScoreSelection-elekoneistossa
+ * BASE 0.18.4 · document-capture Touch Events monisormelle
  * ========================================================== */
 .score-card.pk-score-multitouch-locked {
   touch-action: none;
@@ -937,7 +937,6 @@ button {
 }
 .project-close-button[hidden]{display:none;}
 .project-close-button:focus-visible{outline:3px solid #62a7ff;outline-offset:2px;}
-
 .project-submit-actions{display:flex;gap:10px;margin-top:20px;}
 .project-submit-actions .start-button{flex:1 1 0;width:auto;margin-top:0;}
 .project-new-button{border:1px solid #2365aa !important;background:#fff !important;color:#174d83 !important;}

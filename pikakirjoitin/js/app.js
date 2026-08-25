@@ -668,10 +668,7 @@
   function setupSelection() {
     selection = new window.PikakirjoitinSelection.ScoreRangeSelection({
       viewport: document.querySelector(".score-card"),
-      container: document.getElementById("osmd-container"),
-      onUndo: undoLastChange,
-      onRedo: redoChange,
-      onThreeFinger: openProjectSettingsFromGesture
+      container: document.getElementById("osmd-container")
     });
 
     selectionEditor = new window.PikakirjoitinSelectionEditor.SelectionEditor({
@@ -842,9 +839,168 @@
     });
   }
 
+  function setupDocumentMultiTouch() {
+    const scoreCard = document.querySelector(".score-card");
+    if (!scoreCard) return;
+
+    // TÄMÄ on tarkoituksella eri rakenne kuin epäonnistuneissa 0.18.0-0.18.3
+    // versioissa: monisormitunnistus ei asu ScoreSelectionissa eikä odota
+    // Pointer Events -tapahtumia. Natiivi Touch Events kuunnellaan documentin
+    // capture-vaiheessa, joten child-elementit / OSMD / A4-paperi eivät voi
+    // estää havaintoa ennen kuin se tulee tänne.
+    const activeScoreTouches = new Set();
+    let gesture = 0;
+    let undoneAction = null;
+    let locked = false;
+    let lockedScrollTop = 0;
+    let lockedScrollLeft = 0;
+
+    function targetIsScore(target) {
+      return Boolean(target && target.closest && target.closest(".score-card") === scoreCard);
+    }
+
+    function keepOuterViewportFixed() {
+      if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+    }
+
+    function lockScroll() {
+      if (locked) return;
+      locked = true;
+      lockedScrollTop = scoreCard.scrollTop;
+      lockedScrollLeft = scoreCard.scrollLeft;
+      scoreCard.classList.add("pk-score-multitouch-locked");
+    }
+
+    function restoreLockedScroll() {
+      if (!locked) return;
+      scoreCard.scrollTop = lockedScrollTop;
+      scoreCard.scrollLeft = lockedScrollLeft;
+      keepOuterViewportFixed();
+    }
+
+    function resetGesture() {
+      gesture = 0;
+      undoneAction = null;
+      locked = false;
+      lockedScrollTop = 0;
+      lockedScrollLeft = 0;
+      scoreCard.classList.remove("pk-score-multitouch-locked");
+    }
+
+    function cancelOneFingerSelection() {
+      if (
+        selection &&
+        typeof selection.cancelActiveGesture === "function"
+      ) {
+        selection.cancelActiveGesture();
+      }
+    }
+
+    function enterCount(count) {
+      if (count < 2) return;
+
+      cancelOneFingerSelection();
+      lockScroll();
+      restoreLockedScroll();
+
+      // Sama välitön 2 -> 3 logiikka kuin vanhassa toimivassa 1.1.59:ssa:
+      // toinen sormi tekee Undon heti. Kolmas palauttaa sen Redolla ennen
+      // kolmen sormen toimintoa.
+      if (count >= 3 && gesture !== 3) {
+        if (gesture === 2 && undoneAction) {
+          redoChange(undoneAction);
+        }
+        gesture = 3;
+        undoneAction = null;
+        updateStatus("3 sormea havaittu · Kappaleen tiedot", "ok");
+        openProjectSettingsFromGesture();
+        return;
+      }
+
+      if (count === 2 && gesture === 0) {
+        gesture = 2;
+        updateStatus("2 sormea havaittu · Undo", "ok");
+        undoneAction = undoLastChange();
+      }
+    }
+
+    document.addEventListener(
+      "touchstart",
+      function (event) {
+        // Jokainen uusi touch lasketaan mukaan vain, jos juuri tämän
+        // touchstartin target on nuottipaperialueella.
+        if (targetIsScore(event.target)) {
+          for (let i = 0; i < event.changedTouches.length; i += 1) {
+            activeScoreTouches.add(event.changedTouches[i].identifier);
+          }
+        }
+
+        if (activeScoreTouches.size >= 2) {
+          enterCount(activeScoreTouches.size);
+          if (event.cancelable) event.preventDefault();
+          restoreLockedScroll();
+        }
+      },
+      { capture:true, passive:false }
+    );
+
+    document.addEventListener(
+      "touchmove",
+      function (event) {
+        if (!locked) return;
+        if (event.cancelable) event.preventDefault();
+        restoreLockedScroll();
+      },
+      { capture:true, passive:false }
+    );
+
+    function finishTouches(event) {
+      let touchedTrackedId = false;
+      for (let i = 0; i < event.changedTouches.length; i += 1) {
+        const id = event.changedTouches[i].identifier;
+        if (activeScoreTouches.delete(id)) touchedTrackedId = true;
+      }
+
+      if (locked && touchedTrackedId) {
+        if (event.cancelable) event.preventDefault();
+        restoreLockedScroll();
+      }
+
+      if (activeScoreTouches.size === 0) {
+        resetGesture();
+      }
+    }
+
+    document.addEventListener(
+      "touchend",
+      finishTouches,
+      { capture:true, passive:false }
+    );
+
+    document.addEventListener(
+      "touchcancel",
+      finishTouches,
+      { capture:true, passive:false }
+    );
+
+    // iOS Safari voi lähettää erillisiä gesture*-eventtejä pinch-yrityksestä.
+    ["gesturestart", "gesturechange", "gestureend"].forEach(function (name) {
+      document.addEventListener(
+        name,
+        function (event) {
+          if (!locked) return;
+          if (event.cancelable) event.preventDefault();
+          restoreLockedScroll();
+        },
+        { capture:true, passive:false }
+      );
+    });
+  }
+
   function start() {
     setupSelection();
     setupSystemLayoutEditor();
+    setupDocumentMultiTouch();
 
     // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
     // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
