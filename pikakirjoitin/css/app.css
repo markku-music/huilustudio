@@ -769,3 +769,24 @@ button {
     max-width: 100%;
   }
 }
+
+
+/* ==========================================================
+ * BASE 0.15.1
+ * iPad / landscape -valinnan korjaus.
+ *
+ * Pikakirjoitin 2:n toimivassa portrait-nuottikoko-lukitussa
+ * versiossa OSMD-nuottikuva ei itse vastaanota pointer-eventtejä.
+ * Valinta tapahtuu score-cardin päällä ja osumat lasketaan
+ * nuottien DOM-geometriasta.
+ *
+ * Tämä estää zoomatun OSMD/SVG-kerroksen kaappaamasta kosketusta
+ * landscape-tilassa.
+ * ========================================================== */
+#osmd-container,
+#osmd-container * {
+  pointer-events: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

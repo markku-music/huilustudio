@@ -1,32 +1,32 @@
-Pikakirjoitin 3 · BASE 0.15.0 · Portrait-nuottikoko lukittu
+Pikakirjoitin 3 · BASE 0.15.1 · Landscape-valinta korjattu
 
 Pohja:
-- BASE 0.14.9 A4 landscape koko leveys
+- BASE 0.15.0 Portrait-nuottikoko lukittu
 
-Vertailupohja:
-- Pikakirjoitin_2_Core_0.22.7.5_Portrait_Nuottikoko_Lukittu
+Korjaus:
+- Pikakirjoitin 2:n toimivassa portrait-nuottikoko-lukitussa versiossa
+  OSMD-kontilla oli pointer-events:none
+- Pikakirjoitin 3:ssa tämä puuttui
+- zoomattu OSMD/SVG pystyi siksi iPadin landscape-tilassa jäämään
+  kosketuksen vastaanottavaksi kerrokseksi score-cardin päälle
 
-Siirretty P2:n toimivasta mekanismista:
-- OSMD autoResize = false
-- portrait on nuottikoon referenssi
-- portraitissa Zoom = 1
-- landscapessa Zoom kasvaa paperin leveyden suhteessa portraitiin
-- zoom rajataan P2:n tavoin välille 1...1.6
-- suoraan landscapeen avattaessa portrait-leveys arvioidaan viewportin lyhyemmästä sivusta
-- ResizeObserver tekee uuden renderin paperin leveyden muuttuessa
-- resize-render on debouncattu 80 ms
-
-P3-sovitus:
-- P3:ssa referenssileveys otetaan .a4-paper-elementistä
-- landscape-paperi täyttää edelleen koko leveyden kuten 0.14.9:ssä
-- OSMD:n nuottikuva suurenee nyt paperin mukana
-- valinnan geometria päivitetään resize-renderin jälkeen
+Nyt:
+- #osmd-container ja sen kaikki lapset ovat pointer-events:none
+- kosketukset menevät aina .score-cardille
+- ScoreRangeSelection laskee nuottiosumat edelleen getBoundingClientRect-
+  geometriasta, joten nuottien napautus ja vaakavalinta toimivat normaalisti
+- OSMD:n nuottikuva säilyy täysin näkyvänä, vain sen oma hit-testing poistuu
 
 Säilytetty ennallaan:
-- 0.14.9:n CSS ja scrollaus
+- BASE 0.15.0:n portrait/landscape nuottikoon lukitus
+- A4-paperi ja scrollaus
+- renderer.js
+- score-selection.js
 - score-model
-- slurit ja slurien poisto
+- slurit
 - peukalopakki
 - koskettimisto
 - OSMD 2.1.2 vendor
 - käyttäjän slur.svg
+
+Ainoa toiminnallinen muutos on OSMD-kerroksen pointer-eventtien poistaminen.
