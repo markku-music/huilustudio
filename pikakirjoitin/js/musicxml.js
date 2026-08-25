@@ -646,7 +646,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.18.2</software>
+      <software>Pikakirjoitin 3 BASE 0.18.3</software>
     </encoding>
   </identification>
   <part-list>

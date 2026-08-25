@@ -152,9 +152,24 @@ class ScoreRangeSelection {
   #listeners = new Set();
   #commitListeners = new Set();
 
-  constructor({ viewport, container }) {
+  // Monisormi on osa samaa elekoneistoa kuin yhden sormen valinta.
+  #scorePointers = new Set();
+  #scoreTouchIds = new Set();
+  #scoreGesture = 0;
+  #scoreUndoneAction = null;
+  #multiTouchLocked = false;
+  #multiTouchScrollTop = 0;
+  #multiTouchScrollLeft = 0;
+  #onUndo = null;
+  #onRedo = null;
+  #onThreeFinger = null;
+
+  constructor({ viewport, container, onUndo, onRedo, onThreeFinger }) {
     this.#viewport = viewport;
     this.#container = container;
+    this.#onUndo = typeof onUndo === 'function' ? onUndo : null;
+    this.#onRedo = typeof onRedo === 'function' ? onRedo : null;
+    this.#onThreeFinger = typeof onThreeFinger === 'function' ? onThreeFinger : null;
     this.#createCursor();
     this.#bind();
   }
@@ -251,43 +266,154 @@ class ScoreRangeSelection {
     this.#emitChange();
   }
 
-  cancelActiveGesture() {
-    const g = this.#gesture;
-    if (!g) return false;
-
-    this.#restoreSelection(g.previous);
-
-    try {
-      this.#viewport.releasePointerCapture(g.pointerId);
-    } catch {}
-
-    this.#viewport.classList.remove('pk-selection-gesture-locked');
-    this.#gesture = null;
-    return true;
-  }
-
   #bind() {
+    // Sama järjestys kuin vanhassa toimivassa Pikakirjoittimessa:
+    // Touch Events lukitsevat Safarin natiivin scroll/pinch-eleen, Pointer Events
+    // hoitavat varsinaisen elekoneiston. Touch-count toimii lisäksi varmistuksena,
+    // jos Safari ei jostain syystä toimita toisen/kolmannen sormen pointerdownia.
+    this.#viewport.addEventListener('touchstart', ev => this.#touchStart(ev), {passive:false,capture:true});
+    this.#viewport.addEventListener('touchmove', ev => this.#touchMove(ev), {passive:false,capture:true});
+    this.#viewport.addEventListener('touchend', ev => this.#touchEnd(ev), {passive:false,capture:true});
+    this.#viewport.addEventListener('touchcancel', ev => this.#touchEnd(ev), {passive:false,capture:true});
+    this.#viewport.addEventListener('gesturestart', ev => this.#preventNativeGesture(ev), {passive:false,capture:true});
+    this.#viewport.addEventListener('gesturechange', ev => this.#preventNativeGesture(ev), {passive:false,capture:true});
+
     this.#viewport.addEventListener('pointerdown', ev => this.#pointerDown(ev));
     this.#viewport.addEventListener('pointermove', ev => this.#pointerMove(ev));
     this.#viewport.addEventListener('pointerup', ev => this.#pointerUp(ev));
     this.#viewport.addEventListener('pointercancel', ev => this.#pointerCancel(ev));
-    // Safari voi yrittää ottaa jo käynnissä olevan vaakavalinnan pan-y-scrollaukseksi,
-    // jos sormi karkaa myöhemmin alaviistoon viivaston ulkopuolelle. Kun sama ele
-    // on jo valinnut vähintään kaksi loogista tapahtumaa, käyttäjän tarkoitus on
-    // yksiselitteinen: lukitaan ele valinnaksi ja estetään natiivi scrollaus vain
-    // tämän kosketuksen loppuun asti.
-    this.#viewport.addEventListener('touchmove', ev => {
-      if (this.#gesture?.selectionLocked) ev.preventDefault();
-    }, { passive:false });
+
     this.#viewport.addEventListener('scroll', () => {
+      if (this.#multiTouchLocked) {
+        this.#restoreMultiTouchScroll();
+        return;
+      }
       if (!this.#selectedIds.size) return;
       this.#restoreCursorFromTarget();
       this.#emitChange();
     }, { passive:true });
   }
 
+  #keepOuterViewportFixed() {
+    if (window.scrollX || window.scrollY) window.scrollTo(0,0);
+  }
+
+  #restoreMultiTouchScroll() {
+    this.#viewport.scrollTop = this.#multiTouchScrollTop;
+    this.#viewport.scrollLeft = this.#multiTouchScrollLeft;
+    this.#keepOuterViewportFixed();
+  }
+
+  #touchStart(ev) {
+    for (const touch of ev.changedTouches || []) this.#scoreTouchIds.add(touch.identifier);
+
+    if (this.#scoreTouchIds.size >= 2 && !this.#multiTouchLocked) {
+      this.#multiTouchLocked = true;
+      this.#multiTouchScrollTop = this.#viewport.scrollTop;
+      this.#multiTouchScrollLeft = this.#viewport.scrollLeft;
+      this.#viewport.classList.add('pk-score-multitouch-locked');
+    }
+
+    // Touch-count syöttää samaa tilakonetta kuin Pointer Events. Tämä ei voi
+    // laukaista toimintoa kahdesti, koska #scoreGesture vaihtuu 0 -> 2 -> 3.
+    if (this.#scoreTouchIds.size >= 2) this.#enterMultiGesture(this.#scoreTouchIds.size);
+
+    if (this.#multiTouchLocked) {
+      if (ev.cancelable) ev.preventDefault();
+      this.#restoreMultiTouchScroll();
+    }
+  }
+
+  #touchMove(ev) {
+    if (this.#gesture?.selectionLocked && !this.#multiTouchLocked) {
+      if (ev.cancelable) ev.preventDefault();
+      return;
+    }
+
+    if (!this.#multiTouchLocked) return;
+    if (ev.cancelable) ev.preventDefault();
+    this.#restoreMultiTouchScroll();
+  }
+
+  #touchEnd(ev) {
+    for (const touch of ev.changedTouches || []) this.#scoreTouchIds.delete(touch.identifier);
+
+    if (this.#multiTouchLocked) {
+      if (ev.cancelable) ev.preventDefault();
+      this.#restoreMultiTouchScroll();
+    }
+
+    if (!this.#scoreTouchIds.size) {
+      this.#multiTouchLocked = false;
+      this.#multiTouchScrollTop = 0;
+      this.#multiTouchScrollLeft = 0;
+      this.#viewport.classList.remove('pk-score-multitouch-locked');
+      this.#maybeResetMultiGesture();
+    }
+  }
+
+  #preventNativeGesture(ev) {
+    if (this.#multiTouchLocked && ev.cancelable) ev.preventDefault();
+  }
+
+  #cancelSingleGestureForMulti() {
+    const g=this.#gesture;
+    if (!g) return;
+    this.#restoreSelection(g.previous);
+    try {
+      if (this.#viewport.hasPointerCapture?.(g.pointerId)) this.#viewport.releasePointerCapture(g.pointerId);
+    } catch {}
+    this.#viewport.classList.remove('pk-selection-gesture-locked');
+    this.#gesture=null;
+  }
+
+  #enterMultiGesture(count) {
+    if (count < 2) return;
+    this.#cancelSingleGestureForMulti();
+
+    if (count >= 3 && this.#scoreGesture !== 3) {
+      if (this.#scoreGesture === 2 && this.#scoreUndoneAction && this.#onRedo) {
+        this.#onRedo(this.#scoreUndoneAction);
+      }
+      this.#scoreGesture = 3;
+      this.#scoreUndoneAction = null;
+      if (this.#onThreeFinger) this.#onThreeFinger();
+      return;
+    }
+
+    if (count === 2 && this.#scoreGesture === 0) {
+      this.#scoreGesture = 2;
+      this.#scoreUndoneAction = this.#onUndo ? this.#onUndo() : null;
+    }
+  }
+
+  #maybeResetMultiGesture() {
+    if (this.#scorePointers.size || this.#scoreTouchIds.size) return;
+    this.#scoreGesture = 0;
+    this.#scoreUndoneAction = null;
+    this.#viewport.classList.remove('pk-selection-gesture-locked');
+    this.#viewport.classList.remove('pk-score-multitouch-locked');
+  }
+
   #pointerDown(ev) {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+
+    if (ev.pointerType === 'touch') {
+      if (!this.#scorePointers.size && !this.#scoreTouchIds.size) {
+        this.#scoreGesture=0;
+        this.#scoreUndoneAction=null;
+      }
+
+      this.#scorePointers.add(ev.pointerId);
+      try { this.#viewport.setPointerCapture(ev.pointerId); } catch {}
+
+      if (this.#scorePointers.size >= 2) {
+        this.#enterMultiGesture(this.#scorePointers.size);
+        if (ev.cancelable) ev.preventDefault();
+        return;
+      }
+    }
+
     if (this.#gesture) return;
 
     const band = this.#bandAt(ev.clientX, ev.clientY);
@@ -310,12 +436,17 @@ class ScoreRangeSelection {
     };
 
     // Ensimmäinen kosketus nuottiin tai taukoon antaa palautteen heti.
-    // Mitään preventDefaultia ei tehdä tässä, joten Safari voi edelleen
-    // ottaa eleen pystyscrollaukseksi. Jos niin käy, palautamme edellisen valinnan.
+    // Jos toinen sormi tulee, #enterMultiGesture palauttaa tämän kosketusta
+    // edeltäneen valinnan ennen Undo-toimintoa.
     if (hitEvent) this.#selectSingleEvent(hitEvent);
   }
 
   #pointerMove(ev) {
+    if (ev.pointerType === 'touch' && this.#scoreGesture !== 0) {
+      if (ev.cancelable) ev.preventDefault();
+      return;
+    }
+
     const g = this.#gesture;
     if (!g || ev.pointerId !== g.pointerId) return;
 
@@ -370,8 +501,24 @@ class ScoreRangeSelection {
   }
 
   #pointerUp(ev) {
+    const isTrackedTouch = ev.pointerType === 'touch' && this.#scorePointers.has(ev.pointerId);
+
+    if (isTrackedTouch && this.#scoreGesture !== 0) {
+      if (ev.cancelable) ev.preventDefault();
+      this.#scorePointers.delete(ev.pointerId);
+      try { if (this.#viewport.hasPointerCapture?.(ev.pointerId)) this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
+      this.#maybeResetMultiGesture();
+      return;
+    }
+
     const g = this.#gesture;
-    if (!g || ev.pointerId !== g.pointerId) return;
+    if (!g || ev.pointerId !== g.pointerId) {
+      if (isTrackedTouch) {
+        this.#scorePointers.delete(ev.pointerId);
+        this.#maybeResetMultiGesture();
+      }
+      return;
+    }
 
     const dx = ev.clientX - g.startX;
     const dy = ev.clientY - g.startY;
@@ -383,32 +530,48 @@ class ScoreRangeSelection {
       g.endEvent = this.#nearestEventInBand(g.band, g.currentX) || g.anchorEvent;
       this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
       try { this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
-      // Kohdistin jää näkyviin viimeisen tapahtuman kohdalle sormen noston jälkeenkin.
     } else if (g.state === 'pending') {
       if (g.initialEvent) {
-        // Lyhyt napautus jäi jo pointerdownissa yksittäiseksi valinnaksi.
-        // Pidetään valinta ja kohdistin näkyvissä.
         this.#selectSingleEvent(g.initialEvent);
       } else if (g.maxMove <= TAP_MOVE_TOLERANCE) {
-        // Tyhjään paperiin napautus poistaa valinnan.
         this.clear();
       }
     }
 
     this.#viewport.classList.remove('pk-selection-gesture-locked');
     this.#gesture = null;
+
+    if (isTrackedTouch) {
+      this.#scorePointers.delete(ev.pointerId);
+      try { if (this.#viewport.hasPointerCapture?.(ev.pointerId)) this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
+      this.#maybeResetMultiGesture();
+    }
+
     this.#emitCommit();
   }
 
   #pointerCancel(ev) {
-    const g = this.#gesture;
-    if (!g || g.pointerId !== ev.pointerId) return;
+    const isTrackedTouch = ev.pointerType === 'touch' && this.#scorePointers.has(ev.pointerId);
 
-    // iPad/Safari voi lähettää pointercancelin, kun natiivi pan-y-scrollaus
-    // ottaa eleen. Pending-vaiheessa palautetaan siksi aiempi valinta.
-    if (g.state === 'pending') this.#restoreSelection(g.previous);
-    this.#viewport.classList.remove('pk-selection-gesture-locked');
-    this.#gesture = null;
+    if (isTrackedTouch && this.#scoreGesture !== 0) {
+      this.#scorePointers.delete(ev.pointerId);
+      try { if (this.#viewport.hasPointerCapture?.(ev.pointerId)) this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
+      this.#maybeResetMultiGesture();
+      return;
+    }
+
+    const g = this.#gesture;
+    if (g && g.pointerId === ev.pointerId) {
+      if (g.state === 'pending') this.#restoreSelection(g.previous);
+      this.#viewport.classList.remove('pk-selection-gesture-locked');
+      this.#gesture = null;
+    }
+
+    if (isTrackedTouch) {
+      this.#scorePointers.delete(ev.pointerId);
+      try { if (this.#viewport.hasPointerCapture?.(ev.pointerId)) this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
+      this.#maybeResetMultiGesture();
+    }
   }
 
   #bandAt(x,y) {
