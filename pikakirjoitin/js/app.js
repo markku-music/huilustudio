@@ -533,6 +533,19 @@
   function start() {
     setupSelection();
 
+    // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
+    // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
+    if (
+      window.PikakirjoitinRenderer &&
+      typeof window.PikakirjoitinRenderer.subscribeRendered === "function"
+    ) {
+      window.PikakirjoitinRenderer.subscribeRendered(function (snapshot) {
+        if (snapshot && snapshot.reason === "resize") {
+          refreshSelectionFromRenderedScore();
+        }
+      });
+    }
+
     new window.PikakirjoitinThumbRail.ThumbRail({
       rail: document.getElementById("thumbRail"),
       boundsElement: document.querySelector(".score-card"),

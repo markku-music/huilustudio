@@ -1,35 +1,32 @@
-Pikakirjoitin 3 · BASE 0.14.9 · A4 landscape koko leveys
+Pikakirjoitin 3 · BASE 0.15.0 · Portrait-nuottikoko lukittu
 
 Pohja:
-- toimiva BASE 0.14.7 A4-paperi lukittu
-- rikkinäistä 0.14.8-versiota EI ole käytetty pohjana
+- BASE 0.14.9 A4 landscape koko leveys
 
-Muutos on tarkoituksella hyvin pieni.
+Vertailupohja:
+- Pikakirjoitin_2_Core_0.22.7.5_Portrait_Nuottikoko_Lukittu
 
-1. Portrait
-- täysin sama A4-mitoitus kuin BASE 0.14.7:ssä
-- score-card, scrollaus ja kosketuselelogiikka ennallaan
+Siirretty P2:n toimivasta mekanismista:
+- OSMD autoResize = false
+- portrait on nuottikoon referenssi
+- portraitissa Zoom = 1
+- landscapessa Zoom kasvaa paperin leveyden suhteessa portraitiin
+- zoom rajataan P2:n tavoin välille 1...1.6
+- suoraan landscapeen avattaessa portrait-leveys arvioidaan viewportin lyhyemmästä sivusta
+- ResizeObserver tekee uuden renderin paperin leveyden muuttuessa
+- resize-render on debouncattu 80 ms
 
-2. Landscape
-- A4-paperi käyttää score-cardin koko sisäleveyden
-- score-cardin alkuperäiset 12 px sivupaddingit säilyvät
-- A4-suhde 210:297 säilyy
-- paperi kasvaa samalla korkeammaksi ja sitä scrollataan pystysuunnassa
-- score-cardin scrollausmekanismiin ei ole koskettu
+P3-sovitus:
+- P3:ssa referenssileveys otetaan .a4-paper-elementistä
+- landscape-paperi täyttää edelleen koko leveyden kuten 0.14.9:ssä
+- OSMD:n nuottikuva suurenee nyt paperin mukana
+- valinnan geometria päivitetään resize-renderin jälkeen
 
-3. Paperin päällä näkyneet omat reunat
-- OSMD-kontin, sen välittömän divin ja SVG:n HTML/CSS-tausta asetetaan läpinäkyväksi
-- niiltä poistetaan CSS-border, outline ja box-shadow
-- varsinainen .a4-paper säilyy ainoana paperipintana
-- OSMD:n nuotinnuslogiikkaan ei kosketa
-
-Turvallisuus:
-- app.js muuttumaton
-- score-selection.js muuttumaton
-- selection-editor.js muuttumaton
-- score-model.js muuttumaton
-- thumb-rail.js muuttumaton
-- OSMD vendor muuttumaton
-- slur-kuvake muuttumaton
-
-Ainoa JS-tiedoston muutos on musicxml.js:n ohjelmistoversion tekstissä 0.14.7 -> 0.14.9.
+Säilytetty ennallaan:
+- 0.14.9:n CSS ja scrollaus
+- score-model
+- slurit ja slurien poisto
+- peukalopakki
+- koskettimisto
+- OSMD 2.1.2 vendor
+- käyttäjän slur.svg
