@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.17.6.2</title>
+  <title>Pikakirjoitin 3 · BASE 0.17.6.3</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -245,7 +245,7 @@
         <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.17.6.1 · PDF-asettelu · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2</p>
+      <p>BASE 0.17.6.3 · Credit-soitin · Ensirivin sisennys · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2</p>
     </header>
 
     <section class="layout-settings-panel" id="layoutSettingsPanel" role="dialog"
@@ -263,6 +263,11 @@
         <span id="systemSpacingLabel">Riviväli</span>
         <input id="systemSpacingSlider" data-layout-setting="systemSpacing" type="range" min="50" max="300" step="10" value="100">
         <output id="systemSpacingValue" for="systemSpacingSlider">100 %</output>
+      </label>
+      <label class="layout-setting-row" for="firstSystemIndentSlider">
+        <span id="firstSystemIndentLabel">Ensimmäisen rivin sisennys</span>
+        <input id="firstSystemIndentSlider" data-layout-setting="firstSystemIndent" type="range" min="0" max="10" step="0.5" value="0">
+        <output id="firstSystemIndentValue" for="firstSystemIndentSlider">0</output>
       </label>
       <label class="layout-setting-row" for="topMarginSlider">
         <span id="topMarginLabel">Ylämarginaali</span>

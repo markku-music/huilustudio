@@ -464,6 +464,7 @@
   const LAYOUT_DEFAULTS = {
     notationScale: 1,
     systemSpacing: 1,
+    firstSystemIndent: 0,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
   let layoutEditSnapshot = null;
@@ -479,6 +480,7 @@
     const fields = {
       notationSizeSlider: Math.round(layout.notationScale * 100),
       systemSpacingSlider: Math.round(layout.systemSpacing * 100),
+      firstSystemIndentSlider: layout.firstSystemIndent,
       topMarginSlider: layout.pageMargins.top,
       bottomMarginSlider: layout.pageMargins.bottom,
       leftMarginSlider: layout.pageMargins.left,
@@ -494,6 +496,11 @@
     if (sizeOutput) sizeOutput.textContent = Math.round(layout.notationScale * 100) + " %";
     const spacingOutput = document.getElementById("systemSpacingValue");
     if (spacingOutput) spacingOutput.textContent = Math.round(layout.systemSpacing * 100) + " %";
+    const indentOutput = document.getElementById("firstSystemIndentValue");
+    if (indentOutput) {
+      const value = Number(layout.firstSystemIndent);
+      indentOutput.textContent = value.toFixed(value % 1 ? 1 : 0);
+    }
 
     [
       ["topMarginValue", layout.pageMargins.top],
@@ -528,6 +535,7 @@
 
     if (setting === "notationScale") layout.notationScale = Math.max(0.75, Math.min(1.2, value / 100));
     if (setting === "systemSpacing") layout.systemSpacing = Math.max(0.5, Math.min(3, value / 100));
+    if (setting === "firstSystemIndent") layout.firstSystemIndent = Math.max(0, Math.min(10, value));
     if (setting === "marginTop") layout.pageMargins.top = Math.max(0, Math.min(12, value));
     if (setting === "marginBottom") layout.pageMargins.bottom = Math.max(0, Math.min(12, value));
     if (setting === "marginLeft") layout.pageMargins.left = Math.max(0, Math.min(12, value));
@@ -586,6 +594,7 @@
         const layout = currentLayout();
         layout.notationScale = LAYOUT_DEFAULTS.notationScale;
         layout.systemSpacing = LAYOUT_DEFAULTS.systemSpacing;
+        layout.firstSystemIndent = LAYOUT_DEFAULTS.firstSystemIndent;
         layout.pageMargins = clonePlain(LAYOUT_DEFAULTS.pageMargins);
         commitHistory(snapshot);
         setLayoutPanelValues();

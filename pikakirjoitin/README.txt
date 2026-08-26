@@ -75,9 +75,17 @@ BASE 0.17.6.1
 
 BASE 0.17.6.2 – soitinnimi, riviväli ja marginaalien uudet oletukset
 - Aloitusikkunassa on vapaa Soitin / Instrument -kenttä. Oletus on FI: Huilu, EN: Flute.
-- Soitinnimi tallennetaan Score Modelin metadataan ja MusicXML:n <part-name>-kenttään. OSMD sijoittaa ja piirtää nimen omalla engraver-logiikallaan.
+- Soitinnimi tallennetaan Score Modelin metadataan ja MusicXML:n <part-name>-kenttään. Tässä 0.17.6.2-versiossa OSMD näyttää sen vielä systeemin vasemmalla puolella.
 - Asettelu-paneeliin lisätty Riviväli / System spacing 50–300 %, oletus 100 %.
 - Riviväli käyttää OSMD 2.1.2:n MinimumDistanceBetweenSystems- ja MinSkyBottomDistBetweenSystems-sääntöjä, ei CSS-skaalausta.
 - Vasen ja oikea sivumarginaali ovat uusissa projekteissa oletuksena 2.5. Ylä- ja alamarginaali säilyvät oletuksena 5.
 - Nuottikoon maksimi säilyy 120 %:ssa.
 - Vanhat projektit säilyttävät niihin tallennetut layout-arvot.
+
+
+0.17.6.3
+- Soitinnimi ei enää näy ensimmäisen systeemin vasemmassa reunassa part-name-labelina.
+- MusicXML säilyttää oikean part-name-tiedon print-object="no" -muodossa ja lisää soitinnimen credit-tekstinä.
+- Renderer varmistaa OSMD 2.1.2:ssa saman tekstin ylävasemman sivulabelin kautta, joten OSMD hoitaa typografian ja sijoittelun.
+- Asettelu-paneeliin lisätty Ensimmäisen rivin sisennys / First-system indent (0–10, oletus 0).
+- Sisennys käyttää OSMD:n omaa ensimmäisen systeemin instrumenttilabelin leveyslogiikkaa näkymättömällä em-välillä; muut systeemit alkavat normaalisti vasemmalta.

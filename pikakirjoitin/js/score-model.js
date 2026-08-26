@@ -125,6 +125,9 @@
     let systemSpacing = Number(source.systemSpacing);
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
 
+    let firstSystemIndent = Number(source.firstSystemIndent);
+    if (!Number.isFinite(firstSystemIndent)) firstSystemIndent = 0;
+
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
       const value = Number(sourceMargins[name]);
@@ -139,6 +142,7 @@
       lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
+      firstSystemIndent: Math.max(0, Math.min(10, firstSystemIndent)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),

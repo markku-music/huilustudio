@@ -667,12 +667,19 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.17.6.2</software>
+      <software>Pikakirjoitin 3 BASE 0.17.6.3</software>
     </encoding>
   </identification>
-  <part-list>
+${partName ? `  <credit page="1">
+    <credit-type>other</credit-type>
+    <credit-words justify="left">${escapeXML(partName)}</credit-words>
+  </credit>
+` : ""}  <part-list>
     <score-part id="P1">
-      <part-name>${escapeXML(partName)}</part-name>
+      <part-name print-object="no">${escapeXML(partName)}</part-name>
+      <score-instrument id="P1-I1">
+        <instrument-name>${escapeXML(partName)}</instrument-name>
+      </score-instrument>
     </score-part>
   </part-list>
   <part id="P1">

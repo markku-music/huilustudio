@@ -18,7 +18,9 @@
     systemBreaks: [],
     lastSystemMaxScalingFactor: 1.4,
     notationScale: 1,
-    pageMargins: { top: 5, right: 5, bottom: 5, left: 5 }
+    systemSpacing: 1,
+    firstSystemIndent: 0,
+    pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
 
   const renderedListeners = new Set();
@@ -174,6 +176,9 @@
     let systemSpacing = Number(source.systemSpacing);
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
 
+    let firstSystemIndent = Number(source.firstSystemIndent);
+    if (!Number.isFinite(firstSystemIndent)) firstSystemIndent = 0;
+
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
       const value = Number(sourceMargins[name]);
@@ -189,6 +194,7 @@
         Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
+      firstSystemIndent: Math.max(0, Math.min(10, firstSystemIndent)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),
@@ -218,6 +224,61 @@
     // OSMD:n oletusvälin (7 / 5), joten säätö ei perustu CSS-venytykseen.
     osmd.EngravingRules.MinimumDistanceBetweenSystems = 7 * normalized.systemSpacing;
     osmd.EngravingRules.MinSkyBottomDistBetweenSystems = 5 * normalized.systemSpacing;
+  }
+
+
+  /*
+   * Soitinnimi tulee MusicXML:ssä credit-tekstinä. OSMD 2.1.2 ei aina
+   * nosta vapaata vasemman reunan credit-tekstiä sivulabeliksi, joten
+   * varmistetaan load()in jälkeen sama tieto OSMD:n Lyricist-labeliin.
+   * Näin OSMD saa edelleen päättää typografian ja sijainnin ylävasemmalla.
+   *
+   * Ensimmäisen rivin sisennys toteutetaan OSMD:n omalla ensimmäisen
+   * systeemin instrumenttilabelin leveyslogiikalla: part-name on XML:ssä
+   * piilotettu, mutta sisennystä pyydettäessä sen tilalle asetetaan yksi
+   * näkymätön em-väli. Sen tekstikorkeus toimii samalla varattuna leveytenä.
+   * Yhden viivaston Pikakirjoittimessa OSMD käyttää täyttä part-name-labelia
+   * vain ensimmäisellä systeemillä, joten muut rivit alkavat normaalisti.
+   */
+  function prepareInstrumentCreditAndFirstSystemIndent(layout) {
+    if (!osmd || !osmd.Sheet || !osmd.EngravingRules) return;
+
+    const normalized = normalizeLayoutOptions(layout);
+    const instruments = osmd.Sheet.Instruments || [];
+    const instrument = instruments[0];
+
+    if (instrument && instrument.NameLabel) {
+      const currentName = String(instrument.Name || "");
+      if (!instrument.__pikakirjoitinPartName && currentName.trim()) {
+        instrument.__pikakirjoitinPartName = currentName;
+      }
+
+      const realName = String(instrument.__pikakirjoitinPartName || "");
+      if (realName) {
+        // MusicXML:n piilotettu part-name säilyttää oikean soitinnimen.
+        // Käytetään samaa tekstiä OSMD:n vasemman yläkulman sivulabeliin.
+        osmd.Sheet.LyricistString = realName;
+      }
+    }
+
+    osmd.EngravingRules.RenderLyricist = true;
+    osmd.EngravingRules.SystemLabelsRightMargin = 0;
+
+    if (!instrument || !instrument.NameLabel) return;
+
+    if (normalized.firstSystemIndent > 0) {
+      instrument.Name = "\u2003"; // em space: leveys ilman näkyvää merkkiä
+      instrument.NameLabel.print = true;
+      osmd.EngravingRules.RenderPartNames = true;
+      osmd.EngravingRules.InstrumentLabelTextHeight =
+        Math.max(0.5, normalized.firstSystemIndent);
+    } else {
+      if (instrument.__pikakirjoitinPartName) {
+        instrument.Name = instrument.__pikakirjoitinPartName;
+      }
+      instrument.NameLabel.print = false;
+      osmd.EngravingRules.InstrumentLabelTextHeight = 2;
+    }
   }
 
   function finite(value, fallback) {
@@ -551,6 +612,7 @@
     // vasta loadin jälkeen ennen varsinaista renderöintiä.
     applyOrientationZoom();
     applyLayoutRules(lastLayoutOptions);
+    prepareInstrumentCreditAndFirstSystemIndent(lastLayoutOptions);
 
     await osmd.render();
     lastObservedPaperWidth = paperWidth();
@@ -592,6 +654,7 @@
       lastLayoutOptions = nextLayout;
       applyOrientationZoom();
       applyLayoutRules(nextLayout);
+      prepareInstrumentCreditAndFirstSystemIndent(nextLayout);
       await osmd.render();
       lastObservedPaperWidth = paperWidth();
       notifyRendered(reason || "layout");
@@ -614,6 +677,8 @@
       portraitReferenceWidth: portraitReferenceWidth,
       portrait: isPortraitViewport(),
       notationScale: lastLayoutOptions.notationScale,
+      systemSpacing: lastLayoutOptions.systemSpacing,
+      firstSystemIndent: lastLayoutOptions.firstSystemIndent,
       pageMargins: Object.assign({}, lastLayoutOptions.pageMargins),
       autoResize: false
     };
