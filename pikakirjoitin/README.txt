@@ -83,9 +83,10 @@ BASE 0.17.6.2 – soitinnimi, riviväli ja marginaalien uudet oletukset
 - Vanhat projektit säilyttävät niihin tallennetut layout-arvot.
 
 
-0.17.6.3
-- Soitinnimi ei enää näy ensimmäisen systeemin vasemmassa reunassa part-name-labelina.
-- MusicXML säilyttää oikean part-name-tiedon print-object="no" -muodossa ja lisää soitinnimen credit-tekstinä.
-- Renderer varmistaa OSMD 2.1.2:ssa saman tekstin ylävasemman sivulabelin kautta, joten OSMD hoitaa typografian ja sijoittelun.
-- Asettelu-paneeliin lisätty Ensimmäisen rivin sisennys / First-system indent (0–10, oletus 0).
-- Sisennys käyttää OSMD:n omaa ensimmäisen systeemin instrumenttilabelin leveyslogiikkaa näkymättömällä em-välillä; muut systeemit alkavat normaalisti vasemmalta.
+BASE 0.17.6.4 – credit-soitin korkeammalle, ensirivin sisennys pois
+- Soitinnimi ei näy ensimmäisen systeemin vasemmassa reunassa part-name-labelina.
+- MusicXML säilyttää part-name-tiedon print-object="no" -muodossa ja antaa näkyvän soitinnimen vasemmalle tasattuna credit-tekstinä.
+- Käsin asetettu OSMD:n sisäinen soitinnimivarmistus on poistettu: credit on nyt ainoa näkyvän soitinnimen lähde.
+- OSMD 2.1.2 käsittelee vasemman sivu-creditin omana credit-labelinaan; sitä nostetaan ylemmäs OSMD:n SystemLyricistDistance-arvolla 6.5.
+- Ensimmäisen rivin sisennys -säädin ja kaikki siihen liittyvä layout-logiikka on poistettu, koska se ei toiminut luotettavasti.
+- Vasen/oikea marginaali 2.5, riviväli ja nuottikoko 75–120 % säilyvät ennallaan.
