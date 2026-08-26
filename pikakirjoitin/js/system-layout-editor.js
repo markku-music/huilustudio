@@ -3,6 +3,7 @@
 
   const MIN_FACTOR = 1;
   const MAX_FACTOR = 6;
+  const DRAG_THRESHOLD_PX = 6;
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -245,7 +246,8 @@
         currentWidth: currentWidth,
         paperWidth: paperWidth,
         startFactor: startFactor,
-        factor: startFactor
+        factor: startFactor,
+        moved: false
       };
 
       handle.classList.add("dragging");
@@ -288,6 +290,15 @@
       event.preventDefault();
 
       const dx = event.clientX - this.drag.startClientX;
+
+      // Nopea napautus on oma eleensä: vasta selvä liike aloittaa
+      // portaattoman venytyksen. Näin pieni sormen/hiiren heilahdus
+      // ei estä kertaklikkauksen "maksimiin"-toimintoa.
+      if (!this.drag.moved) {
+        if (Math.abs(dx) < DRAG_THRESHOLD_PX) return;
+        this.drag.moved = true;
+      }
+
       const minLeft = this.drag.lineStart + 80;
       const maxLeft = this.drag.paperWidth - 18;
 
@@ -322,8 +333,23 @@
 
       event.preventDefault();
 
-      const factor = this.drag.factor;
-      const handle = this.drag.handle;
+      const drag = this.drag;
+      const handle = drag.handle;
+
+      // Kertaklikkaus / nopea napautus: venytä viimeinen rivi suoraan
+      // samaan maksimiin, johon kahvaa voisi vetää käsin.
+      // Jos käyttäjä liikutti osoitinta yli kynnyksen, säilytetään
+      // nykyinen portaattoman vedon toiminta.
+      let factor = drag.factor;
+      if (!drag.moved) {
+        const maxLeft = drag.paperWidth - 18;
+        const maxWidth = Math.max(80, maxLeft - drag.lineStart);
+        factor = clamp(
+          drag.startFactor * (maxWidth / drag.currentWidth),
+          MIN_FACTOR,
+          MAX_FACTOR
+        );
+      }
 
       this.removeWindowDragListeners();
       this.drag = null;

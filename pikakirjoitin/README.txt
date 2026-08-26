@@ -140,3 +140,8 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Kun tahtiviivojen + -valinnat ovat näkyvissä, nuottien napautus ja aluevalinta on estetty.
 - Mahdollinen nuottivalinta ja kelluva nuottipalkki suljetaan heti tahtiviivatilan alkaessa.
 - Nuottivalinta palautuu automaattisesti, kun tahtiviivatila suljetaan.
+
+0.17.6.13 – Viimeisen rivin venytys
+- Nopea klikkaus / napautus viimeisen rivin ↔-kahvaan venyttää rivin heti maksimiin.
+- Paina + vedä säilyttää aiemman portaattoman venytyksen.
+- Pieni alle 6 px osoitinliike tulkitaan edelleen napautukseksi.
