@@ -126,7 +126,7 @@
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
 
     let instrumentCreditDistance = Number(source.instrumentCreditDistance);
-    if (!Number.isFinite(instrumentCreditDistance)) instrumentCreditDistance = 6.5;
+    if (!Number.isFinite(instrumentCreditDistance)) instrumentCreditDistance = 14;
 
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {

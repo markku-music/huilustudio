@@ -19,7 +19,7 @@
     lastSystemMaxScalingFactor: 1.4,
     notationScale: 1,
     systemSpacing: 1,
-    instrumentCreditDistance: 6.5,
+    instrumentCreditDistance: 14,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
 
@@ -177,7 +177,7 @@
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
 
     let instrumentCreditDistance = Number(source.instrumentCreditDistance);
-    if (!Number.isFinite(instrumentCreditDistance)) instrumentCreditDistance = 6.5;
+    if (!Number.isFinite(instrumentCreditDistance)) instrumentCreditDistance = 14;
 
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
@@ -245,7 +245,7 @@
     osmd.EngravingRules.RenderPartAbbreviations = false;
     osmd.EngravingRules.SystemLabelsRightMargin = 0;
     osmd.EngravingRules.SystemLyricistDistance =
-      Number(lastLayoutOptions.instrumentCreditDistance) || 6.5;
+      Number(lastLayoutOptions.instrumentCreditDistance) || 14;
   }
 
   function finite(value, fallback) {

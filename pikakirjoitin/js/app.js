@@ -464,7 +464,7 @@
   const LAYOUT_DEFAULTS = {
     notationScale: 1,
     systemSpacing: 1,
-    instrumentCreditDistance: 6.5,
+    instrumentCreditDistance: 14,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
   let layoutEditSnapshot = null;

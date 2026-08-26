@@ -87,15 +87,15 @@ BASE 0.17.6.4 – credit-soitin korkeammalle, ensirivin sisennys pois
 - Soitinnimi ei näy ensimmäisen systeemin vasemmassa reunassa part-name-labelina.
 - MusicXML säilyttää part-name-tiedon print-object="no" -muodossa ja antaa näkyvän soitinnimen vasemmalle tasattuna credit-tekstinä.
 - Käsin asetettu OSMD:n sisäinen soitinnimivarmistus on poistettu: credit on nyt ainoa näkyvän soitinnimen lähde.
-- OSMD 2.1.2 käsittelee vasemman sivu-creditin omana credit-labelinaan; sitä nostetaan ylemmäs OSMD:n SystemLyricistDistance-arvolla 6.5.
+- OSMD 2.1.2 käsittelee vasemman sivu-creditin omana credit-labelinaan; sitä nostetaan ylemmäs OSMD:n SystemLyricistDistance-arvolla 14.
 - Ensimmäisen rivin sisennys -säädin ja kaikki siihen liittyvä layout-logiikka on poistettu, koska se ei toiminut luotettavasti.
 - Vasen/oikea marginaali 2.5, riviväli ja nuottikoko 75–120 % säilyvät ennallaan.
 
 
-BASE 0.17.6.5 – soitinnimen korkeussäädin
+BASE 0.17.6.6 – soitinnimen korkeuden oletus 14
 - Asettelu-paneeliin lisätty Soitinnimen korkeus / Instrument name height.
 - Säätö ohjaa OSMD 2.1.2:n SystemLyricistDistance-arvoa, jota OSMD käyttää vasemmalle tasatun credit-soitinnimen pystysijoitteluun.
-- Säätöalue 2–14, askel 0.5, oletus 6.5. Suurempi arvo nostaa soitinnimeä ylemmäs.
+- Säätöalue 2–14, askel 0.5, oletus 14. Suurempi arvo nostaa soitinnimeä ylemmäs.
 - Arvo tallentuu score.layout.instrumentCreditDistance-kenttään, joten se säilyy projektissa ja Recent-kopiossa.
-- Säätö kuuluu Asettelu-paneelin Undo/Redo-historiaan ja Palauta oletukset palauttaa arvon 6.5:een.
-- Vanhat projektit ilman kenttää saavat oletusarvon 6.5.
+- Säätö kuuluu Asettelu-paneelin Undo/Redo-historiaan ja Palauta oletukset palauttaa arvon 14:ään.
+- Vanhat projektit ilman kenttää saavat oletusarvon 14.
