@@ -464,6 +464,7 @@
   const LAYOUT_DEFAULTS = {
     notationScale: 1,
     systemSpacing: 1,
+    instrumentCreditDistance: 6.5,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
   let layoutEditSnapshot = null;
@@ -479,6 +480,7 @@
     const fields = {
       notationSizeSlider: Math.round(layout.notationScale * 100),
       systemSpacingSlider: Math.round(layout.systemSpacing * 100),
+      instrumentCreditDistanceSlider: layout.instrumentCreditDistance,
       topMarginSlider: layout.pageMargins.top,
       bottomMarginSlider: layout.pageMargins.bottom,
       leftMarginSlider: layout.pageMargins.left,
@@ -494,6 +496,8 @@
     if (sizeOutput) sizeOutput.textContent = Math.round(layout.notationScale * 100) + " %";
     const spacingOutput = document.getElementById("systemSpacingValue");
     if (spacingOutput) spacingOutput.textContent = Math.round(layout.systemSpacing * 100) + " %";
+    const instrumentOutput = document.getElementById("instrumentCreditDistanceValue");
+    if (instrumentOutput) instrumentOutput.textContent = Number(layout.instrumentCreditDistance).toFixed(layout.instrumentCreditDistance % 1 ? 1 : 0);
     [
       ["topMarginValue", layout.pageMargins.top],
       ["bottomMarginValue", layout.pageMargins.bottom],
@@ -527,6 +531,7 @@
 
     if (setting === "notationScale") layout.notationScale = Math.max(0.75, Math.min(1.2, value / 100));
     if (setting === "systemSpacing") layout.systemSpacing = Math.max(0.5, Math.min(3, value / 100));
+    if (setting === "instrumentCreditDistance") layout.instrumentCreditDistance = Math.max(2, Math.min(14, value));
     if (setting === "marginTop") layout.pageMargins.top = Math.max(0, Math.min(12, value));
     if (setting === "marginBottom") layout.pageMargins.bottom = Math.max(0, Math.min(12, value));
     if (setting === "marginLeft") layout.pageMargins.left = Math.max(0, Math.min(12, value));
@@ -585,6 +590,7 @@
         const layout = currentLayout();
         layout.notationScale = LAYOUT_DEFAULTS.notationScale;
         layout.systemSpacing = LAYOUT_DEFAULTS.systemSpacing;
+        layout.instrumentCreditDistance = LAYOUT_DEFAULTS.instrumentCreditDistance;
         layout.pageMargins = clonePlain(LAYOUT_DEFAULTS.pageMargins);
         commitHistory(snapshot);
         setLayoutPanelValues();

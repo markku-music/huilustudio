@@ -8,7 +8,7 @@
     fi: {
       appName: "Pikakirjoitin 3",
       documentTitle: "Pikakirjoitin 3 · BASE 0.17.6.4",
-      subtitle: "BASE 0.17.6.4 · Soitin credit-tekstinä korkeammalla · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
+      subtitle: "BASE 0.17.6.5 · Soitinnimen korkeus säädettävissä · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -64,6 +64,7 @@
       layoutSettings: "Asettelu",
       notationSize: "Nuottikoko",
       systemSpacing: "Riviväli",
+      instrumentCreditHeight: "Soitinnimen korkeus",
       topMargin: "Ylämarginaali",
       bottomMargin: "Alamarginaali",
       leftMargin: "Vasen marginaali",
@@ -110,7 +111,7 @@
     en: {
       appName: "SwipeScore",
       documentTitle: "SwipeScore · BASE 0.17.6.4",
-      subtitle: "BASE 0.17.6.4 · Instrument credit higher · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      subtitle: "BASE 0.17.6.5 · Adjustable instrument-name height · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
@@ -166,6 +167,7 @@
       layoutSettings: "Layout",
       notationSize: "Notation size",
       systemSpacing: "System spacing",
+      instrumentCreditHeight: "Instrument name height",
       topMargin: "Top margin",
       bottomMargin: "Bottom margin",
       leftMargin: "Left margin",
@@ -466,6 +468,7 @@
     setText('#layoutSettingsTitle', "layoutSettings", scope);
     setText('#notationSizeLabel', "notationSize", scope);
     setText('#systemSpacingLabel', "systemSpacing", scope);
+    setText('#instrumentCreditDistanceLabel', "instrumentCreditHeight", scope);
     setText('#topMarginLabel', "topMargin", scope);
     setText('#bottomMarginLabel', "bottomMargin", scope);
     setText('#leftMarginLabel', "leftMargin", scope);

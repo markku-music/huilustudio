@@ -19,6 +19,7 @@
     lastSystemMaxScalingFactor: 1.4,
     notationScale: 1,
     systemSpacing: 1,
+    instrumentCreditDistance: 6.5,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
 
@@ -175,6 +176,8 @@
     let systemSpacing = Number(source.systemSpacing);
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
 
+    let instrumentCreditDistance = Number(source.instrumentCreditDistance);
+    if (!Number.isFinite(instrumentCreditDistance)) instrumentCreditDistance = 6.5;
 
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
@@ -191,6 +194,7 @@
         Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
+      instrumentCreditDistance: Math.max(2, Math.min(14, instrumentCreditDistance)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),
@@ -229,8 +233,8 @@
    * käytä part-name-labelia ensimmäisen systeemin sisennykseen.
    *
    * OSMD 2.1.2 lukee vasemmalle tasatun sivu-creditin sisäisesti Lyricist-labeliksi.
-   * Siksi RenderLyricist pidetään päällä ja SystemLyricistDistancea kasvatetaan
-   * hieman, jotta credit asettuu selvästi ylemmäs ensimmäisen systeemin yläpuolelle.
+   * Siksi RenderLyricist pidetään päällä. SystemLyricistDistance tulee nyt
+   * projektin Asettelu-arvosta, joten käyttäjä voi säätää credit-soitinnimen korkeuden.
    * XML:n part-name on print-object="no", ja RenderPartNames pidetään pois päältä.
    */
   function prepareInstrumentCredit() {
@@ -240,7 +244,8 @@
     osmd.EngravingRules.RenderPartNames = false;
     osmd.EngravingRules.RenderPartAbbreviations = false;
     osmd.EngravingRules.SystemLabelsRightMargin = 0;
-    osmd.EngravingRules.SystemLyricistDistance = 6.5;
+    osmd.EngravingRules.SystemLyricistDistance =
+      Number(lastLayoutOptions.instrumentCreditDistance) || 6.5;
   }
 
   function finite(value, fallback) {

@@ -125,6 +125,8 @@
     let systemSpacing = Number(source.systemSpacing);
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
 
+    let instrumentCreditDistance = Number(source.instrumentCreditDistance);
+    if (!Number.isFinite(instrumentCreditDistance)) instrumentCreditDistance = 6.5;
 
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
@@ -140,6 +142,7 @@
       lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
+      instrumentCreditDistance: Math.max(2, Math.min(14, instrumentCreditDistance)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),
