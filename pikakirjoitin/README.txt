@@ -30,7 +30,7 @@ score-model.js, musicxml.js, renderer.js, audio-engine.js, score-selection.js,
 thumb-rail.js, OSMD 2.1.2 sekä tie/slur-assetit.
 
 
-BASE 0.17.4 · Recent 50
+BASE 0.17.5 · Artikulaatiot
 - Aloitusikkunan UUSI NUOTTI / AVAA PROJEKTI -yläpainikkeet poistettu.
 - ALOITA on suoraan uuden nuotin käynnistys.
 - Aloitusikkunan alaosassa Avaa projekti -pudotuslista.
@@ -42,3 +42,13 @@ BASE 0.17.4 · Recent 50
 - 51. eri projekti pudottaa vanhimman pois automaattisesti.
 - Tiedostosta avattu projekti lisätään automaattisesti Recent-listaan.
 - FI/EN-kielituki säilyy.
+
+
+BASE 0.17.5 · ARTIKULAATIOT
+- Kelluvaan valintapalkkiin lisätty Accent (>), Staccato (•), Marcato (^) ja Tenuto (—).
+- Artikulaatioita voi lisätä tai poistaa yhdeltä tai usealta valitulta nuotilta.
+- Jos valinnassa on taukoja, artikulaatio kohdistuu valinnan nuotteihin; tauot ohitetaan.
+- Aktiivinen artikulaatio näkyy sinisenä painikkeena, kun se on kaikilla valituilla nuoteilla.
+- MusicXML: accent, staccato, strong-accent (marcato) ja tenuto välitetään OSMD 2.1.2:lle.
+- Tahdin yli jakautuvan sidotun nuotin artikulaatio annetaan vain ensimmäiselle renderöidylle osalle.
+- Undo/Redo käsittelee artikulaatiomuutoksen yhtenä askeleena.
