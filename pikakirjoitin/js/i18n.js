@@ -112,8 +112,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · 0.17.6.12 Barline Edit Lock",
-      subtitle: "0.17.6.12 · Barline edit lock · Beaming icons · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · 0.17.6.14 Last System Fill",
+      subtitle: "0.17.6.14 · Last-system true fill · Barline edit lock · Beaming icons · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",

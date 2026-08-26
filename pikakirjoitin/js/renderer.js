@@ -191,7 +191,7 @@
         ? source.systemBreaks.slice()
         : [],
       lastSystemMaxScalingFactor:
-        Math.max(1, Math.min(6, factor)),
+        Math.max(1, Math.min(24, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
       instrumentCreditDistance: Math.max(2, Math.min(14, instrumentCreditDistance)),

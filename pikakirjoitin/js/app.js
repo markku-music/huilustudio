@@ -218,7 +218,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.12",
+      version: "0.17.6.14",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -1091,6 +1091,125 @@
     });
   }
 
+  function getLastSystemFillGeometry() {
+    if (!window.PikakirjoitinRenderer) return null;
+
+    const measures = window.PikakirjoitinRenderer
+      .getMeasureLayout()
+      .filter(Boolean);
+
+    if (!measures.length) return null;
+
+    const lastMeasure = measures[measures.length - 1];
+    const sameLine = measures.filter(function (measure) {
+      return Math.abs(
+        Number(measure.systemTop) - Number(lastMeasure.systemTop)
+      ) < 4;
+    });
+
+    if (!sameLine.length) return null;
+
+    const paper = document.getElementById("a4Paper");
+    const container = document.getElementById("osmd-container");
+    if (!paper || !container) return null;
+
+    const paperRect = paper.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const offsetX = containerRect.left - paperRect.left;
+
+    const lineStart = offsetX + Math.min.apply(
+      null,
+      sameLine.map(function (measure) { return Number(measure.startX); })
+    );
+
+    const lineEnd = offsetX + Math.max.apply(
+      null,
+      sameLine.map(function (measure) { return Number(measure.endX); })
+    );
+
+    if (!Number.isFinite(lineStart) || !Number.isFinite(lineEnd)) {
+      return null;
+    }
+
+    return {
+      lineStart: lineStart,
+      lineEnd: lineEnd,
+      targetEnd: Math.max(lineStart + 80, paperRect.width - 18)
+    };
+  }
+
+  async function maximizeLastSystemToRightMargin() {
+    const ScoreModel = window.PikakirjoitinScoreModel;
+    const Renderer = window.PikakirjoitinRenderer;
+    if (!ScoreModel || !Renderer) return;
+
+    const previousFactor = ScoreModel
+      .getLastSystemMaxScalingFactor(score);
+    const undoSnapshot = historySnapshot("Viimeisen rivin leveys");
+
+    const MAX_AUTO_FACTOR = 24;
+    const TARGET_TOLERANCE_PX = 2.5;
+    const MAX_CORRECTIONS = 6;
+
+    let factor = Number(previousFactor) || 1.4;
+    let changed = false;
+
+    try {
+      for (let pass = 0; pass < MAX_CORRECTIONS; pass += 1) {
+        const geometry = getLastSystemFillGeometry();
+        if (!geometry) break;
+
+        const gap = geometry.targetEnd - geometry.lineEnd;
+        if (Math.abs(gap) <= TARGET_TOLERANCE_PX) break;
+
+        const currentWidth = Math.max(80, geometry.lineEnd - geometry.lineStart);
+        const targetWidth = Math.max(80, geometry.targetEnd - geometry.lineStart);
+
+        let nextFactor = factor * (targetWidth / currentWidth);
+        nextFactor = Math.max(1, Math.min(MAX_AUTO_FACTOR, nextFactor));
+
+        // Jos OSMD:n vaste on hyvin loiva, pakotetaan pieni etenemä ettei
+        // korjaussilmukka jämähdä lähes samaan arvoon.
+        if (gap > TARGET_TOLERANCE_PX && nextFactor <= factor + 0.002) {
+          nextFactor = Math.min(MAX_AUTO_FACTOR, factor * 1.03);
+        }
+
+        if (Math.abs(nextFactor - factor) < 0.0005) break;
+
+        ScoreModel.setLastSystemMaxScalingFactor(score, nextFactor);
+        factor = ScoreModel.getLastSystemMaxScalingFactor(score);
+        changed = Math.abs(Number(factor) - Number(previousFactor)) > 0.001;
+
+        await Renderer.rerenderLayout(score.layout, "layout");
+      }
+
+      if (changed) {
+        commitHistory(undoSnapshot);
+      }
+
+      refreshSelectionFromRenderedScore();
+      if (layoutEditor) layoutEditor.refresh();
+
+      updateStatus(
+        "Viimeinen rivi venytetty oikeaan marginaaliin.",
+        "ok"
+      );
+    } catch (error) {
+      console.error(error);
+      ScoreModel.setLastSystemMaxScalingFactor(score, previousFactor);
+      try {
+        await Renderer.rerenderLayout(score.layout, "layout");
+      } catch (restoreError) {
+        console.error(restoreError);
+      }
+      updateStatus(
+        "Virhe: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+      throw error;
+    }
+  }
+
   function setupSystemLayoutEditor() {
     layoutEditor =
       new window.PikakirjoitinSystemLayoutEditor
@@ -1170,6 +1289,10 @@
           getLastSystemFactor: function () {
             return window.PikakirjoitinScoreModel
               .getLastSystemMaxScalingFactor(score);
+          },
+
+          onLastSystemMaximize: function () {
+            return maximizeLastSystemToRightMargin();
           },
 
           onLastSystemFactorCommit: function (factor) {

@@ -1,4 +1,4 @@
-VERSION 0.17.6.12 — barline edit selection lock
+VERSION 0.17.6.14 — viimeisen rivin todellinen maksimivenytys
 
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
@@ -145,3 +145,10 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Nopea klikkaus / napautus viimeisen rivin ↔-kahvaan venyttää rivin heti maksimiin.
 - Paina + vedä säilyttää aiemman portaattoman venytyksen.
 - Pieni alle 6 px osoitinliike tulkitaan edelleen napautukseksi.
+
+
+0.17.6.14 – Viimeisen rivin todellinen maksimivenytys
+- Kertaklikkaus mittaa viimeisen rivin todellisen oikean reunan renderöinnin jälkeen.
+- Tarvittaessa skaalaus korjataan useammalla renderöinti-mittauskierroksella, kunnes oikea marginaali saavutetaan.
+- Vanha lastSystemMaxScalingFactor-katto 6 ei enää estä hyvin lyhyen viimeisen rivin täyttämistä; automaattitoiminnon turvaraja on 24.
+- Paina + vedä säilyttää portaattoman säädön.

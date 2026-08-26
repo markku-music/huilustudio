@@ -868,7 +868,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.12</software>
+      <software>Pikakirjoitin 3 0.17.6.14</software>
     </encoding>
   </identification>
   <defaults>
