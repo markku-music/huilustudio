@@ -99,3 +99,14 @@ BASE 0.17.6.6 – soitinnimen korkeuden oletus 14
 - Arvo tallentuu score.layout.instrumentCreditDistance-kenttään, joten se säilyy projektissa ja Recent-kopiossa.
 - Säätö kuuluu Asettelu-paneelin Undo/Redo-historiaan ja Palauta oletukset palauttaa arvon 14:ään.
 - Vanhat projektit ilman kenttää saavat oletusarvon 14.
+
+
+BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
+- Pitkä painallus säilyy 500 ms:ssa ja sen liikeraja 14 px:ssa.
+- Swipe-perusraja säilyy 12 %:ssa, minimi 24 px ja maksimi 48 px.
+- Perusrajan korkeus lasketaan nyt koko varsinaisesta kosketinalueesta yläkahva pois lukien, joten 34 px eleohjerivi ei muuta elettä aiempaa herkemmäksi.
+- Suunta ei lukitu enää 45 asteen rajalla yhden pikselin erosta, vaan vaaka- tai pystysuunnan pitää hallita vähintään suhteella 1.25.
+- Diagonaalisella turvavyöhykkeellä ele odottaa seuraavaa liikettä eikä arvaa aika-arvoa liian aikaisin.
+- Pystyeleiden (1/2 ja 1/8) raja on normaali perusraja.
+- Vaakaeleiden (1/16 ja 1/32) raja on 1.15 × perusraja, joten vaakaswipe vaatii hieman tarkoituksellisemman liikkeen.
+- Suorat pyyhkäisyt pysyvät nopeina, mutta vinot eleet eivät vaihda yhtä herkästi väärään aika-arvoon.

@@ -9,6 +9,8 @@
 
   const LONG_PRESS_MS = 500;
   const LONG_PRESS_MOVE = 14;
+  const SWIPE_DIRECTION_DOMINANCE = 1.25;
+  const HORIZONTAL_SWIPE_MULTIPLIER = 1.15;
 
   const WHITE_NAMES = {
     0: "C",
@@ -160,7 +162,14 @@
 
       key.classList.add("active");
 
-      const threshold = clamp(this.viewport.clientHeight * 0.12, 24, 48);
+      // REF1 1.1.76:n tuntumaa vastaava perusraja lasketaan koko
+      // varsinaisesta kosketinalueesta (yläkahva pois), jotta eleohjerivin
+      // korkeus ei tee swipe-eleestä vahingossa herkempää.
+      const panel = this.viewport.closest(".keyboard-panel");
+      const thresholdHeight = panel && this.rail
+        ? Math.max(this.viewport.clientHeight, panel.clientHeight - this.rail.clientHeight)
+        : this.viewport.clientHeight;
+      const threshold = clamp(thresholdHeight * 0.12, 24, 48);
 
       this.active = {
         pointerId: event.pointerId,
@@ -171,6 +180,7 @@
         startX: event.clientX,
         startY: event.clientY,
         threshold: threshold,
+        horizontalThreshold: threshold * HORIZONTAL_SWIPE_MULTIPLIER,
         duration: "quarter",
         locked: false,
         soundOn: playSound,
@@ -212,14 +222,26 @@
         this.clearLongPress();
       }
 
-      const horizontal = Math.abs(dx) > Math.abs(dy);
-      const primaryDistance = horizontal ? Math.abs(dx) : Math.abs(dy);
-      if (primaryDistance < active.threshold) return;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      // Nelisuuntaisessa eleessä ei enää arvata suuntaa 45 asteen rajalla.
+      // Suunnan pitää olla selvästi hallitseva. Diagonaalialueella odotetaan
+      // sormen seuraavaa liikettä, jolloin yhden pikselin ero ei voi vaihtaa
+      // aika-arvoa kokonaan toiseksi.
+      const horizontal = absX >= absY * SWIPE_DIRECTION_DOMINANCE;
+      const vertical = absY >= absX * SWIPE_DIRECTION_DOMINANCE;
+      if (!horizontal && !vertical) return;
+
+      const threshold = horizontal ? active.horizontalThreshold : active.threshold;
+      const primaryDistance = horizontal ? absX : absY;
+      if (primaryDistance < threshold) return;
 
       active.locked = true;
 
       if (horizontal) {
-        // Pikakirjoitin 2 Core: oikealle 1/16, vasemmalle 1/32.
+        // Vaakasuuntainen 1/16 / 1/32 vaatii 15 % pidemmän liikkeen, jotta
+        // pieni tahaton sivuttaisliike ei voita pystysuuntaista aika-arvoelettä.
         active.duration = dx > 0 ? "sixteenth" : "thirty-second";
         active.key.classList.add(dx > 0 ? "gesture-right" : "gesture-left");
       } else {
