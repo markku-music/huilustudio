@@ -1,4 +1,4 @@
-VERSION 0.17.6.15 — rivinvaihtotilan nuottivalintalukko
+VERSION 0.17.6.16 — rivinvaihtotilan nuottivalintalukko
 
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
@@ -154,7 +154,7 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Paina + vedä säilyttää portaattoman säädön.
 
 
-0.17.6.15 – Rivinvaihtotilan nuottivalintalukko
+0.17.6.16 – Rivinvaihtotilan nuottivalintalukko
 - Kun rivinvaihtotyökalu on aktiivinen ja rivinvaihtomerkit näkyvät, nuottien napautus ja aluevalinta ovat pois käytöstä.
 - Mahdollinen nuottivalinta ja kelluva nuottipalkki suljetaan heti rivinvaihtotilaan siirryttäessä.
 - Tahtiviiva- ja rivinvaihtotilat käyttävät samaa yhtenäistä valintalukkoa, joten tilasta toiseen vaihto ei hetkellisesti aktivoi nuottivalintaa.

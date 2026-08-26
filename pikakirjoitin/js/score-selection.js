@@ -295,6 +295,14 @@ class ScoreRangeSelection {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     if (this.#gesture) return;
 
+    // getBoundingClientRect()-arvot muuttuvat aina, kun sivua tai score-viewportia
+    // scrollataan. Refresh() tallentaa geometrian renderöintihetkellä, joten ennen
+    // jokaista uutta valintaelettä synkronoidaan tapahtumien ja viivastojen
+    // ruutukoordinaatit nykyiseen viewportiin. Näin hit-test ei tarvitse mitään
+    // erillistä scrollTop/pageY-korjausta ja toimii samalla tavalla body- ja
+    // sisäisen viewport-scrollauksen jälkeen.
+    this.#syncGeometry();
+
     const band = this.#bandAt(ev.clientX, ev.clientY);
     const hitEvent = this.#eventAt(ev.clientX, ev.clientY);
     const previous = this.#snapshotSelection();
@@ -414,6 +422,29 @@ class ScoreRangeSelection {
     if (g.state === 'pending') this.#restoreSelection(g.previous);
     this.#viewport.classList.remove('pk-selection-gesture-locked');
     this.#gesture = null;
+  }
+
+  #syncGeometry() {
+    // Viivastojen geometriakin elää viewport-koordinaateissa, joten se lasketaan
+    // uudelleen nykyisestä SVG:stä. Tapahtumien looginen sourceId/segmentIndex
+    // säilyy; vain niiden ruudulla oleva geometria päivitetään.
+    this.#bands = detectStaffBands(this.#container);
+
+    for (const event of this.#events) {
+      const element = event.element;
+      if (!element?.isConnected) continue;
+
+      const rect = element.getBoundingClientRect();
+      const group = element.closest?.('.vf-note');
+      const hitRect = group?.getBoundingClientRect?.() || rect;
+      if (rect.width <= 0 && rect.height <= 0) continue;
+
+      event.rect = rect;
+      event.hitRect = hitRect;
+      event.x = rectCenterX(rect);
+      event.y = rectCenterY(rect);
+      event.band = this.#nearestBand(event.x, event.y);
+    }
   }
 
   #bandAt(x,y) {
