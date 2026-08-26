@@ -7,8 +7,8 @@
   const STRINGS = {
     fi: {
       appName: "Pikakirjoitin 3",
-      documentTitle: "Pikakirjoitin 3 · 0.17.6.8 Palkinkatko",
-      subtitle: "0.17.6.8 · Palkinkatko · Swipe-turvavyöhyke · Soitinnimen korkeus 14 · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "Pikakirjoitin 3 · 0.17.6.9 Palkitus",
+      subtitle: "0.17.6.9 · Palkitus · Swipe-turvavyöhyke · Soitinnimen korkeus 14 · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -80,7 +80,7 @@
       deleteSelection: "Poista valinta",
       removeSlur: "Poista slur",
       beamBreak: "Katkaise palkki",
-      beamJoin: "Yhdistä palkki takaisin",
+      beamJoin: "Yhdistä valitut palkiksi",
       accent: "Aksentti",
       staccato: "Staccato",
       marcato: "Marcato",
@@ -112,8 +112,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · 0.17.6.8 Beam break",
-      subtitle: "0.17.6.8 · Beam break · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · 0.17.6.9 Beaming",
+      subtitle: "0.17.6.9 · Beaming · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
@@ -185,7 +185,7 @@
       deleteSelection: "Delete selection",
       removeSlur: "Remove slur",
       beamBreak: "Break beam",
-      beamJoin: "Join beam again",
+      beamJoin: "Beam selected eighth notes together",
       accent: "Accent",
       staccato: "Staccato",
       marcato: "Marcato",
@@ -238,6 +238,10 @@
     "Palkki katkaistu.": "Beam broken.",
     "Palkki yhdistetty takaisin.": "Beam joined again.",
     "Palkinkatko vaatii kaksi vierekkäistä lyhyttä nuottia saman palkkiryhmän sisältä.": "Beam break requires two adjacent short notes within the same beam group.",
+    "Valitun nuotin edellä ei ole katkaistavaa palkkia.": "There is no beam to break before the selected note.",
+    "Yhdistäminen vaatii vähintään kaksi peräkkäistä 1/8-nuottia samassa tahdissa.": "Beaming requires at least two consecutive eighth notes in the same measure.",
+    "Palkki katkaistu ennen valittua nuottia.": "Beam broken before the selected note.",
+    "Valitut 1/8-nuotit yhdistetty samaan palkkiin.": "Selected eighth notes beamed together.",
     "Slur vaatii vähintään kaksi valittua nuottia.": "A slur requires at least two selected notes.",
     "Slur voidaan lisätä vain pelkille nuoteille.": "A slur can be added only to notes.",
     "Aiemmat valinta-alueen slurit korvattu uudella slurilla.": "Previous slurs inside the selection were replaced with a new slur.",
@@ -265,7 +269,9 @@
     "Viimeisen rivin leveys": "last system width",
     "Enharmoninen": "enharmonic spelling",
     "Tauoksi muuttaminen": "convert to rests",
-    "Poisto": "delete"
+    "Poisto": "delete",
+    "Palkinkatko": "beam break",
+    "Palkitus": "beaming"
   };
 
   function detectInitialLanguage() {

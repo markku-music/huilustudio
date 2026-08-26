@@ -499,6 +499,20 @@
           })
         : []
     );
+
+    const manualGroupBySourceId = new Map();
+    if (score && Array.isArray(score.beamGroups)) {
+      score.beamGroups.forEach(function (group, groupIndex) {
+        const noteIds = group && Array.isArray(group.noteIds) ? group.noteIds : [];
+        noteIds.forEach(function (id, index) {
+          manualGroupBySourceId.set(String(id), {
+            groupIndex:groupIndex,
+            index:index
+          });
+        });
+      });
+    }
+
     const unit = beamUnit(beats, beatType);
 
     measures.forEach(function (measure) {
@@ -527,17 +541,44 @@
           entry.sourceId &&
           previous.sourceId !== entry.sourceId
         );
-        const manualBreak = Boolean(
-          sourceChanged &&
-          manualBreaks.has(String(previous.sourceId) + "->" + String(entry.sourceId))
-        );
+
+        let manualBreak = false;
+        let sameManualGroup = false;
+        let manualGroupBoundary = false;
+
+        if (sourceChanged) {
+          const previousId = String(previous.sourceId);
+          const currentId = String(entry.sourceId);
+          manualBreak = manualBreaks.has(previousId + "->" + currentId);
+
+          const previousManual = manualGroupBySourceId.get(previousId);
+          const currentManual = manualGroupBySourceId.get(currentId);
+
+          sameManualGroup = Boolean(
+            previousManual && currentManual &&
+            previousManual.groupIndex === currentManual.groupIndex &&
+            currentManual.index === previousManual.index + 1
+          );
+
+          // Käsin yhdistetty palkkiryhmä on täsmällinen: sen alku- ja loppurajalla
+          // automaattipalkitus ei saa liimata ulkopuolista nuottia ryhmään.
+          manualGroupBoundary = Boolean(
+            (previousManual || currentManual) && !sameManualGroup
+          );
+        }
+
         const startsNewUnit = Boolean(
           group.length &&
           unit > 0 &&
           Math.abs(offset % unit) < 1e-7
         );
 
-        if (manualBreak || startsNewUnit || !isBeamableRenderEntry(entry)) {
+        if (
+          manualBreak ||
+          manualGroupBoundary ||
+          (!sameManualGroup && startsNewUnit) ||
+          !isBeamableRenderEntry(entry)
+        ) {
           flushGroup();
         }
 
@@ -554,6 +595,7 @@
 
     return measures;
   }
+
 
   function annotateMultipleRests(measures) {
     let index = 0;
@@ -758,7 +800,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.8</software>
+      <software>Pikakirjoitin 3 0.17.6.9</software>
     </encoding>
   </identification>
   <defaults>

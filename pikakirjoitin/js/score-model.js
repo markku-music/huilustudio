@@ -251,11 +251,20 @@
               : null;
           }).filter(Boolean)
         : [],
+      beamGroups: Array.isArray(config.beamGroups)
+        ? config.beamGroups.map(function (group) {
+            const noteIds = group && Array.isArray(group.noteIds)
+              ? group.noteIds
+              : Array.isArray(group) ? group : [];
+            return { noteIds:noteIds.map(String) };
+          })
+        : [],
       layout: normalizeLayout(config.layout)
     };
 
     cleanupTies(score);
     cleanupSlurs(score);
+    cleanupBeamGroups(score);
     cleanupBeamBreaks(score);
     return score;
   }
@@ -413,6 +422,15 @@
     return Number.isFinite(base) && base <= DURATION_UNITS.eighth;
   }
 
+  function isPlainEighth(entry) {
+    return Boolean(
+      entry &&
+      entry.kind === "note" &&
+      entry.duration === "eighth" &&
+      normalizeDots(entry.dots) === 0
+    );
+  }
+
   function beamUnitForScore(score) {
     const beats = Number(score && score.time && score.time[0]) || 4;
     const beatType = Number(score && score.time && score.time[1]) || 4;
@@ -425,50 +443,110 @@
     return 32 * (4 / beatType);
   }
 
-  function orderedPairForSelection(score, ids) {
+  function orderedEntriesForSelection(score, ids) {
     if (!score || !Array.isArray(score.notes)) return null;
     const selected = new Set(Array.isArray(ids) ? ids : [ids]);
-    if (selected.size !== 2) return null;
+    if (!selected.size) return null;
 
     const entries = [];
     score.notes.forEach(function (entry, index) {
-      if (entry && selected.has(entry.id)) entries.push({ entry: entry, index: index });
+      if (entry && selected.has(entry.id)) entries.push({ entry:entry, index:index });
     });
 
-    if (entries.length !== 2 || entries[1].index !== entries[0].index + 1) return null;
+    if (entries.length !== selected.size) return null;
+    for (let i = 1; i < entries.length; i += 1) {
+      if (entries[i].index !== entries[i - 1].index + 1) return null;
+    }
     return entries;
   }
 
-  function beamBreakPair(score, ids) {
-    const pair = orderedPairForSelection(score, ids);
-    if (!pair) return null;
+  function beamBoundaryPair(score, firstId, secondId) {
+    if (!score || !Array.isArray(score.notes)) return null;
+    const firstIndex = score.notes.findIndex(function (entry) {
+      return entry && entry.id === firstId;
+    });
+    if (firstIndex < 0 || firstIndex + 1 >= score.notes.length) return null;
 
-    const first = pair[0].entry;
-    const second = pair[1].entry;
+    const first = score.notes[firstIndex];
+    const second = score.notes[firstIndex + 1];
+    if (!second || second.id !== secondId) return null;
     if (!isBeamableEntry(first) || !isBeamableEntry(second)) return null;
 
-    const position = positionBeforeIndex(score, pair[0].index);
+    const position = positionBeforeIndex(score, firstIndex);
     const firstUnits = durationUnits(first);
+    const secondUnits = durationUnits(second);
     const available = position.capacity - position.offset;
 
-    // Palkkia ei muokata tahtiviivan yli eikä sellaisen lähdenuotin kohdalla,
-    // joka joudutaan jakamaan tahtirajan yli renderöinnissä.
+    // Molempien lähdenuottien on oltava samalla tahdilla ilman tahtirajan yli pilkkoutumista.
     if (!(firstUnits < available)) return null;
-
-    const secondOffset = position.offset + firstUnits;
-    const beamUnit = beamUnitForScore(score);
-    if (!Number.isFinite(beamUnit) || beamUnit <= 0) return null;
-
-    const firstGroup = Math.floor((position.offset + 1e-7) / beamUnit);
-    const secondGroup = Math.floor((secondOffset + 1e-7) / beamUnit);
-    if (firstGroup !== secondGroup) return null;
+    if (position.offset + firstUnits + secondUnits > position.capacity + 1e-7) return null;
 
     return {
-      startId: first.id,
-      endId: second.id,
-      startIndex: pair[0].index,
-      endIndex: pair[1].index
+      first:first,
+      second:second,
+      startId:first.id,
+      endId:second.id,
+      startIndex:firstIndex,
+      endIndex:firstIndex + 1,
+      offset:position.offset,
+      secondOffset:position.offset + firstUnits
     };
+  }
+
+  function beamBoundaryBeforeNote(score, noteId) {
+    if (!score || !Array.isArray(score.notes)) return null;
+    const index = score.notes.findIndex(function (entry) {
+      return entry && entry.id === noteId;
+    });
+    if (index <= 0) return null;
+    const previous = score.notes[index - 1];
+    const current = score.notes[index];
+    if (!previous || !current) return null;
+    return beamBoundaryPair(score, previous.id, current.id);
+  }
+
+  function cleanupBeamGroups(score) {
+    if (!score) return [];
+    if (!Array.isArray(score.beamGroups)) score.beamGroups = [];
+
+    const seenIds = new Set();
+    const cleaned = [];
+
+    score.beamGroups.forEach(function (item) {
+      const noteIds = item && Array.isArray(item.noteIds)
+        ? item.noteIds.map(String)
+        : Array.isArray(item)
+          ? item.map(String)
+          : [];
+      if (noteIds.length < 2) return;
+      if (noteIds.some(function (id) { return seenIds.has(id); })) return;
+
+      const entries = orderedEntriesForSelection(score, noteIds);
+      if (!entries || entries.length !== noteIds.length) return;
+      if (!entries.every(function (item) { return isPlainEighth(item.entry); })) return;
+
+      const position = positionBeforeIndex(score, entries[0].index);
+      const total = entries.length * DURATION_UNITS.eighth;
+      if (position.offset + total > position.capacity + 1e-7) return;
+
+      const orderedIds = entries.map(function (item) { return item.entry.id; });
+      orderedIds.forEach(function (id) { seenIds.add(id); });
+      cleaned.push({ noteIds:orderedIds });
+    });
+
+    score.beamGroups = cleaned;
+    return cleaned;
+  }
+
+  function manualBeamGroupIndex(score) {
+    cleanupBeamGroups(score);
+    const map = new Map();
+    score.beamGroups.forEach(function (group, groupIndex) {
+      group.noteIds.forEach(function (id, index) {
+        map.set(id, { groupIndex:groupIndex, index:index });
+      });
+    });
+    return map;
   }
 
   function cleanupBeamBreaks(score) {
@@ -488,42 +566,110 @@
       if (!boundary) return false;
       const key = boundary.startId + "->" + boundary.endId;
       if (seen.has(key)) return false;
-      const pair = beamBreakPair(score, [boundary.startId, boundary.endId]);
-      if (!pair || pair.startId !== boundary.startId || pair.endId !== boundary.endId) return false;
+      const pair = beamBoundaryPair(score, boundary.startId, boundary.endId);
+      if (!pair) return false;
       seen.add(key);
       return true;
     });
     return score.beamBreaks;
   }
 
-  function canToggleBeamBreak(score, ids) {
-    return Boolean(beamBreakPair(score, ids));
-  }
-
-  function hasBeamBreakForSelection(score, ids) {
-    const pair = beamBreakPair(score, ids);
-    if (!pair) return false;
+  function hasBeamBreakBoundary(score, firstId, secondId) {
+    cleanupBeamGroups(score);
     cleanupBeamBreaks(score);
     return score.beamBreaks.some(function (boundary) {
-      return boundary.startId === pair.startId && boundary.endId === pair.endId;
+      return boundary.startId === firstId && boundary.endId === secondId;
     });
   }
 
-  function toggleBeamBreakForSelection(score, ids) {
-    const pair = beamBreakPair(score, ids);
-    if (!pair) return { changed:false, active:false, reason:"invalid_pair" };
+  function automaticBeamConnection(score, pair) {
+    if (!pair) return false;
+    const unit = beamUnitForScore(score);
+    if (!Number.isFinite(unit) || unit <= 0) return false;
+    const firstGroup = Math.floor((pair.offset + 1e-7) / unit);
+    const secondGroup = Math.floor((pair.secondOffset + 1e-7) / unit);
+    return firstGroup === secondGroup;
+  }
 
-    cleanupBeamBreaks(score);
-    const index = score.beamBreaks.findIndex(function (boundary) {
-      return boundary.startId === pair.startId && boundary.endId === pair.endId;
-    });
-    if (index >= 0) {
-      score.beamBreaks.splice(index, 1);
-      return { changed:true, active:false, startId:pair.startId, endId:pair.endId };
+  function effectiveBeamConnection(score, pair) {
+    if (!pair) return false;
+    if (hasBeamBreakBoundary(score, pair.startId, pair.endId)) return false;
+
+    const manual = manualBeamGroupIndex(score);
+    const left = manual.get(pair.startId);
+    const right = manual.get(pair.endId);
+
+    if (left || right) {
+      return Boolean(
+        left && right &&
+        left.groupIndex === right.groupIndex &&
+        right.index === left.index + 1
+      );
     }
 
+    return automaticBeamConnection(score, pair);
+  }
+
+  function canBreakBeamBefore(score, noteId) {
+    const pair = beamBoundaryBeforeNote(score, noteId);
+    return Boolean(pair && effectiveBeamConnection(score, pair));
+  }
+
+  function breakBeamBefore(score, noteId) {
+    const pair = beamBoundaryBeforeNote(score, noteId);
+    if (!pair || !effectiveBeamConnection(score, pair)) {
+      return { changed:false, reason:"not_connected" };
+    }
+
+    cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
     score.beamBreaks.push({ startId:pair.startId, endId:pair.endId });
-    return { changed:true, active:true, startId:pair.startId, endId:pair.endId };
+    cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
+    return { changed:true, startId:pair.startId, endId:pair.endId };
+  }
+
+  function canJoinEighthSelection(score, ids) {
+    const entries = orderedEntriesForSelection(score, ids);
+    if (!entries || entries.length < 2) return false;
+    if (!entries.every(function (item) { return isPlainEighth(item.entry); })) return false;
+
+    const position = positionBeforeIndex(score, entries[0].index);
+    const total = entries.length * DURATION_UNITS.eighth;
+    return position.offset + total <= position.capacity + 1e-7;
+  }
+
+  function joinEighthSelection(score, ids) {
+    if (!canJoinEighthSelection(score, ids)) {
+      return { changed:false, reason:"invalid_selection" };
+    }
+
+    const entries = orderedEntriesForSelection(score, ids);
+    const noteIds = entries.map(function (item) { return item.entry.id; });
+    const selected = new Set(noteIds);
+
+    cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
+
+    // Valittu ryhmä on täsmällinen: vanhat päällekkäiset käsin tehdyt ryhmät poistetaan.
+    score.beamGroups = score.beamGroups.filter(function (group) {
+      return !group.noteIds.some(function (id) { return selected.has(id); });
+    });
+
+    // Valinnan sisäiset palkinkatkot poistetaan, jotta koko valinta voidaan yhdistää.
+    const internalBoundaries = new Set();
+    for (let i = 1; i < noteIds.length; i += 1) {
+      internalBoundaries.add(noteIds[i - 1] + "->" + noteIds[i]);
+    }
+    score.beamBreaks = score.beamBreaks.filter(function (boundary) {
+      return !internalBoundaries.has(boundary.startId + "->" + boundary.endId);
+    });
+
+    score.beamGroups.push({ noteIds:noteIds });
+    cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
+
+    return { changed:true, noteIds:noteIds.slice() };
   }
 
 
@@ -566,6 +712,7 @@
         entry.duration === "whole" &&
         normalizeDots(entry.dots) === 0;
     }
+    cleanupBeamGroups(score);
     cleanupBeamBreaks(score);
     return true;
   }
@@ -577,6 +724,7 @@
     if (entry.kind === "rest" && entry.dots > 0) {
       entry.measureRest = false;
     }
+    cleanupBeamGroups(score);
     cleanupBeamBreaks(score);
     return true;
   }
@@ -602,6 +750,7 @@
 
     cleanupTies(score);
     cleanupSlurs(score);
+    cleanupBeamGroups(score);
     cleanupBeamBreaks(score);
     return true;
   }
@@ -619,7 +768,8 @@
     if (changed) {
       cleanupTies(score);
       cleanupSlurs(score);
-      cleanupBeamBreaks(score);
+      cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
     }
     return changed;
   }
@@ -891,7 +1041,8 @@
       if (runStart === runEnd) {
         cleanupTies(score);
         cleanupSlurs(score);
-        cleanupBeamBreaks(score);
+        cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
         return { changed:true, ids:[entry.id], merged:false };
       }
 
@@ -912,7 +1063,8 @@
 
       cleanupTies(score);
       cleanupSlurs(score);
-      cleanupBeamBreaks(score);
+      cleanupBeamGroups(score);
+    cleanupBeamBreaks(score);
 
       return {
         changed:true,
@@ -954,6 +1106,7 @@
 
     cleanupTies(score);
     cleanupSlurs(score);
+    cleanupBeamGroups(score);
     cleanupBeamBreaks(score);
     return { changed:true, ids:newIds };
   }
@@ -1277,10 +1430,12 @@
     addTie: addTie,
     removeTie: removeTie,
     hasTie: hasTie,
+    cleanupBeamGroups: cleanupBeamGroups,
     cleanupBeamBreaks: cleanupBeamBreaks,
-    canToggleBeamBreak: canToggleBeamBreak,
-    hasBeamBreakForSelection: hasBeamBreakForSelection,
-    toggleBeamBreakForSelection: toggleBeamBreakForSelection,
+    canBreakBeamBefore: canBreakBeamBefore,
+    breakBeamBefore: breakBeamBefore,
+    canJoinEighthSelection: canJoinEighthSelection,
+    joinEighthSelection: joinEighthSelection,
     cleanupSlurs: cleanupSlurs,
     nextNoteId: nextNoteId,
     previousNoteId: previousNoteId,

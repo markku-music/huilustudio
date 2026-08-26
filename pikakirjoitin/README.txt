@@ -117,3 +117,10 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Kelluvan editorin palkitusnappi katkaisee palkin niiden välistä.
 - Sama valinta ja painallus yhdistää palkin takaisin.
 - Palkitus kirjoitetaan MusicXML:n <beam>-elementteihin; OSMD:n autoBeam on pois käytöstä, jotta ruutu ja XML ovat samaa palkitusta.
+
+
+0.17.6.9 Palkitus
+- Yhden palkitetun nuotin valinta näyttää palkinkatkaisun: katko tehdään valitun nuotin ja edellisen nuotin väliin.
+- Vähintään kahden peräkkäisen tavallisen 1/8-nuotin valinta näyttää palkitusnapin: valitut nuotit pakotetaan yhdeksi palkkiryhmäksi.
+- Käsin yhdistetty palkkiryhmä voi ylittää automaattisen iskurajan, mutta ei tahtiviivaa.
+- Käsin tehty palkinkatko voi halkaista myös käsin yhdistetyn palkkiryhmän.

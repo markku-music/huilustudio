@@ -74,6 +74,7 @@
       this.root = root;
       this.slurButton = root.querySelector('[data-action="slur"]');
       this.beamButton = root.querySelector('[data-action="beam"]');
+      this.beamMode = "";
       this.slurFlyout = root.querySelector(".pk-slur-flyout");
       this.currentSlurChoices = [];
       this.singleSelection = false;
@@ -158,8 +159,7 @@
       }
       const beam = this.root.querySelector('[data-action="beam"]');
       if (beam) {
-        const active = beam.classList.contains("active");
-        const label = I18N.t(active ? "beamJoin" : "beamBreak");
+        const label = I18N.t(this.beamMode === "join" ? "beamJoin" : "beamBreak");
         beam.setAttribute("aria-label", label);
         beam.setAttribute("title", label);
       }
@@ -258,11 +258,13 @@
         this.closeSlurFlyout();
       }
 
-      this.beamButton.hidden = !config.canBeam;
-      this.beamButton.disabled = !config.canBeam;
-      this.beamButton.classList.toggle("active", Boolean(config.beamBreakActive));
-      this.beamButton.setAttribute("aria-pressed", config.beamBreakActive ? "true" : "false");
-      const beamLabel = I18N.t(config.beamBreakActive ? "beamJoin" : "beamBreak");
+      this.beamMode = config.beamMode === "join" ? "join" : config.beamMode === "break" ? "break" : "";
+      const canBeam = Boolean(this.beamMode);
+      this.beamButton.hidden = !canBeam;
+      this.beamButton.disabled = !canBeam;
+      this.beamButton.classList.remove("active");
+      this.beamButton.setAttribute("aria-pressed", "false");
+      const beamLabel = I18N.t(this.beamMode === "join" ? "beamJoin" : "beamBreak");
       this.beamButton.setAttribute("aria-label", beamLabel);
       this.beamButton.setAttribute("title", beamLabel);
 

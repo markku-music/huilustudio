@@ -108,6 +108,7 @@
     score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
     window.PikakirjoitinScoreModel.cleanupTies(score);
     window.PikakirjoitinScoreModel.cleanupSlurs(score);
+    window.PikakirjoitinScoreModel.cleanupBeamGroups(score);
     window.PikakirjoitinScoreModel.cleanupBeamBreaks(score);
   }
 
@@ -215,7 +216,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.8",
+      version: "0.17.6.9",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -1238,13 +1239,17 @@
         const ids = selectedIds();
         if (!ids.length) return;
 
-        const undoSnapshot = historySnapshot("Palkinkatko");
-        const result = window.PikakirjoitinScoreModel
-          .toggleBeamBreakForSelection(score, ids);
+        const single = ids.length === 1;
+        const undoSnapshot = historySnapshot(single ? "Palkinkatko" : "Palkitus");
+        const result = single
+          ? window.PikakirjoitinScoreModel.breakBeamBefore(score, ids[0])
+          : window.PikakirjoitinScoreModel.joinEighthSelection(score, ids);
 
         if (!result.changed) {
           updateStatus(
-            "Palkinkatko vaatii kaksi vierekkäistä lyhyttä nuottia saman palkkiryhmän sisältä.",
+            single
+              ? "Valitun nuotin edellä ei ole katkaistavaa palkkia."
+              : "Yhdistäminen vaatii vähintään kaksi peräkkäistä 1/8-nuottia samassa tahdissa.",
             "error"
           );
           return;
@@ -1252,9 +1257,10 @@
 
         commitHistory(undoSnapshot);
         renderScore().then(function () {
-          selection.retainIds(ids);
+          if (single) selection.retainSingle(ids[0]);
+          else selection.retainIds(ids);
           updateStatus(
-            result.active ? "Palkki katkaistu." : "Palkki yhdistetty takaisin.",
+            single ? "Palkki katkaistu ennen valittua nuottia." : "Valitut 1/8-nuotit yhdistetty samaan palkkiin.",
             "ok"
           );
         }).catch(function (error) {
@@ -1397,8 +1403,12 @@
           state.count === 1
             ? singleSlurChoices.length > 0
             : window.PikakirjoitinScoreModel.hasSlurForSelection(score, ids),
-        canBeam: window.PikakirjoitinScoreModel.canToggleBeamBreak(score, ids),
-        beamBreakActive: window.PikakirjoitinScoreModel.hasBeamBreakForSelection(score, ids),
+        beamMode:
+          state.count === 1 && window.PikakirjoitinScoreModel.canBreakBeamBefore(score, ids[0])
+            ? "break"
+            : state.count >= 2 && window.PikakirjoitinScoreModel.canJoinEighthSelection(score, ids)
+              ? "join"
+              : "",
         canArticulate: window.PikakirjoitinScoreModel.canArticulateSelection(score, ids),
         articulations: {
           accent: window.PikakirjoitinScoreModel.hasArticulationForSelection(score, ids, "accent"),
