@@ -297,6 +297,8 @@
         <div id="osmd-container"></div>
         <div class="system-layout-overlay" id="systemLayoutOverlay"
              aria-hidden="true" hidden></div>
+        <div class="barline-editor-overlay" id="barlineEditorOverlay"
+             aria-hidden="true" hidden></div>
       </div>
       <p id="status" class="status" aria-live="polite">Valitse sävel.</p>
     </section>
@@ -334,6 +336,14 @@
               aria-pressed="false"
               title="Tie / sidekaari">
         <img class="thumb-tie-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+
+
+      <button class="thumb-modifier thumb-barline-toggle" id="barlineEditButton"
+              type="button" data-modifier="barlines"
+              aria-label="Tahtiviivojen muokkaus" aria-pressed="false"
+              title="Tahtiviivojen muokkaus">
+        <span class="thumb-barline-symbol" aria-hidden="true">|</span>
       </button>
 
       <button class="thumb-modifier thumb-layout-toggle" id="lineEditButton"
@@ -409,6 +419,7 @@
   <script src="js/score-selection.js"></script>
   <script src="js/selection-editor.js"></script>
   <script src="js/system-layout-editor.js"></script>
+  <script src="js/barline-editor.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

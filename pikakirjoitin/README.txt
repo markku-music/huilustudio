@@ -126,3 +126,11 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Vähintään kahden peräkkäisen tavallisen 1/8-nuotin valinta näyttää palkitusnapin: valitut nuotit pakotetaan yhdeksi palkkiryhmäksi.
 - Käsin yhdistetty palkkiryhmä voi ylittää automaattisen iskurajan, mutta ei tahtiviivaa.
 - Käsin tehty palkinkatko voi halkaista myös käsin yhdistetyn palkkiryhmän.
+
+
+0.17.6.11 Tahtiviivat peukalopakissa
+- Tahtiviivatyökalu peukalopakkiin.
+- Työkalu näyttää valintamerkin jokaisen näkyvän tahtiviivan yläpuolelle.
+- Valittavat tyypit: |, ||, |], |:, :|, :||:.
+- Viimeinen tahti saa oletuksena loppuviivan.
+- Tahtiviivavalinnat tallentuvat projektin Score Modeliin ja MusicXML:ään.

@@ -724,6 +724,66 @@
     ).length;
   }
 
+
+  function customBarlineType(score, boundaryIndex) {
+    const list = score && Array.isArray(score.barlines) ? score.barlines : [];
+    const index = Math.round(Number(boundaryIndex));
+    const item = list.find(function (barline) {
+      return barline && Math.round(Number(barline.boundaryIndex)) === index;
+    });
+    return item ? String(item.type || "normal") : null;
+  }
+
+  function barlineXML(location, style, repeatDirection) {
+    const parts = [
+      '      <barline location="' + location + '">',
+      '        <bar-style>' + style + '</bar-style>'
+    ];
+    if (repeatDirection) {
+      parts.push('        <repeat direction="' + repeatDirection + '"/>');
+    }
+    parts.push('      </barline>');
+    return parts.join("\n");
+  }
+
+  function leftBoundaryXML(score, boundaryIndex, measureCount) {
+    const custom = customBarlineType(score, boundaryIndex);
+    const type = custom || "normal";
+
+    if (type === "repeat-start" || type === "repeat-both") {
+      return barlineXML("left", "heavy-light", "forward");
+    }
+
+    // Ensimmäisen tahdin vasemmassa reunassa sallitaan kaikki tyypit.
+    if (boundaryIndex !== 0 || !custom) return "";
+    if (type === "double") return barlineXML("left", "light-light", "");
+    if (type === "final") return barlineXML("left", "light-heavy", "");
+    if (type === "repeat-end") return barlineXML("left", "light-heavy", "backward");
+    return barlineXML("left", "regular", "");
+  }
+
+  function rightBoundaryXML(score, boundaryIndex, measureCount) {
+    const custom = customBarlineType(score, boundaryIndex);
+    const isLast = measureCount > 0 && boundaryIndex === measureCount;
+    const type = custom || (isLast ? "final" : "normal");
+
+    if (!custom && !isLast) return "";
+    if (type === "normal") return barlineXML("right", "regular", "");
+    if (type === "double") return barlineXML("right", "light-light", "");
+    if (type === "final") return barlineXML("right", "light-heavy", "");
+    if (type === "repeat-end" || type === "repeat-both") {
+      return barlineXML("right", "light-heavy", "backward");
+    }
+
+    // Kertauksen alku kuuluu normaalisti seuraavan tahdin vasempaan reunaan.
+    // Jos se valitaan kappaleen aivan viimeiselle rajalle, piirretään se silti
+    // näkyviin oikealle, jotta valinta ei katoa.
+    if (type === "repeat-start" && isLast) {
+      return barlineXML("right", "heavy-light", "forward");
+    }
+    return "";
+  }
+
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -760,9 +820,14 @@
       )
     );
 
+    const measureCount = measures.length;
+
     const measuresXML = measures.map(function (measure, index) {
       const implicit = measure.implicit ? ' implicit="yes"' : "";
       const parts = ["    <measure number=\"" + (index + 1) + "\"" + implicit + ">"];
+
+      const leftBarline = leftBoundaryXML(score, index, measureCount);
+      if (leftBarline) parts.push(leftBarline);
 
       if (index > 0 && systemBreaks.has(index)) {
         parts.push('      <print new-system="yes"/>');
@@ -788,6 +853,9 @@
         parts.push(hiddenRestXML(measure.capacity || capacity));
       }
 
+      const rightBarline = rightBoundaryXML(score, index + 1, measureCount);
+      if (rightBarline) parts.push(rightBarline);
+
       parts.push("    </measure>");
       return parts.join("\n");
     }).join("\n");
@@ -800,7 +868,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.9</software>
+      <software>Pikakirjoitin 3 0.17.6.11</software>
     </encoding>
   </identification>
   <defaults>

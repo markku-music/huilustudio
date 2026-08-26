@@ -1047,6 +1047,7 @@ button {
   }
 
   .system-layout-overlay,
+  .barline-editor-overlay,
   .pk-selection-cursor,
   .pk-selection-editor {
     display: none !important;
@@ -1422,4 +1423,107 @@ button {
 @media print {
   .layout-settings-panel,
   .header-start-over { display: none !important; }
+}
+
+
+/* ==========================================================
+ * 0.17.6.11 · Tahtiviivojen muokkaus peukalopakista
+ * ========================================================== */
+.thumb-barline-toggle {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.thumb-barline-symbol {
+  display: block;
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+  transform: translateY(-1px);
+  pointer-events: none;
+}
+
+.barline-editor-overlay {
+  position: absolute;
+  z-index: 52;
+  inset: 0;
+  pointer-events: none;
+}
+
+.barline-editor-overlay[hidden] {
+  display: none;
+}
+
+.barline-marker {
+  position: absolute;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(106, 119, 133, .34);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .84);
+  color: rgba(57, 71, 87, .58);
+  box-shadow: 0 2px 6px rgba(24, 34, 45, .10);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.barline-marker.has-special-barline {
+  border-color: rgba(35, 101, 170, .72);
+  color: #2365aa;
+  background: rgba(239, 247, 255, .92);
+}
+
+.barline-marker:focus-visible,
+.barline-choice:focus-visible {
+  outline: 3px solid #62a7ff;
+  outline-offset: 2px;
+}
+
+.barline-choice-popover {
+  position: absolute;
+  z-index: 5;
+  width: 306px;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid rgba(86, 101, 118, .38);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 8px 24px rgba(18, 30, 44, .20);
+  pointer-events: auto;
+}
+
+.barline-choice {
+  min-width: 0;
+  height: 40px;
+  padding: 0 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #172331;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.barline-choice.active,
+.barline-choice[aria-checked="true"] {
+  border-color: #2365aa;
+  background: #e9f3ff;
+  color: #174d86;
+  box-shadow: inset 0 0 0 1px rgba(35, 101, 170, .12);
 }

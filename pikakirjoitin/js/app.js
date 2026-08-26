@@ -25,12 +25,13 @@
   const audio = new window.PikakirjoitinAudio.AudioEngine();
 
   let rendering = Promise.resolve();
-  let thumbState = { rest: false, dots: 0, slur: false, tie: false, layout: false };
+  let thumbState = { rest: false, dots: 0, slur: false, tie: false, layout: false, barlines: false };
   let keyboard = null;
   let thumbRail = null;
   let selection = null;
   let selectionEditor = null;
   let layoutEditor = null;
+  let barlineEditor = null;
   let keyboardEditId = null;
   let lastSelectionEditorAnchor = null;
   let pendingSelectedSlurStartId = null;
@@ -106,6 +107,7 @@
     });
     Object.assign(score, clonePlain(nextScore));
     score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
+    score.barlines = window.PikakirjoitinScoreModel.normalizeBarlines(score.barlines);
     window.PikakirjoitinScoreModel.cleanupTies(score);
     window.PikakirjoitinScoreModel.cleanupSlurs(score);
     window.PikakirjoitinScoreModel.cleanupBeamGroups(score);
@@ -216,7 +218,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.9",
+      version: "0.17.6.11",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -518,6 +520,7 @@
         .then(function () {
           refreshSelectionFromRenderedScore();
           if (layoutEditor) layoutEditor.refresh();
+          if (barlineEditor && barlineEditor.isActive()) barlineEditor.refresh();
         })
         .catch(function (error) {
           console.error(error);
@@ -631,6 +634,8 @@
   }
 
   function renderScore() {
+    const measureCount = window.PikakirjoitinMusicXML.getMeasureCount(score);
+    window.PikakirjoitinScoreModel.cleanupBarlines(score, measureCount);
     const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
     console.log("Pikakirjoitin 3 Score Model:", score);
     console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
@@ -645,6 +650,7 @@
     }).then(function (osmd) {
       refreshSelectionFromRenderedScore();
       if (layoutEditor) layoutEditor.refresh();
+      if (barlineEditor && barlineEditor.isActive()) barlineEditor.refresh();
       return osmd;
     });
 
@@ -1028,6 +1034,61 @@
         );
       });
     }
+  }
+
+  function setupBarlineEditor() {
+    barlineEditor = new window.PikakirjoitinBarlineEditor.BarlineEditor({
+      overlay: document.getElementById("barlineEditorOverlay"),
+      paper: document.getElementById("a4Paper"),
+      container: document.getElementById("osmd-container"),
+
+      getMeasureLayout: function () {
+        return window.PikakirjoitinRenderer.getMeasureLayout();
+      },
+
+      getMeasureCount: function () {
+        return window.PikakirjoitinMusicXML.getMeasureCount(score);
+      },
+
+      getBarlineType: function (boundaryIndex) {
+        const count = window.PikakirjoitinMusicXML.getMeasureCount(score);
+        return window.PikakirjoitinScoreModel.getBarlineType(
+          score,
+          boundaryIndex,
+          count
+        );
+      },
+
+      onSetBarline: function (boundaryIndex, type) {
+        const count = window.PikakirjoitinMusicXML.getMeasureCount(score);
+        const undoSnapshot = historySnapshot("Tahtiviiva");
+        const changed = window.PikakirjoitinScoreModel.setBarlineType(
+          score,
+          boundaryIndex,
+          type,
+          count
+        );
+        if (!changed) return;
+        commitHistory(undoSnapshot);
+        renderScore().then(function () {
+          const labels = {
+            normal:"Tavallinen tahtiviiva",
+            double:"Kaksoisviiva",
+            final:"Loppuviiva",
+            "repeat-start":"Kertauksen alku",
+            "repeat-end":"Kertauksen loppu",
+            "repeat-both":"Kertaus molempiin suuntiin"
+          };
+          updateStatus((labels[type] || "Tahtiviiva") + " asetettu.", "ok");
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus(
+            "Virhe: " + (error && error.message ? error.message : String(error)),
+            "error"
+          );
+        });
+      }
+    });
   }
 
   function setupSystemLayoutEditor() {
@@ -1425,6 +1486,7 @@
     setupLayoutSettings();
     setupSelection();
     setupSystemLayoutEditor();
+    setupBarlineEditor();
 
     // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
     // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
@@ -1442,6 +1504,7 @@
         ) {
           refreshSelectionFromRenderedScore();
           if (layoutEditor) layoutEditor.refresh();
+          if (barlineEditor && barlineEditor.isActive()) barlineEditor.refresh();
         }
       });
     }
@@ -1451,21 +1514,29 @@
       boundsElement: document.querySelector(".score-card"),
       onChange: function (state) {
         const wasLayout = Boolean(thumbState.layout);
+        const wasBarlines = Boolean(thumbState.barlines);
         const wasTie = Boolean(thumbState.tie);
         thumbState = state;
 
-        if (
-          layoutEditor &&
-          Boolean(state.layout) !== wasLayout
-        ) {
-          layoutEditor.setActive(
-            Boolean(state.layout)
-          );
+        let editModeChanged = false;
 
+        if (layoutEditor && Boolean(state.layout) !== wasLayout) {
+          layoutEditor.setActive(Boolean(state.layout));
+          editModeChanged = true;
+        }
+
+        if (barlineEditor && Boolean(state.barlines) !== wasBarlines) {
+          barlineEditor.setActive(Boolean(state.barlines));
+          editModeChanged = true;
+        }
+
+        if (editModeChanged) {
           updateStatus(
-            state.layout
-              ? "Rivien muokkaus päällä."
-              : "Rivien muokkaus pois.",
+            state.barlines
+              ? "Tahtiviivojen muokkaus päällä · valitse tahtiviivan yläpuolelta +."
+              : state.layout
+                ? "Rivien muokkaus päällä."
+                : "Muokkaustila pois.",
             "ok"
           );
           return;

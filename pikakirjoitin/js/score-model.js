@@ -105,6 +105,79 @@
     };
   }
 
+
+  const BARLINE_TYPES = [
+    "normal",
+    "double",
+    "final",
+    "repeat-start",
+    "repeat-end",
+    "repeat-both"
+  ];
+
+  function normalizeBarlines(value) {
+    const source = Array.isArray(value) ? value : [];
+    const byBoundary = new Map();
+
+    source.forEach(function (item) {
+      if (!item) return;
+      const boundaryIndex = Math.round(Number(
+        item.boundaryIndex !== undefined ? item.boundaryIndex : item.index
+      ));
+      const type = String(item.type || "normal");
+      if (!Number.isInteger(boundaryIndex) || boundaryIndex < 0) return;
+      if (BARLINE_TYPES.indexOf(type) < 0) return;
+      byBoundary.set(boundaryIndex, { boundaryIndex:boundaryIndex, type:type });
+    });
+
+    return Array.from(byBoundary.values()).sort(function (a, b) {
+      return a.boundaryIndex - b.boundaryIndex;
+    });
+  }
+
+  function customBarlineAt(score, boundaryIndex) {
+    if (!score) return null;
+    score.barlines = normalizeBarlines(score.barlines);
+    const index = Math.round(Number(boundaryIndex));
+    return score.barlines.find(function (item) {
+      return item.boundaryIndex === index;
+    }) || null;
+  }
+
+  function getBarlineType(score, boundaryIndex, measureCount) {
+    const index = Math.round(Number(boundaryIndex));
+    const count = Math.max(0, Math.round(Number(measureCount) || 0));
+    if (!Number.isInteger(index) || index < 0 || index > count) return "normal";
+    const custom = customBarlineAt(score, index);
+    if (custom) return custom.type;
+    return count > 0 && index === count ? "final" : "normal";
+  }
+
+  function setBarlineType(score, boundaryIndex, type, measureCount) {
+    if (!score) return false;
+    const index = Math.round(Number(boundaryIndex));
+    const count = Math.max(0, Math.round(Number(measureCount) || 0));
+    const nextType = String(type || "normal");
+    if (!Number.isInteger(index) || index < 0 || index > count) return false;
+    if (BARLINE_TYPES.indexOf(nextType) < 0) return false;
+
+    score.barlines = normalizeBarlines(score.barlines).filter(function (item) {
+      return item.boundaryIndex !== index;
+    });
+    score.barlines.push({ boundaryIndex:index, type:nextType });
+    score.barlines = normalizeBarlines(score.barlines);
+    return true;
+  }
+
+  function cleanupBarlines(score, measureCount) {
+    if (!score) return [];
+    const count = Math.max(0, Math.round(Number(measureCount) || 0));
+    score.barlines = normalizeBarlines(score.barlines).filter(function (item) {
+      return item.boundaryIndex >= 0 && item.boundaryIndex <= count;
+    });
+    return score.barlines;
+  }
+
   function normalizeLayout(layout) {
     const source = layout || {};
 
@@ -259,6 +332,7 @@
             return { noteIds:noteIds.map(String) };
           })
         : [],
+      barlines: normalizeBarlines(config.barlines),
       layout: normalizeLayout(config.layout)
     };
 
@@ -1453,6 +1527,10 @@
     toggleSystemBreak: toggleSystemBreak,
     cleanupSystemBreaks: cleanupSystemBreaks,
     getLastSystemMaxScalingFactor: getLastSystemMaxScalingFactor,
-    setLastSystemMaxScalingFactor: setLastSystemMaxScalingFactor
+    setLastSystemMaxScalingFactor: setLastSystemMaxScalingFactor,
+    normalizeBarlines: normalizeBarlines,
+    getBarlineType: getBarlineType,
+    setBarlineType: setBarlineType,
+    cleanupBarlines: cleanupBarlines
   };
 })();
