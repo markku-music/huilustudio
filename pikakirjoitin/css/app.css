@@ -83,11 +83,11 @@ button {
  * - landscapessa vmin = näytön korkeus
  *
  * Kun sama iPad käännetään, lyhyempi sivu pysyy käytännössä samana.
- * Siksi A4-paperin leveys ja OSMD:n nuottikoko eivät enää veny
+ * Siksi A4-paperin leveys ja VexFlow’n nuottikoko eivät enää veny
  * landscape-näkymän koko leveydelle.
  *
  * Leveys vastaa samalla vanhan portrait-näkymän score-card-leveyttä:
- * 100vw - 24px. Paperin sisäinen 18px marginaali säilyttää OSMD:n
+ * 100vw - 24px. Paperin sisäinen 18px marginaali säilyttää VexFlow’n
  * portrait-sisäleveyden käytännössä samana kuin ennen muutosta.
  */
 .a4-paper {
@@ -103,12 +103,12 @@ button {
   box-shadow: 0 8px 26px rgba(0, 0, 0, .14);
 }
 
-#osmd-container {
+#vexflow-container {
   width: 100%;
   min-height: 190px;
 }
 
-#osmd-container svg {
+#vexflow-container svg {
   display: block;
   max-width: 100%;
 }
@@ -626,13 +626,13 @@ button {
 
 /* 0.13: Pikakirjoitin 2:sta tuotu nuottien/taukojen valinta.
    Nuotista väritetään vain nuotin pää, tauosta itse taukosymboli. */
-#osmd-container .pk-selected-notehead,
-#osmd-container .pk-selected-notehead * {
+#vexflow-container .pk-selected-notehead,
+#vexflow-container .pk-selected-notehead * {
   fill: var(--pk-selection-color, #2365aa) !important;
 }
 
-#osmd-container .pk-selected-rest,
-#osmd-container .pk-selected-rest * {
+#vexflow-container .pk-selected-rest,
+#vexflow-container .pk-selected-rest * {
   fill: var(--pk-selection-color, #2365aa) !important;
   stroke: var(--pk-selection-color, #2365aa) !important;
 }
@@ -820,13 +820,13 @@ button {
  * ========================================================== */
 
 /*
- * OSMD on sisältö A4-paperin sisällä, ei toinen paperi.
+ * VexFlow on sisältö A4-paperin sisällä, ei toinen paperi.
  * Tämä poistaa vain sen mahdolliset omat HTML/SVG-taustat,
  * reunat, outlinet ja varjot.
  */
-#osmd-container,
-#osmd-container > div,
-#osmd-container svg {
+#vexflow-container,
+#vexflow-container > div,
+#vexflow-container svg {
   background: transparent !important;
   border: 0 !important;
   outline: 0 !important;
@@ -862,15 +862,15 @@ button {
  * iPad / landscape -valinnan korjaus.
  *
  * Pikakirjoitin 2:n toimivassa portrait-nuottikoko-lukitussa
- * versiossa OSMD-nuottikuva ei itse vastaanota pointer-eventtejä.
+ * versiossa VexFlow-nuottikuva ei itse vastaanota pointer-eventtejä.
  * Valinta tapahtuu score-cardin päällä ja osumat lasketaan
  * nuottien DOM-geometriasta.
  *
- * Tämä estää zoomatun OSMD/SVG-kerroksen kaappaamasta kosketusta
+ * Tämä estää zoomatun VexFlow/SVG-kerroksen kaappaamasta kosketusta
  * landscape-tilassa.
  * ========================================================== */
-#osmd-container,
-#osmd-container * {
+#vexflow-container,
+#vexflow-container * {
   pointer-events: none !important;
   -webkit-user-select: none;
   user-select: none;
@@ -1031,10 +1031,10 @@ button {
     display: none !important;
   }
 
-  #osmd-container .pk-selected-notehead,
-  #osmd-container .pk-selected-notehead *,
-  #osmd-container .pk-selected-rest,
-  #osmd-container .pk-selected-rest * {
+  #vexflow-container .pk-selected-notehead,
+  #vexflow-container .pk-selected-notehead *,
+  #vexflow-container .pk-selected-rest,
+  #vexflow-container .pk-selected-rest * {
     fill: #000 !important;
     stroke: #000 !important;
   }
@@ -1401,4 +1401,16 @@ button {
 @media print {
   .layout-settings-panel,
   .header-start-over { display: none !important; }
+}
+
+
+/* VexFlow-koehaara */
+#vexflow-container::before {
+  content: "VexFlow 5";
+  display: block;
+  width: max-content;
+  margin: 0 0 2px auto;
+  font: 650 9px/1 system-ui, sans-serif;
+  letter-spacing: .04em;
+  opacity: .24;
 }

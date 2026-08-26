@@ -302,7 +302,7 @@
        * BASE 0.17.6.1:
        * PDF ei lisää enää omia kiinteitä marginaaleja. SVG sijoitetaan
        * A4-canvakselle samassa suhteessa kuin se sijaitsee ruudun oikean
-       * .a4-paper-elementin sisällä. Näin paperin CSS-sisennys sekä OSMD:n
+       * .a4-paper-elementin sisällä. Näin paperin CSS-sisennys sekä VexFlow’n
        * käyttäjän säätämät PageTop/Right/Bottom/LeftMargin-arvot säilyvät
        * samassa geometriassa myös PDF:ssä.
        */
@@ -423,7 +423,7 @@
 
     try {
       await rendering;
-      const container = document.getElementById("osmd-container");
+      const container = document.getElementById("vexflow-container");
       if (!container) throw new Error("Nuottikuvaa ei löytynyt.");
 
       let svgs = Array.from(container.children).filter(function (element) {
@@ -629,21 +629,19 @@
   }
 
   function renderScore() {
-    const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
     console.log("Pikakirjoitin 3 Score Model:", score);
-    console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
 
     rendering = rendering.then(function () {
-      return window.PikakirjoitinRenderer.renderMusicXML(
-        musicXML,
-        "osmd-container",
+      return window.PikakirjoitinRenderer.renderScore(
+        score,
+        "vexflow-container",
         "score",
         score.layout
       );
-    }).then(function (osmd) {
+    }).then(function (rendererResult) {
       refreshSelectionFromRenderedScore();
       if (layoutEditor) layoutEditor.refresh();
-      return osmd;
+      return rendererResult;
     });
 
     return rendering;
@@ -1037,7 +1035,7 @@
           paper:
             document.getElementById("a4Paper"),
           container:
-            document.getElementById("osmd-container"),
+            document.getElementById("vexflow-container"),
 
           getMeasureLayout: function () {
             return window.PikakirjoitinRenderer
@@ -1163,7 +1161,7 @@
   function setupSelection() {
     selection = new window.PikakirjoitinSelection.ScoreRangeSelection({
       viewport: document.querySelector(".score-card"),
-      container: document.getElementById("osmd-container")
+      container: document.getElementById("vexflow-container")
     });
 
     selectionEditor = new window.PikakirjoitinSelectionEditor.SelectionEditor({
@@ -1380,7 +1378,7 @@
     setupSelection();
     setupSystemLayoutEditor();
 
-    // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
+    // Orientaation vaihto luo VexFlow-SVG:n uudelleen rendererissä.
     // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
     if (
       window.PikakirjoitinRenderer &&

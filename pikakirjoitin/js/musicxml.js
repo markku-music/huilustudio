@@ -596,6 +596,25 @@
     ).length;
   }
 
+  function getRenderMeasures(score) {
+    if (!score || !Array.isArray(score.notes)) return [];
+    const beats = Number(score.time && score.time[0]) || 4;
+    const beatType = Number(score.time && score.time[1]) || 4;
+    const capacity = measureCapacity(beats, beatType);
+    const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
+    const slurMarkers = buildSlurMarkers(score);
+    const manualTieMarkers = buildManualTieMarkers(score);
+    return annotateMultipleRests(
+      splitIntoMeasures(
+        score.notes,
+        capacity,
+        pickupCapacity,
+        slurMarkers,
+        manualTieMarkers
+      )
+    );
+  }
+
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -704,6 +723,7 @@ ${measuresXML}
   window.PikakirjoitinMusicXML = {
     createMusicXML: createMusicXML,
     getLogicalSegments: getLogicalSegments,
-    getMeasureCount: getMeasureCount
+    getMeasureCount: getMeasureCount,
+    getRenderMeasures: getRenderMeasures
   };
 })();

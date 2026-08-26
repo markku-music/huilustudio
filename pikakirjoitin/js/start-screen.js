@@ -173,7 +173,7 @@ class StartScreen {
     .project-start-action[aria-pressed="true"],.notation-choice[aria-pressed="true"],.pickup-choice[aria-pressed="true"],.key-wheel-slot[aria-pressed="true"],.meter-wheel-slot[aria-pressed="true"]{border-color:${t.accent};background:${t.accentSoft};color:${t.accentText};box-shadow:inset 0 0 0 1px ${t.accent}55;}
     .start-button,.keyboard-scroll-thumb{background:${t.panel};color:${t.panelText};}
     .key-trigger-icon,.meter-trigger-icon,.key-trigger-icon::before,.key-trigger-icon::after{border-color:${t.panel};}.key-trigger-icon::after,.meter-trigger-icon::before{background:${t.panel};}
-    #osmd-container>div[id^="osmdCanvasPage"]{background:${t.pageBg};box-shadow:0 4px 16px ${t.pageShadow};}
+    #vexflow-container svg{background:${t.pageBg};box-shadow:0 4px 16px ${t.pageShadow};}
     .project-card{box-shadow:0 24px 70px ${t.pageShadow};}
     .field select:focus-visible,.field input:focus-visible,.key-trigger:focus-visible,.meter-trigger:focus-visible,.project-start-action:focus-visible,.start-button:focus-visible{outline:3px solid ${t.accent}66;outline-offset:2px;}`; }
   #restorePreferences(){ try{ const theme=localStorage.getItem(THEME_KEY); if(theme&&THEME_DEFINITIONS[theme])this.#els.themeSelect.value=theme; const clef=localStorage.getItem(CLEF_KEY); if(clef&&Object.hasOwn(CLEF_KEYBOARD_STARTS,clef))this.#els.clefSelect.value=clef; }catch{} }

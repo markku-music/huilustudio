@@ -8,7 +8,7 @@
     fi: {
       appName: "Pikakirjoitin 3",
       documentTitle: "Pikakirjoitin 3 · BASE 0.17.6.4",
-      subtitle: "BASE 0.17.6.7 · Swipe-turvavyöhyke · Soitinnimen korkeus 14 · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
+      subtitle: "BASE 0.17.6.7 · Swipe-turvavyöhyke · Soitinnimen korkeus 14 · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · VexFlow 5 · KOE",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -111,7 +111,7 @@
     en: {
       appName: "SwipeScore",
       documentTitle: "SwipeScore · BASE 0.17.6.4",
-      subtitle: "BASE 0.17.6.7 · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      subtitle: "BASE 0.17.6.7 · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · VexFlow 5 · KOE",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
