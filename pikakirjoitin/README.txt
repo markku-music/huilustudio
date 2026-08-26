@@ -1,4 +1,4 @@
-VERSION 0.17.6.14 — viimeisen rivin todellinen maksimivenytys
+VERSION 0.17.6.15 — rivinvaihtotilan nuottivalintalukko
 
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
@@ -152,3 +152,10 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Tarvittaessa skaalaus korjataan useammalla renderöinti-mittauskierroksella, kunnes oikea marginaali saavutetaan.
 - Vanha lastSystemMaxScalingFactor-katto 6 ei enää estä hyvin lyhyen viimeisen rivin täyttämistä; automaattitoiminnon turvaraja on 24.
 - Paina + vedä säilyttää portaattoman säädön.
+
+
+0.17.6.15 – Rivinvaihtotilan nuottivalintalukko
+- Kun rivinvaihtotyökalu on aktiivinen ja rivinvaihtomerkit näkyvät, nuottien napautus ja aluevalinta ovat pois käytöstä.
+- Mahdollinen nuottivalinta ja kelluva nuottipalkki suljetaan heti rivinvaihtotilaan siirryttäessä.
+- Tahtiviiva- ja rivinvaihtotilat käyttävät samaa yhtenäistä valintalukkoa, joten tilasta toiseen vaihto ei hetkellisesti aktivoi nuottivalintaa.
+- Kun molemmat editointitilat ovat pois päältä, nuottivalinta palautuu normaaliksi.

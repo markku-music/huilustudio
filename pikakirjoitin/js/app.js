@@ -1642,31 +1642,34 @@
         thumbState = state;
 
         let editModeChanged = false;
+        const layoutActive = Boolean(state.layout);
+        const barlinesActive = Boolean(state.barlines);
 
-        if (layoutEditor && Boolean(state.layout) !== wasLayout) {
-          layoutEditor.setActive(Boolean(state.layout));
+        if (layoutEditor && layoutActive !== wasLayout) {
+          layoutEditor.setActive(layoutActive);
           editModeChanged = true;
         }
 
-        if (barlineEditor && Boolean(state.barlines) !== wasBarlines) {
-          const barlinesActive = Boolean(state.barlines);
-
-          // Tahtiviivojen muokkaus on oma tila: plussien ollessa näkyvissä
-          // nuottien napautus, pyyhkäisyvalinta ja kelluva valintapalkki
-          // eivät saa aktivoitua tahtiviivojen alta.
-          if (selection && typeof selection.setEnabled === "function") {
-            selection.setEnabled(!barlinesActive);
-          } else if (barlinesActive && selection) {
-            selection.clear();
-          }
-
-          if (barlinesActive && selectionEditor) {
-            selectionEditor.update({ visible:false });
-            lastSelectionEditorAnchor = null;
-          }
-
+        if (barlineEditor && barlinesActive !== wasBarlines) {
           barlineEditor.setActive(barlinesActive);
           editModeChanged = true;
+        }
+
+        // Rivinvaihto- ja tahtiviivamuokkaus ovat varsinaisia editointitiloja.
+        // Kun jompikumpi on aktiivinen, nuottien napautus, pyyhkäisyvalinta
+        // ja kelluva nuottipalkki ovat kokonaan pois käytöstä. Yhtenäinen
+        // lukko estää myös sen, että vaihto tahtiviivoista rivinvaihtoon ehtisi
+        // hetkeksi kytkeä nuottivalinnan takaisin päälle.
+        const scoreSelectionEnabled = !(layoutActive || barlinesActive);
+        if (selection && typeof selection.setEnabled === "function") {
+          selection.setEnabled(scoreSelectionEnabled);
+        } else if (!scoreSelectionEnabled && selection) {
+          selection.clear();
+        }
+
+        if (!scoreSelectionEnabled && selectionEditor) {
+          selectionEditor.update({ visible:false });
+          lastSelectionEditorAnchor = null;
         }
 
         if (editModeChanged) {
