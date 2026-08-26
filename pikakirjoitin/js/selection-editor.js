@@ -32,7 +32,7 @@
         <button type="button" data-action="beam"
                 aria-label="${I18N.t("beamBreak")}" title="${I18N.t("beamBreak")}"
                 aria-pressed="false">
-          <img class="pk-beam-icon" src="assets/beam.svg"
+          <img class="pk-beam-icon" src="assets/beam-break.svg"
                alt="" aria-hidden="true">
         </button>
 
@@ -162,6 +162,12 @@
         const label = I18N.t(this.beamMode === "join" ? "beamJoin" : "beamBreak");
         beam.setAttribute("aria-label", label);
         beam.setAttribute("title", label);
+        const beamIcon = beam.querySelector(".pk-beam-icon");
+        if (beamIcon) {
+          beamIcon.src = this.beamMode === "join"
+            ? "assets/beam-join.svg"
+            : "assets/beam-break.svg";
+        }
       }
       ["accent", "staccato", "marcato", "tenuto"].forEach((name) => {
         const button = this.root.querySelector('[data-articulation="' + name + '"]');
@@ -267,6 +273,12 @@
       const beamLabel = I18N.t(this.beamMode === "join" ? "beamJoin" : "beamBreak");
       this.beamButton.setAttribute("aria-label", beamLabel);
       this.beamButton.setAttribute("title", beamLabel);
+      const beamIcon = this.beamButton.querySelector(".pk-beam-icon");
+      if (beamIcon) {
+        beamIcon.src = this.beamMode === "join"
+          ? "assets/beam-join.svg"
+          : "assets/beam-break.svg";
+      }
 
       const articulationState = config.articulations || {};
       this.root.querySelectorAll("button[data-articulation]").forEach((button) => {

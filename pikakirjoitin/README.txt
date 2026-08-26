@@ -1,3 +1,5 @@
+VERSION 0.17.6.10 — distinct beam join / break icons
+
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
 Pohja:

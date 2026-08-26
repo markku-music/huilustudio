@@ -112,8 +112,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · 0.17.6.9 Beaming",
-      subtitle: "0.17.6.9 · Beaming · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · 0.17.6.10 Beaming Icons",
+      subtitle: "0.17.6.10 · Beaming icons · Swipe direction guard · Instrument-name height 14 · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
