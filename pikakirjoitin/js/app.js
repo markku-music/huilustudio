@@ -190,7 +190,8 @@
 
   function fileBaseName() {
     const fallback = I18N.getLanguage() === "en" ? "SwipeScore" : "Pikakirjoitin";
-    const raw = String(score.title || fallback).trim() || fallback;
+    const scoreTitle = score && score.metadata ? score.metadata.title : "";
+    const raw = String(scoreTitle || settings.title || fallback).trim() || fallback;
     return raw
       .replace(/[\/:*?"<>|]+/g, "-")
       .replace(/\s+/g, " ")

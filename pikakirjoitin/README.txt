@@ -52,3 +52,6 @@ BASE 0.17.5 · ARTIKULAATIOT
 - MusicXML: accent, staccato, strong-accent (marcato) ja tenuto välitetään OSMD 2.1.2:lle.
 - Tahdin yli jakautuvan sidotun nuotin artikulaatio annetaan vain ensimmäiselle renderöidylle osalle.
 - Undo/Redo käsittelee artikulaatiomuutoksen yhtenä askeleena.
+
+
+0.17.5.1: PDF-tallennuksen tiedostonimi tulee nyt kappaleen otsikosta (score.metadata.title / settings.title). Otsikko siistitään tiedostonimeksi kuten ennenkin.
