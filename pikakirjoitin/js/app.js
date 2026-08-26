@@ -218,7 +218,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.11",
+      version: "0.17.6.12",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -1526,7 +1526,23 @@
         }
 
         if (barlineEditor && Boolean(state.barlines) !== wasBarlines) {
-          barlineEditor.setActive(Boolean(state.barlines));
+          const barlinesActive = Boolean(state.barlines);
+
+          // Tahtiviivojen muokkaus on oma tila: plussien ollessa näkyvissä
+          // nuottien napautus, pyyhkäisyvalinta ja kelluva valintapalkki
+          // eivät saa aktivoitua tahtiviivojen alta.
+          if (selection && typeof selection.setEnabled === "function") {
+            selection.setEnabled(!barlinesActive);
+          } else if (barlinesActive && selection) {
+            selection.clear();
+          }
+
+          if (barlinesActive && selectionEditor) {
+            selectionEditor.update({ visible:false });
+            lastSelectionEditorAnchor = null;
+          }
+
+          barlineEditor.setActive(barlinesActive);
           editModeChanged = true;
         }
 

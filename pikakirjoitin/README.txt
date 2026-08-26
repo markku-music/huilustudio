@@ -1,4 +1,4 @@
-VERSION 0.17.6.10 — distinct beam join / break icons
+VERSION 0.17.6.12 — barline edit selection lock
 
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
@@ -134,3 +134,9 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Valittavat tyypit: |, ||, |], |:, :|, :||:.
 - Viimeinen tahti saa oletuksena loppuviivan.
 - Tahtiviivavalinnat tallentuvat projektin Score Modeliin ja MusicXML:ään.
+
+
+0.17.6.12 Tahtiviivatilan valintalukko
+- Kun tahtiviivojen + -valinnat ovat näkyvissä, nuottien napautus ja aluevalinta on estetty.
+- Mahdollinen nuottivalinta ja kelluva nuottipalkki suljetaan heti tahtiviivatilan alkaessa.
+- Nuottivalinta palautuu automaattisesti, kun tahtiviivatila suljetaan.

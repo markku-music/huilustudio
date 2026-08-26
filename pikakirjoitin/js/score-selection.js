@@ -151,6 +151,7 @@ class ScoreRangeSelection {
   #cursorTarget = null;
   #listeners = new Set();
   #commitListeners = new Set();
+  #enabled = true;
 
   constructor({ viewport, container }) {
     this.#viewport = viewport;
@@ -169,6 +170,24 @@ class ScoreRangeSelection {
     this.#commitListeners.add(listener);
     return () => this.#commitListeners.delete(listener);
   }
+
+  setEnabled(enabled) {
+    const next = Boolean(enabled);
+    if (next === this.#enabled) return;
+    this.#enabled = next;
+
+    if (!next) {
+      const g = this.#gesture;
+      if (g) {
+        try { this.#viewport.releasePointerCapture(g.pointerId); } catch {}
+      }
+      this.#gesture = null;
+      this.#viewport.classList.remove('pk-selection-gesture-locked');
+      this.clear();
+    }
+  }
+
+  isEnabled() { return this.#enabled; }
 
   refresh({ segments = [] } = {}) {
     // OSMD on juuri renderöinyt uuden SVG:n, joten vanhat elementtiviitteet
@@ -272,6 +291,7 @@ class ScoreRangeSelection {
   }
 
   #pointerDown(ev) {
+    if (!this.#enabled) return;
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     if (this.#gesture) return;
 
