@@ -214,7 +214,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6",
+      version: "0.17.6.1",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -268,14 +268,14 @@
     });
   }
 
-  async function svgToJpegBytes(svg) {
+  async function svgToJpegBytes(svg, paper) {
     const clone = svg.cloneNode(true);
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
     const viewBox = svg.viewBox && svg.viewBox.baseVal;
-    const rect = svg.getBoundingClientRect();
-    const sourceWidth = Math.max(1, Number(viewBox && viewBox.width) || rect.width || 1000);
-    const sourceHeight = Math.max(1, Number(viewBox && viewBox.height) || rect.height || 1400);
+    const svgRect = svg.getBoundingClientRect();
+    const sourceWidth = Math.max(1, Number(viewBox && viewBox.width) || svgRect.width || 1000);
+    const sourceHeight = Math.max(1, Number(viewBox && viewBox.height) || svgRect.height || 1400);
 
     if (!clone.getAttribute("viewBox")) {
       clone.setAttribute("viewBox", "0 0 " + sourceWidth + " " + sourceHeight);
@@ -298,15 +298,41 @@
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, canvas.width, canvas.height);
 
-      const marginX = 62;
-      const marginY = 70;
-      const maxWidth = canvas.width - marginX * 2;
-      const maxHeight = canvas.height - marginY * 2;
-      const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
-      const drawWidth = sourceWidth * scale;
-      const drawHeight = sourceHeight * scale;
-      const x = (canvas.width - drawWidth) / 2;
-      const y = marginY;
+      /*
+       * BASE 0.17.6.1:
+       * PDF ei lisää enää omia kiinteitä marginaaleja. SVG sijoitetaan
+       * A4-canvakselle samassa suhteessa kuin se sijaitsee ruudun oikean
+       * .a4-paper-elementin sisällä. Näin paperin CSS-sisennys sekä OSMD:n
+       * käyttäjän säätämät PageTop/Right/Bottom/LeftMargin-arvot säilyvät
+       * samassa geometriassa myös PDF:ssä.
+       */
+      const paperRect = paper && paper.getBoundingClientRect
+        ? paper.getBoundingClientRect()
+        : null;
+
+      let x = 0;
+      let y = 0;
+      let drawWidth = canvas.width;
+      let drawHeight = sourceHeight * (canvas.width / sourceWidth);
+
+      if (
+        paperRect &&
+        paperRect.width > 1 && paperRect.height > 1 &&
+        svgRect.width > 1 && svgRect.height > 1
+      ) {
+        const scaleX = canvas.width / paperRect.width;
+        const scaleY = canvas.height / paperRect.height;
+        x = (svgRect.left - paperRect.left) * scaleX;
+        y = (svgRect.top - paperRect.top) * scaleY;
+        drawWidth = svgRect.width * scaleX;
+        drawHeight = svgRect.height * scaleY;
+      } else {
+        const scale = Math.min(canvas.width / sourceWidth, canvas.height / sourceHeight);
+        drawWidth = sourceWidth * scale;
+        drawHeight = sourceHeight * scale;
+        x = (canvas.width - drawWidth) / 2;
+        y = 0;
+      }
 
       context.drawImage(image, x, y, drawWidth, drawHeight);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.94);
@@ -411,9 +437,10 @@
       }
       if (!svgs.length) throw new Error("PDF:ään ei löytynyt nuottisivua.");
 
+      const paper = container.closest(".a4-paper");
       const pages = [];
       for (const svg of svgs) {
-        pages.push(await svgToJpegBytes(svg));
+        pages.push(await svgToJpegBytes(svg, paper));
       }
 
       downloadBlob(buildPdfFromJpegs(pages), fileBaseName() + ".pdf");
@@ -495,7 +522,7 @@
     const value = Number(input.value);
     const setting = input.dataset.layoutSetting;
 
-    if (setting === "notationScale") layout.notationScale = Math.max(0.75, Math.min(1.4, value / 100));
+    if (setting === "notationScale") layout.notationScale = Math.max(0.75, Math.min(1.2, value / 100));
     if (setting === "marginTop") layout.pageMargins.top = Math.max(0, Math.min(12, value));
     if (setting === "marginBottom") layout.pageMargins.bottom = Math.max(0, Math.min(12, value));
     if (setting === "marginLeft") layout.pageMargins.left = Math.max(0, Math.min(12, value));

@@ -57,10 +57,17 @@ BASE 0.17.5 · ARTIKULAATIOT
 0.17.5.1: PDF-tallennuksen tiedostonimi tulee nyt kappaleen otsikosta (score.metadata.title / settings.title). Otsikko siistitään tiedostonimeksi kuten ennenkin.
 
 
-BASE 0.17.6
+BASE 0.17.6.1
 - Aloita alusta / refresh siirretty oikeasta pikapalkista yläpalkin vasempaan reunaan.
 - Oikean pikapalkin järjestys: Undo, Redo, Save, PDF, Tulosta, Asettelu.
 - Asettelu avaa kelluvan paneelin, jossa säädetään nuottikokoa sekä ylä-, ala-, vasenta ja oikeaa OSMD-marginaalia reaaliaikaisesti.
-- Nuottikoko 75–140 %, marginaalit 0–12 OSMD-yksikköä, oletus 5.
+- Nuottikoko 75–120 %, marginaalit 0–12 OSMD-yksikköä, oletus 5.
 - Asettelu tallentuu projektiin ja kuuluu Undo/Redo-historiaan.
 - Palauta oletukset palauttaa nuottikoon 100 % ja marginaalit arvoon 5.
+
+
+BASE 0.17.6.1
+- PDF ei lisää enää omia 62/70 px kiinteitä marginaaleja.
+- PDF sijoittaa OSMD:n SVG:n A4-sivulle saman suhteellisen .a4-paper-geometrian mukaan kuin ruudulla.
+- Käyttäjän OSMD PageMargins -säädöt näkyvät näin PDF:ssä samassa suhteessa kuin näytöllä.
+- Nuottikoon maksimi on nyt 120 %.

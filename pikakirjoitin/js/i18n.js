@@ -7,8 +7,8 @@
   const STRINGS = {
     fi: {
       appName: "Pikakirjoitin 3",
-      documentTitle: "Pikakirjoitin 3 · BASE 0.17.6",
-      subtitle: "BASE 0.17.6 · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "Pikakirjoitin 3 · BASE 0.17.6.1",
+      subtitle: "BASE 0.17.6.1 · PDF-asettelu · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -107,8 +107,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · BASE 0.17.6",
-      subtitle: "BASE 0.17.6 · Layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · BASE 0.17.6.1",
+      subtitle: "BASE 0.17.6.1 · PDF layout · Layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",

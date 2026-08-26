@@ -133,7 +133,7 @@
         return a - b;
       }),
       lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor)),
-      notationScale: Math.max(0.75, Math.min(1.4, notationScale)),
+      notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),
