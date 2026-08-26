@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · BASE 0.17.0</title>
+  <title>Pikakirjoitin 3 · BASE 0.17.4</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
     <form class="project-card" id="projectForm">
-      <div class="project-start-actions" role="group" aria-label="Projektin aloitustapa">
-        <button class="project-start-action" id="newProjectStartButton" type="button" aria-pressed="true">UUSI NUOTTI</button>
-        <button class="project-start-action" id="openProjectButton" type="button" aria-pressed="false" disabled aria-disabled="true" title="Projektin avaaminen lisätään myöhemmin Coreen">AVAA PROJEKTI</button>
+      <div class="language-switch project-language-switch" role="group" aria-label="Kieli">
+        <button type="button" data-language="fi" aria-pressed="true">FI</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
       <div class="project-grid">
         <label class="field wide" for="titleInput">
@@ -199,6 +199,20 @@
         </label>
       </div>
       <button class="start-button" id="projectSaveButton" type="submit">ALOITA</button>
+
+      <div class="recent-projects" id="recentProjects">
+        <button class="recent-projects-trigger" id="recentProjectsTrigger" type="button" aria-expanded="false" aria-controls="recentProjectsPanel">
+          <span id="recentProjectsTriggerText">Avaa projekti</span>
+          <span class="recent-projects-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="recent-projects-panel" id="recentProjectsPanel" hidden>
+          <div class="recent-projects-heading" id="recentProjectsHeading">Viimeisimmät</div>
+          <div class="recent-projects-list" id="recentProjectsList"></div>
+          <button class="recent-open-file" id="openProjectFileButton" type="button">Avaa tiedostosta…</button>
+          <input id="projectFileInput" type="file" accept=".json,.pikakirjoitin.json,application/json" hidden>
+        </div>
+      </div>
+
       <div class="start-status" id="startStatus" role="status" aria-live="polite"></div>
     </form>
   </div>
@@ -219,8 +233,12 @@
 
   <main class="app-shell" id="app" aria-hidden="true" inert>
     <header class="test-header">
+      <div class="language-switch app-language-switch" role="group" aria-label="Kieli">
+        <button type="button" data-language="fi" aria-pressed="true">FI</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
       <h1>Pikakirjoitin 3</h1>
-      <p>BASE 0.17.0 · Tie peukalopakissa · OSMD 2.1.2</p>
+      <p>BASE 0.17.3 · Suomi / English · H / B · OSMD 2.1.2</p>
     </header>
 
     <section class="score-card" aria-label="Nuottikuva">
@@ -289,6 +307,33 @@
         </div>
       </div>
 
+      <aside class="keyboard-tools" aria-label="Pikatoiminnot">
+        <button class="keyboard-tool-button" id="startOverButton" type="button"
+                aria-label="Aloita alusta ja päivitä Pikakirjoitin" title="Aloita alusta / refresh">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 11V5l-3 3.1A11 11 0 1 0 27 18"/><path d="M26 5h-6"/></svg>
+        </button>
+        <button class="keyboard-tool-button" id="undoButton" type="button"
+                aria-label="Kumoa" title="Undo" disabled>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M13 8 6.5 14.5 13 21"/><path d="M7.5 14.5h10.2c5.1 0 8.3 2.8 8.3 7.5"/></svg>
+        </button>
+        <button class="keyboard-tool-button" id="redoButton" type="button"
+                aria-label="Tee uudelleen" title="Redo" disabled>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m19 8 6.5 6.5L19 21"/><path d="M24.5 14.5H14.3C9.2 14.5 6 17.3 6 22"/></svg>
+        </button>
+        <button class="keyboard-tool-button" id="saveProjectButton" type="button"
+                aria-label="Tallenna projekti" title="Tallenna">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 5h16l4 4v18H7z"/><path d="M11 5v8h11V5"/><path d="M11 27v-9h12v9"/></svg>
+        </button>
+        <button class="keyboard-tool-button keyboard-tool-pdf" id="savePdfButton" type="button"
+                aria-label="Tallenna PDF" title="PDF">
+          <span aria-hidden="true">PDF</span>
+        </button>
+        <button class="keyboard-tool-button" id="printButton" type="button"
+                aria-label="Tulosta" title="Tulosta">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 12V5h14v7"/><path d="M9 23H6v-9h20v9h-3"/><path d="M9 19h14v8H9z"/><path d="M23 16h.01"/></svg>
+        </button>
+      </aside>
+
       <div class="gesture-guide" aria-label="Aika-arvoeleet">
         <span><strong>←</strong> 1/32</span>
         <span><strong>↓</strong> 1/8</span>
@@ -301,10 +346,12 @@
   </main>
 
   <script src="vendor/opensheetmusicdisplay.min.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/score-model.js"></script>
   <script src="js/musicxml.js"></script>
   <script src="js/renderer.js"></script>
   <script src="js/audio-engine.js"></script>
+  <script src="js/recent-projects.js"></script>
   <script src="js/start-screen.js"></script>
   <script src="js/thumb-rail.js"></script>
   <script src="js/keyboard.js"></script>

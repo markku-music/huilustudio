@@ -135,8 +135,9 @@ button {
   flex: 0 0 clamp(230px, 31dvh, 360px);
   min-height: 0;
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  grid-template-rows: 44px minmax(0, 1fr) auto;
   overflow: hidden;
   margin-top: 0;
   border: 0;
@@ -147,7 +148,8 @@ button {
 }
 
 .keyboard-scroll-rail {
-  flex: 0 0 44px;
+  grid-column: 1 / -1;
+  grid-row: 1;
   height: 44px;
   padding: 7px 12px;
   background: #eef1f5;
@@ -185,7 +187,8 @@ button {
 }
 
 .keyboard-viewport {
-  flex: 1 1 auto;
+  grid-column: 1;
+  grid-row: 2;
   min-height: 0;
   width: 100%;
   height: auto;
@@ -268,7 +271,8 @@ button {
 
 
 .gesture-guide {
-  flex: 0 0 auto;
+  grid-column: 1;
+  grid-row: 3;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 1px;
@@ -291,6 +295,82 @@ button {
 
 .gesture-guide strong {
   font-weight: 800;
+}
+
+
+/* 0.17.2: Pikakirjoitin 2:n Undo/Redo-sijainti laajennettuna kuuteen pikatoimintoon. */
+.keyboard-tools {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  min-height: 0;
+  width: 56px;
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  padding: 5px 6px;
+  border-left: 1px solid #434a53;
+  background: #20242a;
+  touch-action: manipulation;
+}
+
+.keyboard-tool-button {
+  width: 44px;
+  min-width: 44px;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #5e6874;
+  border-radius: 9px;
+  background: #2c3239;
+  color: #f4f7fa;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.keyboard-tool-button svg {
+  width: min(25px, 72%);
+  height: min(25px, 72%);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.keyboard-tool-button:active:not(:disabled) {
+  transform: translateY(1px);
+  background: #3a424c;
+}
+
+.keyboard-tool-button:disabled {
+  opacity: .28;
+}
+
+.keyboard-tool-pdf span {
+  font-size: clamp(8px, 1.25vw, 11px);
+  font-weight: 900;
+  letter-spacing: -.03em;
+  pointer-events: none;
+}
+
+@media (max-height: 620px) {
+  .keyboard-tools {
+    gap: 3px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .keyboard-tool-button {
+    border-radius: 7px;
+  }
+
+  .keyboard-tool-button svg {
+    width: min(21px, 70%);
+    height: min(21px, 70%);
+  }
 }
 
 .key.gesture-down,
@@ -904,3 +984,244 @@ button {
     0 0 0 3px rgba(35, 101, 170, .2),
     0 4px 10px rgba(24, 34, 45, .24);
 }
+
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html, body {
+    width: 210mm !important;
+    height: 297mm !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .a4-paper,
+  .a4-paper * {
+    visibility: visible !important;
+  }
+
+  .a4-paper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 16mm 12mm 12mm !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  .system-layout-overlay,
+  .pk-selection-cursor,
+  .pk-selection-editor {
+    display: none !important;
+  }
+
+  #osmd-container .pk-selected-notehead,
+  #osmd-container .pk-selected-notehead *,
+  #osmd-container .pk-selected-rest,
+  #osmd-container .pk-selected-rest * {
+    fill: #000 !important;
+    stroke: #000 !important;
+  }
+}
+
+/* BASE 0.17.4: FI / EN + Recent 50. */
+.test-header { position: relative; }
+.project-card { position: relative; }
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #b8c3cf;
+  border-radius: 9px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 1px 4px rgba(28,39,53,.08);
+}
+.language-switch button {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #526171;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.language-switch button[aria-pressed="true"] {
+  background: #2365aa;
+  color: #fff;
+}
+.language-switch button:focus-visible {
+  outline: 3px solid #62a7ff66;
+  outline-offset: 2px;
+}
+.project-language-switch {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+}
+.app-language-switch {
+  position: absolute;
+  top: 10px;
+  right: max(18px, env(safe-area-inset-right));
+}
+.test-header h1,
+.test-header p { padding-right: 92px; }
+
+@media (max-width: 520px) {
+  .project-language-switch { top: 8px; right: 8px; }
+}
+
+
+/* BASE 0.17.4: aloitusikkunan 50 viimeisintä projektia. */
+.recent-projects {
+  position: relative;
+  margin-top: 10px;
+}
+.recent-projects-trigger {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #aebbc9;
+  border-radius: 10px;
+  background: #fff;
+  color: #263342;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.recent-projects-trigger[aria-expanded="true"] {
+  border-color: #2365aa;
+  background: #f3f8ff;
+  color: #174d83;
+}
+.recent-projects-caret {
+  font-size: 13px;
+  transition: transform .14s ease;
+}
+.recent-projects-trigger[aria-expanded="true"] .recent-projects-caret {
+  transform: rotate(180deg);
+}
+.recent-projects-panel {
+  margin-top: 7px;
+  overflow: hidden;
+  border: 1px solid #b9c4d1;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(28,39,53,.12);
+}
+.recent-projects-panel[hidden] { display: none; }
+.recent-projects-heading {
+  padding: 9px 12px 7px;
+  border-bottom: 1px solid #e1e6ec;
+  color: #526171;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.recent-projects-list {
+  max-height: min(300px, 38vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.recent-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  border-bottom: 1px solid #edf0f4;
+}
+.recent-project-open,
+.recent-project-delete {
+  border: 0;
+  background: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.recent-project-open {
+  min-width: 0;
+  padding: 9px 10px 8px 12px;
+  text-align: left;
+}
+.recent-project-open:hover,
+.recent-project-open:focus-visible,
+.recent-project-delete:hover,
+.recent-project-delete:focus-visible {
+  background: #f3f8ff;
+}
+.recent-project-title {
+  display: block;
+  overflow: hidden;
+  color: #18202a;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-project-meta {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #6a7684;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-project-delete {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-left: 1px solid #edf0f4;
+  color: #7c8793;
+  font-size: 20px;
+  line-height: 1;
+}
+.recent-project-empty {
+  padding: 18px 12px;
+  color: #7b8794;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+}
+.recent-open-file {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 0;
+  border-top: 1px solid #dfe5eb;
+  background: #f7f9fb;
+  color: #174d83;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.recent-open-file:hover,
+.recent-open-file:focus-visible { background: #eaf3ff; }

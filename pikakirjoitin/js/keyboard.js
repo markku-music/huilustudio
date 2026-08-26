@@ -5,6 +5,7 @@
   const MAX_MIDI = 95;
   const WHITE_COUNT = 35;
   const BLACK_WIDTH = 0.62;
+  const I18N = window.PikakirjoitinI18n;
 
   const LONG_PRESS_MS = 500;
   const LONG_PRESS_MOVE = 14;
@@ -16,7 +17,7 @@
     5: "F",
     7: "G",
     9: "A",
-    11: "H"
+    11: "B"
   };
 
   const PITCH_STEPS = [
@@ -40,7 +41,8 @@
 
   function visibleName(midi) {
     const octave = Math.floor(midi / 12) - 1;
-    const name = WHITE_NAMES[((midi % 12) + 12) % 12];
+    const pitchClass = ((midi % 12) + 12) % 12;
+    const name = I18N.keyboardLetter(pitchClass);
 
     if (octave <= 0) return "SK-" + name;
     if (octave === 1) return "K-" + name;
@@ -57,7 +59,7 @@
   }
 
   function spokenName(midi) {
-    return midiToPitch(midi).replace("B", "H").replace("#", "is");
+    return I18N.spokenPitch(midiToPitch(midi));
   }
 
   class PianoKeyboard {
@@ -82,6 +84,7 @@
       this.buildKeys();
       this.bindNoteGestures();
       this.bindScrollRail();
+      document.addEventListener("pk-languagechange", () => this.updateLanguage());
 
       requestAnimationFrame(() => this.centerOnMiddleC());
     }
@@ -111,6 +114,16 @@
           this.piano.appendChild(key);
         }
       }
+    }
+
+    updateLanguage() {
+      this.piano.querySelectorAll(".key").forEach((key) => {
+        const midi = Number(key.dataset.midi);
+        key.setAttribute("aria-label", spokenName(midi));
+        if (key.classList.contains("white")) {
+          key.textContent = visibleName(midi);
+        }
+      });
     }
 
     bindNoteGestures() {

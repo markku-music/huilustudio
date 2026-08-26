@@ -1,50 +1,44 @@
-Pikakirjoitin 3 · BASE 0.17.0 · Tie peukalopakissa
+Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
 Pohja:
-- BASE 0.16.2 Älytauot yksitellen
+Pikakirjoitin_3_BASE_0.17.2_Oikea_Tyokalupalkki
 
-Uusi Tie / sidekaari:
-- peukalopakissa Slur-napin ja ↵ Rivien muokkaus -napin välissä
-- käytössä täsmälleen käyttäjän lähettämä tie(1).svg
-- kuvake on sama kuin aiemmassa Pikakirjoitin 2:ssa
+Tässä versiossa:
+- FI / EN -kielivalinta aloitusikkunassa.
+- Sama FI / EN -valinta myös pääikkunan yläreunassa, joten kielen voi vaihtaa kesken työskentelyn.
+- Valittu kieli muistetaan localStoragessa.
+- Ensimmäisellä käyttökerralla suomenkielinen selain valitsee suomen, muut englannin.
+- Suomenkielinen nimi: Pikakirjoitin 3.
+- Englanninkielinen nimi: SwipeScore.
+- Tavalliset käyttöliittymätekstit, työkalujen aria-labelit/tooltipit, aloitusikkuna, tempo-ryhmät ja väriteemojen nimet vaihtuvat kielen mukana.
+- Sävellajit vaihtuvat suomalaisen ja englanninkielisen nimeämisen välillä.
+  Esim. FI: H-duuri / B-duuri / h-molli / b-molli.
+        EN: B major / B-flat major / B minor / B-flat minor.
+- Kvinttiympyrän nimet vaihtuvat vastaavasti.
+- Koskettimiston valkoisen B/H-sävelen nimi vaihtuu:
+  FI = H, EN = B.
+- Sisäinen Score Model ja MusicXML käyttävät edelleen samaa sävelkorkeusdataa. Kielenvaihto ei muuta musiikkia.
+- Oikean reunan työkalupalkki (refresh, Undo, Redo, Save, PDF, Print) säilyy.
 
-Käyttö:
-1. kirjoita ensimmäinen nuotti
-2. napauta Tie-nappia kerran
-3. nappi muuttuu siniseksi ja jää odottamaan
-4. kirjoita seuraava tapahtuma
-5. Tie kulutetaan heti ja nappi sammuu automaattisesti
+Tekninen rakenne:
+- uusi js/i18n.js hoitaa käyttöliittymän kielitilan ja käännökset.
+- kielivalinta tallennetaan avaimella pikakirjoitin3.language.
+- DEMO/lisenssivesileimaa ei ole tässä versiossa eikä sitä pidä myöhemmin sijoittaa tavalliseen i18n-kielitiedostoon.
 
-Tie syntyy vain, kun:
-- edellinen tapahtuma on nuotti
-- uusi tapahtuma on nuotti
-- tapahtumat ovat välittömästi peräkkäisiä
-- sävelkorkeus on sama
+Muuttamattomina 0.17.2:sta säilyivät mm.:
+score-model.js, musicxml.js, renderer.js, audio-engine.js, score-selection.js,
+thumb-rail.js, OSMD 2.1.2 sekä tie/slur-assetit.
 
-Jos seuraava tapahtuma on:
-- eri sävel -> Tie ei synny ja nappi sammuu
-- tauko -> Tie ei synny ja nappi sammuu
-- ensimmäinen nuotti ilman edeltäjää -> Tie ei synny ja nappi sammuu
 
-Enharmoninen sama sävel:
-- esim. C#4 ja Db4 tunnistetaan samaksi soivaksi sävelkorkeudeksi
-
-Tietomalli:
-- manuaaliset tiet tallennetaan score.ties-taulukkoon
-- tie on suhde kahden loogisen nuotti-id:n välillä
-- poistaminen tai sävelkorkeuden muuttaminen siivoaa kelvottoman tien
-- tie ei siirry vahingossa toiseen nuottipariin, jos toinen pää poistetaan
-
-MusicXML / OSMD:
-- manuaalinen tie muunnetaan tavallisiksi <tie> ja <tied> -merkinnöiksi
-- OSMD 2.1.2 piirtää sidekaaren
-- olemassa oleva automaattinen tie tahtiviivan yli säilyy
-- manuaalinen tie ja automaattinen tahdinylitystie voivat muodostaa saman
-  yhtenäisen tie-ketjun ilman erillistä SVG-piirtoa
-
-Slur:
-- Slurin nykyinen paina-ja-pidä-logiikka on jätetty ennalleen
-- Slur ja Tie voivat olla samalla nuottiparilla yhtä aikaa MusicXML:n
-  omilla erillisillä notaatioilla
-
-Muu BASE 0.16.2:n toiminta on jätetty ennalleen.
+BASE 0.17.4 · Recent 50
+- Aloitusikkunan UUSI NUOTTI / AVAA PROJEKTI -yläpainikkeet poistettu.
+- ALOITA on suoraan uuden nuotin käynnistys.
+- Aloitusikkunan alaosassa Avaa projekti -pudotuslista.
+- Lista sisältää enintään 50 viimeisintä paikallisesti tallennettua projektia.
+- Jokaisen recent-projektin voi poistaa erikseen ×-painikkeella.
+- Listan lopussa Avaa tiedostosta… vanhojen .pikakirjoitin.json-tiedostojen avaamista varten.
+- Oikean reunan Save tallentaa projektin appin omaan Recent-varastoon (IndexedDB, localStorage fallback), ei enää lataa projektitiedostoa automaattisesti.
+- Saman projektin uudelleentallennus päivittää samaa recent-riviä ja siirtää sen uusimmaksi.
+- 51. eri projekti pudottaa vanhimman pois automaattisesti.
+- Tiedostosta avattu projekti lisätään automaattisesti Recent-listaan.
+- FI/EN-kielituki säilyy.

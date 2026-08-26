@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  const I18N = window.PikakirjoitinI18n;
+
   const app = document.getElementById("app");
   if (app) {
     app.inert = true;
@@ -8,10 +10,10 @@
   }
 
   const score = window.PikakirjoitinScoreModel.createScore({
-    title: "Pikakirjoitin 3",
+    title: I18N.t("appName"),
     composer: "",
     tempoText: "",
-    partName: "Huilu",
+    partName: I18N.t("flute"),
     clef: "G",
     key: 0,
     time: [4, 4],
@@ -34,6 +36,11 @@
   let pendingSelectedSlurStartId = null;
   const noteInputMeta = new Map();
 
+  const UNDO_LIMIT = 100;
+  const undoStack = [];
+  const redoStack = [];
+  let currentProjectId = window.PikakirjoitinRecentProjects.makeId();
+
   let settings = {
     transpose: 0,
     keyboardStartMidi: 60
@@ -52,8 +59,396 @@
 
   function updateStatus(message, className) {
     const status = document.getElementById("status");
-    status.textContent = message;
+    if (!status) return;
+    status.dataset.rawMessage = String(message == null ? "" : message);
+    status.textContent = I18N.translateRuntimeMessage(status.dataset.rawMessage);
     status.className = "status" + (className ? " " + className : "");
+  }
+
+  function clonePlain(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function captureHistoryState() {
+    return {
+      score: clonePlain(score),
+      settings: clonePlain(settings)
+    };
+  }
+
+  function historySnapshot(label) {
+    return {
+      label: label || "muutos",
+      state: captureHistoryState()
+    };
+  }
+
+  function updateHistoryButtons() {
+    const undoButton = document.getElementById("undoButton");
+    const redoButton = document.getElementById("redoButton");
+    if (undoButton) undoButton.disabled = undoStack.length === 0;
+    if (redoButton) redoButton.disabled = redoStack.length === 0;
+  }
+
+  function commitHistory(snapshot) {
+    if (!snapshot) return;
+    undoStack.push(snapshot);
+    if (undoStack.length > UNDO_LIMIT) {
+      undoStack.splice(0, undoStack.length - UNDO_LIMIT);
+    }
+    redoStack.length = 0;
+    updateHistoryButtons();
+  }
+
+  function replaceScoreState(nextScore) {
+    Object.keys(score).forEach(function (key) {
+      delete score[key];
+    });
+    Object.assign(score, clonePlain(nextScore));
+    score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
+    window.PikakirjoitinScoreModel.cleanupTies(score);
+    window.PikakirjoitinScoreModel.cleanupSlurs(score);
+  }
+
+  function restoreHistoryState(state) {
+    if (!state) return;
+    replaceScoreState(state.score);
+    settings = clonePlain(state.settings || {});
+    keyboardEditId = null;
+    pendingSelectedSlurStartId = null;
+    noteInputMeta.clear();
+    audio.noteOff();
+    if (selection) selection.clear();
+  }
+
+  function finishHistoryRestore(message) {
+    renderScore().then(function () {
+      requestAnimationFrame(function () {
+        if (keyboard) {
+          keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+        }
+      });
+      updateStatus(message, "ok");
+    }).catch(function (error) {
+      console.error(error);
+      updateStatus(
+        "Virhe: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+    });
+  }
+
+  function undoLastChange() {
+    const snapshot = undoStack.pop();
+    if (!snapshot) {
+      updateStatus("Ei kumottavaa.", "ok");
+      updateHistoryButtons();
+      return;
+    }
+
+    redoStack.push({
+      label: snapshot.label,
+      state: captureHistoryState()
+    });
+
+    restoreHistoryState(snapshot.state);
+    updateHistoryButtons();
+    finishHistoryRestore("Kumottu · " + snapshot.label + ".");
+  }
+
+  function redoLastChange() {
+    const snapshot = redoStack.pop();
+    if (!snapshot) {
+      updateStatus("Ei uudelleen tehtävää.", "ok");
+      updateHistoryButtons();
+      return;
+    }
+
+    undoStack.push({
+      label: snapshot.label,
+      state: captureHistoryState()
+    });
+    if (undoStack.length > UNDO_LIMIT) {
+      undoStack.splice(0, undoStack.length - UNDO_LIMIT);
+    }
+
+    restoreHistoryState(snapshot.state);
+    updateHistoryButtons();
+    finishHistoryRestore("Uudelleen · " + snapshot.label + ".");
+  }
+
+  function startOverAndRefresh() {
+    audio.noteOff();
+    const ok = window.confirm(
+      I18N.getLanguage() === "en"
+        ? "Start over? The current score will be cleared and SwipeScore refreshed."
+        : "Aloitetaanko alusta? Nykyinen nuotti tyhjennetään ja Pikakirjoitin päivitetään."
+    );
+    if (!ok) return;
+    window.location.reload();
+  }
+
+  function fileBaseName() {
+    const fallback = I18N.getLanguage() === "en" ? "SwipeScore" : "Pikakirjoitin";
+    const raw = String(score.title || fallback).trim() || fallback;
+    return raw
+      .replace(/[\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80) || fallback;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+  }
+
+  function currentProjectPayload() {
+    return {
+      format: "Pikakirjoitin3",
+      version: "0.17.4",
+      projectId: currentProjectId,
+      savedAt: new Date().toISOString(),
+      score: clonePlain(score),
+      settings: clonePlain(settings)
+    };
+  }
+
+  async function saveProjectFile() {
+    try {
+      const record = await window.PikakirjoitinRecentProjects.save(currentProjectPayload());
+      currentProjectId = record.id;
+      updateStatus("Tallennettu viimeisimpiin.", "ok");
+      document.dispatchEvent(new CustomEvent("pk-recentschanged"));
+    } catch (error) {
+      console.error(error);
+      updateStatus("Tallennus viimeisimpiin epäonnistui.", "error");
+    }
+  }
+
+  function bytesFromBase64(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  function textBytes(text) {
+    return new TextEncoder().encode(String(text));
+  }
+
+  function concatBytes(parts) {
+    let length = 0;
+    parts.forEach(function (part) { length += part.length; });
+    const out = new Uint8Array(length);
+    let offset = 0;
+    parts.forEach(function (part) {
+      out.set(part, offset);
+      offset += part.length;
+    });
+    return out;
+  }
+
+  function loadImageFromUrl(url) {
+    return new Promise(function (resolve, reject) {
+      const image = new Image();
+      image.onload = function () { resolve(image); };
+      image.onerror = function () { reject(new Error("Nuottisivua ei voitu muuntaa kuvaksi.")); };
+      image.src = url;
+    });
+  }
+
+  async function svgToJpegBytes(svg) {
+    const clone = svg.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+    const viewBox = svg.viewBox && svg.viewBox.baseVal;
+    const rect = svg.getBoundingClientRect();
+    const sourceWidth = Math.max(1, Number(viewBox && viewBox.width) || rect.width || 1000);
+    const sourceHeight = Math.max(1, Number(viewBox && viewBox.height) || rect.height || 1400);
+
+    if (!clone.getAttribute("viewBox")) {
+      clone.setAttribute("viewBox", "0 0 " + sourceWidth + " " + sourceHeight);
+    }
+    clone.setAttribute("width", String(sourceWidth));
+    clone.setAttribute("height", String(sourceHeight));
+
+    const xml = new XMLSerializer().serializeToString(clone);
+    const svgBlob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    try {
+      const image = await loadImageFromUrl(url);
+      const canvas = document.createElement("canvas");
+      canvas.width = 1240;
+      canvas.height = 1754;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Canvas ei ole käytettävissä.");
+
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      const marginX = 62;
+      const marginY = 70;
+      const maxWidth = canvas.width - marginX * 2;
+      const maxHeight = canvas.height - marginY * 2;
+      const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+      const drawWidth = sourceWidth * scale;
+      const drawHeight = sourceHeight * scale;
+      const x = (canvas.width - drawWidth) / 2;
+      const y = marginY;
+
+      context.drawImage(image, x, y, drawWidth, drawHeight);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.94);
+      return {
+        bytes: bytesFromBase64(dataUrl.split(",")[1]),
+        width: canvas.width,
+        height: canvas.height
+      };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function buildPdfFromJpegs(images) {
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const objectCount = 2 + images.length * 3;
+    const objects = new Array(objectCount + 1);
+    const pageNumbers = [];
+
+    objects[1] = textBytes("<< /Type /Catalog /Pages 2 0 R >>");
+
+    images.forEach(function (image, index) {
+      const pageNo = 3 + index * 3;
+      const imageNo = pageNo + 1;
+      const contentNo = pageNo + 2;
+      pageNumbers.push(pageNo);
+
+      objects[pageNo] = textBytes(
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " +
+        pageWidth + " " + pageHeight + "] /Resources << /XObject << /Im0 " +
+        imageNo + " 0 R >> >> /Contents " + contentNo + " 0 R >>"
+      );
+
+      const imageHeader = textBytes(
+        "<< /Type /XObject /Subtype /Image /Width " + image.width +
+        " /Height " + image.height +
+        " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " +
+        image.bytes.length + " >>\nstream\n"
+      );
+      const imageFooter = textBytes("\nendstream");
+      objects[imageNo] = concatBytes([imageHeader, image.bytes, imageFooter]);
+
+      const content = "q " + pageWidth + " 0 0 " + pageHeight + " 0 0 cm /Im0 Do Q";
+      const contentBytes = textBytes(content);
+      objects[contentNo] = concatBytes([
+        textBytes("<< /Length " + contentBytes.length + " >>\nstream\n"),
+        contentBytes,
+        textBytes("\nendstream")
+      ]);
+    });
+
+    objects[2] = textBytes(
+      "<< /Type /Pages /Count " + pageNumbers.length + " /Kids [" +
+      pageNumbers.map(function (number) { return number + " 0 R"; }).join(" ") +
+      "] >>"
+    );
+
+    const parts = [textBytes("%PDF-1.4\n%PK3\n")];
+    const offsets = new Array(objectCount + 1).fill(0);
+    let total = parts[0].length;
+
+    for (let number = 1; number <= objectCount; number += 1) {
+      offsets[number] = total;
+      const head = textBytes(number + " 0 obj\n");
+      const tail = textBytes("\nendobj\n");
+      parts.push(head, objects[number], tail);
+      total += head.length + objects[number].length + tail.length;
+    }
+
+    const xrefOffset = total;
+    let xref = "xref\n0 " + (objectCount + 1) + "\n";
+    xref += "0000000000 65535 f \n";
+    for (let number = 1; number <= objectCount; number += 1) {
+      xref += String(offsets[number]).padStart(10, "0") + " 00000 n \n";
+    }
+    xref += "trailer\n<< /Size " + (objectCount + 1) + " /Root 1 0 R >>\n";
+    xref += "startxref\n" + xrefOffset + "\n%%EOF";
+    parts.push(textBytes(xref));
+
+    return new Blob(parts, { type: "application/pdf" });
+  }
+
+  async function savePdfFile() {
+    const button = document.getElementById("savePdfButton");
+    if (button) button.disabled = true;
+    updateStatus("Muodostetaan PDF…");
+
+    try {
+      await rendering;
+      const container = document.getElementById("osmd-container");
+      if (!container) throw new Error("Nuottikuvaa ei löytynyt.");
+
+      let svgs = Array.from(container.children).filter(function (element) {
+        return element.tagName && element.tagName.toLowerCase() === "svg";
+      });
+      if (!svgs.length) {
+        svgs = Array.from(container.querySelectorAll("svg")).filter(function (svg) {
+          const rect = svg.getBoundingClientRect();
+          return rect.width > 80 && rect.height > 80;
+        });
+      }
+      if (!svgs.length) throw new Error("PDF:ään ei löytynyt nuottisivua.");
+
+      const pages = [];
+      for (const svg of svgs) {
+        pages.push(await svgToJpegBytes(svg));
+      }
+
+      downloadBlob(buildPdfFromJpegs(pages), fileBaseName() + ".pdf");
+      updateStatus("PDF tallennettu.", "ok");
+    } catch (error) {
+      console.error(error);
+      updateStatus(
+        "PDF-tallennus epäonnistui: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function printScore() {
+    audio.noteOff();
+    window.print();
+  }
+
+  function setupHistoryControls() {
+    const undoButton = document.getElementById("undoButton");
+    const redoButton = document.getElementById("redoButton");
+    const resetButton = document.getElementById("startOverButton");
+    const saveButton = document.getElementById("saveProjectButton");
+    const pdfButton = document.getElementById("savePdfButton");
+    const printButton = document.getElementById("printButton");
+
+    if (undoButton) undoButton.addEventListener("click", undoLastChange);
+    if (redoButton) redoButton.addEventListener("click", redoLastChange);
+    if (resetButton) resetButton.addEventListener("click", startOverAndRefresh);
+    if (saveButton) saveButton.addEventListener("click", saveProjectFile);
+    if (pdfButton) pdfButton.addEventListener("click", savePdfFile);
+    if (printButton) printButton.addEventListener("click", printScore);
+
+    updateHistoryButtons();
   }
 
   function refreshSelectionFromRenderedScore() {
@@ -87,12 +482,12 @@
   }
 
   function displayPitch(pitch) {
-    return String(pitch).replace("B", "H");
+    return I18N.displayPitch(pitch);
   }
 
   function dotWord(dots) {
-    if (dots === 2) return "kaksipisteinen ";
-    if (dots === 1) return "pisteellinen ";
+    if (dots === 2) return I18N.t("doubleDotted");
+    if (dots === 1) return I18N.t("dotted");
     return "";
   }
 
@@ -101,8 +496,8 @@
     const label = durationLabels[duration] || duration;
 
     if (entry && entry.kind === "rest") {
-      if (entry.measureRest) return "kokotahdin tauko";
-      return dotWord(dots) + label + "-tauko";
+      if (entry.measureRest) return I18N.t("wholeMeasureRest");
+      return dotWord(dots) + label + I18N.t("restSuffix");
     }
 
     return displayPitch(pitch || (entry && entry.pitch) || "") + " " + dotWord(dots) + label;
@@ -137,7 +532,9 @@
         return;
       }
 
+      const undoSnapshot = historySnapshot("Slur");
       if (window.PikakirjoitinScoreModel.addSlur(score, startId, nextId)) {
+        commitHistory(undoSnapshot);
         renderScore().then(function () {
           selection.retainSingle(startId);
           updateStatus("Slur lisätty valitusta nuotista seuraavaan nuottiin.", "ok");
@@ -162,6 +559,7 @@
   function startEntry(midi, pitch, duration) {
     const dots = thumbState.dots || 0;
     const selected = selectedSingleNote();
+    commitHistory(historySnapshot(selected ? "Nuotin muokkaus" : "Nuotin kirjoitus"));
 
     if (selected) {
       keyboardEditId = selected.id;
@@ -343,11 +741,11 @@
 
   function describeThumbState(state) {
     const parts = [];
-    if (state.rest) parts.push("Tauko");
-    if (state.dots === 1) parts.push("1 piste");
-    if (state.dots === 2) parts.push("2 pistettä");
+    if (state.rest) parts.push(I18N.t("rest"));
+    if (state.dots === 1) parts.push(I18N.t("oneDot"));
+    if (state.dots === 2) parts.push(I18N.t("twoDots"));
     if (state.slur) parts.push("Slur");
-    return parts.length ? parts.join(" + ") + " pohjassa · tee aika-arvoele koskettimella." : "";
+    return parts.length ? parts.join(" + ") + " " + I18N.t("heldHint") : "";
   }
 
   function timeSettings(value) {
@@ -367,7 +765,8 @@
     settings = Object.assign({}, nextSettings);
     const meter = timeSettings(settings.timeSignature);
 
-    score.metadata.title = settings.title || "Pikakirjoitin 3";
+    score.metadata.title = settings.title || I18N.t("appName");
+    score.metadata.partName = I18N.t("flute");
     score.metadata.composer = settings.composer || "";
     score.metadata.tempoText = settings.tempoText || "";
     score.key = Number.isInteger(settings.keySignature) ? settings.keySignature : 0;
@@ -387,12 +786,46 @@
     updateStatus("Valmis · ääni on käytössä ja kirjoitus voi alkaa.", "ok");
   }
 
+
+  async function openProjectPayload(payload, meta) {
+    const normalized = window.PikakirjoitinRecentProjects.normalizePayload(payload);
+    if (normalized.settings && normalized.settings.language) {
+      I18N.setLanguage(normalized.settings.language);
+    }
+
+    replaceScoreState(normalized.score);
+    settings = Object.assign({ transpose: 0, keyboardStartMidi: 60 }, clonePlain(normalized.settings || {}));
+    currentProjectId = String((meta && meta.recentId) || normalized.projectId || window.PikakirjoitinRecentProjects.makeId());
+    normalized.projectId = currentProjectId;
+
+    undoStack.length = 0;
+    redoStack.length = 0;
+    keyboardEditId = null;
+    pendingSelectedSlurStartId = null;
+    noteInputMeta.clear();
+    if (selection) selection.clear();
+    updateHistoryButtons();
+
+    await renderScore();
+    requestAnimationFrame(function () {
+      if (keyboard) keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+    });
+
+    if (meta && meta.fromFile) {
+      const record = await window.PikakirjoitinRecentProjects.save(currentProjectPayload());
+      currentProjectId = record.id;
+      document.dispatchEvent(new CustomEvent("pk-recentschanged"));
+    }
+
+    updateStatus("Projekti avattu.", "ok");
+  }
+
   function slurChoiceLabel(slur) {
     const start = window.PikakirjoitinScoreModel.getEntry(score, slur.startId);
     const end = window.PikakirjoitinScoreModel.getEntry(score, slur.endId);
 
-    const startName = start && start.pitch ? displayPitch(start.pitch) : "alku";
-    const endName = end && end.pitch ? displayPitch(end.pitch) : "loppu";
+    const startName = start && start.pitch ? displayPitch(start.pitch) : I18N.t("startName");
+    const endName = end && end.pitch ? displayPitch(end.pitch) : I18N.t("endName");
 
     return startName + "–" + endName;
   }
@@ -411,7 +844,9 @@
     const ids = selectedIds();
     if (!slurId || !ids.length) return;
 
+    const undoSnapshot = historySnapshot("Slur");
     if (window.PikakirjoitinScoreModel.removeSlurById(score, slurId)) {
+      commitHistory(undoSnapshot);
       renderScore().then(function () {
         selection.retainIds(ids);
         updateStatus("Slur poistettu.", "ok");
@@ -462,12 +897,14 @@
           onToggleSystemBreak: function (
             startMeasureIndex
           ) {
+            const undoSnapshot = historySnapshot("Rivinvaihto");
             const active =
               window.PikakirjoitinScoreModel
                 .toggleSystemBreak(
                   score,
                   startMeasureIndex
                 );
+            commitHistory(undoSnapshot);
 
             const count =
               window.PikakirjoitinMusicXML
@@ -505,11 +942,24 @@
           },
 
           onLastSystemFactorCommit: function (factor) {
+            const previousFactor = window.PikakirjoitinScoreModel
+              .getLastSystemMaxScalingFactor(score);
+            const undoSnapshot = historySnapshot("Viimeisen rivin leveys");
+
             window.PikakirjoitinScoreModel
               .setLastSystemMaxScalingFactor(
                 score,
                 factor
               );
+
+            if (
+              Math.abs(
+                Number(window.PikakirjoitinScoreModel.getLastSystemMaxScalingFactor(score)) -
+                Number(previousFactor)
+              ) > 0.001
+            ) {
+              commitHistory(undoSnapshot);
+            }
 
             window.PikakirjoitinRenderer
               .rerenderLayout(
@@ -552,7 +1002,9 @@
       onEnharmonic: function () {
         const note = selectedSingleNote();
         if (!note) return;
+        const undoSnapshot = historySnapshot("Enharmoninen");
         if (window.PikakirjoitinScoreModel.toggleEnharmonic(score, note.id)) {
+          commitHistory(undoSnapshot);
           renderScore().then(function () {
             selection.retainSingle(note.id);
             updateStatus("Enharmoninen kirjoitusasu vaihdettu.", "ok");
@@ -579,6 +1031,7 @@
         }
 
         // Useampi nuotti: 0.14.4:n korvauslogiikka säilyy.
+        const undoSnapshot = historySnapshot("Slur");
         const result =
           window.PikakirjoitinScoreModel.toggleSlurForSelection(score, ids);
 
@@ -591,6 +1044,7 @@
           return;
         }
 
+        commitHistory(undoSnapshot);
         renderScore().then(function () {
           selection.retainIds(ids);
           updateStatus(
@@ -618,8 +1072,10 @@
         const ids = selectedIds();
         if (!ids.length) return;
 
+        const undoSnapshot = historySnapshot("Tauoksi muuttaminen");
         const result = window.PikakirjoitinScoreModel.convertSelectionToRests(score, ids);
         if (!result.changed) return;
+        commitHistory(undoSnapshot);
 
         renderScore().then(function () {
           selection.retainIds(result.ids);
@@ -640,7 +1096,9 @@
       onDelete: function () {
         const ids = selectedIds();
         if (!ids.length) return;
+        const undoSnapshot = historySnapshot("Poisto");
         if (window.PikakirjoitinScoreModel.deleteEntries(score, ids)) {
+          commitHistory(undoSnapshot);
           selection.clear();
           renderScore().then(function () {
             updateStatus(ids.length === 1 ? "Tapahtuma poistettu." : ids.length + " tapahtumaa poistettu.", "ok");
@@ -709,6 +1167,7 @@
   }
 
   function start() {
+    setupHistoryControls();
     setupSelection();
     setupSystemLayoutEditor();
 
@@ -801,9 +1260,18 @@
 
     new window.PikakirjoitinStartScreen.StartScreen({
       audio: audio,
-      onStart: applyStartSettings
+      onStart: applyStartSettings,
+      onOpenProject: openProjectPayload
     });
   }
+
+  document.addEventListener("pk-languagechange", function () {
+    settings.language = I18N.getLanguage();
+    const status = document.getElementById("status");
+    if (status && status.dataset.rawMessage) {
+      status.textContent = I18N.translateRuntimeMessage(status.dataset.rawMessage);
+    }
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });

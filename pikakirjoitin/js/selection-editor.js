@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  const I18N = window.PikakirjoitinI18n;
+
   class SelectionEditor {
     constructor(options) {
       const config = options || {};
@@ -8,10 +10,10 @@
       root.className = "pk-selection-editor";
       root.hidden = true;
       root.setAttribute("role", "toolbar");
-      root.setAttribute("aria-label", "Valinnan muokkaus");
+      root.setAttribute("aria-label", I18N.t("selectionEdit"));
       root.innerHTML = `
         <button type="button" data-action="enharmonic"
-                aria-label="Enharmoninen vaihto" title="Enharmoninen vaihto">
+                aria-label="${I18N.t("enharmonic")}" title="${I18N.t("enharmonic")}">
           <img class="pk-enharmonic-icon" src="assets/Enharmoninen.svg"
                alt="" aria-hidden="true">
         </button>
@@ -27,13 +29,13 @@
         </div>
 
         <button type="button" data-action="rest"
-                aria-label="Muuta valinta tauoksi" title="Muuta valinta tauoksi">
+                aria-label="${I18N.t("convertRest")}" title="${I18N.t("convertRest")}">
           <img class="pk-rest-icon" src="assets/rest.svg"
                alt="" aria-hidden="true">
         </button>
 
         <button type="button" data-action="delete"
-                aria-label="Poista valinta" title="Poista valinta"
+                aria-label="${I18N.t("deleteSelection")}" title="${I18N.t("deleteSelection")}"
                 class="is-delete">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5l1-2h4l1 2m3 0-1 16H7L6 5"/>
@@ -47,6 +49,7 @@
       this.slurFlyout = root.querySelector(".pk-slur-flyout");
       this.currentSlurChoices = [];
       this.singleSelection = false;
+      document.addEventListener("pk-languagechange", () => this.localize());
 
       root.addEventListener("pointerdown", function (event) {
         event.stopPropagation();
@@ -105,6 +108,26 @@
       }, { passive:true });
     }
 
+    localize() {
+      this.root.setAttribute("aria-label", I18N.t("selectionEdit"));
+      const enh = this.root.querySelector('[data-action="enharmonic"]');
+      if (enh) {
+        enh.setAttribute("aria-label", I18N.t("enharmonic"));
+        enh.setAttribute("title", I18N.t("enharmonic"));
+      }
+      const rest = this.root.querySelector('[data-action="rest"]');
+      if (rest) {
+        rest.setAttribute("aria-label", I18N.t("convertRest"));
+        rest.setAttribute("title", I18N.t("convertRest"));
+      }
+      const del = this.root.querySelector('[data-action="delete"]');
+      if (del) {
+        del.setAttribute("aria-label", I18N.t("deleteSelection"));
+        del.setAttribute("title", I18N.t("deleteSelection"));
+      }
+      this.renderSlurChoices(this.currentSlurChoices);
+    }
+
     renderSlurChoices(choices) {
       const items = Array.isArray(choices) ? choices : [];
       this.currentSlurChoices = items.slice();
@@ -118,7 +141,7 @@
         button.setAttribute("role", "menuitem");
         button.setAttribute(
           "aria-label",
-          "Poista slur " + (choice.label || "")
+          I18N.t("removeSlur") + " " + (choice.label || "")
         );
         button.innerHTML = `
           <img src="assets/slur.svg" alt="" aria-hidden="true">

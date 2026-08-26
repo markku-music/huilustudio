@@ -198,7 +198,7 @@
       handle.title = "Venytä viimeistä riviä";
       handle.setAttribute(
         "aria-label",
-        "Venytä viimeistä nuottiriviä"
+        I18N.t("stretchLastSystem")
       );
 
       handle.dataset.lineStart = String(offsetX + lineStart);
