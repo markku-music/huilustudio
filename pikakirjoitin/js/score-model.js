@@ -240,11 +240,23 @@
       slurs: Array.isArray(config.slurs)
         ? config.slurs.map(cloneSlur).filter(Boolean)
         : [],
+      beamBreaks: Array.isArray(config.beamBreaks)
+        ? config.beamBreaks.map(function (item) {
+            if (item && item.startId && item.endId) {
+              return { startId:String(item.startId), endId:String(item.endId) };
+            }
+            const parts = String(item || "").split("->");
+            return parts.length === 2 && parts[0] && parts[1]
+              ? { startId:parts[0], endId:parts[1] }
+              : null;
+          }).filter(Boolean)
+        : [],
       layout: normalizeLayout(config.layout)
     };
 
     cleanupTies(score);
     cleanupSlurs(score);
+    cleanupBeamBreaks(score);
     return score;
   }
 
@@ -394,6 +406,127 @@
     return score.ties.length !== before;
   }
 
+
+  function isBeamableEntry(entry) {
+    if (!entry || entry.kind !== "note") return false;
+    const base = DURATION_UNITS[entry.duration];
+    return Number.isFinite(base) && base <= DURATION_UNITS.eighth;
+  }
+
+  function beamUnitForScore(score) {
+    const beats = Number(score && score.time && score.time[0]) || 4;
+    const beatType = Number(score && score.time && score.time[1]) || 4;
+
+    // Yhdistetyt kahdeksasosatahtilajit palkitetaan pisteellisen neljäsosan mukaan.
+    if (beatType === 8 && (beats === 3 || beats === 6 || beats === 9 || beats === 12)) {
+      return 48;
+    }
+    if (beatType === 2) return 64;
+    return 32 * (4 / beatType);
+  }
+
+  function orderedPairForSelection(score, ids) {
+    if (!score || !Array.isArray(score.notes)) return null;
+    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
+    if (selected.size !== 2) return null;
+
+    const entries = [];
+    score.notes.forEach(function (entry, index) {
+      if (entry && selected.has(entry.id)) entries.push({ entry: entry, index: index });
+    });
+
+    if (entries.length !== 2 || entries[1].index !== entries[0].index + 1) return null;
+    return entries;
+  }
+
+  function beamBreakPair(score, ids) {
+    const pair = orderedPairForSelection(score, ids);
+    if (!pair) return null;
+
+    const first = pair[0].entry;
+    const second = pair[1].entry;
+    if (!isBeamableEntry(first) || !isBeamableEntry(second)) return null;
+
+    const position = positionBeforeIndex(score, pair[0].index);
+    const firstUnits = durationUnits(first);
+    const available = position.capacity - position.offset;
+
+    // Palkkia ei muokata tahtiviivan yli eikä sellaisen lähdenuotin kohdalla,
+    // joka joudutaan jakamaan tahtirajan yli renderöinnissä.
+    if (!(firstUnits < available)) return null;
+
+    const secondOffset = position.offset + firstUnits;
+    const beamUnit = beamUnitForScore(score);
+    if (!Number.isFinite(beamUnit) || beamUnit <= 0) return null;
+
+    const firstGroup = Math.floor((position.offset + 1e-7) / beamUnit);
+    const secondGroup = Math.floor((secondOffset + 1e-7) / beamUnit);
+    if (firstGroup !== secondGroup) return null;
+
+    return {
+      startId: first.id,
+      endId: second.id,
+      startIndex: pair[0].index,
+      endIndex: pair[1].index
+    };
+  }
+
+  function cleanupBeamBreaks(score) {
+    if (!score) return [];
+    if (!Array.isArray(score.beamBreaks)) score.beamBreaks = [];
+
+    const seen = new Set();
+    score.beamBreaks = score.beamBreaks.map(function (item) {
+      if (item && item.startId && item.endId) {
+        return { startId:String(item.startId), endId:String(item.endId) };
+      }
+      const parts = String(item || "").split("->");
+      return parts.length === 2 && parts[0] && parts[1]
+        ? { startId:parts[0], endId:parts[1] }
+        : null;
+    }).filter(function (boundary) {
+      if (!boundary) return false;
+      const key = boundary.startId + "->" + boundary.endId;
+      if (seen.has(key)) return false;
+      const pair = beamBreakPair(score, [boundary.startId, boundary.endId]);
+      if (!pair || pair.startId !== boundary.startId || pair.endId !== boundary.endId) return false;
+      seen.add(key);
+      return true;
+    });
+    return score.beamBreaks;
+  }
+
+  function canToggleBeamBreak(score, ids) {
+    return Boolean(beamBreakPair(score, ids));
+  }
+
+  function hasBeamBreakForSelection(score, ids) {
+    const pair = beamBreakPair(score, ids);
+    if (!pair) return false;
+    cleanupBeamBreaks(score);
+    return score.beamBreaks.some(function (boundary) {
+      return boundary.startId === pair.startId && boundary.endId === pair.endId;
+    });
+  }
+
+  function toggleBeamBreakForSelection(score, ids) {
+    const pair = beamBreakPair(score, ids);
+    if (!pair) return { changed:false, active:false, reason:"invalid_pair" };
+
+    cleanupBeamBreaks(score);
+    const index = score.beamBreaks.findIndex(function (boundary) {
+      return boundary.startId === pair.startId && boundary.endId === pair.endId;
+    });
+    if (index >= 0) {
+      score.beamBreaks.splice(index, 1);
+      return { changed:true, active:false, startId:pair.startId, endId:pair.endId };
+    }
+
+    score.beamBreaks.push({ startId:pair.startId, endId:pair.endId });
+    return { changed:true, active:true, startId:pair.startId, endId:pair.endId };
+  }
+
+
   function cleanupSlurs(score) {
     if (!score) return [];
     if (!Array.isArray(score.slurs)) score.slurs = [];
@@ -433,6 +566,7 @@
         entry.duration === "whole" &&
         normalizeDots(entry.dots) === 0;
     }
+    cleanupBeamBreaks(score);
     return true;
   }
 
@@ -443,6 +577,7 @@
     if (entry.kind === "rest" && entry.dots > 0) {
       entry.measureRest = false;
     }
+    cleanupBeamBreaks(score);
     return true;
   }
 
@@ -467,6 +602,7 @@
 
     cleanupTies(score);
     cleanupSlurs(score);
+    cleanupBeamBreaks(score);
     return true;
   }
 
@@ -483,6 +619,7 @@
     if (changed) {
       cleanupTies(score);
       cleanupSlurs(score);
+      cleanupBeamBreaks(score);
     }
     return changed;
   }
@@ -754,6 +891,7 @@
       if (runStart === runEnd) {
         cleanupTies(score);
         cleanupSlurs(score);
+        cleanupBeamBreaks(score);
         return { changed:true, ids:[entry.id], merged:false };
       }
 
@@ -774,6 +912,7 @@
 
       cleanupTies(score);
       cleanupSlurs(score);
+      cleanupBeamBreaks(score);
 
       return {
         changed:true,
@@ -815,6 +954,7 @@
 
     cleanupTies(score);
     cleanupSlurs(score);
+    cleanupBeamBreaks(score);
     return { changed:true, ids:newIds };
   }
 
@@ -1137,6 +1277,10 @@
     addTie: addTie,
     removeTie: removeTie,
     hasTie: hasTie,
+    cleanupBeamBreaks: cleanupBeamBreaks,
+    canToggleBeamBreak: canToggleBeamBreak,
+    hasBeamBreakForSelection: hasBeamBreakForSelection,
+    toggleBeamBreakForSelection: toggleBeamBreakForSelection,
     cleanupSlurs: cleanupSlurs,
     nextNoteId: nextNoteId,
     previousNoteId: previousNoteId,

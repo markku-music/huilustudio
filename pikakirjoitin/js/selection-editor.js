@@ -29,6 +29,13 @@
         </div>
 
 
+        <button type="button" data-action="beam"
+                aria-label="${I18N.t("beamBreak")}" title="${I18N.t("beamBreak")}"
+                aria-pressed="false">
+          <img class="pk-beam-icon" src="assets/beam.svg"
+               alt="" aria-hidden="true">
+        </button>
+
         <div class="pk-articulation-group" role="group" aria-label="Articulations">
           <button type="button" data-action="articulation" data-articulation="accent"
                   aria-label="${I18N.t("accent")}" title="${I18N.t("accent")}" aria-pressed="false">
@@ -66,6 +73,7 @@
 
       this.root = root;
       this.slurButton = root.querySelector('[data-action="slur"]');
+      this.beamButton = root.querySelector('[data-action="beam"]');
       this.slurFlyout = root.querySelector(".pk-slur-flyout");
       this.currentSlurChoices = [];
       this.singleSelection = false;
@@ -111,6 +119,11 @@
           return;
         }
 
+        if (button.dataset.action === "beam") {
+          if (typeof config.onBeam === "function") config.onBeam();
+          return;
+        }
+
         if (button.dataset.action === "articulation") {
           const articulation = button.dataset.articulation || "";
           if (articulation && typeof config.onArticulation === "function") {
@@ -142,6 +155,13 @@
       if (enh) {
         enh.setAttribute("aria-label", I18N.t("enharmonic"));
         enh.setAttribute("title", I18N.t("enharmonic"));
+      }
+      const beam = this.root.querySelector('[data-action="beam"]');
+      if (beam) {
+        const active = beam.classList.contains("active");
+        const label = I18N.t(active ? "beamJoin" : "beamBreak");
+        beam.setAttribute("aria-label", label);
+        beam.setAttribute("title", label);
       }
       ["accent", "staccato", "marcato", "tenuto"].forEach((name) => {
         const button = this.root.querySelector('[data-articulation="' + name + '"]');
@@ -237,6 +257,14 @@
       if (!hasChoiceFlyout) {
         this.closeSlurFlyout();
       }
+
+      this.beamButton.hidden = !config.canBeam;
+      this.beamButton.disabled = !config.canBeam;
+      this.beamButton.classList.toggle("active", Boolean(config.beamBreakActive));
+      this.beamButton.setAttribute("aria-pressed", config.beamBreakActive ? "true" : "false");
+      const beamLabel = I18N.t(config.beamBreakActive ? "beamJoin" : "beamBreak");
+      this.beamButton.setAttribute("aria-label", beamLabel);
+      this.beamButton.setAttribute("title", beamLabel);
 
       const articulationState = config.articulations || {};
       this.root.querySelectorAll("button[data-articulation]").forEach((button) => {

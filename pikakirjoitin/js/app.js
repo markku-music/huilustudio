@@ -108,6 +108,7 @@
     score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
     window.PikakirjoitinScoreModel.cleanupTies(score);
     window.PikakirjoitinScoreModel.cleanupSlurs(score);
+    window.PikakirjoitinScoreModel.cleanupBeamBreaks(score);
   }
 
   function restoreHistoryState(state) {
@@ -214,7 +215,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.1",
+      version: "0.17.6.8",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -302,7 +303,7 @@
        * BASE 0.17.6.1:
        * PDF ei lisää enää omia kiinteitä marginaaleja. SVG sijoitetaan
        * A4-canvakselle samassa suhteessa kuin se sijaitsee ruudun oikean
-       * .a4-paper-elementin sisällä. Näin paperin CSS-sisennys sekä VexFlow’n
+       * .a4-paper-elementin sisällä. Näin paperin CSS-sisennys sekä OSMD:n
        * käyttäjän säätämät PageTop/Right/Bottom/LeftMargin-arvot säilyvät
        * samassa geometriassa myös PDF:ssä.
        */
@@ -423,7 +424,7 @@
 
     try {
       await rendering;
-      const container = document.getElementById("vexflow-container");
+      const container = document.getElementById("osmd-container");
       if (!container) throw new Error("Nuottikuvaa ei löytynyt.");
 
       let svgs = Array.from(container.children).filter(function (element) {
@@ -629,19 +630,21 @@
   }
 
   function renderScore() {
+    const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
     console.log("Pikakirjoitin 3 Score Model:", score);
+    console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
 
     rendering = rendering.then(function () {
-      return window.PikakirjoitinRenderer.renderScore(
-        score,
-        "vexflow-container",
+      return window.PikakirjoitinRenderer.renderMusicXML(
+        musicXML,
+        "osmd-container",
         "score",
         score.layout
       );
-    }).then(function (rendererResult) {
+    }).then(function (osmd) {
       refreshSelectionFromRenderedScore();
       if (layoutEditor) layoutEditor.refresh();
-      return rendererResult;
+      return osmd;
     });
 
     return rendering;
@@ -1035,7 +1038,7 @@
           paper:
             document.getElementById("a4Paper"),
           container:
-            document.getElementById("vexflow-container"),
+            document.getElementById("osmd-container"),
 
           getMeasureLayout: function () {
             return window.PikakirjoitinRenderer
@@ -1161,7 +1164,7 @@
   function setupSelection() {
     selection = new window.PikakirjoitinSelection.ScoreRangeSelection({
       viewport: document.querySelector(".score-card"),
-      container: document.getElementById("vexflow-container")
+      container: document.getElementById("osmd-container")
     });
 
     selectionEditor = new window.PikakirjoitinSelectionEditor.SelectionEditor({
@@ -1219,6 +1222,39 @@
                   ? "Aiemmat valinta-alueen slurit korvattu uudella slurilla."
                   : "Slur lisätty valittujen nuottien ylle.")
               : "Slur poistettu valinnasta.",
+            "ok"
+          );
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus(
+            "Virhe: " + (error && error.message ? error.message : String(error)),
+            "error"
+          );
+        });
+      },
+
+
+      onBeam: function () {
+        const ids = selectedIds();
+        if (!ids.length) return;
+
+        const undoSnapshot = historySnapshot("Palkinkatko");
+        const result = window.PikakirjoitinScoreModel
+          .toggleBeamBreakForSelection(score, ids);
+
+        if (!result.changed) {
+          updateStatus(
+            "Palkinkatko vaatii kaksi vierekkäistä lyhyttä nuottia saman palkkiryhmän sisältä.",
+            "error"
+          );
+          return;
+        }
+
+        commitHistory(undoSnapshot);
+        renderScore().then(function () {
+          selection.retainIds(ids);
+          updateStatus(
+            result.active ? "Palkki katkaistu." : "Palkki yhdistetty takaisin.",
             "ok"
           );
         }).catch(function (error) {
@@ -1361,6 +1397,8 @@
           state.count === 1
             ? singleSlurChoices.length > 0
             : window.PikakirjoitinScoreModel.hasSlurForSelection(score, ids),
+        canBeam: window.PikakirjoitinScoreModel.canToggleBeamBreak(score, ids),
+        beamBreakActive: window.PikakirjoitinScoreModel.hasBeamBreakForSelection(score, ids),
         canArticulate: window.PikakirjoitinScoreModel.canArticulateSelection(score, ids),
         articulations: {
           accent: window.PikakirjoitinScoreModel.hasArticulationForSelection(score, ids, "accent"),
@@ -1378,7 +1416,7 @@
     setupSelection();
     setupSystemLayoutEditor();
 
-    // Orientaation vaihto luo VexFlow-SVG:n uudelleen rendererissä.
+    // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
     // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
     if (
       window.PikakirjoitinRenderer &&

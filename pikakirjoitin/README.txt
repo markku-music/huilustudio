@@ -1,23 +1,3 @@
-PIKAKIRJOITIN 3 · VEXFLOW-KOEHAARA
-==================================
-
-Tämä on erillinen koeversio BASE 0.17.6.7:stä.
-Nuottikuva renderöidään suoraan ScoreModelista VexFlow 5:llä. OSMD-runtime on poistettu paketista.
-MusicXML-moduuli on edelleen mukana vain tahtijaon yhteisen logiikan ja MusicXML-exportin vuoksi.
-
-HUOM: VexFlow ladataan tässä koehaarassa jsDelivr-CDN:stä, joten sovelluksen avaaminen tarvitsee internet-yhteyden.
-Tämä on renderöintikoe, ei vielä uusi virallinen BASE.
-
-KOEHAARAN MUUTOKSET:
-- js/renderer.js on korvattu suoralla VexFlow 5 -rendererillä.
-- app.js lähettää ScoreModelin suoraan VexFlow-rendererille.
-- OSMD-bundle on poistettu.
-- Nuottien SVG-ryhmät merkitään .vf-note-luokalla nykyistä valintalogiikkaa varten.
-- MusicXML-exportti on säilytetty.
-- Rivinvaihdot, nuottikoko, riviväli ja sivumarginaalit ohjataan koehaaran omalla layoutilla.
-
-Alla oleva vanha README-historia kuvaa alkuperäisten BASE-versioiden kehitystä ja voi siksi mainita OSMD:n.
-
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
 Pohja:
@@ -130,3 +110,10 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Pystyeleiden (1/2 ja 1/8) raja on normaali perusraja.
 - Vaakaeleiden (1/16 ja 1/32) raja on 1.15 × perusraja, joten vaakaswipe vaatii hieman tarkoituksellisemman liikkeen.
 - Suorat pyyhkäisyt pysyvät nopeina, mutta vinot eleet eivät vaihda yhtä herkästi väärään aika-arvoon.
+
+
+0.17.6.8 Palkinkatko kelluvassa palkissa
+- Valitse kaksi vierekkäistä 1/8 tai lyhyempää nuottia saman normaalin palkkiryhmän sisältä.
+- Kelluvan editorin palkitusnappi katkaisee palkin niiden välistä.
+- Sama valinta ja painallus yhdistää palkin takaisin.
+- Palkitus kirjoitetaan MusicXML:n <beam>-elementteihin; OSMD:n autoBeam on pois käytöstä, jotta ruutu ja XML ovat samaa palkitusta.

@@ -30,7 +30,7 @@ function unionWidth(intervals) {
 }
 
 /**
- * Etsii VexFlow-SVG:stä viivastojen viisi vaakaviivaa.
+ * Etsii OSMD/VexFlow-SVG:stä viivastojen viisi vaakaviivaa.
  * Elelogiikka ei nojaa VexFlow'n sisäisiin viivastoluokkiin, vaan tunnistaa
  * viivastot geometriasta. Näin pystyscrollaus ja vaakavalinta pysyvät erillään.
  */
@@ -171,7 +171,7 @@ class ScoreRangeSelection {
   }
 
   refresh({ segments = [] } = {}) {
-    // VexFlow on juuri renderöinyt uuden SVG:n, joten vanhat elementtiviitteet
+    // OSMD on juuri renderöinyt uuden SVG:n, joten vanhat elementtiviitteet
     // eivät enää kelpaa. Säilytetään kuitenkin looginen valinta ja kohdistin.
     this.#bands = detectStaffBands(this.#container);
     const visuals = collectVisualEvents(this.#container);
@@ -199,7 +199,7 @@ class ScoreRangeSelection {
   get selectedIds() { return [...this.#selectedIds]; }
 
   /**
-   * Pitää yhden loogisen ScoreModel-tapahtuman valittuna myös VexFlow’n
+   * Pitää yhden loogisen ScoreModel-tapahtuman valittuna myös OSMD:n
    * uudelleenrenderöinnin yli. Editointi saa muuttaa nuotin korkeutta,
    * kestoa ja jopa näkyvien segmenttien määrää, mutta sourceId pysyy samana.
    */

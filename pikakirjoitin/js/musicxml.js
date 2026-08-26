@@ -198,6 +198,10 @@
 
     parts.push.apply(parts, dotsToXML(entry.dots));
 
+    if (entry.beam) {
+      parts.push('        <beam number="1">' + escapeXML(entry.beam) + '</beam>');
+    }
+
     if (notationXML.notations.length) {
       parts.push("        <notations>");
       parts.push.apply(parts, notationXML.notations);
@@ -469,6 +473,88 @@
     return measures;
   }
 
+
+  function isBeamableRenderEntry(entry) {
+    if (!entry || entry.kind !== "note") return false;
+    const base = DURATION_VALUES[entry.duration];
+    return Number.isFinite(base) && base <= DURATION_VALUES.eighth;
+  }
+
+  function beamUnit(beats, beatType) {
+    if (beatType === 8 && (beats === 3 || beats === 6 || beats === 9 || beats === 12)) {
+      return 48; // pisteellinen neljäsosa
+    }
+    if (beatType === 2) return 64; // puolinuotti
+    return 32 * (4 / beatType);    // yksinkertaisissa tahtilajeissa yksi isku
+  }
+
+  function annotateBeams(measures, score, beats, beatType) {
+    const manualBreaks = new Set(
+      score && Array.isArray(score.beamBreaks)
+        ? score.beamBreaks.map(function (boundary) {
+            if (boundary && boundary.startId && boundary.endId) {
+              return String(boundary.startId) + "->" + String(boundary.endId);
+            }
+            return String(boundary || "");
+          })
+        : []
+    );
+    const unit = beamUnit(beats, beatType);
+
+    measures.forEach(function (measure) {
+      let offset = 0;
+      let group = [];
+      let previous = null;
+
+      function flushGroup() {
+        if (group.length >= 2) {
+          group.forEach(function (entry, index) {
+            entry.beam = index === 0
+              ? "begin"
+              : index === group.length - 1
+                ? "end"
+                : "continue";
+          });
+        }
+        group = [];
+      }
+
+      measure.entries.forEach(function (entry) {
+        const value = durationValue(entry);
+        const sourceChanged = Boolean(
+          previous &&
+          previous.sourceId &&
+          entry.sourceId &&
+          previous.sourceId !== entry.sourceId
+        );
+        const manualBreak = Boolean(
+          sourceChanged &&
+          manualBreaks.has(String(previous.sourceId) + "->" + String(entry.sourceId))
+        );
+        const startsNewUnit = Boolean(
+          group.length &&
+          unit > 0 &&
+          Math.abs(offset % unit) < 1e-7
+        );
+
+        if (manualBreak || startsNewUnit || !isBeamableRenderEntry(entry)) {
+          flushGroup();
+        }
+
+        if (isBeamableRenderEntry(entry)) {
+          group.push(entry);
+        }
+
+        offset += value;
+        previous = entry;
+      });
+
+      flushGroup();
+    });
+
+    return measures;
+  }
+
   function annotateMultipleRests(measures) {
     let index = 0;
     while (index < measures.length) {
@@ -596,25 +682,6 @@
     ).length;
   }
 
-  function getRenderMeasures(score) {
-    if (!score || !Array.isArray(score.notes)) return [];
-    const beats = Number(score.time && score.time[0]) || 4;
-    const beatType = Number(score.time && score.time[1]) || 4;
-    const capacity = measureCapacity(beats, beatType);
-    const pickupCapacity = (Number(score.pickupDuration) || 0) * (DIVISIONS / 8);
-    const slurMarkers = buildSlurMarkers(score);
-    const manualTieMarkers = buildManualTieMarkers(score);
-    return annotateMultipleRests(
-      splitIntoMeasures(
-        score.notes,
-        capacity,
-        pickupCapacity,
-        slurMarkers,
-        manualTieMarkers
-      )
-    );
-  }
-
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -637,12 +704,17 @@
     );
 
     const measures = annotateMultipleRests(
-      splitIntoMeasures(
-        score.notes,
-        capacity,
-        pickupCapacity,
-        slurMarkers,
-        manualTieMarkers
+      annotateBeams(
+        splitIntoMeasures(
+          score.notes,
+          capacity,
+          pickupCapacity,
+          slurMarkers,
+          manualTieMarkers
+        ),
+        score,
+        beats,
+        beatType
       )
     );
 
@@ -686,7 +758,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 BASE 0.17.6.4</software>
+      <software>Pikakirjoitin 3 0.17.6.8</software>
     </encoding>
   </identification>
   <defaults>
@@ -723,7 +795,6 @@ ${measuresXML}
   window.PikakirjoitinMusicXML = {
     createMusicXML: createMusicXML,
     getLogicalSegments: getLogicalSegments,
-    getMeasureCount: getMeasureCount,
-    getRenderMeasures: getRenderMeasures
+    getMeasureCount: getMeasureCount
   };
 })();
