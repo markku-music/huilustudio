@@ -1,4 +1,4 @@
-VERSION 0.17.6.16 — rivinvaihtotilan nuottivalintalukko
+VERSION 0.17.6.17 — editointitilan sulkeminen nuottisivulta
 
 Pikakirjoitin 3 BASE 0.17.3 · FI / EN · H / B
 
@@ -159,3 +159,9 @@ BASE 0.17.6.7 – swipe-eleiden turvavyöhyke
 - Mahdollinen nuottivalinta ja kelluva nuottipalkki suljetaan heti rivinvaihtotilaan siirryttäessä.
 - Tahtiviiva- ja rivinvaihtotilat käyttävät samaa yhtenäistä valintalukkoa, joten tilasta toiseen vaihto ei hetkellisesti aktivoi nuottivalintaa.
 - Kun molemmat editointitilat ovat pois päältä, nuottivalinta palautuu normaaliksi.
+
+
+0.17.6.17 – Editointitilan sulkeminen nuottisivulta
+- Rivinvaihto- tai tahtiviivatilan ollessa aktiivinen tavallinen napautus nuottisivulle sulkee aktiivisen tilan.
+- Muokkaustilan omat + -merkit, tahtiviivavalinnat ja viimeisen rivin venytyskahva eivät sulje tilaa kesken toiminnon.
+- Nuottivalinta palautuu normaalisti tilan sulkeuduttua.

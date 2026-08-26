@@ -1721,6 +1721,39 @@
       onFinish: finishEntry
     });
 
+    // 0.17.6.17: Rivinvaihto- ja tahtiviivatilan voi sulkea myös
+    // napauttamalla mitä tahansa tavallista kohtaa nuottisivulla.
+    // Muokkaustilan omat ohjaimet jätetään rauhaan, jotta + -merkin,
+    // tahtiviivavalikon tai viimeisen rivin venytyskahvan käyttö ei
+    // sulje tilaa kesken varsinaisen toiminnon.
+    const scorePaper = document.getElementById("a4Paper");
+    if (scorePaper) {
+      scorePaper.addEventListener("click", function (event) {
+        if (!thumbRail) return;
+
+        const target = event.target instanceof Element ? event.target : null;
+        if (
+          target &&
+          target.closest(
+            ".system-break-marker, " +
+            ".last-system-stretch-handle, " +
+            ".barline-marker, " +
+            ".barline-choice, " +
+            ".barline-choice-popover"
+          )
+        ) {
+          return;
+        }
+
+        const state = thumbRail.state;
+        if (state.barlines) {
+          thumbRail.setToggle("barlines", false);
+        } else if (state.layout) {
+          thumbRail.setToggle("layout", false);
+        }
+      });
+    }
+
     renderScore().catch(function (error) {
       console.error(error);
       updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
