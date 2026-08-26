@@ -1,4 +1,4 @@
-VERSION 0.17.6.18 — varren suunta ja slurin sijoitus
+VERSION 0.17.6.19 — varren suunta ja slurin sijoitus
 
 Uutta tässä versiossa:
 - Kelluvaan nuottivalinnan palkkiin lisätty varren suunnan valitsin.
@@ -16,3 +16,5 @@ Uutta tässä versiossa:
 
 Pohja: 0.17.6.17 Editointitila sulkeutuu nuottisivulta.
 Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeisen rivin venytystoiminnot on säilytetty.
+
+0.17.6.19: Varren suunta ja slurin sijoitus kiertävät yhdellä painikkeella ilman avautuvia lisäpainikkeita.

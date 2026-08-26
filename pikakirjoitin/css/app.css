@@ -1528,7 +1528,7 @@ button {
   box-shadow: inset 0 0 0 1px rgba(35, 101, 170, .12);
 }
 
-/* 0.17.6.18 · Varren suunta ja slurin sijoitus kelluvassa valintapalkissa */
+/* 0.17.6.19 · Varren ja slurin suunta yhdellä painikkeella, ei flyouteja */
 .pk-selection-editor .pk-direction-control {
   position: relative;
 }
@@ -1545,38 +1545,7 @@ button {
   pointer-events: none;
 }
 
-.pk-selection-editor .pk-direction-flyout {
-  position: absolute;
-  z-index: 4;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
-  display: flex;
-  gap: 5px;
-  padding: 6px;
-  border: 1px solid #697582;
-  border-radius: 10px;
-  background: rgba(32, 36, 42, .98);
-  box-shadow: 0 6px 18px rgba(17, 24, 32, .3);
-}
 
-.pk-selection-editor .pk-direction-flyout[hidden] {
-  display: none;
-}
-
-.pk-selection-editor .pk-direction-flyout button {
-  width: 40px;
-  height: 36px;
-}
-
-.pk-selection-editor .pk-direction-flyout button img {
-  width: 30px;
-  height: 22px;
-  object-fit: contain;
-  pointer-events: none;
-}
-
-.pk-selection-editor .pk-direction-flyout button.active,
 .pk-selection-editor [data-action="stem-direction"].active,
 .pk-selection-editor [data-action="slur-placement"].active {
   border-color: #2365aa;
@@ -1587,7 +1556,6 @@ button {
     0 0 0 2px rgba(35, 101, 170, .24);
 }
 
-.pk-selection-editor .pk-direction-flyout button.active img,
 .pk-selection-editor [data-action="stem-direction"].active img,
 .pk-selection-editor [data-action="slur-placement"].active img {
   filter: brightness(0) invert(1);
