@@ -463,7 +463,8 @@
 
   const LAYOUT_DEFAULTS = {
     notationScale: 1,
-    pageMargins: { top: 5, right: 5, bottom: 5, left: 5 }
+    systemSpacing: 1,
+    pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
   };
   let layoutEditSnapshot = null;
   let layoutRenderTimer = 0;
@@ -477,6 +478,7 @@
     const layout = currentLayout();
     const fields = {
       notationSizeSlider: Math.round(layout.notationScale * 100),
+      systemSpacingSlider: Math.round(layout.systemSpacing * 100),
       topMarginSlider: layout.pageMargins.top,
       bottomMarginSlider: layout.pageMargins.bottom,
       leftMarginSlider: layout.pageMargins.left,
@@ -490,6 +492,8 @@
 
     const sizeOutput = document.getElementById("notationSizeValue");
     if (sizeOutput) sizeOutput.textContent = Math.round(layout.notationScale * 100) + " %";
+    const spacingOutput = document.getElementById("systemSpacingValue");
+    if (spacingOutput) spacingOutput.textContent = Math.round(layout.systemSpacing * 100) + " %";
 
     [
       ["topMarginValue", layout.pageMargins.top],
@@ -523,6 +527,7 @@
     const setting = input.dataset.layoutSetting;
 
     if (setting === "notationScale") layout.notationScale = Math.max(0.75, Math.min(1.2, value / 100));
+    if (setting === "systemSpacing") layout.systemSpacing = Math.max(0.5, Math.min(3, value / 100));
     if (setting === "marginTop") layout.pageMargins.top = Math.max(0, Math.min(12, value));
     if (setting === "marginBottom") layout.pageMargins.bottom = Math.max(0, Math.min(12, value));
     if (setting === "marginLeft") layout.pageMargins.left = Math.max(0, Math.min(12, value));
@@ -580,6 +585,7 @@
         const snapshot = historySnapshot("Asettelu");
         const layout = currentLayout();
         layout.notationScale = LAYOUT_DEFAULTS.notationScale;
+        layout.systemSpacing = LAYOUT_DEFAULTS.systemSpacing;
         layout.pageMargins = clonePlain(LAYOUT_DEFAULTS.pageMargins);
         commitHistory(snapshot);
         setLayoutPanelValues();
@@ -923,7 +929,7 @@
     const meter = timeSettings(settings.timeSignature);
 
     score.metadata.title = settings.title || I18N.t("appName");
-    score.metadata.partName = I18N.t("flute");
+    score.metadata.partName = settings.instrumentName || I18N.t("flute");
     score.metadata.composer = settings.composer || "";
     score.metadata.tempoText = settings.tempoText || "";
     score.key = Number.isInteger(settings.keySignature) ? settings.keySignature : 0;

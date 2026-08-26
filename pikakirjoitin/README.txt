@@ -71,3 +71,13 @@ BASE 0.17.6.1
 - PDF sijoittaa OSMD:n SVG:n A4-sivulle saman suhteellisen .a4-paper-geometrian mukaan kuin ruudulla.
 - Käyttäjän OSMD PageMargins -säädöt näkyvät näin PDF:ssä samassa suhteessa kuin näytöllä.
 - Nuottikoon maksimi on nyt 120 %.
+
+
+BASE 0.17.6.2 – soitinnimi, riviväli ja marginaalien uudet oletukset
+- Aloitusikkunassa on vapaa Soitin / Instrument -kenttä. Oletus on FI: Huilu, EN: Flute.
+- Soitinnimi tallennetaan Score Modelin metadataan ja MusicXML:n <part-name>-kenttään. OSMD sijoittaa ja piirtää nimen omalla engraver-logiikallaan.
+- Asettelu-paneeliin lisätty Riviväli / System spacing 50–300 %, oletus 100 %.
+- Riviväli käyttää OSMD 2.1.2:n MinimumDistanceBetweenSystems- ja MinSkyBottomDistBetweenSystems-sääntöjä, ei CSS-skaalausta.
+- Vasen ja oikea sivumarginaali ovat uusissa projekteissa oletuksena 2.5. Ylä- ja alamarginaali säilyvät oletuksena 5.
+- Nuottikoon maksimi säilyy 120 %:ssa.
+- Vanhat projektit säilyttävät niihin tallennetut layout-arvot.

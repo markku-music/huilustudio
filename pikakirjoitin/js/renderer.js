@@ -171,10 +171,14 @@
     let notationScale = Number(source.notationScale);
     if (!Number.isFinite(notationScale)) notationScale = 1;
 
+    let systemSpacing = Number(source.systemSpacing);
+    if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
+
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
       const value = Number(sourceMargins[name]);
-      return Number.isFinite(value) ? Math.max(0, Math.min(12, value)) : 5;
+      const fallback = (name === "left" || name === "right") ? 2.5 : 5;
+      return Number.isFinite(value) ? Math.max(0, Math.min(12, value)) : fallback;
     }
 
     return {
@@ -184,6 +188,7 @@
       lastSystemMaxScalingFactor:
         Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
+      systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),
@@ -208,6 +213,11 @@
     osmd.EngravingRules.PageRightMargin = normalized.pageMargins.right;
     osmd.EngravingRules.PageBottomMargin = normalized.pageMargins.bottom;
     osmd.EngravingRules.PageLeftMargin = normalized.pageMargins.left;
+
+    // OSMD 2.1.2:n omat pystyasettelun säännöt. 100 % säilyttää
+    // OSMD:n oletusvälin (7 / 5), joten säätö ei perustu CSS-venytykseen.
+    osmd.EngravingRules.MinimumDistanceBetweenSystems = 7 * normalized.systemSpacing;
+    osmd.EngravingRules.MinSkyBottomDistBetweenSystems = 5 * normalized.systemSpacing;
   }
 
   function finite(value, fallback) {

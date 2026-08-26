@@ -122,10 +122,14 @@
     let notationScale = Number(source.notationScale);
     if (!Number.isFinite(notationScale)) notationScale = 1;
 
+    let systemSpacing = Number(source.systemSpacing);
+    if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
+
     const sourceMargins = source.pageMargins || {};
     function marginValue(name) {
       const value = Number(sourceMargins[name]);
-      return Number.isFinite(value) ? Math.max(0, Math.min(12, value)) : 5;
+      const fallback = (name === "left" || name === "right") ? 2.5 : 5;
+      return Number.isFinite(value) ? Math.max(0, Math.min(12, value)) : fallback;
     }
 
     return {
@@ -134,6 +138,7 @@
       }),
       lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
+      systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
       pageMargins: {
         top: marginValue("top"),
         right: marginValue("right"),

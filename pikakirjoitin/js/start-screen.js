@@ -60,6 +60,7 @@ class StartScreen {
     this.#themeStyle.id = 'dynamicThemeStyle';
     document.head.appendChild(this.#themeStyle);
     this.#restorePreferences();
+    this.#syncInstrumentDefault(true);
     this.#localizeKeyOptions();
     this.#buildKeyWheel();
     this.#buildMeterWheel();
@@ -79,7 +80,7 @@ class StartScreen {
       modal:byId('projectModal'), form:byId('projectForm'), startButton:byId('projectSaveButton'), status:byId('startStatus'),
       recentTrigger:byId('recentProjectsTrigger'), recentPanel:byId('recentProjectsPanel'), recentList:byId('recentProjectsList'),
       openProjectFileButton:byId('openProjectFileButton'), projectFileInput:byId('projectFileInput'),
-      titleInput:byId('titleInput'), tempoInput:byId('tempoInput'), composerInput:byId('composerInput'), themeSelect:byId('themeSelect'),
+      titleInput:byId('titleInput'), tempoInput:byId('tempoInput'), composerInput:byId('composerInput'), instrumentInput:byId('instrumentInput'), themeSelect:byId('themeSelect'),
       keySignatureSelect:byId('keySignatureSelect'), keyTrigger:byId('keyTrigger'), keyTriggerValue:byId('keyTriggerValue'), keyWheelPopover:byId('keyWheelPopover'), keyWheelSlots:byId('keyWheelSlots'), keyWheelClose:byId('keyWheelClose'),
       timeSignatureSelect:byId('timeSignatureSelect'), meterTrigger:byId('meterTrigger'), meterTriggerValue:byId('meterTriggerValue'), meterWheelPopover:byId('meterWheelPopover'), meterWheelSlots:byId('meterWheelSlots'), meterWheelClose:byId('meterWheelClose'),
       pickupSelect:byId('pickupSelect'), pickupChoices:byId('pickupChoices'), tuningSelect:byId('tuningSelect'), tuningChoices:byId('tuningChoices'), clefSelect:byId('clefSelect'), clefChoices:byId('clefChoices')
@@ -104,6 +105,7 @@ class StartScreen {
     e.tuningChoices.addEventListener('click', ev => this.#chooseNotation(ev));
     e.clefChoices.addEventListener('click', ev => this.#chooseNotation(ev));
     e.themeSelect.addEventListener('change', () => { this.#applyTheme(this.#currentThemeId()); this.#savePreferences(); });
+    if(e.instrumentInput) e.instrumentInput.addEventListener('input', () => { e.instrumentInput.dataset.autoDefault='false'; });
     e.form.addEventListener('submit', ev => this.#submit(ev));
     document.addEventListener('keydown', ev => {
       if(ev.key!=='Escape') return;
@@ -118,7 +120,16 @@ class StartScreen {
       o.textContent = I18N.keySignatureName(o.dataset.tonic || 'C', o.dataset.mode || 'major');
     });
   }
+  #syncInstrumentDefault(force){
+    const input=this.#els.instrumentInput;
+    if(!input) return;
+    if(force || input.dataset.autoDefault!=='false'){
+      input.value=I18N.t('flute');
+      input.dataset.autoDefault='true';
+    }
+  }
   #languageChanged(){
+    this.#syncInstrumentDefault(false);
     this.#localizeKeyOptions();
     this.#buildKeyWheel();
     this.#buildMeterWheel();
@@ -254,7 +265,7 @@ class StartScreen {
     }catch(error){ console.error(error); e.status.textContent=I18N.t('invalidProjectFile'); }
   }
 
-  #settings(){ const e=this.#els,key=this.#selectedKeyInfo(); return { title:e.titleInput.value.trim(), composer:e.composerInput.value.trim(), tempoText:e.tempoInput.value.trim(), themeId:this.#currentThemeId(), language:I18N.getLanguage(), keySignature:key.fifths, keyMode:key.mode, keyTonic:key.tonic, keySignatureName:key.name, timeSignature:e.timeSignatureSelect.value, pickupDuration:Number(e.pickupSelect.value)||0, tuning:e.tuningSelect.value, transpose:TUNING_TRANSPOSES[e.tuningSelect.value]||0, clef:e.clefSelect.value||'treble', keyboardStartMidi:CLEF_KEYBOARD_STARTS[e.clefSelect.value]??60 }; }
+  #settings(){ const e=this.#els,key=this.#selectedKeyInfo(); return { title:e.titleInput.value.trim(), composer:e.composerInput.value.trim(), instrumentName:e.instrumentInput?e.instrumentInput.value.trim():'', tempoText:e.tempoInput.value.trim(), themeId:this.#currentThemeId(), language:I18N.getLanguage(), keySignature:key.fifths, keyMode:key.mode, keyTonic:key.tonic, keySignatureName:key.name, timeSignature:e.timeSignatureSelect.value, pickupDuration:Number(e.pickupSelect.value)||0, tuning:e.tuningSelect.value, transpose:TUNING_TRANSPOSES[e.tuningSelect.value]||0, clef:e.clefSelect.value||'treble', keyboardStartMidi:CLEF_KEYBOARD_STARTS[e.clefSelect.value]??60 }; }
 
   async #submit(ev){
     ev.preventDefault();

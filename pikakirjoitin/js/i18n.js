@@ -7,8 +7,8 @@
   const STRINGS = {
     fi: {
       appName: "Pikakirjoitin 3",
-      documentTitle: "Pikakirjoitin 3 · BASE 0.17.6.1",
-      subtitle: "BASE 0.17.6.1 · PDF-asettelu · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "Pikakirjoitin 3 · BASE 0.17.6.2",
+      subtitle: "BASE 0.17.6.2 · Soitinnimi · Riviväli · Marginaalit 2.5 · PDF-asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -24,6 +24,7 @@
       name: "Nimi",
       tempoText: "Tempoteksti",
       composer: "Säveltäjä",
+      instrument: "Soitin",
       keySignature: "Sävellaji",
       timeSignature: "Tahtilaji",
       pickup: "Kohotahti",
@@ -62,6 +63,7 @@
       print: "Tulosta",
       layoutSettings: "Asettelu",
       notationSize: "Nuottikoko",
+      systemSpacing: "Riviväli",
       topMargin: "Ylämarginaali",
       bottomMargin: "Alamarginaali",
       leftMargin: "Vasen marginaali",
@@ -107,8 +109,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · BASE 0.17.6.1",
-      subtitle: "BASE 0.17.6.1 · PDF layout · Layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · BASE 0.17.6.2",
+      subtitle: "BASE 0.17.6.2 · Instrument name · System spacing · Margins 2.5 · PDF layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
@@ -124,6 +126,7 @@
       name: "Title",
       tempoText: "Tempo text",
       composer: "Composer",
+      instrument: "Instrument",
       keySignature: "Key signature",
       timeSignature: "Time signature",
       pickup: "Pickup",
@@ -162,6 +165,7 @@
       print: "Print",
       layoutSettings: "Layout",
       notationSize: "Notation size",
+      systemSpacing: "System spacing",
       topMargin: "Top margin",
       bottomMargin: "Bottom margin",
       leftMargin: "Left margin",
@@ -409,6 +413,8 @@
     setAttr("#tempoInput", "aria-label", "tempoText", scope);
     setAttr("#composerInput", "placeholder", "composer", scope);
     setAttr("#composerInput", "aria-label", "composer", scope);
+    setAttr("#instrumentInput", "placeholder", "instrument", scope);
+    setAttr("#instrumentInput", "aria-label", "instrument", scope);
     setAttr("#keySignatureSelect", "aria-label", "keySignature", scope);
     setAttr("#timeSignatureSelect", "aria-label", "timeSignature", scope);
     setAttr(".pickup-control", "aria-label", "pickup", scope);
@@ -459,6 +465,7 @@
     setAttr('#layoutSettingsPanel', "aria-label", "layoutSettings", scope);
     setText('#layoutSettingsTitle', "layoutSettings", scope);
     setText('#notationSizeLabel', "notationSize", scope);
+    setText('#systemSpacingLabel', "systemSpacing", scope);
     setText('#topMarginLabel', "topMargin", scope);
     setText('#bottomMarginLabel', "bottomMargin", scope);
     setText('#leftMarginLabel', "leftMargin", scope);
