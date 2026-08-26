@@ -214,7 +214,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.4",
+      version: "0.17.6",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -432,6 +432,135 @@
   function printScore() {
     audio.noteOff();
     window.print();
+  }
+
+  const LAYOUT_DEFAULTS = {
+    notationScale: 1,
+    pageMargins: { top: 5, right: 5, bottom: 5, left: 5 }
+  };
+  let layoutEditSnapshot = null;
+  let layoutRenderTimer = 0;
+
+  function currentLayout() {
+    score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
+    return score.layout;
+  }
+
+  function setLayoutPanelValues() {
+    const layout = currentLayout();
+    const fields = {
+      notationSizeSlider: Math.round(layout.notationScale * 100),
+      topMarginSlider: layout.pageMargins.top,
+      bottomMarginSlider: layout.pageMargins.bottom,
+      leftMarginSlider: layout.pageMargins.left,
+      rightMarginSlider: layout.pageMargins.right
+    };
+
+    Object.keys(fields).forEach(function (id) {
+      const input = document.getElementById(id);
+      if (input) input.value = String(fields[id]);
+    });
+
+    const sizeOutput = document.getElementById("notationSizeValue");
+    if (sizeOutput) sizeOutput.textContent = Math.round(layout.notationScale * 100) + " %";
+
+    [
+      ["topMarginValue", layout.pageMargins.top],
+      ["bottomMarginValue", layout.pageMargins.bottom],
+      ["leftMarginValue", layout.pageMargins.left],
+      ["rightMarginValue", layout.pageMargins.right]
+    ].forEach(function (pair) {
+      const output = document.getElementById(pair[0]);
+      if (output) output.textContent = Number(pair[1]).toFixed(pair[1] % 1 ? 1 : 0);
+    });
+  }
+
+  function scheduleLayoutRender() {
+    window.clearTimeout(layoutRenderTimer);
+    layoutRenderTimer = window.setTimeout(function () {
+      window.PikakirjoitinRenderer.rerenderLayout(score.layout, "layout-settings")
+        .then(function () {
+          refreshSelectionFromRenderedScore();
+          if (layoutEditor) layoutEditor.refresh();
+        })
+        .catch(function (error) {
+          console.error(error);
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+        });
+    }, 45);
+  }
+
+  function applyLayoutControl(input) {
+    const layout = currentLayout();
+    const value = Number(input.value);
+    const setting = input.dataset.layoutSetting;
+
+    if (setting === "notationScale") layout.notationScale = Math.max(0.75, Math.min(1.4, value / 100));
+    if (setting === "marginTop") layout.pageMargins.top = Math.max(0, Math.min(12, value));
+    if (setting === "marginBottom") layout.pageMargins.bottom = Math.max(0, Math.min(12, value));
+    if (setting === "marginLeft") layout.pageMargins.left = Math.max(0, Math.min(12, value));
+    if (setting === "marginRight") layout.pageMargins.right = Math.max(0, Math.min(12, value));
+
+    setLayoutPanelValues();
+    scheduleLayoutRender();
+  }
+
+  function setupLayoutSettings() {
+    const button = document.getElementById("layoutSettingsButton");
+    const panel = document.getElementById("layoutSettingsPanel");
+    const close = document.getElementById("layoutSettingsClose");
+    const reset = document.getElementById("layoutResetButton");
+    const inputs = Array.from(document.querySelectorAll("[data-layout-setting]"));
+    if (!button || !panel) return;
+
+    function setOpen(open) {
+      panel.hidden = !open;
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) setLayoutPanelValues();
+    }
+
+    button.addEventListener("click", function () {
+      setOpen(panel.hidden);
+    });
+    if (close) close.addEventListener("click", function () { setOpen(false); });
+
+    inputs.forEach(function (input) {
+      function beginEdit() {
+        if (!layoutEditSnapshot) layoutEditSnapshot = historySnapshot("Asettelu");
+      }
+      input.addEventListener("pointerdown", beginEdit);
+      input.addEventListener("focus", beginEdit);
+      input.addEventListener("input", function () {
+        beginEdit();
+        applyLayoutControl(input);
+      });
+      input.addEventListener("change", function () {
+        if (layoutEditSnapshot) {
+          commitHistory(layoutEditSnapshot);
+          layoutEditSnapshot = null;
+        }
+      });
+      input.addEventListener("blur", function () {
+        if (layoutEditSnapshot) {
+          commitHistory(layoutEditSnapshot);
+          layoutEditSnapshot = null;
+        }
+      });
+    });
+
+    if (reset) {
+      reset.addEventListener("click", function () {
+        const snapshot = historySnapshot("Asettelu");
+        const layout = currentLayout();
+        layout.notationScale = LAYOUT_DEFAULTS.notationScale;
+        layout.pageMargins = clonePlain(LAYOUT_DEFAULTS.pageMargins);
+        commitHistory(snapshot);
+        setLayoutPanelValues();
+        scheduleLayoutRender();
+      });
+    }
+
+    setLayoutPanelValues();
   }
 
   function setupHistoryControls() {
@@ -1209,6 +1338,7 @@
 
   function start() {
     setupHistoryControls();
+    setupLayoutSettings();
     setupSelection();
     setupSystemLayoutEditor();
 

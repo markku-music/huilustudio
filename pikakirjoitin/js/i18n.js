@@ -7,8 +7,8 @@
   const STRINGS = {
     fi: {
       appName: "Pikakirjoitin 3",
-      documentTitle: "Pikakirjoitin 3 · BASE 0.17.5",
-      subtitle: "BASE 0.17.5 · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "Pikakirjoitin 3 · BASE 0.17.6",
+      subtitle: "BASE 0.17.6 · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -60,6 +60,14 @@
       save: "Tallenna",
       savePdf: "Tallenna PDF",
       print: "Tulosta",
+      layoutSettings: "Asettelu",
+      notationSize: "Nuottikoko",
+      topMargin: "Ylämarginaali",
+      bottomMargin: "Alamarginaali",
+      leftMargin: "Vasen marginaali",
+      rightMargin: "Oikea marginaali",
+      resetLayout: "Palauta oletukset",
+      closeLayout: "Sulje asettelu",
       durationGestures: "Aika-arvoeleet",
       tap: "Napauta",
       hold: "Pidä",
@@ -99,8 +107,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · BASE 0.17.5",
-      subtitle: "BASE 0.17.5 · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · BASE 0.17.6",
+      subtitle: "BASE 0.17.6 · Layout · Articulations · Recent 50 · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
@@ -152,6 +160,14 @@
       save: "Save",
       savePdf: "Save PDF",
       print: "Print",
+      layoutSettings: "Layout",
+      notationSize: "Notation size",
+      topMargin: "Top margin",
+      bottomMargin: "Bottom margin",
+      leftMargin: "Left margin",
+      rightMargin: "Right margin",
+      resetLayout: "Reset defaults",
+      closeLayout: "Close layout",
       durationGestures: "Duration gestures",
       tap: "Tap",
       hold: "Hold",
@@ -438,6 +454,17 @@
     setAttr('#savePdfButton', "aria-label", "savePdf", scope);
     setAttr('#printButton', "aria-label", "print", scope);
     setAttr('#printButton', "title", "print", scope);
+    setAttr('#layoutSettingsButton', "aria-label", "layoutSettings", scope);
+    setAttr('#layoutSettingsButton', "title", "layoutSettings", scope);
+    setAttr('#layoutSettingsPanel', "aria-label", "layoutSettings", scope);
+    setText('#layoutSettingsTitle', "layoutSettings", scope);
+    setText('#notationSizeLabel', "notationSize", scope);
+    setText('#topMarginLabel', "topMargin", scope);
+    setText('#bottomMarginLabel', "bottomMargin", scope);
+    setText('#leftMarginLabel', "leftMargin", scope);
+    setText('#rightMarginLabel', "rightMargin", scope);
+    setText('#layoutResetButton', "resetLayout", scope);
+    setAttr('#layoutSettingsClose', "aria-label", "closeLayout", scope);
     setAttr('.gesture-guide', "aria-label", "durationGestures", scope);
 
     const gestureSpans = scope.querySelectorAll('.gesture-guide span');

@@ -16,7 +16,9 @@
   let currentZoom = 1;
   let lastLayoutOptions = {
     systemBreaks: [],
-    lastSystemMaxScalingFactor: 1.4
+    lastSystemMaxScalingFactor: 1.4,
+    notationScale: 1,
+    pageMargins: { top: 5, right: 5, bottom: 5, left: 5 }
   };
 
   const renderedListeners = new Set();
@@ -67,21 +69,25 @@
   function applyOrientationZoom() {
     const width = paperWidth();
 
+    let orientationZoom = 1;
+
     if (isPortraitViewport()) {
       // Portrait on nuottikoon referenssi, aivan kuten P2:ssa.
       portraitReferenceWidth = width;
-      currentZoom = 1;
+      orientationZoom = 1;
     } else {
       const referenceWidth = portraitWidthEstimate(width);
 
       // Landscape skaalataan samassa suhteessa kuin paperi leveni portraitiin
       // nähden. Näin nuottirivien suhteellinen koko paperiin säilyy.
-      currentZoom = Math.max(
+      orientationZoom = Math.max(
         1,
         Math.min(1.6, width / Math.max(1, referenceWidth))
       );
     }
 
+    const notationScale = Number(lastLayoutOptions.notationScale) || 1;
+    currentZoom = Math.max(0.6, Math.min(2.25, orientationZoom * notationScale));
     osmd.Zoom = currentZoom;
   }
 
@@ -162,12 +168,28 @@
     let factor = Number(source.lastSystemMaxScalingFactor);
     if (!Number.isFinite(factor)) factor = 1.4;
 
+    let notationScale = Number(source.notationScale);
+    if (!Number.isFinite(notationScale)) notationScale = 1;
+
+    const sourceMargins = source.pageMargins || {};
+    function marginValue(name) {
+      const value = Number(sourceMargins[name]);
+      return Number.isFinite(value) ? Math.max(0, Math.min(12, value)) : 5;
+    }
+
     return {
       systemBreaks: Array.isArray(source.systemBreaks)
         ? source.systemBreaks.slice()
         : [],
       lastSystemMaxScalingFactor:
-        Math.max(1, Math.min(6, factor))
+        Math.max(1, Math.min(6, factor)),
+      notationScale: Math.max(0.75, Math.min(1.4, notationScale)),
+      pageMargins: {
+        top: marginValue("top"),
+        right: marginValue("right"),
+        bottom: marginValue("bottom"),
+        left: marginValue("left")
+      }
     };
   }
 
@@ -181,6 +203,11 @@
     osmd.EngravingRules.StretchLastSystemLine = false;
     osmd.EngravingRules.LastSystemMaxScalingFactor =
       normalized.lastSystemMaxScalingFactor;
+
+    osmd.EngravingRules.PageTopMargin = normalized.pageMargins.top;
+    osmd.EngravingRules.PageRightMargin = normalized.pageMargins.right;
+    osmd.EngravingRules.PageBottomMargin = normalized.pageMargins.bottom;
+    osmd.EngravingRules.PageLeftMargin = normalized.pageMargins.left;
   }
 
   function finite(value, fallback) {
@@ -552,6 +579,8 @@
     rendering = rendering.then(async function () {
       if (!osmd) return null;
 
+      lastLayoutOptions = nextLayout;
+      applyOrientationZoom();
       applyLayoutRules(nextLayout);
       await osmd.render();
       lastObservedPaperWidth = paperWidth();
@@ -574,6 +603,8 @@
       paperWidth: paperWidth(),
       portraitReferenceWidth: portraitReferenceWidth,
       portrait: isPortraitViewport(),
+      notationScale: lastLayoutOptions.notationScale,
+      pageMargins: Object.assign({}, lastLayoutOptions.pageMargins),
       autoResize: false
     };
   }

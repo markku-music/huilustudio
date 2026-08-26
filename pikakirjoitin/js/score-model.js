@@ -119,11 +119,27 @@
     let factor = Number(source.lastSystemMaxScalingFactor);
     if (!Number.isFinite(factor)) factor = 1.4;
 
+    let notationScale = Number(source.notationScale);
+    if (!Number.isFinite(notationScale)) notationScale = 1;
+
+    const sourceMargins = source.pageMargins || {};
+    function marginValue(name) {
+      const value = Number(sourceMargins[name]);
+      return Number.isFinite(value) ? Math.max(0, Math.min(12, value)) : 5;
+    }
+
     return {
       systemBreaks: Array.from(new Set(breaks)).sort(function (a, b) {
         return a - b;
       }),
-      lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor))
+      lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor)),
+      notationScale: Math.max(0.75, Math.min(1.4, notationScale)),
+      pageMargins: {
+        top: marginValue("top"),
+        right: marginValue("right"),
+        bottom: marginValue("bottom"),
+        left: marginValue("left")
+      }
     };
   }
 
