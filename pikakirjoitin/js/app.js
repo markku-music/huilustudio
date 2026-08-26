@@ -218,7 +218,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.14",
+      version: "0.17.6.18",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -1405,7 +1405,7 @@
             result.active
               ? (result.replacedCount
                   ? "Aiemmat valinta-alueen slurit korvattu uudella slurilla."
-                  : "Slur lisätty valittujen nuottien ylle.")
+                  : "Slur lisätty valituille nuoteille.")
               : "Slur poistettu valinnasta.",
             "ok"
           );
@@ -1418,6 +1418,64 @@
         });
       },
 
+
+      onStemDirection: function (direction) {
+        const ids = selectedIds();
+        if (!ids.length) return;
+        const model = window.PikakirjoitinScoreModel;
+        if (!model.canSetStemDirectionForSelection(score, ids)) return;
+
+        const nextDirection = direction === "up" || direction === "down" ? direction : "auto";
+        const undoSnapshot = historySnapshot("Varren suunta");
+        if (!model.setStemDirectionForSelection(score, ids, nextDirection)) return;
+        commitHistory(undoSnapshot);
+
+        renderScore().then(function () {
+          selection.retainIds(ids);
+          updateStatus(
+            nextDirection === "up"
+              ? "Varsi pakotettu ylös."
+              : nextDirection === "down"
+                ? "Varsi pakotettu alas."
+                : "Varren suunta palautettu automaattiseksi.",
+            "ok"
+          );
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+        });
+      },
+
+      onSlurPlacement: function (placement) {
+        const ids = selectedIds();
+        if (!ids.length) return;
+        const model = window.PikakirjoitinScoreModel;
+        const target = model.slurForDirectionSelection(score, ids);
+        if (!target) {
+          updateStatus("Slurin suunta vaatii yhden yksiselitteisen slurin.", "error");
+          return;
+        }
+
+        const nextPlacement = placement === "above" || placement === "below" ? placement : "auto";
+        const undoSnapshot = historySnapshot("Slurin suunta");
+        if (!model.setSlurPlacement(score, target.id, nextPlacement)) return;
+        commitHistory(undoSnapshot);
+
+        renderScore().then(function () {
+          selection.retainIds(ids);
+          updateStatus(
+            nextPlacement === "above"
+              ? "Slur pakotettu nuottien yläpuolelle."
+              : nextPlacement === "below"
+                ? "Slur pakotettu nuottien alapuolelle."
+                : "Slurin suunta palautettu automaattiseksi.",
+            "ok"
+          );
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+        });
+      },
 
       onBeam: function () {
         const ids = selectedIds();
@@ -1567,6 +1625,9 @@
       const canCreateMultiSlur =
         window.PikakirjoitinScoreModel.canCreateSlurFromSelection(score, ids);
 
+      const slurDirectionTarget =
+        window.PikakirjoitinScoreModel.slurForDirectionSelection(score, ids);
+
       selectionEditor.update({
         visible: true,
         x: anchor.x,
@@ -1578,6 +1639,12 @@
           window.PikakirjoitinScoreModel.canEnharmonic(score, single.id)
         ),
         singleSelection: state.count === 1,
+        canStemDirection: window.PikakirjoitinScoreModel.canSetStemDirectionForSelection(score, ids),
+        stemDirection: window.PikakirjoitinScoreModel.stemDirectionForSelection(score, ids),
+        canSlurPlacement: Boolean(slurDirectionTarget),
+        slurPlacement: slurDirectionTarget
+          ? window.PikakirjoitinScoreModel.getSlurPlacement(score, slurDirectionTarget.id)
+          : "auto",
         slurChoices: singleSlurChoices,
         canSlur:
           state.count === 1

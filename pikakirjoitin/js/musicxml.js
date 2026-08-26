@@ -126,7 +126,10 @@
     }
 
     if (entry.slurStart) {
-      notations.push('          <slur type="start" number="1"/>');
+      const placement = entry.slurPlacement === "above" || entry.slurPlacement === "below"
+        ? ' placement="' + entry.slurPlacement + '"'
+        : "";
+      notations.push('          <slur type="start" number="1"' + placement + '/>');
     }
 
     const articulations = Array.isArray(entry.articulations)
@@ -198,6 +201,10 @@
 
     parts.push.apply(parts, dotsToXML(entry.dots));
 
+    if (entry.stemDirection === "up" || entry.stemDirection === "down") {
+      parts.push('        <stem>' + entry.stemDirection + '</stem>');
+    }
+
     if (entry.beam) {
       parts.push('        <beam number="1">' + escapeXML(entry.beam) + '</beam>');
     }
@@ -261,15 +268,22 @@
   function buildSlurMarkers(score) {
     const startIds = new Set();
     const stopIds = new Set();
+    const startPlacements = new Map();
     const slurs = Array.isArray(score && score.slurs) ? score.slurs : [];
 
     slurs.forEach(function (slur) {
       if (!slur || !slur.startId || !slur.endId) return;
       startIds.add(slur.startId);
       stopIds.add(slur.endId);
+      const placement = slur.placement === "above" || slur.placement === "below"
+        ? slur.placement
+        : "auto";
+      if (!startPlacements.has(slur.startId) || placement !== "auto") {
+        startPlacements.set(slur.startId, placement);
+      }
     });
 
-    return { startIds: startIds, stopIds: stopIds };
+    return { startIds: startIds, stopIds: stopIds, startPlacements: startPlacements };
   }
 
   function pitchMidiValue(pitch) {
@@ -336,7 +350,7 @@
     return { startIds: startIds, stopIds: stopIds };
   }
 
-  function makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, articulations) {
+  function makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, slurPlacement, articulations) {
     const piece = {
       id: entry.id,
       sourceId: entry.id,
@@ -352,6 +366,12 @@
       piece.tieStart = Boolean(tieStart);
       piece.slurStop = Boolean(slurStop);
       piece.slurStart = Boolean(slurStart);
+      piece.stemDirection = entry.stemDirection === "up" || entry.stemDirection === "down"
+        ? entry.stemDirection
+        : "auto";
+      if (piece.slurStart && (slurPlacement === "above" || slurPlacement === "below")) {
+        piece.slurPlacement = slurPlacement;
+      }
       if (Array.isArray(articulations) && articulations.length) {
         piece.articulations = articulations.slice();
       }
@@ -409,6 +429,9 @@
       let consumed = 0;
       const hasSourceSlurStart = Boolean(slurMarkers && slurMarkers.startIds && slurMarkers.startIds.has(entry.id));
       const hasSourceSlurStop = Boolean(slurMarkers && slurMarkers.stopIds && slurMarkers.stopIds.has(entry.id));
+      const sourceSlurPlacement = slurMarkers && slurMarkers.startPlacements
+        ? slurMarkers.startPlacements.get(entry.id) || "auto"
+        : "auto";
       const hasManualTieStart = Boolean(
         manualTieMarkers &&
         manualTieMarkers.startIds &&
@@ -448,7 +471,7 @@
           const slurStop = entry.kind !== "rest" && hasSourceSlurStop && isLastPiece;
 
           current.entries.push(
-            makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, isFirstPiece ? entry.articulations : [])
+            makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, sourceSlurPlacement, isFirstPiece ? entry.articulations : [])
           );
 
           current.used += choice.value;
@@ -868,7 +891,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.14</software>
+      <software>Pikakirjoitin 3 0.17.6.18</software>
     </encoding>
   </identification>
   <defaults>

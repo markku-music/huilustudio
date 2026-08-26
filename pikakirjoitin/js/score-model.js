@@ -15,6 +15,16 @@
     }).map(String)));
   }
 
+  function normalizeStemDirection(value) {
+    const direction = String(value || "auto");
+    return direction === "up" || direction === "down" ? direction : "auto";
+  }
+
+  function normalizeSlurPlacement(value) {
+    const placement = String(value || "auto");
+    return placement === "above" || placement === "below" ? placement : "auto";
+  }
+
   const DURATION_UNITS = {
     whole: 128,
     half: 64,
@@ -81,8 +91,10 @@
     copy.measureRest = Boolean(copy.measureRest);
     if (copy.kind === "rest") {
       delete copy.articulations;
+      delete copy.stemDirection;
     } else {
       copy.articulations = normalizeArticulations(copy.articulations);
+      copy.stemDirection = normalizeStemDirection(copy.stemDirection);
     }
     return copy;
   }
@@ -92,7 +104,8 @@
     return {
       id: slur.id || makeSlurId(),
       startId: String(slur.startId),
-      endId: String(slur.endId)
+      endId: String(slur.endId),
+      placement: normalizeSlurPlacement(slur.placement)
     };
   }
 
@@ -358,7 +371,8 @@
       duration: String(note.duration),
       dots: normalizeDots(note.dots),
       measureRest: false,
-      articulations: normalizeArticulations(note.articulations)
+      articulations: normalizeArticulations(note.articulations),
+      stemDirection: normalizeStemDirection(note.stemDirection)
     };
 
     score.notes.push(created);
@@ -770,6 +784,7 @@
       if (seen.has(key)) return false;
       seen.add(key);
       if (!slur.id) slur.id = makeSlurId();
+      slur.placement = normalizeSlurPlacement(slur.placement);
       return true;
     });
 
@@ -813,13 +828,16 @@
     if (patch.dots !== undefined) entry.dots = normalizeDots(patch.dots);
     if (patch.measureRest !== undefined) entry.measureRest = Boolean(patch.measureRest);
     if (patch.articulations !== undefined) entry.articulations = normalizeArticulations(patch.articulations);
+    if (patch.stemDirection !== undefined) entry.stemDirection = normalizeStemDirection(patch.stemDirection);
 
     if (entry.kind === "rest") {
       delete entry.pitch;
       delete entry.articulations;
+      delete entry.stemDirection;
       if (entry.dots > 0) entry.measureRest = false;
     } else {
       entry.measureRest = false;
+      entry.stemDirection = normalizeStemDirection(entry.stemDirection);
     }
 
     cleanupTies(score);
@@ -1365,7 +1383,7 @@
     );
   }
 
-  function addSlur(score, startId, endId) {
+  function addSlur(score, startId, endId, placement) {
     if (!score) return false;
     if (!Array.isArray(score.slurs)) score.slurs = [];
     const indexMap = noteIndexMap(score);
@@ -1375,7 +1393,12 @@
     if (!indexMap.has(startId) || !indexMap.has(endId)) return false;
     if (indexMap.get(startId) >= indexMap.get(endId)) return false;
     if (hasSlur(score, startId, endId)) return false;
-    score.slurs.push({ id: makeSlurId(), startId: startId, endId: endId });
+    score.slurs.push({
+      id: makeSlurId(),
+      startId: startId,
+      endId: endId,
+      placement: normalizeSlurPlacement(placement)
+    });
     cleanupSlurs(score);
     return true;
   }
@@ -1473,6 +1496,69 @@
     };
   }
 
+  function canSetStemDirectionForSelection(score, ids) {
+    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
+    const notes = selectedNoteEntries(score, ids);
+    return selected.size > 0 &&
+      notes.length === selected.size &&
+      notes.every(function (entry) { return entry.duration !== "whole"; });
+  }
+
+  function stemDirectionForSelection(score, ids) {
+    if (!canSetStemDirectionForSelection(score, ids)) return "mixed";
+    const notes = selectedNoteEntries(score, ids);
+    const values = new Set(notes.map(function (entry) {
+      return normalizeStemDirection(entry.stemDirection);
+    }));
+    return values.size === 1 ? Array.from(values)[0] : "mixed";
+  }
+
+  function setStemDirectionForSelection(score, ids, direction) {
+    if (!canSetStemDirectionForSelection(score, ids)) return false;
+    const normalized = normalizeStemDirection(direction);
+    selectedNoteEntries(score, ids).forEach(function (entry) {
+      entry.stemDirection = normalized;
+    });
+    return true;
+  }
+
+  function exactSlurForSelection(score, ids) {
+    if (!score || !Array.isArray(score.notes) || !Array.isArray(score.slurs)) return null;
+    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
+    const entries = score.notes.filter(function (entry) {
+      return selected.has(entry.id);
+    });
+    if (entries.length < 2 || !entries.every(function (entry) { return entry.kind === "note"; })) return null;
+    const startId = entries[0].id;
+    const endId = entries[entries.length - 1].id;
+    return score.slurs.find(function (slur) {
+      return slur.startId === startId && slur.endId === endId;
+    }) || null;
+  }
+
+  function slurForDirectionSelection(score, ids) {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.length === 1) {
+      const slurs = slursAtNote(score, list[0]);
+      return slurs.length === 1 ? slurs[0] : null;
+    }
+    return exactSlurForSelection(score, list);
+  }
+
+  function setSlurPlacement(score, slurId, placement) {
+    if (!score || !Array.isArray(score.slurs) || !slurId) return false;
+    const slur = score.slurs.find(function (item) { return item.id === slurId; });
+    if (!slur) return false;
+    slur.placement = normalizeSlurPlacement(placement);
+    return true;
+  }
+
+  function getSlurPlacement(score, slurId) {
+    if (!score || !Array.isArray(score.slurs) || !slurId) return "auto";
+    const slur = score.slurs.find(function (item) { return item.id === slurId; });
+    return slur ? normalizeSlurPlacement(slur.placement) : "auto";
+  }
+
   function hasSlurForSelection(score, ids) {
     if (!canCreateSlurFromSelection(score, ids)) return false;
     const selected = new Set(Array.isArray(ids) ? ids : [ids]);
@@ -1521,6 +1607,13 @@
     canCreateSlurFromSelection: canCreateSlurFromSelection,
     toggleSlurForSelection: toggleSlurForSelection,
     hasSlurForSelection: hasSlurForSelection,
+    canSetStemDirectionForSelection: canSetStemDirectionForSelection,
+    stemDirectionForSelection: stemDirectionForSelection,
+    setStemDirectionForSelection: setStemDirectionForSelection,
+    exactSlurForSelection: exactSlurForSelection,
+    slurForDirectionSelection: slurForDirectionSelection,
+    setSlurPlacement: setSlurPlacement,
+    getSlurPlacement: getSlurPlacement,
     normalizeLayout: normalizeLayout,
     getSystemBreaks: getSystemBreaks,
     hasSystemBreak: hasSystemBreak,
