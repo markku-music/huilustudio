@@ -460,9 +460,109 @@
     }
   }
 
+  function removePrintSnapshot() {
+    const snapshot = document.querySelector(".pk-print-snapshot");
+    if (snapshot) snapshot.remove();
+    document.body.classList.remove("pk-printing");
+    window.PikakirjoitinPrintMode = false;
+  }
+
+  function createPrintSnapshot() {
+    const oldSnapshot = document.querySelector(".pk-print-snapshot");
+    if (oldSnapshot) oldSnapshot.remove();
+
+    const paper = document.getElementById("a4Paper");
+    const container = document.getElementById("osmd-container");
+    if (!paper || !container) {
+      throw new Error("Nuottisivua ei löytynyt tulostusta varten.");
+    }
+
+    const paperRect = paper.getBoundingClientRect();
+    if (!(paperRect.width > 1 && paperRect.height > 1)) {
+      throw new Error("Nuottisivun mittoja ei voitu lukea.");
+    }
+
+    let svgs = Array.from(container.children).filter(function (element) {
+      return element.tagName && element.tagName.toLowerCase() === "svg";
+    });
+    if (!svgs.length) {
+      svgs = Array.from(container.querySelectorAll("svg")).filter(function (svg) {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 80 && rect.height > 80;
+      });
+    }
+    if (!svgs.length) {
+      throw new Error("Tulostukseen ei löytynyt nuottikuvaa.");
+    }
+
+    /*
+     * 0.17.6.20:
+     * Tulostus ei enää muuta oikean .a4-paper-elementin kokoa. Sen sijaan
+     * ruudulla jo valmiiksi renderöidystä SVG:stä tehdään print-only A4-kopio.
+     * Jokaisen SVG:n paikka ja koko tallennetaan prosentteina alkuperäisestä
+     * paperista. Tämä on sama geometria, jota PDF-tallennus käyttää.
+     */
+    const snapshot = document.createElement("div");
+    snapshot.className = "pk-print-snapshot";
+    snapshot.setAttribute("aria-hidden", "true");
+
+    svgs.forEach(function (svg) {
+      const rect = svg.getBoundingClientRect();
+      if (!(rect.width > 1 && rect.height > 1)) return;
+
+      const clone = svg.cloneNode(true);
+      if (clone.removeAttribute) clone.removeAttribute("id");
+      clone.querySelectorAll("[id]").forEach(function (element) {
+        element.removeAttribute("id");
+      });
+
+      const left = ((rect.left - paperRect.left) / paperRect.width) * 100;
+      const top = ((rect.top - paperRect.top) / paperRect.height) * 100;
+      const width = (rect.width / paperRect.width) * 100;
+      const height = (rect.height / paperRect.height) * 100;
+
+      clone.style.position = "absolute";
+      clone.style.left = left + "%";
+      clone.style.top = top + "%";
+      clone.style.width = width + "%";
+      clone.style.height = height + "%";
+      clone.style.maxWidth = "none";
+      clone.style.margin = "0";
+      clone.style.padding = "0";
+
+      snapshot.appendChild(clone);
+    });
+
+    if (!snapshot.children.length) {
+      throw new Error("Tulostukseen ei löytynyt näkyvää nuottikuvaa.");
+    }
+
+    document.body.appendChild(snapshot);
+    return snapshot;
+  }
+
   function printScore() {
     audio.noteOff();
-    window.print();
+
+    try {
+      createPrintSnapshot();
+      window.PikakirjoitinPrintMode = true;
+      document.body.classList.add("pk-printing");
+
+      const cleanup = function () {
+        removePrintSnapshot();
+      };
+      window.addEventListener("afterprint", cleanup, { once: true });
+
+      window.print();
+    } catch (error) {
+      console.error(error);
+      removePrintSnapshot();
+      updateStatus(
+        "Tulostus epäonnistui: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+    }
   }
 
   const LAYOUT_DEFAULTS = {

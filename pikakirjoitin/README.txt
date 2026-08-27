@@ -18,3 +18,10 @@ Pohja: 0.17.6.17 Editointitila sulkeutuu nuottisivulta.
 Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeisen rivin venytystoiminnot on säilytetty.
 
 0.17.6.19: Varren suunta ja slurin sijoitus kiertävät yhdellä painikkeella ilman avautuvia lisäpainikkeita.
+
+
+0.17.6.20
+- Print preview käyttää ruudulla valmiiksi renderöidystä OSMD-SVG:stä tehtyä A4-snapshotia.
+- Print previewn nuottigeometria vastaa PDF-tallennusta.
+- ResizeObserver ei rerenderöi OSMD:tä print previewn aikana.
+- Muu appi poistetaan print-layoutista display:none-menetelmällä, jotta tyhjää lisäsivua ei synny.
