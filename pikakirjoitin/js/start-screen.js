@@ -251,11 +251,6 @@ class StartScreen {
       await this.#onOpenProject?.(payload,meta||{});
     }catch(error){ console.error(error); e.status.textContent=I18N.t('recentOpenFailed'); return; }
     this.#closeRecents(); e.modal.hidden=true; const app=document.getElementById('app'); app.inert=false; app.removeAttribute('aria-hidden'); e.status.textContent='';
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        document.dispatchEvent(new CustomEvent('pk-project-ui-ready'));
-      });
-    });
   }
 
   async #openProjectFile(ev){
