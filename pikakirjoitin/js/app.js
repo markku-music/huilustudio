@@ -807,7 +807,7 @@
   }
 
   const LAYOUT_DEFAULTS = {
-    notationScale: 1,
+    notationScale: 0.95,
     systemSpacing: 1,
     instrumentCreditDistance: 14,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
@@ -1256,7 +1256,7 @@
       return dotWord(dots) + label + I18N.t("restSuffix");
     }
 
-    return displayPitch(pitch || (entry && entry.pitch) || "") + " " + dotWord(dots) + label;
+    return displayPitch((entry && entry.pitch) || pitch || "") + " " + dotWord(dots) + label;
   }
 
   function selectedIds() { return selection ? selection.selectedIds : []; }
@@ -1312,8 +1312,17 @@
     updateStatus("Slur alkaa valitusta nuotista · odottaa seuraavaa nuottia.", "ok");
   }
 
+  function keyAwareInputPitch(midi, fallbackPitch) {
+    const spelled = window.PikakirjoitinScoreModel.spellMidiForKey(
+      midi,
+      Number.isInteger(score.key) ? score.key : 0
+    );
+    return spelled || fallbackPitch;
+  }
+
   function startEntry(midi, pitch, duration) {
     const dots = thumbState.dots || 0;
+    const writtenPitch = keyAwareInputPitch(midi, pitch);
     const selected = selectedSingleNote();
     commitHistory(historySnapshot(selected ? "Nuotin muokkaus" : "Nuotin kirjoitus"));
 
@@ -1338,7 +1347,7 @@
       } else {
         window.PikakirjoitinScoreModel.updateEntry(score, editId, {
           kind: "note",
-          pitch: pitch,
+          pitch: writtenPitch,
           duration: duration,
           dots: dots,
           measureRest: false
@@ -1356,7 +1365,7 @@
       // varmistaa, että saman eleen duration-vaihe muokkaa samaa nuottia.
       if (selection) selection.retainSingle(editId);
 
-      updateStatus(entryLabel(edited, pitch, duration) + " · muokataan…");
+      updateStatus(entryLabel(edited, writtenPitch, duration) + " · muokataan…");
 
       renderScore().then(function () {
         if (selection && keyboardEditId === editId) {
@@ -1392,7 +1401,7 @@
           measureRest: duration === "whole" && dots === 0
         })
       : window.PikakirjoitinScoreModel.addNote(score, {
-          pitch: pitch,
+          pitch: writtenPitch,
           duration: duration,
           dots: dots
         });
@@ -1419,7 +1428,7 @@
       tieApplied: tieApplied
     });
 
-    updateStatus(entryLabel(entry, pitch, duration) + " · ele kesken…");
+    updateStatus(entryLabel(entry, writtenPitch, duration) + " · ele kesken…");
 
     renderScore().catch(function (error) {
       console.error(error);

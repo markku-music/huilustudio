@@ -64,6 +64,26 @@
     };
   }
 
+  const KEY_SIGNATURE_SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
+  const KEY_SIGNATURE_FLAT_ORDER = ["B", "E", "A", "D", "G", "C", "F"];
+
+  function keySignatureAlterMap(fifths) {
+    const value = Math.max(-7, Math.min(7, Math.round(Number(fifths) || 0)));
+    const map = { C:0, D:0, E:0, F:0, G:0, A:0, B:0 };
+    if (value > 0) {
+      KEY_SIGNATURE_SHARP_ORDER.slice(0, value).forEach(function (step) { map[step] = 1; });
+    } else if (value < 0) {
+      KEY_SIGNATURE_FLAT_ORDER.slice(0, -value).forEach(function (step) { map[step] = -1; });
+    }
+    return map;
+  }
+
+  function accidentalName(alter) {
+    if (alter === 1) return "sharp";
+    if (alter === -1) return "flat";
+    return "natural";
+  }
+
   function normalizeDots(value) {
     const dots = Number(value) || 0;
     return dots >= 2 ? 2 : dots >= 1 ? 1 : 0;
@@ -200,6 +220,14 @@
     );
 
     parts.push.apply(parts, dotsToXML(entry.dots));
+
+    if (entry.cautionaryAccidental) {
+      parts.push(
+        '        <accidental>' +
+        escapeXML(entry.cautionaryAccidental) +
+        '</accidental>'
+      );
+    }
 
     if (entry.stemDirection === "up" || entry.stemDirection === "down") {
       parts.push('        <stem>' + entry.stemDirection + '</stem>');
@@ -640,6 +668,54 @@
     return measures;
   }
 
+  // Jos edellisessä tahdissa on ollut sävellajin oletuksesta poikkeava
+  // saman sävelnimen muunnesävel, seuraavan tahdin ensimmäiseen uuteen
+  // (ei sidottuun jatkoon) saman sävelnimen sävellajin mukaiseen säveleen
+  // lisätään muistutusetumerkki. Merkki voi olla natural, sharp tai flat.
+  function annotateCautionaryAccidentals(measures, fifths) {
+    const keyMap = keySignatureAlterMap(fifths);
+    let previousChromaticSteps = new Set();
+
+    measures.forEach(function (measure, measureIndex) {
+      const entries = Array.isArray(measure.entries) ? measure.entries : [];
+      entries.forEach(function (entry) {
+        if (entry) delete entry.cautionaryAccidental;
+      });
+
+      if (measureIndex > 0 && previousChromaticSteps.size) {
+        const pending = new Set(previousChromaticSteps);
+
+        entries.forEach(function (entry) {
+          if (!entry || entry.kind !== "note" || !entry.pitch) return;
+
+          const pitch = parsePitch(entry.pitch);
+          if (!pending.has(pitch.step)) return;
+
+          // Sidotun nuotin jatkoon ei kirjoiteta uutta etumerkkiä. Jätetään
+          // muistutus odottamaan mahdollista myöhempää uutta iskua tahdissa.
+          if (entry.tieStop) return;
+
+          pending.delete(pitch.step);
+          const keyAlter = keyMap[pitch.step] || 0;
+          if (pitch.alter === keyAlter) {
+            entry.cautionaryAccidental = accidentalName(keyAlter);
+          }
+        });
+      }
+
+      const chromaticSteps = new Set();
+      entries.forEach(function (entry) {
+        if (!entry || entry.kind !== "note" || !entry.pitch || entry.tieStop) return;
+        const pitch = parsePitch(entry.pitch);
+        const keyAlter = keyMap[pitch.step] || 0;
+        if (pitch.alter !== keyAlter) chromaticSteps.add(pitch.step);
+      });
+      previousChromaticSteps = chromaticSteps;
+    });
+
+    return measures;
+  }
+
   function measureStyleXML(count) {
     if (!Number.isInteger(count) || count < 2) return "";
     return [
@@ -828,19 +904,22 @@
         : []
     );
 
-    const measures = annotateMultipleRests(
-      annotateBeams(
-        splitIntoMeasures(
-          score.notes,
-          capacity,
-          pickupCapacity,
-          slurMarkers,
-          manualTieMarkers
-        ),
-        score,
-        beats,
-        beatType
-      )
+    const measures = annotateCautionaryAccidentals(
+      annotateMultipleRests(
+        annotateBeams(
+          splitIntoMeasures(
+            score.notes,
+            capacity,
+            pickupCapacity,
+            slurMarkers,
+            manualTieMarkers
+          ),
+          score,
+          beats,
+          beatType
+        )
+      ),
+      fifths
     );
 
     const measureCount = measures.length;
@@ -891,7 +970,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.21</software>
+      <software>Pikakirjoitin 3 0.17.6.34</software>
     </encoding>
   </identification>
   <defaults>

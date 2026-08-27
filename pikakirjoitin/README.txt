@@ -75,3 +75,12 @@ toimimasta projektin avaamisen jalkeen.
 
 
 0.17.6.33: Tabletilla vain yksi kompakti PDF-painike. Erillinen Tulosta-painike piilotetaan display:none !important -luokalla, koska pelkkä hidden-attribuutti saattoi yliajautua .keyboard-tool-buttonin display:grid-säännöllä.
+
+
+0.17.6.34
+- Koskettimelta kirjoitetut sävelet nimetään automaattisesti valitun sävellajin mukaan.
+- Alennusmerkkisissä sävellajeissa kromaattiset mustat koskettimet suosivat bemolleja, muissa ylennyksiä.
+- Sävellajin diatoninen kirjoitusasu huomioidaan myös enharmonisesti (esim. Ges-duurin Cb).
+- Jos edellisessä tahdissa on ollut sävellajiin kuulumaton muunnesävel, seuraavan tahdin ensimmäiseen vastaavaan sävellajin mukaiseen säveleen lisätään muistutusetumerkki.
+- Sidotun nuotin jatkoon yli tahtiviivan ei lisätä muistutusetumerkkiä.
+- Nuottikuvan uusi oletuskoko on 95 %.

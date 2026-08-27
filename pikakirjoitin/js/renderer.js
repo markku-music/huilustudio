@@ -17,7 +17,7 @@
   let lastLayoutOptions = {
     systemBreaks: [],
     lastSystemMaxScalingFactor: 1.4,
-    notationScale: 1,
+    notationScale: 0.95,
     systemSpacing: 1,
     instrumentCreditDistance: 14,
     pageMargins: { top: 5, right: 2.5, bottom: 5, left: 2.5 }
@@ -175,7 +175,7 @@
     if (!Number.isFinite(factor)) factor = 1.4;
 
     let notationScale = Number(source.notationScale);
-    if (!Number.isFinite(notationScale)) notationScale = 1;
+    if (!Number.isFinite(notationScale)) notationScale = 0.95;
 
     let systemSpacing = Number(source.systemSpacing);
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;

@@ -119,6 +119,68 @@
     return first !== null && second !== null && first === second;
   }
 
+  const KEY_SIGNATURE_SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
+  const KEY_SIGNATURE_FLAT_ORDER = ["B", "E", "A", "D", "G", "C", "F"];
+  const PITCH_CLASS_BY_STEP = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
+  const STEP_ORDER = ["C", "D", "E", "F", "G", "A", "B"];
+  const SHARP_SPELLINGS = [
+    ["C",0], ["C",1], ["D",0], ["D",1], ["E",0], ["F",0],
+    ["F",1], ["G",0], ["G",1], ["A",0], ["A",1], ["B",0]
+  ];
+  const FLAT_SPELLINGS = [
+    ["C",0], ["D",-1], ["D",0], ["E",-1], ["E",0], ["F",0],
+    ["G",-1], ["G",0], ["A",-1], ["A",0], ["B",-1], ["B",0]
+  ];
+
+  function keySignatureAlterMap(fifths) {
+    const value = Math.max(-7, Math.min(7, Math.round(Number(fifths) || 0)));
+    const map = { C:0, D:0, E:0, F:0, G:0, A:0, B:0 };
+    if (value > 0) {
+      KEY_SIGNATURE_SHARP_ORDER.slice(0, value).forEach(function (step) { map[step] = 1; });
+    } else if (value < 0) {
+      KEY_SIGNATURE_FLAT_ORDER.slice(0, -value).forEach(function (step) { map[step] = -1; });
+    }
+    return map;
+  }
+
+  // Muuntaa koskettimen absoluuttisen MIDI-korkeuden sävellajin mukaiseen
+  // nuottinimeen. Ensin etsitään sävellajin oma diatoninen kirjoitusasu.
+  // Jos sävel ei kuulu sävellajiin, alennusmerkkisissä sävellajeissa
+  // suositaan bemolleja ja muissa ylennyksiä. Tämä kattaa myös esim.
+  // Ges-duurin Cb:n oikealla oktaavilla.
+  function spellMidiForKey(midi, fifths) {
+    const value = Math.round(Number(midi));
+    if (!Number.isFinite(value)) return null;
+
+    const pitchClass = ((value % 12) + 12) % 12;
+    const keyMap = keySignatureAlterMap(fifths);
+    let spelling = null;
+
+    for (let index = 0; index < STEP_ORDER.length; index += 1) {
+      const step = STEP_ORDER[index];
+      const alter = keyMap[step] || 0;
+      const soundingClass = ((PITCH_CLASS_BY_STEP[step] + alter) % 12 + 12) % 12;
+      if (soundingClass === pitchClass) {
+        spelling = [step, alter];
+        break;
+      }
+    }
+
+    if (!spelling) {
+      spelling = Number(fifths) < 0
+        ? FLAT_SPELLINGS[pitchClass]
+        : SHARP_SPELLINGS[pitchClass];
+    }
+
+    const step = spelling[0];
+    const alter = spelling[1];
+    const base = PITCH_CLASS_BY_STEP[step];
+    const octave = (value - base - alter) / 12 - 1;
+    const accidental = alter === 1 ? "#" : alter === -1 ? "b" : "";
+
+    return step + accidental + String(Math.round(octave));
+  }
+
   function normalizeDots(value) {
     const dots = Number(value) || 0;
     return dots >= 2 ? 2 : dots >= 1 ? 1 : 0;
@@ -247,7 +309,7 @@
     if (!Number.isFinite(factor)) factor = 1.4;
 
     let notationScale = Number(source.notationScale);
-    if (!Number.isFinite(notationScale)) notationScale = 1;
+    if (!Number.isFinite(notationScale)) notationScale = 0.95;
 
     let systemSpacing = Number(source.systemSpacing);
     if (!Number.isFinite(systemSpacing)) systemSpacing = 1;
@@ -1632,6 +1694,8 @@
     toggleEnharmonic: toggleEnharmonic,
     durationUnits: durationUnits,
     sameSoundingPitch: sameSoundingPitch,
+    spellMidiForKey: spellMidiForKey,
+    keySignatureAlterMap: keySignatureAlterMap,
     cleanupTies: cleanupTies,
     addTie: addTie,
     removeTie: removeTie,
