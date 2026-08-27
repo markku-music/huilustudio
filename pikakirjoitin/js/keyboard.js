@@ -72,7 +72,6 @@
       this.rail = options.rail;
       this.track = options.track;
       this.thumb = options.thumb;
-      this.panel = this.viewport.closest(".keyboard-panel");
 
       this.onStart = options.onStart;
       this.onDuration = options.onDuration;
@@ -83,7 +82,6 @@
       this.active = null;
       this.scrollPointerId = null;
       this.scrollGrabOffset = 0;
-      this.rearming = false;
 
       this.buildKeys();
       this.bindNoteGestures();
@@ -139,7 +137,7 @@
 
     startNote(event) {
       const key = event.target.closest(".key");
-      if (!key || this.active || this.rearming) return;
+      if (!key || this.active) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
       event.preventDefault();
@@ -292,97 +290,6 @@
       if (!this.active || !this.active.timer) return;
       clearTimeout(this.active.timer);
       this.active.timer = null;
-    }
-
-    resetInteractionState() {
-      // Projektin avaaminen kosketuksella (esim. 50 viimeisimmän listasta)
-      // voi iPad/Safarissa jattaa edellisen pointer/scroll-ketjun eloon.
-      // Tyhjennetaan kaikki elekohtainen tila vasta kun projektimodaali on suljettu.
-      this.clearLongPress();
-
-      if (this.active) {
-        const active = this.active;
-        if (active.key) {
-          active.key.classList.remove(
-            "active",
-            "gesture-down",
-            "gesture-up",
-            "gesture-right",
-            "gesture-left",
-            "gesture-whole"
-          );
-        }
-        try {
-          if (this.piano.hasPointerCapture(active.pointerId)) {
-            this.piano.releasePointerCapture(active.pointerId);
-          }
-        } catch (error) {}
-        if (active.soundOn && typeof this.onSoundStop === "function") {
-          this.onSoundStop();
-        }
-      }
-
-      if (this.scrollPointerId !== null) {
-        try {
-          if (this.rail.hasPointerCapture(this.scrollPointerId)) {
-            this.rail.releasePointerCapture(this.scrollPointerId);
-          }
-        } catch (error) {}
-      }
-
-      this.active = null;
-      this.scrollPointerId = null;
-      this.scrollGrabOffset = 0;
-
-      // Varmistetaan myos WebKitille, etta koskettimisto on elealue eika
-      // modalin vierityksen jatke. CSS:ssa arvo on jo none; inline-varmistus
-      // ja layout-read pakottavat uuden hit-test/touch-action -tilan.
-      this.viewport.style.touchAction = "none";
-      this.piano.style.touchAction = "none";
-      this.piano.querySelectorAll(".key").forEach((key) => {
-        key.style.touchAction = "none";
-      });
-      void this.piano.offsetHeight;
-      this.syncThumb();
-    }
-
-    rearmAfterProjectOpen() {
-      // 0.17.6.27: iPad/Safari voi sailyttaa aloitusikkunan vieritettavan
-      // 50-listan kosketusalueen hetken aikaa sen jalkeen, kun inert/modal on
-      // poistettu. Pelkka touch-action:none -arvon uudelleen asettaminen ei
-      // pakota WebKitia rakentamaan gesture-regionia uudestaan, jos arvo ei
-      // oikeasti muutu. Tehdaan siksi hallittu kaksivaiheinen re-arm:
-      // auto -> layout flush -> none -> layout flush kahden animation framen yli.
-      this.resetInteractionState();
-      this.rearming = true;
-
-      const keys = Array.from(this.piano.querySelectorAll(".key"));
-      const targets = [this.panel, this.viewport, this.piano].filter(Boolean).concat(keys);
-
-      if (this.panel) this.panel.style.pointerEvents = "none";
-      targets.forEach((element) => {
-        element.style.touchAction = "auto";
-      });
-
-      // Pakota WebKit lukemaan ensimmainen (auto) gesture-region.
-      void this.viewport.getBoundingClientRect().height;
-      void this.piano.offsetHeight;
-
-      requestAnimationFrame(() => {
-        targets.forEach((element) => {
-          element.style.touchAction = "none";
-        });
-
-        // Pakota uusi hit-test / gesture-region sen jalkeen kun app on jo nakyva.
-        void this.viewport.getBoundingClientRect().width;
-        void this.piano.getBoundingClientRect().height;
-
-        requestAnimationFrame(() => {
-          if (this.panel) this.panel.style.pointerEvents = "";
-          this.rearming = false;
-          this.syncThumb();
-        });
-      });
     }
 
     centerOnMiddleC() {
