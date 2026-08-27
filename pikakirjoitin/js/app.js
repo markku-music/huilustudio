@@ -268,7 +268,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.32",
+      version: "0.17.6.33",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -553,22 +553,40 @@
   }
 
   function updateTabletPdfPrintButton() {
-    if (!isTouchShareDevice()) return;
+    const tabletMode = isTouchShareDevice();
     const pdfButton = document.getElementById("savePdfButton");
     const printButton = document.getElementById("printButton");
     const english = I18N.getLanguage() === "en";
-    const labelText = english ? "PDF / Print" : "PDF / Tulosta";
 
     if (pdfButton) {
-      pdfButton.setAttribute("aria-label", labelText);
-      pdfButton.setAttribute("title", labelText);
       const label = pdfButton.querySelector("span");
-      if (label) label.textContent = labelText;
-      pdfButton.classList.add("keyboard-tool-pdf-print");
+      if (tabletMode) {
+        // Tabletilla yksi kompakti PDF-painike avaa järjestelmän jakovalikon,
+        // josta PDF:n voi tallentaa, jakaa tai tulostaa.
+        pdfButton.setAttribute("aria-label", english ? "PDF / Print" : "PDF / Tulosta");
+        pdfButton.setAttribute("title", english ? "PDF / Print" : "PDF / Tulosta");
+        if (label) label.textContent = "PDF";
+        pdfButton.classList.add("keyboard-tool-pdf-print");
+      } else {
+        pdfButton.setAttribute("aria-label", english ? "Save PDF" : "Tallenna PDF");
+        pdfButton.setAttribute("title", "PDF");
+        if (label) label.textContent = "PDF";
+        pdfButton.classList.remove("keyboard-tool-pdf-print");
+      }
     }
+
     if (printButton) {
-      printButton.hidden = true;
-      printButton.setAttribute("aria-hidden", "true");
+      // Pelkkä hidden-attribuutti ei riitä, koska .keyboard-tool-buttonin
+      // author-CSS:n display:grid voi ohittaa selaimen [hidden]-oletuksen.
+      printButton.hidden = tabletMode;
+      printButton.classList.toggle("pk-tablet-hidden", tabletMode);
+      if (tabletMode) {
+        printButton.setAttribute("aria-hidden", "true");
+        printButton.setAttribute("tabindex", "-1");
+      } else {
+        printButton.removeAttribute("aria-hidden");
+        printButton.removeAttribute("tabindex");
+      }
     }
   }
 
@@ -1179,7 +1197,7 @@
     }
     if (printButton) printButton.addEventListener("click", printScore);
 
-    // 0.17.6.32 · Tabletilla PDF ja Tulosta käyttävät samaa A4-PDF:n
+    // 0.17.6.33 · Tabletilla PDF ja Tulosta käyttävät samaa A4-PDF:n
     // toimintovalikkoa, joten näytetään vain yksi yhteinen painike.
     updateTabletPdfPrintButton();
 

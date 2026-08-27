@@ -1688,14 +1688,20 @@ body.pk-music-stand-mode .a4-paper {
 }
 
 
-/* 0.17.6.32 · Tabletin yhteinen PDF / Tulosta -painike */
+/* 0.17.6.33 · Tabletilla vain yksi kompakti PDF-painike. */
 .keyboard-tool-button.keyboard-tool-pdf-print {
   width: auto;
-  min-width: 72px;
-  padding-inline: 8px;
+  min-width: 44px;
+  padding-inline: 0;
 }
 .keyboard-tool-button.keyboard-tool-pdf-print span {
-  font-size: 9px;
-  line-height: 1.05;
+  font-size: clamp(8px, 1.25vw, 11px);
+  line-height: 1;
   white-space: nowrap;
+}
+
+/* Author-CSS:n display:grid voi muuten ohittaa selaimen [hidden]-säännön. */
+.keyboard-tool-button.pk-tablet-hidden,
+.keyboard-tool-button[hidden].pk-tablet-hidden {
+  display: none !important;
 }
