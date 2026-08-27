@@ -110,6 +110,9 @@
       delete score[key];
     });
     Object.assign(score, clonePlain(nextScore));
+    // Tallennetun projektin nuotti-/slur-/tie-ID:t täytyy huomioida ennen
+    // kuin cleanup-funktiot tai seuraava kosketinele voivat luoda uusia ID:itä.
+    window.PikakirjoitinScoreModel.syncIdCounters(score);
     score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
     score.barlines = window.PikakirjoitinScoreModel.normalizeBarlines(score.barlines);
     window.PikakirjoitinScoreModel.cleanupTies(score);

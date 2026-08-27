@@ -53,3 +53,8 @@ toimimasta projektin avaamisen jalkeen.
 
 
 0.17.6.27: 50-listasta avatessa iPad/Safarin kosketinalue aseistetaan uudelleen auto->none -touch-action -vaihdolla kahden animation framen yli. Keyboard-panel estaa natiivin pan-eleen.
+
+0.17.6.28 – tallennetun projektin ID-laskurit
+- Projektia avatessa note/rest-, slur- ja tie-ID-laskurit synkronoidaan olemassa oleviin tunnuksiin.
+- Uusi nuotti ei voi saada samaa ID:tä kuin avatun kappaleen vanha nuotti.
+- Korjaa tilanteen, jossa ylös/alas-eleen aika-arvomuutos osui väärään vanhaan nuottiin heti 50-listasta avaamisen jälkeen.
