@@ -551,6 +551,9 @@ button {
 .project-modal{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));background:#17202bd9;overflow:auto}
 .project-modal[hidden]{display:none}
 .project-card{width:min(660px,100%);max-height:100%;overflow:auto;padding:clamp(20px,4vw,32px);border-radius:18px;background:#fff;box-shadow:0 24px 70px #0006;text-align:left}
+.project-edit-close{position:absolute;z-index:4;top:8px;left:8px;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #b8c2cc;border-radius:9px;background:#fff;color:#364352;font-size:25px;line-height:1;cursor:pointer;touch-action:manipulation}
+.project-edit-close[hidden]{display:none!important}
+.project-edit-close:active{transform:translateY(1px)}
 .project-start-actions{display:flex;gap:8px;margin:0 0 14px}
 .project-start-action{flex:1;min-height:38px;padding:7px 12px;border:1px solid #aebbc9;border-radius:9px;background:#fff;color:#263342;font-size:12px;font-weight:850;letter-spacing:.03em;touch-action:manipulation;cursor:pointer}
 .project-start-action[aria-pressed="true"]{border-color:#2365aa;background:#dcecff;color:#174d83;box-shadow:inset 0 0 0 1px #2365aa2e}
@@ -1348,11 +1351,11 @@ button {
 
 
 /* BASE 0.17.6: refresh yläpalkkiin ja Asettelu oikean pikapalkin alimmaiseksi. */
-.header-start-over {
+.header-start-over,
+.header-project-details {
   position: absolute;
   z-index: 3;
   top: 8px;
-  left: max(10px, env(safe-area-inset-left));
   width: 42px;
   height: 42px;
   display: grid;
@@ -1365,7 +1368,11 @@ button {
   box-shadow: 0 1px 4px rgba(28,39,53,.08);
   touch-action: manipulation;
 }
-.header-start-over svg {
+.header-start-over { left: max(10px, env(safe-area-inset-left)); }
+.header-project-details { left: calc(max(10px, env(safe-area-inset-left)) + 48px); }
+
+.header-start-over svg,
+.header-project-details svg {
   width: 25px;
   height: 25px;
   fill: none;
@@ -1375,9 +1382,10 @@ button {
   stroke-linejoin: round;
   pointer-events: none;
 }
-.header-start-over:active { transform: translateY(1px); }
+.header-start-over:active,
+.header-project-details:active { transform: translateY(1px); }
 .test-header h1,
-.test-header p { padding-left: 50px; }
+.test-header p { padding-left: 98px; }
 
 .layout-settings-panel {
   position: fixed;
@@ -1471,7 +1479,8 @@ button {
 
 @media print {
   .layout-settings-panel,
-  .header-start-over { display: none !important; }
+  .header-start-over,
+  .header-project-details { display: none !important; }
 }
 
 
@@ -1705,3 +1714,5 @@ body.pk-music-stand-mode .a4-paper {
 .keyboard-tool-button[hidden].pk-tablet-hidden {
   display: none !important;
 }
+
+/* 0.17.6.36 · Kappaleen tiedot voidaan avata uudelleen yläpalkin kynäpainikkeesta. */

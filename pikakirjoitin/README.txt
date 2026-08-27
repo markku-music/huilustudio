@@ -1,4 +1,4 @@
-Pikakirjoitin 3 0.17.6.35 - SlurPlacementAtStems-kokeilu
+Pikakirjoitin 3 0.17.6.33 - iPad tulostaa PDF:n kautta
 
 VERSION 0.17.6.19 — varren suunta ja slurin sijoitus
 
@@ -86,7 +86,7 @@ toimimasta projektin avaamisen jalkeen.
 - Nuottikuvan uusi oletuskoko on 95 %.
 
 
-0.17.6.35
-- OSMD EngravingRules.SlurPlacementAtStems = true.
-- Kokeilu slurien päätepisteiden johdonmukaistamiseksi erityisesti silloin, kun alku- ja loppunuotin varret ovat eri suuntiin.
-- Muita slurien geometria-arvoja ei muutettu.
+0.17.6.36
+- Kappaleen tiedot -painike yläpalkissa avaa aloitusikkunan uudelleen.
+- Nykyiset tiedot esitäytetään ja Tallenna päivittää olemassa olevan kappaleen nollaamatta nuotteja.
+- Editointi-ikkunan voi sulkea ×-painikkeesta tai Escillä.

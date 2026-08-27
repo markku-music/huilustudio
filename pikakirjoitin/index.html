@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · 0.17.6.35 SlurPlacementAtStems</title>
+  <title>Pikakirjoitin 3 · 0.17.6.36 Kappaleen tiedot uudelleen</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-label="Kappaleen tiedot">
     <form class="project-card" id="projectForm">
+      <button class="project-edit-close" id="projectEditClose" type="button" aria-label="Sulje" title="Sulje" hidden>×</button>
       <div class="language-switch project-language-switch" role="group" aria-label="Kieli">
         <button type="button" data-language="fi" aria-pressed="true">FI</button>
         <button type="button" data-language="en" aria-pressed="false">EN</button>
@@ -240,12 +241,20 @@
               aria-label="Aloita alusta ja päivitä Pikakirjoitin" title="Aloita alusta / refresh">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 11V5l-3 3.1A11 11 0 1 0 27 18"/><path d="M26 5h-6"/></svg>
       </button>
+      <button class="header-project-details" id="projectDetailsButton" type="button"
+              aria-label="Kappaleen tiedot" title="Kappaleen tiedot">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M7 5h12l6 6v16H7z"/>
+          <path d="M19 5v6h6"/>
+          <path d="M11 21l8.8-8.8 2.8 2.8-8.8 8.8-3.8 1z"/>
+        </svg>
+      </button>
       <div class="language-switch app-language-switch" role="group" aria-label="Kieli">
         <button type="button" data-language="fi" aria-pressed="true">FI</button>
         <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
       <h1>Pikakirjoitin 3</h1>
-      <p>0.17.6.35 · SlurPlacementAtStems · Nuottiteline · Tabletin PDF-jakovalikko · Print yhtenäinen · Palkitus · Swipe-turvavyöhyke · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2</p>
+      <p>0.17.6.36 · Kappaleen tiedot uudelleen · Nuottiteline · Tabletin PDF-jakovalikko · Print yhtenäinen · Palkitus · Swipe-turvavyöhyke · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2</p>
     </header>
 
     <section class="layout-settings-panel" id="layoutSettingsPanel" role="dialog"

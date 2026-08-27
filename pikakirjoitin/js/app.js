@@ -32,6 +32,7 @@
   let selectionEditor = null;
   let layoutEditor = null;
   let barlineEditor = null;
+  let startScreen = null;
   let keyboardEditId = null;
   let lastSelectionEditorAnchor = null;
   let pendingSelectedSlurStartId = null;
@@ -268,7 +269,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.35",
+      version: "0.17.6.36",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -1184,6 +1185,7 @@
     const undoButton = document.getElementById("undoButton");
     const redoButton = document.getElementById("redoButton");
     const resetButton = document.getElementById("startOverButton");
+    const detailsButton = document.getElementById("projectDetailsButton");
     const saveButton = document.getElementById("saveProjectButton");
     const pdfButton = document.getElementById("savePdfButton");
     const printButton = document.getElementById("printButton");
@@ -1191,6 +1193,11 @@
     if (undoButton) undoButton.addEventListener("click", undoLastChange);
     if (redoButton) redoButton.addEventListener("click", redoLastChange);
     if (resetButton) resetButton.addEventListener("click", startOverAndRefresh);
+    if (detailsButton) detailsButton.addEventListener("click", function () {
+      if (startScreen && typeof startScreen.openForEdit === "function") {
+        startScreen.openForEdit(currentProjectDetailsSettings());
+      }
+    });
     if (saveButton) saveButton.addEventListener("click", saveProjectFile);
     if (pdfButton) {
       pdfButton.addEventListener("click", isTouchShareDevice() ? openPdfOrPrintOnTouchDevice : savePdfFile);
@@ -1586,6 +1593,38 @@
     updateStatus("Valmis · ääni on käytössä ja kirjoitus voi alkaa.", "ok");
   }
 
+
+  function currentProjectDetailsSettings() {
+    const next = Object.assign({}, settings);
+    const metadata = score.metadata || {};
+
+    next.title = metadata.title || settings.title || "";
+    next.composer = metadata.composer || settings.composer || "";
+    next.instrumentName = metadata.partName || settings.instrumentName || "";
+    next.tempoText = metadata.tempoText || settings.tempoText || "";
+    next.keySignature = Number.isInteger(score.key) ? score.key : (Number(settings.keySignature) || 0);
+    next.pickupDuration = Number(score.pickupDuration) || 0;
+
+    if (score.timeSymbol === "common") next.timeSignature = "C";
+    else if (score.timeSymbol === "cut") next.timeSignature = "cutC";
+    else if (Array.isArray(score.time) && score.time.length >= 2) next.timeSignature = score.time[0] + "/" + score.time[1];
+
+    if (score.clef === "C") next.clef = "alto";
+    else if (score.clef === "F") next.clef = "bass";
+    else next.clef = "treble";
+
+    return next;
+  }
+
+  async function updateProjectDetails(nextSettings) {
+    const snapshot = historySnapshot("Kappaleen tiedot");
+    await applyStartSettings(nextSettings);
+    commitHistory(snapshot);
+    updateStatus(
+      I18N.getLanguage() === "en" ? "Score details updated." : "Kappaleen tiedot päivitetty.",
+      "ok"
+    );
+  }
 
   async function openProjectPayload(payload, meta) {
     const normalized = window.PikakirjoitinRecentProjects.normalizePayload(payload);
@@ -2470,9 +2509,10 @@
       updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
 
-    new window.PikakirjoitinStartScreen.StartScreen({
+    startScreen = new window.PikakirjoitinStartScreen.StartScreen({
       audio: audio,
       onStart: applyStartSettings,
+      onUpdate: updateProjectDetails,
       onOpenProject: openProjectPayload
     });
   }

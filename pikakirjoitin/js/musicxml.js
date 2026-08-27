@@ -970,7 +970,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.35</software>
+      <software>Pikakirjoitin 3 0.17.6.36</software>
     </encoding>
   </identification>
   <defaults>

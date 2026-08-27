@@ -47,13 +47,16 @@ function pickupFraction(units){ const d=gcd(units,32); return `${units/d}/${32/d
 class StartScreen {
   #audio;
   #onStart;
+  #onUpdate;
   #onOpenProject;
   #els;
   #themeStyle;
+  #editing = false;
 
-  constructor({ audio, onStart, onOpenProject }) {
+  constructor({ audio, onStart, onUpdate, onOpenProject }) {
     this.#audio = audio;
     this.#onStart = onStart;
+    this.#onUpdate = onUpdate;
     this.#onOpenProject = onOpenProject;
     this.#els = this.#collect();
     this.#themeStyle = document.createElement('style');
@@ -78,6 +81,7 @@ class StartScreen {
     const byId = id => document.getElementById(id);
     return {
       modal:byId('projectModal'), form:byId('projectForm'), startButton:byId('projectSaveButton'), status:byId('startStatus'),
+      editCloseButton:byId('projectEditClose'), recentRoot:byId('recentProjects'),
       recentTrigger:byId('recentProjectsTrigger'), recentPanel:byId('recentProjectsPanel'), recentList:byId('recentProjectsList'),
       openProjectFileButton:byId('openProjectFileButton'), projectFileInput:byId('projectFileInput'),
       titleInput:byId('titleInput'), tempoInput:byId('tempoInput'), composerInput:byId('composerInput'), instrumentInput:byId('instrumentInput'), themeSelect:byId('themeSelect'),
@@ -107,12 +111,94 @@ class StartScreen {
     e.themeSelect.addEventListener('change', () => { this.#applyTheme(this.#currentThemeId()); this.#savePreferences(); });
     if(e.instrumentInput) e.instrumentInput.addEventListener('input', () => { e.instrumentInput.dataset.autoDefault='false'; });
     e.form.addEventListener('submit', ev => this.#submit(ev));
+    if(e.editCloseButton) e.editCloseButton.addEventListener('click', ev => { ev.preventDefault(); this.#closeEdit(); });
     document.addEventListener('keydown', ev => {
       if(ev.key!=='Escape') return;
       if(!e.recentPanel.hidden){ ev.preventDefault(); this.#closeRecents(); }
       else if(!e.meterWheelPopover.hidden){ ev.preventDefault(); this.#closeMeterWheel(); }
       else if(!e.keyWheelPopover.hidden){ ev.preventDefault(); this.#closeKeyWheel(); }
+      else if(this.#editing){ ev.preventDefault(); this.#closeEdit(); }
     });
+  }
+
+  #syncSubmitLabel(){
+    if(!this.#els.startButton) return;
+    this.#els.startButton.textContent = this.#editing ? I18N.t('save') : I18N.t('start');
+  }
+
+  #setSelectValue(select,value){
+    if(!select) return false;
+    const wanted=String(value==null?'':value);
+    const option=[...select.options].find(o=>o.value===wanted);
+    if(!option) return false;
+    select.value=wanted;
+    return true;
+  }
+
+  openForEdit(currentSettings){
+    const e=this.#els, s=currentSettings||{};
+    this.#editing=true;
+    this.#closeRecents();
+    if(!e.keyWheelPopover.hidden) e.keyWheelPopover.hidden=true;
+    if(!e.meterWheelPopover.hidden) e.meterWheelPopover.hidden=true;
+
+    e.titleInput.value=String(s.title||'');
+    e.composerInput.value=String(s.composer||'');
+    if(e.instrumentInput){
+      e.instrumentInput.value=String(s.instrumentName||'');
+      e.instrumentInput.dataset.autoDefault='false';
+    }
+    this.#setSelectValue(e.tempoInput,s.tempoText||'');
+
+    if(THEME_DEFINITIONS[s.themeId]){
+      e.themeSelect.value=s.themeId;
+      this.#applyTheme(s.themeId);
+    }
+
+    const key=[...e.keySignatureSelect.options].find(o =>
+      Number(o.value)===Number(s.keySignature||0) &&
+      String(o.dataset.mode||'major')===String(s.keyMode||'major') &&
+      String(o.dataset.tonic||'C')===String(s.keyTonic||'C')
+    ) || [...e.keySignatureSelect.options].find(o =>
+      Number(o.value)===Number(s.keySignature||0) &&
+      String(o.dataset.mode||'major')===String(s.keyMode||'major')
+    );
+    if(key) e.keySignatureSelect.selectedIndex=key.index;
+    this.#syncKeyPicker();
+
+    this.#setSelectValue(e.timeSignatureSelect,s.timeSignature||'4/4');
+    e.pickupSelect.value=String(Number(s.pickupDuration)||0);
+    this.#syncMeterPicker();
+    this.#syncPickupOptions();
+
+    if(['C','Bb','Eb','F'].includes(String(s.tuning||''))) e.tuningSelect.value=String(s.tuning);
+    if(['treble','alto','bass'].includes(String(s.clef||''))) e.clefSelect.value=String(s.clef);
+    this.#syncNotationChoices();
+
+    if(e.recentRoot) e.recentRoot.hidden=true;
+    if(e.editCloseButton) e.editCloseButton.hidden=false;
+    e.status.textContent='';
+    e.startButton.disabled=false;
+    this.#syncSubmitLabel();
+
+    const app=document.getElementById('app');
+    if(app){ app.inert=true; app.setAttribute('aria-hidden','true'); }
+    e.modal.hidden=false;
+    requestAnimationFrame(()=>{ e.titleInput.focus(); e.titleInput.select(); });
+  }
+
+  #closeEdit(){
+    if(!this.#editing) return;
+    const e=this.#els;
+    this.#editing=false;
+    e.modal.hidden=true;
+    if(e.recentRoot) e.recentRoot.hidden=false;
+    if(e.editCloseButton) e.editCloseButton.hidden=true;
+    e.status.textContent='';
+    e.startButton.disabled=false;
+    this.#syncSubmitLabel();
+    const app=document.getElementById('app');
+    if(app){ app.inert=false; app.removeAttribute('aria-hidden'); }
   }
 
   #localizeKeyOptions(){
@@ -135,6 +221,7 @@ class StartScreen {
     this.#buildMeterWheel();
     this.#syncPickupOptions();
     this.#refreshRecents();
+    this.#syncSubmitLabel();
   }
   #selectedKeyInfo(){ const o=this.#els.keySignatureSelect.selectedOptions[0]; const mode=o?.dataset.mode||'major', tonic=o?.dataset.tonic||'C'; return {fifths:+(o?.value||0),mode,tonic,name:I18N.keySignatureName(tonic,mode)}; }
   #keyOptionFor(choice,mode){ return [...this.#els.keySignatureSelect.options].find(o=>+o.value===choice.fifths&&o.dataset.mode===mode&&o.dataset.tonic===choice.tonic); }
@@ -275,13 +362,48 @@ class StartScreen {
   async #submit(ev){
     ev.preventDefault();
     const e=this.#els;
-    e.startButton.disabled=true; e.status.textContent=I18N.getLanguage()==='en'?'Starting audio…':'Avataan ääni…';
-    const ok=await this.#audio.unlock();
-    if(!ok){ e.startButton.disabled=false; e.status.textContent=I18N.getLanguage()==='en'?'Audio could not be started. Tap START again.':'Äänen avaaminen epäonnistui. Napauta ALOITA uudelleen.'; return; }
-    const settings=this.#settings(); this.#savePreferences(); this.#applyTheme(settings.themeId);
-    try { await this.#onStart?.(settings); }
-    catch(err){ console.error(err); e.startButton.disabled=false; e.status.textContent=I18N.getLanguage()==='en'?'Start failed.':'Aloitus epäonnistui.'; return; }
-    e.modal.hidden=true; const app=document.getElementById('app'); app.inert=false; app.removeAttribute('aria-hidden'); e.status.textContent='';
+    const editing=this.#editing;
+    e.startButton.disabled=true;
+    e.status.textContent=editing
+      ? (I18N.getLanguage()==='en'?'Saving…':'Tallennetaan…')
+      : (I18N.getLanguage()==='en'?'Starting audio…':'Avataan ääni…');
+
+    if(!editing){
+      const ok=await this.#audio.unlock();
+      if(!ok){
+        e.startButton.disabled=false;
+        e.status.textContent=I18N.getLanguage()==='en'
+          ?'Audio could not be started. Tap START again.'
+          :'Äänen avaaminen epäonnistui. Napauta ALOITA uudelleen.';
+        return;
+      }
+    }
+
+    const settings=this.#settings();
+    this.#savePreferences();
+    this.#applyTheme(settings.themeId);
+    try {
+      if(editing) await this.#onUpdate?.(settings);
+      else await this.#onStart?.(settings);
+    }
+    catch(err){
+      console.error(err);
+      e.startButton.disabled=false;
+      e.status.textContent=I18N.getLanguage()==='en'
+        ?(editing?'Saving failed.':'Start failed.')
+        :(editing?'Tallennus epäonnistui.':'Aloitus epäonnistui.');
+      return;
+    }
+
+    this.#editing=false;
+    if(e.recentRoot) e.recentRoot.hidden=false;
+    if(e.editCloseButton) e.editCloseButton.hidden=true;
+    this.#syncSubmitLabel();
+    e.modal.hidden=true;
+    const app=document.getElementById('app');
+    app.inert=false;
+    app.removeAttribute('aria-hidden');
+    e.status.textContent='';
   }
 }
 

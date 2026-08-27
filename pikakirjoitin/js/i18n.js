@@ -7,8 +7,8 @@
   const STRINGS = {
     fi: {
       appName: "Pikakirjoitin 3",
-      documentTitle: "Pikakirjoitin 3 · 0.17.6.21 PDF-jakovalikko",
-      subtitle: "0.17.6.21 · Tabletin PDF-jakovalikko · Print yhtenäinen · Varren suunta · Slurin suunta · Tahtiviivat · Palkitus · FI / EN · OSMD 2.1.2",
+      documentTitle: "Pikakirjoitin 3 · 0.17.6.36 Kappaleen tiedot",
+      subtitle: "0.17.6.36 · Kappaleen tiedot uudelleen · Nuottikoko 95 % · Sävellajitietoiset etumerkit · Tabletin PDF / tulostus · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -119,8 +119,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · 0.17.6.21 PDF Share Sheet",
-      subtitle: "0.17.6.21 · Tablet PDF share sheet · Unified print · Stem direction · Slur placement · Barlines · Beaming · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · 0.17.6.36 Score details",
+      subtitle: "0.17.6.36 · Reopen score details · Notation size 95% · Key-aware accidentals · Tablet PDF / print · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
@@ -483,6 +483,10 @@
     setAttr('.keyboard-tools', "aria-label", "quickActions", scope);
     setAttr('#startOverButton', "aria-label", "restart", scope);
     setAttr('#startOverButton', "title", "restartTitle", scope);
+    setAttr('#projectDetailsButton', "aria-label", "projectDetails", scope);
+    setAttr('#projectDetailsButton', "title", "projectDetails", scope);
+    setAttr('#projectEditClose', "aria-label", "closeLayout", scope);
+    setAttr('#projectEditClose', "title", "closeLayout", scope);
     setAttr('#undoButton', "aria-label", "undo", scope);
     setAttr('#undoButton', "title", "undo", scope);
     setAttr('#redoButton', "aria-label", "redo", scope);
