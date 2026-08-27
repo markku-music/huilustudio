@@ -268,7 +268,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.31",
+      version: "0.17.6.32",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -516,6 +516,59 @@
       );
     } finally {
       if (button) button.disabled = false;
+    }
+  }
+
+  async function openPdfOrPrintOnTouchDevice() {
+    const button = document.getElementById("savePdfButton");
+    if (button) button.disabled = true;
+    updateStatus("Muodostetaan PDF…");
+    try {
+      const pdfBlob = await buildCurrentPdfBlob();
+      const filename = fileBaseName() + ".pdf";
+      const shared = await sharePdfOnTouchDevice(pdfBlob, filename);
+      if (shared) return;
+
+      // Galaxy/Android-varareitti, jos tiedoston jako ei ole selaimessa
+      // käytettävissä: avataan valmis A4-PDF omaan näkymään. Sieltä sen
+      // voi tallentaa tai tulostaa selaimen/järjestelmän omilla toiminnoilla.
+      const url = URL.createObjectURL(pdfBlob);
+      const opened = window.open(url, "_blank");
+      if (!opened) {
+        downloadBlob(pdfBlob, filename);
+        updateStatus("PDF tallennettu.", "ok");
+      } else {
+        updateStatus("PDF avattu.", "ok");
+      }
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } catch (error) {
+      console.error(error);
+      updateStatus(
+        "PDF:n muodostus epäonnistui: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function updateTabletPdfPrintButton() {
+    if (!isTouchShareDevice()) return;
+    const pdfButton = document.getElementById("savePdfButton");
+    const printButton = document.getElementById("printButton");
+    const english = I18N.getLanguage() === "en";
+    const labelText = english ? "PDF / Print" : "PDF / Tulosta";
+
+    if (pdfButton) {
+      pdfButton.setAttribute("aria-label", labelText);
+      pdfButton.setAttribute("title", labelText);
+      const label = pdfButton.querySelector("span");
+      if (label) label.textContent = labelText;
+      pdfButton.classList.add("keyboard-tool-pdf-print");
+    }
+    if (printButton) {
+      printButton.hidden = true;
+      printButton.setAttribute("aria-hidden", "true");
     }
   }
 
@@ -1121,8 +1174,14 @@
     if (redoButton) redoButton.addEventListener("click", redoLastChange);
     if (resetButton) resetButton.addEventListener("click", startOverAndRefresh);
     if (saveButton) saveButton.addEventListener("click", saveProjectFile);
-    if (pdfButton) pdfButton.addEventListener("click", savePdfFile);
+    if (pdfButton) {
+      pdfButton.addEventListener("click", isTouchShareDevice() ? openPdfOrPrintOnTouchDevice : savePdfFile);
+    }
     if (printButton) printButton.addEventListener("click", printScore);
+
+    // 0.17.6.32 · Tabletilla PDF ja Tulosta käyttävät samaa A4-PDF:n
+    // toimintovalikkoa, joten näytetään vain yksi yhteinen painike.
+    updateTabletPdfPrintButton();
 
     updateHistoryButtons();
   }
@@ -2393,6 +2452,7 @@
 
   document.addEventListener("pk-languagechange", function () {
     settings.language = I18N.getLanguage();
+    updateTabletPdfPrintButton();
     const status = document.getElementById("status");
     if (status && status.dataset.rawMessage) {
       status.textContent = I18N.translateRuntimeMessage(status.dataset.rawMessage);

@@ -1686,3 +1686,16 @@ body.pk-music-stand-mode .a4-paper {
 .keyboard-tool-stand svg {
   stroke-width: 2.1;
 }
+
+
+/* 0.17.6.32 · Tabletin yhteinen PDF / Tulosta -painike */
+.keyboard-tool-button.keyboard-tool-pdf-print {
+  width: auto;
+  min-width: 72px;
+  padding-inline: 8px;
+}
+.keyboard-tool-button.keyboard-tool-pdf-print span {
+  font-size: 9px;
+  line-height: 1.05;
+  white-space: nowrap;
+}

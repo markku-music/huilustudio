@@ -1,4 +1,4 @@
-Pikakirjoitin 3 0.17.6.31 - iPad tulostaa PDF:n kautta
+Pikakirjoitin 3 0.17.6.32 - iPad tulostaa PDF:n kautta
 
 VERSION 0.17.6.19 — varren suunta ja slurin sijoitus
 
@@ -66,3 +66,9 @@ toimimasta projektin avaamisen jalkeen.
 - iPad/Safari: print-snapshot mitataan vasta kun Nuottitelineen transformit on varmasti nollattu.
 - Pakotetaan normaali layout ja odotetaan kaksi requestAnimationFrame-kierrosta ennen snapshotin mittausta.
 - OSMD:tä ei renderöidä uudelleen tulostusta varten.
+
+
+0.17.6.32
+- iPad- ja Android/Galaxy-tableteilla Tallenna PDF ja Tulosta yhdistetty yhdeksi PDF / Tulosta -painikkeeksi.
+- Yhteinen painike muodostaa saman A4-PDF:n ja avaa käyttöjärjestelmän jakovalikon.
+- Desktop/Macissa Tallenna PDF ja Tulosta säilyvät erillisinä.
