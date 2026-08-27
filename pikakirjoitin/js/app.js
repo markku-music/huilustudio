@@ -2214,11 +2214,17 @@
       if (activeElement && activeElement !== document.body && typeof activeElement.blur === "function") {
         activeElement.blur();
       }
-      if (!keyboard || typeof keyboard.resetInteractionState !== "function") return;
-      keyboard.resetInteractionState();
+      if (!keyboard) return;
+      if (typeof keyboard.rearmAfterProjectOpen === "function") {
+        keyboard.rearmAfterProjectOpen();
+      } else if (typeof keyboard.resetInteractionState === "function") {
+        keyboard.resetInteractionState();
+      }
       requestAnimationFrame(function () {
-        if (!keyboard) return;
-        keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+        requestAnimationFrame(function () {
+          if (!keyboard) return;
+          keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+        });
       });
     });
 

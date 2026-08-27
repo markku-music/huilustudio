@@ -140,6 +140,8 @@ button {
   grid-template-rows: 44px minmax(0, 1fr) auto;
   overflow: hidden;
   margin-top: 0;
+  touch-action: none;
+  overscroll-behavior: none;
   border: 0;
   border-top: 1px solid #c8ced6;
   border-radius: 0;

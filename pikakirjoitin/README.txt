@@ -50,3 +50,6 @@ Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeise
 pointer/touch-tila nollataan vasta projektimodaalin sulkeuduttua. Tavoite on
 estaa iPad/Safarin tilanne, jossa pystysuuntaiset ylos/alas-eleet lakkaavat
 toimimasta projektin avaamisen jalkeen.
+
+
+0.17.6.27: 50-listasta avatessa iPad/Safarin kosketinalue aseistetaan uudelleen auto->none -touch-action -vaihdolla kahden animation framen yli. Keyboard-panel estaa natiivin pan-eleen.
