@@ -116,7 +116,7 @@
     resizeObserver = new ResizeObserver(function (entries) {
       // 0.17.6.20: print preview käyttää erillistä A4-snapshotia.
       // Älä koskaan renderöi OSMD:tä uudelleen tulostusmedian koon vuoksi.
-      if (window.PikakirjoitinPrintMode) return;
+      if (window.PikakirjoitinPrintMode || window.PikakirjoitinMusicStandMode) return;
 
       const width = Number(
         entries[0] && entries[0].contentRect && entries[0].contentRect.width

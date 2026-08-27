@@ -1635,6 +1635,11 @@ body.pk-music-stand-mode .a4-paper {
   position: absolute;
   left: 0;
   top: 0;
+  width: var(--pk-stand-paper-width) !important;
+  min-width: var(--pk-stand-paper-width) !important;
+  height: var(--pk-stand-paper-height) !important;
+  min-height: var(--pk-stand-paper-height) !important;
+  aspect-ratio: auto !important;
   margin: 0;
   border-color: transparent;
   border-radius: 0;
