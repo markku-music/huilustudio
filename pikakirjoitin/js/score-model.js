@@ -15,16 +15,6 @@
     }).map(String)));
   }
 
-  function normalizeStemDirection(value) {
-    const direction = String(value || "auto");
-    return direction === "up" || direction === "down" ? direction : "auto";
-  }
-
-  function normalizeSlurPlacement(value) {
-    const placement = String(value || "auto");
-    return placement === "above" || placement === "below" ? placement : "auto";
-  }
-
   const DURATION_UNITS = {
     whole: 128,
     half: 64,
@@ -91,10 +81,8 @@
     copy.measureRest = Boolean(copy.measureRest);
     if (copy.kind === "rest") {
       delete copy.articulations;
-      delete copy.stemDirection;
     } else {
       copy.articulations = normalizeArticulations(copy.articulations);
-      copy.stemDirection = normalizeStemDirection(copy.stemDirection);
     }
     return copy;
   }
@@ -104,8 +92,7 @@
     return {
       id: slur.id || makeSlurId(),
       startId: String(slur.startId),
-      endId: String(slur.endId),
-      placement: normalizeSlurPlacement(slur.placement)
+      endId: String(slur.endId)
     };
   }
 
@@ -116,79 +103,6 @@
       startId: String(tie.startId),
       endId: String(tie.endId)
     };
-  }
-
-
-  const BARLINE_TYPES = [
-    "normal",
-    "double",
-    "final",
-    "repeat-start",
-    "repeat-end",
-    "repeat-both"
-  ];
-
-  function normalizeBarlines(value) {
-    const source = Array.isArray(value) ? value : [];
-    const byBoundary = new Map();
-
-    source.forEach(function (item) {
-      if (!item) return;
-      const boundaryIndex = Math.round(Number(
-        item.boundaryIndex !== undefined ? item.boundaryIndex : item.index
-      ));
-      const type = String(item.type || "normal");
-      if (!Number.isInteger(boundaryIndex) || boundaryIndex < 0) return;
-      if (BARLINE_TYPES.indexOf(type) < 0) return;
-      byBoundary.set(boundaryIndex, { boundaryIndex:boundaryIndex, type:type });
-    });
-
-    return Array.from(byBoundary.values()).sort(function (a, b) {
-      return a.boundaryIndex - b.boundaryIndex;
-    });
-  }
-
-  function customBarlineAt(score, boundaryIndex) {
-    if (!score) return null;
-    score.barlines = normalizeBarlines(score.barlines);
-    const index = Math.round(Number(boundaryIndex));
-    return score.barlines.find(function (item) {
-      return item.boundaryIndex === index;
-    }) || null;
-  }
-
-  function getBarlineType(score, boundaryIndex, measureCount) {
-    const index = Math.round(Number(boundaryIndex));
-    const count = Math.max(0, Math.round(Number(measureCount) || 0));
-    if (!Number.isInteger(index) || index < 0 || index > count) return "normal";
-    const custom = customBarlineAt(score, index);
-    if (custom) return custom.type;
-    return count > 0 && index === count ? "final" : "normal";
-  }
-
-  function setBarlineType(score, boundaryIndex, type, measureCount) {
-    if (!score) return false;
-    const index = Math.round(Number(boundaryIndex));
-    const count = Math.max(0, Math.round(Number(measureCount) || 0));
-    const nextType = String(type || "normal");
-    if (!Number.isInteger(index) || index < 0 || index > count) return false;
-    if (BARLINE_TYPES.indexOf(nextType) < 0) return false;
-
-    score.barlines = normalizeBarlines(score.barlines).filter(function (item) {
-      return item.boundaryIndex !== index;
-    });
-    score.barlines.push({ boundaryIndex:index, type:nextType });
-    score.barlines = normalizeBarlines(score.barlines);
-    return true;
-  }
-
-  function cleanupBarlines(score, measureCount) {
-    if (!score) return [];
-    const count = Math.max(0, Math.round(Number(measureCount) || 0));
-    score.barlines = normalizeBarlines(score.barlines).filter(function (item) {
-      return item.boundaryIndex >= 0 && item.boundaryIndex <= count;
-    });
-    return score.barlines;
   }
 
   function normalizeLayout(layout) {
@@ -225,7 +139,7 @@
       systemBreaks: Array.from(new Set(breaks)).sort(function (a, b) {
         return a - b;
       }),
-      lastSystemMaxScalingFactor: Math.max(1, Math.min(24, factor)),
+      lastSystemMaxScalingFactor: Math.max(1, Math.min(6, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
       instrumentCreditDistance: Math.max(2, Math.min(14, instrumentCreditDistance)),
@@ -299,7 +213,7 @@
     }
 
     layout.lastSystemMaxScalingFactor =
-      Math.max(1, Math.min(24, factor));
+      Math.max(1, Math.min(6, factor));
 
     return layout.lastSystemMaxScalingFactor;
   }
@@ -345,7 +259,6 @@
             return { noteIds:noteIds.map(String) };
           })
         : [],
-      barlines: normalizeBarlines(config.barlines),
       layout: normalizeLayout(config.layout)
     };
 
@@ -371,8 +284,7 @@
       duration: String(note.duration),
       dots: normalizeDots(note.dots),
       measureRest: false,
-      articulations: normalizeArticulations(note.articulations),
-      stemDirection: normalizeStemDirection(note.stemDirection)
+      articulations: normalizeArticulations(note.articulations)
     };
 
     score.notes.push(created);
@@ -784,7 +696,6 @@
       if (seen.has(key)) return false;
       seen.add(key);
       if (!slur.id) slur.id = makeSlurId();
-      slur.placement = normalizeSlurPlacement(slur.placement);
       return true;
     });
 
@@ -828,16 +739,13 @@
     if (patch.dots !== undefined) entry.dots = normalizeDots(patch.dots);
     if (patch.measureRest !== undefined) entry.measureRest = Boolean(patch.measureRest);
     if (patch.articulations !== undefined) entry.articulations = normalizeArticulations(patch.articulations);
-    if (patch.stemDirection !== undefined) entry.stemDirection = normalizeStemDirection(patch.stemDirection);
 
     if (entry.kind === "rest") {
       delete entry.pitch;
       delete entry.articulations;
-      delete entry.stemDirection;
       if (entry.dots > 0) entry.measureRest = false;
     } else {
       entry.measureRest = false;
-      entry.stemDirection = normalizeStemDirection(entry.stemDirection);
     }
 
     cleanupTies(score);
@@ -1383,7 +1291,7 @@
     );
   }
 
-  function addSlur(score, startId, endId, placement) {
+  function addSlur(score, startId, endId) {
     if (!score) return false;
     if (!Array.isArray(score.slurs)) score.slurs = [];
     const indexMap = noteIndexMap(score);
@@ -1393,12 +1301,7 @@
     if (!indexMap.has(startId) || !indexMap.has(endId)) return false;
     if (indexMap.get(startId) >= indexMap.get(endId)) return false;
     if (hasSlur(score, startId, endId)) return false;
-    score.slurs.push({
-      id: makeSlurId(),
-      startId: startId,
-      endId: endId,
-      placement: normalizeSlurPlacement(placement)
-    });
+    score.slurs.push({ id: makeSlurId(), startId: startId, endId: endId });
     cleanupSlurs(score);
     return true;
   }
@@ -1496,69 +1399,6 @@
     };
   }
 
-  function canSetStemDirectionForSelection(score, ids) {
-    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
-    const notes = selectedNoteEntries(score, ids);
-    return selected.size > 0 &&
-      notes.length === selected.size &&
-      notes.every(function (entry) { return entry.duration !== "whole"; });
-  }
-
-  function stemDirectionForSelection(score, ids) {
-    if (!canSetStemDirectionForSelection(score, ids)) return "mixed";
-    const notes = selectedNoteEntries(score, ids);
-    const values = new Set(notes.map(function (entry) {
-      return normalizeStemDirection(entry.stemDirection);
-    }));
-    return values.size === 1 ? Array.from(values)[0] : "mixed";
-  }
-
-  function setStemDirectionForSelection(score, ids, direction) {
-    if (!canSetStemDirectionForSelection(score, ids)) return false;
-    const normalized = normalizeStemDirection(direction);
-    selectedNoteEntries(score, ids).forEach(function (entry) {
-      entry.stemDirection = normalized;
-    });
-    return true;
-  }
-
-  function exactSlurForSelection(score, ids) {
-    if (!score || !Array.isArray(score.notes) || !Array.isArray(score.slurs)) return null;
-    const selected = new Set(Array.isArray(ids) ? ids : [ids]);
-    const entries = score.notes.filter(function (entry) {
-      return selected.has(entry.id);
-    });
-    if (entries.length < 2 || !entries.every(function (entry) { return entry.kind === "note"; })) return null;
-    const startId = entries[0].id;
-    const endId = entries[entries.length - 1].id;
-    return score.slurs.find(function (slur) {
-      return slur.startId === startId && slur.endId === endId;
-    }) || null;
-  }
-
-  function slurForDirectionSelection(score, ids) {
-    const list = Array.isArray(ids) ? ids : [ids];
-    if (list.length === 1) {
-      const slurs = slursAtNote(score, list[0]);
-      return slurs.length === 1 ? slurs[0] : null;
-    }
-    return exactSlurForSelection(score, list);
-  }
-
-  function setSlurPlacement(score, slurId, placement) {
-    if (!score || !Array.isArray(score.slurs) || !slurId) return false;
-    const slur = score.slurs.find(function (item) { return item.id === slurId; });
-    if (!slur) return false;
-    slur.placement = normalizeSlurPlacement(placement);
-    return true;
-  }
-
-  function getSlurPlacement(score, slurId) {
-    if (!score || !Array.isArray(score.slurs) || !slurId) return "auto";
-    const slur = score.slurs.find(function (item) { return item.id === slurId; });
-    return slur ? normalizeSlurPlacement(slur.placement) : "auto";
-  }
-
   function hasSlurForSelection(score, ids) {
     if (!canCreateSlurFromSelection(score, ids)) return false;
     const selected = new Set(Array.isArray(ids) ? ids : [ids]);
@@ -1607,23 +1447,12 @@
     canCreateSlurFromSelection: canCreateSlurFromSelection,
     toggleSlurForSelection: toggleSlurForSelection,
     hasSlurForSelection: hasSlurForSelection,
-    canSetStemDirectionForSelection: canSetStemDirectionForSelection,
-    stemDirectionForSelection: stemDirectionForSelection,
-    setStemDirectionForSelection: setStemDirectionForSelection,
-    exactSlurForSelection: exactSlurForSelection,
-    slurForDirectionSelection: slurForDirectionSelection,
-    setSlurPlacement: setSlurPlacement,
-    getSlurPlacement: getSlurPlacement,
     normalizeLayout: normalizeLayout,
     getSystemBreaks: getSystemBreaks,
     hasSystemBreak: hasSystemBreak,
     toggleSystemBreak: toggleSystemBreak,
     cleanupSystemBreaks: cleanupSystemBreaks,
     getLastSystemMaxScalingFactor: getLastSystemMaxScalingFactor,
-    setLastSystemMaxScalingFactor: setLastSystemMaxScalingFactor,
-    normalizeBarlines: normalizeBarlines,
-    getBarlineType: getBarlineType,
-    setBarlineType: setBarlineType,
-    cleanupBarlines: cleanupBarlines
+    setLastSystemMaxScalingFactor: setLastSystemMaxScalingFactor
   };
 })();

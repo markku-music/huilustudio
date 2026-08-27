@@ -28,23 +28,6 @@
           <div class="pk-slur-flyout" role="menu" hidden></div>
         </div>
 
-        <div class="pk-direction-control pk-stem-direction-control">
-          <button type="button" data-action="stem-direction"
-                  aria-label="${I18N.t("stemDirection")}" title="${I18N.t("stemDirection")}"
-                  aria-haspopup="false" aria-pressed="false">
-            <img class="pk-direction-icon pk-stem-direction-icon" src="assets/stem-auto.svg"
-                 alt="" aria-hidden="true">
-          </button>
-        </div>
-
-        <div class="pk-direction-control pk-slur-placement-control">
-          <button type="button" data-action="slur-placement"
-                  aria-label="${I18N.t("slurPlacement")}" title="${I18N.t("slurPlacement")}"
-                  aria-haspopup="false" aria-pressed="false">
-            <img class="pk-direction-icon pk-slur-placement-icon" src="assets/slur-auto.svg"
-                 alt="" aria-hidden="true">
-          </button>
-        </div>
 
         <button type="button" data-action="beam"
                 aria-label="${I18N.t("beamBreak")}" title="${I18N.t("beamBreak")}"
@@ -90,12 +73,6 @@
 
       this.root = root;
       this.slurButton = root.querySelector('[data-action="slur"]');
-      this.stemDirectionControl = root.querySelector(".pk-stem-direction-control");
-      this.stemDirectionButton = root.querySelector('[data-action="stem-direction"]');
-      this.slurPlacementControl = root.querySelector(".pk-slur-placement-control");
-      this.slurPlacementButton = root.querySelector('[data-action="slur-placement"]');
-      this.stemDirection = "auto";
-      this.slurPlacement = "auto";
       this.beamButton = root.querySelector('[data-action="beam"]');
       this.beamMode = "";
       this.slurFlyout = root.querySelector(".pk-slur-flyout");
@@ -108,7 +85,6 @@
       });
 
       root.addEventListener("click", (event) => {
-
         const choice = event.target.closest("[data-slur-id]");
         if (choice) {
           event.preventDefault();
@@ -144,22 +120,6 @@
           return;
         }
 
-        if (button.dataset.action === "stem-direction") {
-          this.closeSlurFlyout();
-          const current = this.stemDirection === "mixed" ? "auto" : this.stemDirection;
-          const next = current === "auto" ? "up" : current === "up" ? "down" : "auto";
-          if (typeof config.onStemDirection === "function") config.onStemDirection(next);
-          return;
-        }
-
-        if (button.dataset.action === "slur-placement") {
-          this.closeSlurFlyout();
-          const current = this.slurPlacement;
-          const next = current === "auto" ? "above" : current === "above" ? "below" : "auto";
-          if (typeof config.onSlurPlacement === "function") config.onSlurPlacement(next);
-          return;
-        }
-
         if (button.dataset.action === "beam") {
           if (typeof config.onBeam === "function") config.onBeam();
           return;
@@ -186,7 +146,7 @@
       document.addEventListener("pointerdown", (event) => {
         if (!this.root.contains(event.target)) {
           this.closeSlurFlyout();
-          }
+        }
       }, { passive:true });
     }
 
@@ -209,7 +169,6 @@
             : "assets/beam-break.svg";
         }
       }
-      this.updateDirectionButtonLabels();
       ["accent", "staccato", "marcato", "tenuto"].forEach((name) => {
         const button = this.root.querySelector('[data-articulation="' + name + '"]');
         if (button) {
@@ -268,54 +227,6 @@
       }
     }
 
-    closeDirectionFlyouts() {
-      // 0.17.6.19: suuntavalinnat eivät enää avaa lisäpainikkeita.
-    }
-
-    updateDirectionButtonLabels() {
-      if (this.stemDirectionButton) {
-        const state = this.stemDirection === "up"
-          ? I18N.t("stemUp")
-          : this.stemDirection === "down"
-            ? I18N.t("stemDown")
-            : I18N.t("automatic");
-        const label = I18N.t("stemDirection") + ": " + state;
-        this.stemDirectionButton.setAttribute("aria-label", label);
-        this.stemDirectionButton.setAttribute("title", label);
-      }
-      if (this.slurPlacementButton) {
-        const state = this.slurPlacement === "above"
-          ? I18N.t("slurAbove")
-          : this.slurPlacement === "below"
-            ? I18N.t("slurBelow")
-            : I18N.t("automatic");
-        const label = I18N.t("slurPlacement") + ": " + state;
-        this.slurPlacementButton.setAttribute("aria-label", label);
-        this.slurPlacementButton.setAttribute("title", label);
-      }
-    }
-
-    updateDirectionControls(config) {
-      const canStem = Boolean(config.canStemDirection);
-      this.stemDirectionControl.hidden = !canStem;
-      this.stemDirectionButton.disabled = !canStem;
-      this.stemDirection = ["up", "down", "auto", "mixed"].includes(config.stemDirection) ? config.stemDirection : "auto";
-      const stemIcon = this.stemDirectionButton.querySelector(".pk-stem-direction-icon");
-      if (stemIcon) stemIcon.src = "assets/stem-" + (this.stemDirection === "mixed" ? "auto" : this.stemDirection) + ".svg";
-      this.stemDirectionButton.classList.toggle("active", this.stemDirection === "up" || this.stemDirection === "down");
-      this.stemDirectionButton.setAttribute("aria-pressed", this.stemDirection === "up" || this.stemDirection === "down" ? "true" : "false");
-
-      const canPlacement = Boolean(config.canSlurPlacement);
-      this.slurPlacementControl.hidden = !canPlacement;
-      this.slurPlacementButton.disabled = !canPlacement;
-      this.slurPlacement = ["above", "below", "auto"].includes(config.slurPlacement) ? config.slurPlacement : "auto";
-      const slurIcon = this.slurPlacementButton.querySelector(".pk-slur-placement-icon");
-      if (slurIcon) slurIcon.src = "assets/slur-" + this.slurPlacement + ".svg";
-      this.slurPlacementButton.classList.toggle("active", this.slurPlacement === "above" || this.slurPlacement === "below");
-      this.slurPlacementButton.setAttribute("aria-pressed", this.slurPlacement === "above" || this.slurPlacement === "below" ? "true" : "false");
-      this.updateDirectionButtonLabels();
-    }
-
     update(options) {
       const config = options || {};
       const visible = Boolean(config.visible);
@@ -330,7 +241,6 @@
       enharmonic.hidden = !config.canEnharmonic;
       enharmonic.disabled = !config.canEnharmonic;
 
-      this.updateDirectionControls(config);
       this.singleSelection = Boolean(config.singleSelection);
       this.renderSlurChoices(config.slurChoices || []);
 
@@ -400,7 +310,6 @@
 
     hide() {
       this.closeSlurFlyout();
-      this.closeDirectionFlyouts();
       this.root.hidden = true;
     }
   }

@@ -18,7 +18,7 @@
 
       this.activePointers = new Map();
       this.dragPointerId = null;
-      this.stateValue = { rest: false, dots: 0, slur: false, tie: false, layout: false, barlines: false };
+      this.stateValue = { rest: false, dots: 0, slur: false, tie: false, layout: false };
       this.ratio = 0.52;
 
       this.dotWrap = this.rail.querySelector(".thumb-dot-wrap");
@@ -37,7 +37,7 @@
     }
 
     setToggle(name, value) {
-      if (!["tie", "layout", "barlines"].includes(name)) return;
+      if (!["tie", "layout"].includes(name)) return;
       this.stateValue[name] = Boolean(value);
       this.updateStateAndButtons();
     }
@@ -56,7 +56,7 @@
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
       const modifier = button.dataset.modifier;
-      if (!["rest", "dot1", "dot2", "slur", "tie", "layout", "barlines"].includes(modifier)) return;
+      if (!["rest", "dot1", "dot2", "slur", "tie", "layout"].includes(modifier)) return;
 
       event.preventDefault();
       event.stopPropagation();
@@ -66,11 +66,8 @@
       // Tie on kertakäyttöinen toggle: napautus virittää sen seuraavaa
       // syötettyä tapahtumaa varten. Rivien muokkaus on tavallinen toggle.
       // Muut peukalopakin työkalut ovat paina-ja-pidä-modifiereita.
-      if (modifier === "tie" || modifier === "layout" || modifier === "barlines") {
-        const next = !this.stateValue[modifier];
-        this.stateValue[modifier] = next;
-        if (next && modifier === "layout") this.stateValue.barlines = false;
-        if (next && modifier === "barlines") this.stateValue.layout = false;
+      if (modifier === "tie" || modifier === "layout") {
+        this.stateValue[modifier] = !this.stateValue[modifier];
         this.updateStateAndButtons();
         return;
       }
@@ -200,7 +197,6 @@
       let slur = false;
       const tie = Boolean(this.stateValue.tie);
       const layout = Boolean(this.stateValue.layout);
-      const barlines = Boolean(this.stateValue.barlines);
 
       for (const active of this.activePointers.values()) {
         if (active.modifier === "rest") {
@@ -216,7 +212,7 @@
         }
       }
 
-      this.stateValue = { rest: rest, dots: dots, slur: slur, tie: tie, layout: layout, barlines: barlines };
+      this.stateValue = { rest: rest, dots: dots, slur: slur, tie: tie, layout: layout };
 
       const restButton = this.rail.querySelector('[data-modifier="rest"]');
       if (restButton) {
@@ -240,12 +236,6 @@
       if (layoutButton) {
         layoutButton.classList.toggle("active", layout);
         layoutButton.setAttribute("aria-pressed", layout ? "true" : "false");
-      }
-
-      const barlineButton = this.rail.querySelector('[data-modifier="barlines"]');
-      if (barlineButton) {
-        barlineButton.classList.toggle("active", barlines);
-        barlineButton.setAttribute("aria-pressed", barlines ? "true" : "false");
       }
 
       if (this.dot1Button) {
