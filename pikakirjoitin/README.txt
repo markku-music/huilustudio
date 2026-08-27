@@ -25,3 +25,9 @@ Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeise
 - Print previewn nuottigeometria vastaa PDF-tallennusta.
 - ResizeObserver ei rerenderöi OSMD:tä print previewn aikana.
 - Muu appi poistetaan print-layoutista display:none-menetelmällä, jotta tyhjää lisäsivua ei synny.
+
+
+0.17.6.21
+- Tallenna PDF avaa kosketuslaitteella ensisijaisesti natiivin jakovalikon, kun Web Share -tiedostojako on tuettu.
+- Mac/desktop säilyttää tavallisen PDF-latauksen.
+- Jos tiedoston jako ei ole tuettu, käytetään automaattisesti vanhaa latauspolkua.

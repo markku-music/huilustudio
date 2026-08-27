@@ -215,10 +215,53 @@
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
   }
 
+  function isTouchShareDevice() {
+    const userAgent = String(navigator.userAgent || "");
+    const isIPadOS = navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
+    const isMobileUserAgent = /iPad|iPhone|iPod|Android/i.test(userAgent);
+    let coarsePointer = false;
+    try {
+      coarsePointer = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    } catch (_) {}
+    return isIPadOS || isMobileUserAgent || (Number(navigator.maxTouchPoints || 0) > 1 && coarsePointer);
+  }
+
+  async function sharePdfOnTouchDevice(pdfBlob, filename) {
+    if (!isTouchShareDevice()) return false;
+    if (typeof navigator.share !== "function" || typeof navigator.canShare !== "function") return false;
+    if (typeof File !== "function") return false;
+
+    const file = new File([pdfBlob], filename, { type: "application/pdf" });
+    let canShareFile = false;
+    try {
+      canShareFile = navigator.canShare({ files: [file] });
+    } catch (_) {
+      canShareFile = false;
+    }
+    if (!canShareFile) return false;
+
+    updateStatus("Avataan jakovalikko…");
+    try {
+      await navigator.share({
+        files: [file],
+        title: filename
+      });
+      updateStatus("PDF jaettu.", "ok");
+      return true;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        updateStatus("PDF:n jako peruttiin.");
+        return true;
+      }
+      console.warn("PDF-jakovalikko ei avautunut, käytetään tavallista tallennusta.", error);
+      return false;
+    }
+  }
+
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.18",
+      version: "0.17.6.21",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -447,8 +490,13 @@
         pages.push(await svgToJpegBytes(svg, paper));
       }
 
-      downloadBlob(buildPdfFromJpegs(pages), fileBaseName() + ".pdf");
-      updateStatus("PDF tallennettu.", "ok");
+      const pdfBlob = buildPdfFromJpegs(pages);
+      const pdfFilename = fileBaseName() + ".pdf";
+      const shared = await sharePdfOnTouchDevice(pdfBlob, pdfFilename);
+      if (!shared) {
+        downloadBlob(pdfBlob, pdfFilename);
+        updateStatus("PDF tallennettu.", "ok");
+      }
     } catch (error) {
       console.error(error);
       updateStatus(
