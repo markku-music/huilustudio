@@ -37,6 +37,10 @@
   let pendingSelectedSlurStartId = null;
   const noteInputMeta = new Map();
 
+  let musicStandMode = false;
+  let musicStandScrollLeft = 0;
+  let musicStandScrollTop = 0;
+
   const UNDO_LIMIT = 100;
   const undoStack = [];
   const redoStack = [];
@@ -752,6 +756,140 @@
     }
 
     setLayoutPanelValues();
+  }
+
+  function fitMusicStandPage() {
+    if (!musicStandMode) return;
+
+    const viewport = document.querySelector(".score-card");
+    const paper = document.getElementById("a4Paper");
+    if (!viewport || !paper) return;
+
+    // offsetWidth/offsetHeight eivät sisällä CSS-transformia. Näin mitataan
+    // sama valmis A4-paperi muuttamatta sen layout-leveyttä tai OSMD-renderiä.
+    const paperWidth = Math.max(1, Number(paper.offsetWidth) || 1);
+    const paperHeight = Math.max(1, Number(paper.offsetHeight) || 1);
+    const viewportWidth = Math.max(1, Number(viewport.clientWidth) || window.innerWidth || 1);
+    const viewportHeight = Math.max(1, Number(viewport.clientHeight) || window.innerHeight || 1);
+
+    const scale = Math.min(viewportWidth / paperWidth, viewportHeight / paperHeight);
+    const scaledWidth = paperWidth * scale;
+    const scaledHeight = paperHeight * scale;
+    const x = Math.max(0, (viewportWidth - scaledWidth) / 2);
+    const y = Math.max(0, (viewportHeight - scaledHeight) / 2);
+
+    paper.style.setProperty("--pk-stand-scale", String(scale));
+    paper.style.setProperty("--pk-stand-x", x + "px");
+    paper.style.setProperty("--pk-stand-y", y + "px");
+  }
+
+  function setMusicStandMode(active) {
+    const next = Boolean(active);
+    if (musicStandMode === next) return;
+
+    const viewport = document.querySelector(".score-card");
+    const paper = document.getElementById("a4Paper");
+    const button = document.getElementById("musicStandButton");
+
+    musicStandMode = next;
+
+    if (next) {
+      if (viewport) {
+        musicStandScrollLeft = viewport.scrollLeft;
+        musicStandScrollTop = viewport.scrollTop;
+      }
+
+      // Nuottiteline ei ole muokkaustila. Suljetaan kaikki mahdolliset
+      // nuotti-, tahtiviiva- ja rivinvaihtovalinnat ennen esitysnäkymää.
+      if (thumbRail) {
+        if (thumbRail.state.barlines) thumbRail.setToggle("barlines", false);
+        if (thumbRail.state.layout) thumbRail.setToggle("layout", false);
+      }
+      if (layoutEditor) layoutEditor.setActive(false);
+      if (barlineEditor) barlineEditor.setActive(false);
+      if (selection) {
+        if (typeof selection.setEnabled === "function") selection.setEnabled(false);
+        selection.clear();
+      }
+      if (selectionEditor) {
+        if (typeof selectionEditor.hide === "function") selectionEditor.hide();
+        else selectionEditor.update({ visible:false });
+      }
+      lastSelectionEditorAnchor = null;
+
+      const layoutPanel = document.getElementById("layoutSettingsPanel");
+      const layoutButton = document.getElementById("layoutSettingsButton");
+      if (layoutPanel) layoutPanel.hidden = true;
+      if (layoutButton) layoutButton.setAttribute("aria-expanded", "false");
+
+      document.body.classList.add("pk-music-stand-mode");
+      if (button) button.setAttribute("aria-pressed", "true");
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+
+      requestAnimationFrame(function () {
+        fitMusicStandPage();
+        requestAnimationFrame(fitMusicStandPage);
+      });
+      return;
+    }
+
+    document.body.classList.remove("pk-music-stand-mode");
+    if (paper) {
+      paper.style.removeProperty("--pk-stand-scale");
+      paper.style.removeProperty("--pk-stand-x");
+      paper.style.removeProperty("--pk-stand-y");
+    }
+    if (button) button.setAttribute("aria-pressed", "false");
+
+    if (selection && typeof selection.setEnabled === "function") {
+      selection.setEnabled(!(thumbState.layout || thumbState.barlines));
+    }
+
+    requestAnimationFrame(function () {
+      if (viewport) {
+        viewport.scrollLeft = musicStandScrollLeft;
+        viewport.scrollTop = musicStandScrollTop;
+      }
+      refreshSelectionFromRenderedScore();
+    });
+  }
+
+  function setupMusicStandMode() {
+    const button = document.getElementById("musicStandButton");
+    const viewport = document.querySelector(".score-card");
+    if (!button || !viewport) return;
+
+    button.addEventListener("click", function () {
+      setMusicStandMode(true);
+    });
+
+    // Nuottitelineessä itse sivun napautus palauttaa normaalitilan. Listener
+    // on capture-vaiheessa, jotta sama kosketus ei ehdi valita nuottia.
+    viewport.addEventListener("pointerdown", function (event) {
+      if (!musicStandMode) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setMusicStandMode(false);
+    }, true);
+
+    window.addEventListener("resize", function () {
+      if (musicStandMode) requestAnimationFrame(fitMusicStandPage);
+    });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () {
+        if (musicStandMode) requestAnimationFrame(fitMusicStandPage);
+      });
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (musicStandMode && event.key === "Escape") {
+        event.preventDefault();
+        setMusicStandMode(false);
+      }
+    });
   }
 
   function setupHistoryControls() {
@@ -1821,6 +1959,7 @@
 
   function start() {
     setupHistoryControls();
+    setupMusicStandMode();
     setupLayoutSettings();
     setupSelection();
     setupSystemLayoutEditor();

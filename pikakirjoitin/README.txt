@@ -31,3 +31,12 @@ Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeise
 - Tallenna PDF avaa kosketuslaitteella ensisijaisesti natiivin jakovalikon, kun Web Share -tiedostojako on tuettu.
 - Mac/desktop säilyttää tavallisen PDF-latauksen.
 - Jos tiedoston jako ei ole tuettu, käytetään automaattisesti vanhaa latauspolkua.
+
+
+0.17.6.22
+- Lisätty Nuottiteline-painike oikean reunan pikatoimintoihin.
+- Nuottitelineessä kaikki muu käyttöliittymä piilotetaan ja sama valmis A4-sivu skaalataan kokonaisena viewportiin.
+- Paperin reunus, varjo ja taustakontrasti poistuvat, joten näkymässä näkyy vain nuotti valkoisella taustalla.
+- Nuotin layout-leveyttä ei muuteta eikä OSMD:tä renderöidä telineeseen siirryttäessä uudelleen.
+- Nuottitelineestä poistutaan napauttamalla nuottisivua tai Esc-näppäimellä.
+- Nuottivalinta ja muut muokkaustilat ovat telineessä pois käytöstä.
