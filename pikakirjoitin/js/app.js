@@ -1123,16 +1123,25 @@
     commitHistory(historySnapshot(selected ? "Nuotin muokkaus" : "Nuotin kirjoitus"));
 
     if (selected) {
-      keyboardEditId = selected.id;
+      // 0.17.6.25: kun yksi nuotti on valittuna, koskettimisto siirtyy
+      // nimenomaan tämän nuotin muokkaustilaan. Sama kosketusele kuin
+      // kirjoittaessa määrää sekä uuden sävelkorkeuden että aika-arvon:
+      // napautus = 1/4, alas = 1/8, ylös = 1/2, oikealle = 1/16,
+      // vasemmalle = 1/32 ja pitkä painallus = 1/1.
+      // sourceId ei vaihdu, joten valinta voidaan pitää varmasti kiinni
+      // samassa nuotissa myös OSMD:n uudelleenrenderöinnin yli.
+      const editId = selected.id;
+      keyboardEditId = editId;
+
       if (thumbState.rest) {
-        window.PikakirjoitinScoreModel.updateEntry(score, selected.id, {
+        window.PikakirjoitinScoreModel.updateEntry(score, editId, {
           kind: "rest",
           duration: duration,
           dots: dots,
           measureRest: duration === "whole" && dots === 0
         });
       } else {
-        window.PikakirjoitinScoreModel.updateEntry(score, selected.id, {
+        window.PikakirjoitinScoreModel.updateEntry(score, editId, {
           kind: "note",
           pitch: pitch,
           duration: duration,
@@ -1141,16 +1150,29 @@
         });
       }
 
-      const edited = window.PikakirjoitinScoreModel.getEntry(score, selected.id);
-      noteInputMeta.set(selected.id, { fromEdit: true, startedWithSlur: Boolean(thumbState.slur) });
+      const edited = window.PikakirjoitinScoreModel.getEntry(score, editId);
+      noteInputMeta.set(editId, {
+        fromEdit: true,
+        startedWithSlur: Boolean(thumbState.slur)
+      });
+
+      // Pidä valinta päällä heti, eikä vasta renderöinnin valmistuttua.
+      // Tämä estää kelluvan palkin välähdyksen pois ja ennen kaikkea
+      // varmistaa, että saman eleen duration-vaihe muokkaa samaa nuottia.
+      if (selection) selection.retainSingle(editId);
+
       updateStatus(entryLabel(edited, pitch, duration) + " · muokataan…");
 
-      renderScore().catch(function (error) {
+      renderScore().then(function () {
+        if (selection && keyboardEditId === editId) {
+          selection.retainSingle(editId);
+        }
+      }).catch(function (error) {
         console.error(error);
         updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
       });
 
-      return { id: selected.id, sound: edited && edited.kind !== "rest" };
+      return { id: editId, sound: edited && edited.kind !== "rest" };
     }
 
     if (selection && selectedIds().length) selection.clear();
@@ -1214,13 +1236,26 @@
 
   function changeDuration(id, duration, midi, pitch) {
     const targetId = keyboardEditId || id;
+    const editingSelectedNote = Boolean(keyboardEditId);
+
     if (!window.PikakirjoitinScoreModel.setDuration(score, targetId, duration)) {
       return;
     }
+
     const entry = window.PikakirjoitinScoreModel.getEntry(score, targetId);
     updateStatus(entryLabel(entry, pitch, duration) + " · aika-arvo muutettu");
 
-    renderScore().catch(function (error) {
+    // Eleen aikana OSMD voi renderöityä useamman kerran. Valitun nuotin
+    // muokkaustilassa valinta lukitaan aina takaisin samaan sourceId:hen.
+    if (editingSelectedNote && selection) {
+      selection.retainSingle(targetId);
+    }
+
+    renderScore().then(function () {
+      if (editingSelectedNote && selection && keyboardEditId === targetId) {
+        selection.retainSingle(targetId);
+      }
+    }).catch(function (error) {
       console.error(error);
       updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });

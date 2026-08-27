@@ -40,3 +40,8 @@ Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeise
 - Nuotin layout-leveyttä ei muuteta eikä OSMD:tä renderöidä telineeseen siirryttäessä uudelleen.
 - Nuottitelineestä poistutaan napauttamalla nuottisivua tai Esc-näppäimellä.
 - Nuottivalinta ja muut muokkaustilat ovat telineessä pois käytöstä.
+
+
+0.17.6.25
+- Valittu yksittäinen nuotti voidaan muokata suoraan koskettimiston sävel- ja aika-arvoeleillä.
+- Valinta pysyy päällä muokkauksen jälkeen.
