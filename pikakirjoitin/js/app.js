@@ -25,16 +25,21 @@
   const audio = new window.PikakirjoitinAudio.AudioEngine();
 
   let rendering = Promise.resolve();
-  let thumbState = { rest: false, dots: 0, slur: false, tie: false, layout: false };
+  let thumbState = { rest: false, dots: 0, slur: false, tie: false, layout: false, barlines: false };
   let keyboard = null;
   let thumbRail = null;
   let selection = null;
   let selectionEditor = null;
   let layoutEditor = null;
+  let barlineEditor = null;
   let keyboardEditId = null;
   let lastSelectionEditorAnchor = null;
   let pendingSelectedSlurStartId = null;
   const noteInputMeta = new Map();
+
+  let musicStandMode = false;
+  let musicStandScrollLeft = 0;
+  let musicStandScrollTop = 0;
 
   const UNDO_LIMIT = 100;
   const undoStack = [];
@@ -106,6 +111,7 @@
     });
     Object.assign(score, clonePlain(nextScore));
     score.layout = window.PikakirjoitinScoreModel.normalizeLayout(score.layout);
+    score.barlines = window.PikakirjoitinScoreModel.normalizeBarlines(score.barlines);
     window.PikakirjoitinScoreModel.cleanupTies(score);
     window.PikakirjoitinScoreModel.cleanupSlurs(score);
     window.PikakirjoitinScoreModel.cleanupBeamGroups(score);
@@ -213,10 +219,53 @@
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
   }
 
+  function isTouchShareDevice() {
+    const userAgent = String(navigator.userAgent || "");
+    const isIPadOS = navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
+    const isMobileUserAgent = /iPad|iPhone|iPod|Android/i.test(userAgent);
+    let coarsePointer = false;
+    try {
+      coarsePointer = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    } catch (_) {}
+    return isIPadOS || isMobileUserAgent || (Number(navigator.maxTouchPoints || 0) > 1 && coarsePointer);
+  }
+
+  async function sharePdfOnTouchDevice(pdfBlob, filename) {
+    if (!isTouchShareDevice()) return false;
+    if (typeof navigator.share !== "function" || typeof navigator.canShare !== "function") return false;
+    if (typeof File !== "function") return false;
+
+    const file = new File([pdfBlob], filename, { type: "application/pdf" });
+    let canShareFile = false;
+    try {
+      canShareFile = navigator.canShare({ files: [file] });
+    } catch (_) {
+      canShareFile = false;
+    }
+    if (!canShareFile) return false;
+
+    updateStatus("Avataan jakovalikko…");
+    try {
+      await navigator.share({
+        files: [file],
+        title: filename
+      });
+      updateStatus("PDF jaettu.", "ok");
+      return true;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        updateStatus("PDF:n jako peruttiin.");
+        return true;
+      }
+      console.warn("PDF-jakovalikko ei avautunut, käytetään tavallista tallennusta.", error);
+      return false;
+    }
+  }
+
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.9",
+      version: "0.17.6.21",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -445,8 +494,13 @@
         pages.push(await svgToJpegBytes(svg, paper));
       }
 
-      downloadBlob(buildPdfFromJpegs(pages), fileBaseName() + ".pdf");
-      updateStatus("PDF tallennettu.", "ok");
+      const pdfBlob = buildPdfFromJpegs(pages);
+      const pdfFilename = fileBaseName() + ".pdf";
+      const shared = await sharePdfOnTouchDevice(pdfBlob, pdfFilename);
+      if (!shared) {
+        downloadBlob(pdfBlob, pdfFilename);
+        updateStatus("PDF tallennettu.", "ok");
+      }
     } catch (error) {
       console.error(error);
       updateStatus(
@@ -458,9 +512,109 @@
     }
   }
 
+  function removePrintSnapshot() {
+    const snapshot = document.querySelector(".pk-print-snapshot");
+    if (snapshot) snapshot.remove();
+    document.body.classList.remove("pk-printing");
+    window.PikakirjoitinPrintMode = false;
+  }
+
+  function createPrintSnapshot() {
+    const oldSnapshot = document.querySelector(".pk-print-snapshot");
+    if (oldSnapshot) oldSnapshot.remove();
+
+    const paper = document.getElementById("a4Paper");
+    const container = document.getElementById("osmd-container");
+    if (!paper || !container) {
+      throw new Error("Nuottisivua ei löytynyt tulostusta varten.");
+    }
+
+    const paperRect = paper.getBoundingClientRect();
+    if (!(paperRect.width > 1 && paperRect.height > 1)) {
+      throw new Error("Nuottisivun mittoja ei voitu lukea.");
+    }
+
+    let svgs = Array.from(container.children).filter(function (element) {
+      return element.tagName && element.tagName.toLowerCase() === "svg";
+    });
+    if (!svgs.length) {
+      svgs = Array.from(container.querySelectorAll("svg")).filter(function (svg) {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 80 && rect.height > 80;
+      });
+    }
+    if (!svgs.length) {
+      throw new Error("Tulostukseen ei löytynyt nuottikuvaa.");
+    }
+
+    /*
+     * 0.17.6.20:
+     * Tulostus ei enää muuta oikean .a4-paper-elementin kokoa. Sen sijaan
+     * ruudulla jo valmiiksi renderöidystä SVG:stä tehdään print-only A4-kopio.
+     * Jokaisen SVG:n paikka ja koko tallennetaan prosentteina alkuperäisestä
+     * paperista. Tämä on sama geometria, jota PDF-tallennus käyttää.
+     */
+    const snapshot = document.createElement("div");
+    snapshot.className = "pk-print-snapshot";
+    snapshot.setAttribute("aria-hidden", "true");
+
+    svgs.forEach(function (svg) {
+      const rect = svg.getBoundingClientRect();
+      if (!(rect.width > 1 && rect.height > 1)) return;
+
+      const clone = svg.cloneNode(true);
+      if (clone.removeAttribute) clone.removeAttribute("id");
+      clone.querySelectorAll("[id]").forEach(function (element) {
+        element.removeAttribute("id");
+      });
+
+      const left = ((rect.left - paperRect.left) / paperRect.width) * 100;
+      const top = ((rect.top - paperRect.top) / paperRect.height) * 100;
+      const width = (rect.width / paperRect.width) * 100;
+      const height = (rect.height / paperRect.height) * 100;
+
+      clone.style.position = "absolute";
+      clone.style.left = left + "%";
+      clone.style.top = top + "%";
+      clone.style.width = width + "%";
+      clone.style.height = height + "%";
+      clone.style.maxWidth = "none";
+      clone.style.margin = "0";
+      clone.style.padding = "0";
+
+      snapshot.appendChild(clone);
+    });
+
+    if (!snapshot.children.length) {
+      throw new Error("Tulostukseen ei löytynyt näkyvää nuottikuvaa.");
+    }
+
+    document.body.appendChild(snapshot);
+    return snapshot;
+  }
+
   function printScore() {
     audio.noteOff();
-    window.print();
+
+    try {
+      createPrintSnapshot();
+      window.PikakirjoitinPrintMode = true;
+      document.body.classList.add("pk-printing");
+
+      const cleanup = function () {
+        removePrintSnapshot();
+      };
+      window.addEventListener("afterprint", cleanup, { once: true });
+
+      window.print();
+    } catch (error) {
+      console.error(error);
+      removePrintSnapshot();
+      updateStatus(
+        "Tulostus epäonnistui: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+    }
   }
 
   const LAYOUT_DEFAULTS = {
@@ -518,6 +672,7 @@
         .then(function () {
           refreshSelectionFromRenderedScore();
           if (layoutEditor) layoutEditor.refresh();
+          if (barlineEditor && barlineEditor.isActive()) barlineEditor.refresh();
         })
         .catch(function (error) {
           console.error(error);
@@ -603,6 +758,239 @@
     setLayoutPanelValues();
   }
 
+  function getMusicStandContentBounds(paper) {
+    const container = document.getElementById("osmd-container");
+    if (!paper || !container) return null;
+
+    // Mitataan vain OSMD:n oikeasti piirtämät graafiset alkiot. Root-SVG:t ja
+    // mahdolliset sivun taustarectit jätetään pois, jotta A4-paperin tyhjä alue
+    // ei päädy nuottitelineen sovituslaatikkoon.
+    const selector = [
+      "svg path",
+      "svg text",
+      "svg line",
+      "svg polyline",
+      "svg polygon",
+      "svg circle",
+      "svg ellipse",
+      "svg use",
+      "svg image"
+    ].join(",");
+
+    const nodes = Array.from(container.querySelectorAll(selector));
+    if (!nodes.length) return null;
+
+    const paperRect = paper.getBoundingClientRect();
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+
+    for (const node of nodes) {
+      if (!node || typeof node.getBoundingClientRect !== "function") continue;
+      const rect = node.getBoundingClientRect();
+      if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.top)) continue;
+      if (rect.width < 0.15 && rect.height < 0.15) continue;
+
+      // Paikalliset koordinaatit paperin vasemmasta yläkulmasta.
+      const l = rect.left - paperRect.left;
+      const t = rect.top - paperRect.top;
+      const r = rect.right - paperRect.left;
+      const b = rect.bottom - paperRect.top;
+
+      left = Math.min(left, l);
+      top = Math.min(top, t);
+      right = Math.max(right, r);
+      bottom = Math.max(bottom, b);
+    }
+
+    if (![left, top, right, bottom].every(Number.isFinite)) return null;
+    if (right <= left || bottom <= top) return null;
+
+    // Hieman hengitystilaa, ettei nuotti osu aivan näytön reunaan. Tämä ei ole
+    // paperimarginaali vaan pieni esitystilan turvaväli sisällön ympärillä.
+    const sourcePad = 8;
+    return {
+      left: Math.max(0, left - sourcePad),
+      top: Math.max(0, top - sourcePad),
+      right: Math.min(paper.offsetWidth, right + sourcePad),
+      bottom: Math.min(paper.offsetHeight, bottom + sourcePad)
+    };
+  }
+
+  function fitMusicStandPage() {
+    if (!musicStandMode) return;
+
+    const viewport = document.querySelector(".score-card");
+    const paper = document.getElementById("a4Paper");
+    if (!viewport || !paper) return;
+
+    // Nollataan vanha transformi ennen mittausta. Paperin leveys ja korkeus on
+    // lukittu setMusicStandMode():ssa normaalinäkymän arvoihin, joten OSMD:n
+    // layout ei muutu telineeseen siirryttäessä tai ruutua käännettäessä.
+    paper.style.setProperty("--pk-stand-scale", "1");
+    paper.style.setProperty("--pk-stand-x", "0px");
+    paper.style.setProperty("--pk-stand-y", "0px");
+
+    const paperWidth = Math.max(1, Number(paper.offsetWidth) || 1);
+    const paperHeight = Math.max(1, Number(paper.offsetHeight) || 1);
+    const viewportWidth = Math.max(1, Number(viewport.clientWidth) || window.innerWidth || 1);
+    const viewportHeight = Math.max(1, Number(viewport.clientHeight) || window.innerHeight || 1);
+
+    const bounds = getMusicStandContentBounds(paper) || {
+      left: 0,
+      top: 0,
+      right: paperWidth,
+      bottom: paperHeight
+    };
+
+    const contentWidth = Math.max(1, bounds.right - bounds.left);
+    const contentHeight = Math.max(1, bounds.bottom - bounds.top);
+    const viewportPad = 6;
+    const usableWidth = Math.max(1, viewportWidth - viewportPad * 2);
+    const usableHeight = Math.max(1, viewportHeight - viewportPad * 2);
+    const scale = Math.min(usableWidth / contentWidth, usableHeight / contentHeight);
+
+    const scaledWidth = contentWidth * scale;
+    const x = viewportPad + (usableWidth - scaledWidth) / 2 - bounds.left * scale;
+
+    // Nuottitelineessä sisältö ankkuroidaan pystysuunnassa yläreunaan.
+    // Vaakasuunnassa se pysyy keskitettynä. Näin lyhytkään nuotti ei
+    // kellu keskellä näyttöä, vaan alkaa aina samasta luonnollisesta
+    // lukukohdasta pienellä turvavälillä.
+    const y = viewportPad - bounds.top * scale;
+
+    paper.style.setProperty("--pk-stand-scale", String(scale));
+    paper.style.setProperty("--pk-stand-x", x + "px");
+    paper.style.setProperty("--pk-stand-y", y + "px");
+  }
+
+  function setMusicStandMode(active) {
+    const next = Boolean(active);
+    if (musicStandMode === next) return;
+
+    const viewport = document.querySelector(".score-card");
+    const paper = document.getElementById("a4Paper");
+    const button = document.getElementById("musicStandButton");
+
+    musicStandMode = next;
+
+    if (next) {
+      // Renderer ei saa reflowata nuottia nuottitelineen CSS-muutosten vuoksi.
+      window.PikakirjoitinMusicStandMode = true;
+      if (viewport) {
+        musicStandScrollLeft = viewport.scrollLeft;
+        musicStandScrollTop = viewport.scrollTop;
+      }
+
+      // Nuottiteline ei ole muokkaustila. Suljetaan kaikki mahdolliset
+      // nuotti-, tahtiviiva- ja rivinvaihtovalinnat ennen esitysnäkymää.
+      if (thumbRail) {
+        if (thumbRail.state.barlines) thumbRail.setToggle("barlines", false);
+        if (thumbRail.state.layout) thumbRail.setToggle("layout", false);
+      }
+      if (layoutEditor) layoutEditor.setActive(false);
+      if (barlineEditor) barlineEditor.setActive(false);
+      if (selection) {
+        if (typeof selection.setEnabled === "function") selection.setEnabled(false);
+        selection.clear();
+      }
+      if (selectionEditor) {
+        if (typeof selectionEditor.hide === "function") selectionEditor.hide();
+        else selectionEditor.update({ visible:false });
+      }
+      lastSelectionEditorAnchor = null;
+
+      const layoutPanel = document.getElementById("layoutSettingsPanel");
+      const layoutButton = document.getElementById("layoutSettingsButton");
+      if (layoutPanel) layoutPanel.hidden = true;
+      if (layoutButton) layoutButton.setAttribute("aria-expanded", "false");
+
+      // Lukitaan paperin täsmälliset normaalinäkymän mitat ennen kuin
+      // nuottitelineen full-screen-CSS aktivoituu. Näin landscape-mediaquery
+      // tai viewportin muuttuminen ei laukaise eri paperileveyttä / OSMD-reflow'ta.
+      if (paper) {
+        paper.style.setProperty("--pk-stand-paper-width", Math.max(1, paper.offsetWidth) + "px");
+        paper.style.setProperty("--pk-stand-paper-height", Math.max(1, paper.offsetHeight) + "px");
+      }
+
+      document.body.classList.add("pk-music-stand-mode");
+      if (button) button.setAttribute("aria-pressed", "true");
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+
+      requestAnimationFrame(function () {
+        fitMusicStandPage();
+        requestAnimationFrame(fitMusicStandPage);
+      });
+      return;
+    }
+
+    document.body.classList.remove("pk-music-stand-mode");
+    if (paper) {
+      paper.style.removeProperty("--pk-stand-scale");
+      paper.style.removeProperty("--pk-stand-x");
+      paper.style.removeProperty("--pk-stand-y");
+      paper.style.removeProperty("--pk-stand-paper-width");
+      paper.style.removeProperty("--pk-stand-paper-height");
+    }
+    if (button) button.setAttribute("aria-pressed", "false");
+
+    if (selection && typeof selection.setEnabled === "function") {
+      selection.setEnabled(!(thumbState.layout || thumbState.barlines));
+    }
+
+    requestAnimationFrame(function () {
+      if (viewport) {
+        viewport.scrollLeft = musicStandScrollLeft;
+        viewport.scrollTop = musicStandScrollTop;
+      }
+      refreshSelectionFromRenderedScore();
+      // Vapautetaan ResizeObserver vasta kun normaalinäkymän geometria on
+      // palautunut. Näin poistuminenkaan ei tee turhaa välirenderöintiä.
+      requestAnimationFrame(function () {
+        window.PikakirjoitinMusicStandMode = false;
+      });
+    });
+  }
+
+  function setupMusicStandMode() {
+    const button = document.getElementById("musicStandButton");
+    const viewport = document.querySelector(".score-card");
+    if (!button || !viewport) return;
+
+    button.addEventListener("click", function () {
+      setMusicStandMode(true);
+    });
+
+    // Nuottitelineessä itse sivun napautus palauttaa normaalitilan. Listener
+    // on capture-vaiheessa, jotta sama kosketus ei ehdi valita nuottia.
+    viewport.addEventListener("pointerdown", function (event) {
+      if (!musicStandMode) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setMusicStandMode(false);
+    }, true);
+
+    window.addEventListener("resize", function () {
+      if (musicStandMode) requestAnimationFrame(fitMusicStandPage);
+    });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () {
+        if (musicStandMode) requestAnimationFrame(fitMusicStandPage);
+      });
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (musicStandMode && event.key === "Escape") {
+        event.preventDefault();
+        setMusicStandMode(false);
+      }
+    });
+  }
+
   function setupHistoryControls() {
     const undoButton = document.getElementById("undoButton");
     const redoButton = document.getElementById("redoButton");
@@ -631,6 +1019,8 @@
   }
 
   function renderScore() {
+    const measureCount = window.PikakirjoitinMusicXML.getMeasureCount(score);
+    window.PikakirjoitinScoreModel.cleanupBarlines(score, measureCount);
     const musicXML = window.PikakirjoitinMusicXML.createMusicXML(score);
     console.log("Pikakirjoitin 3 Score Model:", score);
     console.log("Pikakirjoitin 3 generoitu MusicXML:\n", musicXML);
@@ -645,6 +1035,7 @@
     }).then(function (osmd) {
       refreshSelectionFromRenderedScore();
       if (layoutEditor) layoutEditor.refresh();
+      if (barlineEditor && barlineEditor.isActive()) barlineEditor.refresh();
       return osmd;
     });
 
@@ -732,16 +1123,25 @@
     commitHistory(historySnapshot(selected ? "Nuotin muokkaus" : "Nuotin kirjoitus"));
 
     if (selected) {
-      keyboardEditId = selected.id;
+      // 0.17.6.25: kun yksi nuotti on valittuna, koskettimisto siirtyy
+      // nimenomaan tämän nuotin muokkaustilaan. Sama kosketusele kuin
+      // kirjoittaessa määrää sekä uuden sävelkorkeuden että aika-arvon:
+      // napautus = 1/4, alas = 1/8, ylös = 1/2, oikealle = 1/16,
+      // vasemmalle = 1/32 ja pitkä painallus = 1/1.
+      // sourceId ei vaihdu, joten valinta voidaan pitää varmasti kiinni
+      // samassa nuotissa myös OSMD:n uudelleenrenderöinnin yli.
+      const editId = selected.id;
+      keyboardEditId = editId;
+
       if (thumbState.rest) {
-        window.PikakirjoitinScoreModel.updateEntry(score, selected.id, {
+        window.PikakirjoitinScoreModel.updateEntry(score, editId, {
           kind: "rest",
           duration: duration,
           dots: dots,
           measureRest: duration === "whole" && dots === 0
         });
       } else {
-        window.PikakirjoitinScoreModel.updateEntry(score, selected.id, {
+        window.PikakirjoitinScoreModel.updateEntry(score, editId, {
           kind: "note",
           pitch: pitch,
           duration: duration,
@@ -750,16 +1150,29 @@
         });
       }
 
-      const edited = window.PikakirjoitinScoreModel.getEntry(score, selected.id);
-      noteInputMeta.set(selected.id, { fromEdit: true, startedWithSlur: Boolean(thumbState.slur) });
+      const edited = window.PikakirjoitinScoreModel.getEntry(score, editId);
+      noteInputMeta.set(editId, {
+        fromEdit: true,
+        startedWithSlur: Boolean(thumbState.slur)
+      });
+
+      // Pidä valinta päällä heti, eikä vasta renderöinnin valmistuttua.
+      // Tämä estää kelluvan palkin välähdyksen pois ja ennen kaikkea
+      // varmistaa, että saman eleen duration-vaihe muokkaa samaa nuottia.
+      if (selection) selection.retainSingle(editId);
+
       updateStatus(entryLabel(edited, pitch, duration) + " · muokataan…");
 
-      renderScore().catch(function (error) {
+      renderScore().then(function () {
+        if (selection && keyboardEditId === editId) {
+          selection.retainSingle(editId);
+        }
+      }).catch(function (error) {
         console.error(error);
         updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
       });
 
-      return { id: selected.id, sound: edited && edited.kind !== "rest" };
+      return { id: editId, sound: edited && edited.kind !== "rest" };
     }
 
     if (selection && selectedIds().length) selection.clear();
@@ -823,13 +1236,26 @@
 
   function changeDuration(id, duration, midi, pitch) {
     const targetId = keyboardEditId || id;
+    const editingSelectedNote = Boolean(keyboardEditId);
+
     if (!window.PikakirjoitinScoreModel.setDuration(score, targetId, duration)) {
       return;
     }
+
     const entry = window.PikakirjoitinScoreModel.getEntry(score, targetId);
     updateStatus(entryLabel(entry, pitch, duration) + " · aika-arvo muutettu");
 
-    renderScore().catch(function (error) {
+    // Eleen aikana OSMD voi renderöityä useamman kerran. Valitun nuotin
+    // muokkaustilassa valinta lukitaan aina takaisin samaan sourceId:hen.
+    if (editingSelectedNote && selection) {
+      selection.retainSingle(targetId);
+    }
+
+    renderScore().then(function () {
+      if (editingSelectedNote && selection && keyboardEditId === targetId) {
+        selection.retainSingle(targetId);
+      }
+    }).catch(function (error) {
       console.error(error);
       updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
     });
@@ -1030,6 +1456,180 @@
     }
   }
 
+  function setupBarlineEditor() {
+    barlineEditor = new window.PikakirjoitinBarlineEditor.BarlineEditor({
+      overlay: document.getElementById("barlineEditorOverlay"),
+      paper: document.getElementById("a4Paper"),
+      container: document.getElementById("osmd-container"),
+
+      getMeasureLayout: function () {
+        return window.PikakirjoitinRenderer.getMeasureLayout();
+      },
+
+      getMeasureCount: function () {
+        return window.PikakirjoitinMusicXML.getMeasureCount(score);
+      },
+
+      getBarlineType: function (boundaryIndex) {
+        const count = window.PikakirjoitinMusicXML.getMeasureCount(score);
+        return window.PikakirjoitinScoreModel.getBarlineType(
+          score,
+          boundaryIndex,
+          count
+        );
+      },
+
+      onSetBarline: function (boundaryIndex, type) {
+        const count = window.PikakirjoitinMusicXML.getMeasureCount(score);
+        const undoSnapshot = historySnapshot("Tahtiviiva");
+        const changed = window.PikakirjoitinScoreModel.setBarlineType(
+          score,
+          boundaryIndex,
+          type,
+          count
+        );
+        if (!changed) return;
+        commitHistory(undoSnapshot);
+        renderScore().then(function () {
+          const labels = {
+            normal:"Tavallinen tahtiviiva",
+            double:"Kaksoisviiva",
+            final:"Loppuviiva",
+            "repeat-start":"Kertauksen alku",
+            "repeat-end":"Kertauksen loppu",
+            "repeat-both":"Kertaus molempiin suuntiin"
+          };
+          updateStatus((labels[type] || "Tahtiviiva") + " asetettu.", "ok");
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus(
+            "Virhe: " + (error && error.message ? error.message : String(error)),
+            "error"
+          );
+        });
+      }
+    });
+  }
+
+  function getLastSystemFillGeometry() {
+    if (!window.PikakirjoitinRenderer) return null;
+
+    const measures = window.PikakirjoitinRenderer
+      .getMeasureLayout()
+      .filter(Boolean);
+
+    if (!measures.length) return null;
+
+    const lastMeasure = measures[measures.length - 1];
+    const sameLine = measures.filter(function (measure) {
+      return Math.abs(
+        Number(measure.systemTop) - Number(lastMeasure.systemTop)
+      ) < 4;
+    });
+
+    if (!sameLine.length) return null;
+
+    const paper = document.getElementById("a4Paper");
+    const container = document.getElementById("osmd-container");
+    if (!paper || !container) return null;
+
+    const paperRect = paper.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const offsetX = containerRect.left - paperRect.left;
+
+    const lineStart = offsetX + Math.min.apply(
+      null,
+      sameLine.map(function (measure) { return Number(measure.startX); })
+    );
+
+    const lineEnd = offsetX + Math.max.apply(
+      null,
+      sameLine.map(function (measure) { return Number(measure.endX); })
+    );
+
+    if (!Number.isFinite(lineStart) || !Number.isFinite(lineEnd)) {
+      return null;
+    }
+
+    return {
+      lineStart: lineStart,
+      lineEnd: lineEnd,
+      targetEnd: Math.max(lineStart + 80, paperRect.width - 18)
+    };
+  }
+
+  async function maximizeLastSystemToRightMargin() {
+    const ScoreModel = window.PikakirjoitinScoreModel;
+    const Renderer = window.PikakirjoitinRenderer;
+    if (!ScoreModel || !Renderer) return;
+
+    const previousFactor = ScoreModel
+      .getLastSystemMaxScalingFactor(score);
+    const undoSnapshot = historySnapshot("Viimeisen rivin leveys");
+
+    const MAX_AUTO_FACTOR = 24;
+    const TARGET_TOLERANCE_PX = 2.5;
+    const MAX_CORRECTIONS = 6;
+
+    let factor = Number(previousFactor) || 1.4;
+    let changed = false;
+
+    try {
+      for (let pass = 0; pass < MAX_CORRECTIONS; pass += 1) {
+        const geometry = getLastSystemFillGeometry();
+        if (!geometry) break;
+
+        const gap = geometry.targetEnd - geometry.lineEnd;
+        if (Math.abs(gap) <= TARGET_TOLERANCE_PX) break;
+
+        const currentWidth = Math.max(80, geometry.lineEnd - geometry.lineStart);
+        const targetWidth = Math.max(80, geometry.targetEnd - geometry.lineStart);
+
+        let nextFactor = factor * (targetWidth / currentWidth);
+        nextFactor = Math.max(1, Math.min(MAX_AUTO_FACTOR, nextFactor));
+
+        // Jos OSMD:n vaste on hyvin loiva, pakotetaan pieni etenemä ettei
+        // korjaussilmukka jämähdä lähes samaan arvoon.
+        if (gap > TARGET_TOLERANCE_PX && nextFactor <= factor + 0.002) {
+          nextFactor = Math.min(MAX_AUTO_FACTOR, factor * 1.03);
+        }
+
+        if (Math.abs(nextFactor - factor) < 0.0005) break;
+
+        ScoreModel.setLastSystemMaxScalingFactor(score, nextFactor);
+        factor = ScoreModel.getLastSystemMaxScalingFactor(score);
+        changed = Math.abs(Number(factor) - Number(previousFactor)) > 0.001;
+
+        await Renderer.rerenderLayout(score.layout, "layout");
+      }
+
+      if (changed) {
+        commitHistory(undoSnapshot);
+      }
+
+      refreshSelectionFromRenderedScore();
+      if (layoutEditor) layoutEditor.refresh();
+
+      updateStatus(
+        "Viimeinen rivi venytetty oikeaan marginaaliin.",
+        "ok"
+      );
+    } catch (error) {
+      console.error(error);
+      ScoreModel.setLastSystemMaxScalingFactor(score, previousFactor);
+      try {
+        await Renderer.rerenderLayout(score.layout, "layout");
+      } catch (restoreError) {
+        console.error(restoreError);
+      }
+      updateStatus(
+        "Virhe: " + (error && error.message ? error.message : String(error)),
+        "error"
+      );
+      throw error;
+    }
+  }
+
   function setupSystemLayoutEditor() {
     layoutEditor =
       new window.PikakirjoitinSystemLayoutEditor
@@ -1109,6 +1709,10 @@
           getLastSystemFactor: function () {
             return window.PikakirjoitinScoreModel
               .getLastSystemMaxScalingFactor(score);
+          },
+
+          onLastSystemMaximize: function () {
+            return maximizeLastSystemToRightMargin();
           },
 
           onLastSystemFactorCommit: function (factor) {
@@ -1221,7 +1825,7 @@
             result.active
               ? (result.replacedCount
                   ? "Aiemmat valinta-alueen slurit korvattu uudella slurilla."
-                  : "Slur lisätty valittujen nuottien ylle.")
+                  : "Slur lisätty valituille nuoteille.")
               : "Slur poistettu valinnasta.",
             "ok"
           );
@@ -1234,6 +1838,64 @@
         });
       },
 
+
+      onStemDirection: function (direction) {
+        const ids = selectedIds();
+        if (!ids.length) return;
+        const model = window.PikakirjoitinScoreModel;
+        if (!model.canSetStemDirectionForSelection(score, ids)) return;
+
+        const nextDirection = direction === "up" || direction === "down" ? direction : "auto";
+        const undoSnapshot = historySnapshot("Varren suunta");
+        if (!model.setStemDirectionForSelection(score, ids, nextDirection)) return;
+        commitHistory(undoSnapshot);
+
+        renderScore().then(function () {
+          selection.retainIds(ids);
+          updateStatus(
+            nextDirection === "up"
+              ? "Varsi pakotettu ylös."
+              : nextDirection === "down"
+                ? "Varsi pakotettu alas."
+                : "Varren suunta palautettu automaattiseksi.",
+            "ok"
+          );
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+        });
+      },
+
+      onSlurPlacement: function (placement) {
+        const ids = selectedIds();
+        if (!ids.length) return;
+        const model = window.PikakirjoitinScoreModel;
+        const target = model.slurForDirectionSelection(score, ids);
+        if (!target) {
+          updateStatus("Slurin suunta vaatii yhden yksiselitteisen slurin.", "error");
+          return;
+        }
+
+        const nextPlacement = placement === "above" || placement === "below" ? placement : "auto";
+        const undoSnapshot = historySnapshot("Slurin suunta");
+        if (!model.setSlurPlacement(score, target.id, nextPlacement)) return;
+        commitHistory(undoSnapshot);
+
+        renderScore().then(function () {
+          selection.retainIds(ids);
+          updateStatus(
+            nextPlacement === "above"
+              ? "Slur pakotettu nuottien yläpuolelle."
+              : nextPlacement === "below"
+                ? "Slur pakotettu nuottien alapuolelle."
+                : "Slurin suunta palautettu automaattiseksi.",
+            "ok"
+          );
+        }).catch(function (error) {
+          console.error(error);
+          updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+        });
+      },
 
       onBeam: function () {
         const ids = selectedIds();
@@ -1383,6 +2045,9 @@
       const canCreateMultiSlur =
         window.PikakirjoitinScoreModel.canCreateSlurFromSelection(score, ids);
 
+      const slurDirectionTarget =
+        window.PikakirjoitinScoreModel.slurForDirectionSelection(score, ids);
+
       selectionEditor.update({
         visible: true,
         x: anchor.x,
@@ -1394,6 +2059,12 @@
           window.PikakirjoitinScoreModel.canEnharmonic(score, single.id)
         ),
         singleSelection: state.count === 1,
+        canStemDirection: window.PikakirjoitinScoreModel.canSetStemDirectionForSelection(score, ids),
+        stemDirection: window.PikakirjoitinScoreModel.stemDirectionForSelection(score, ids),
+        canSlurPlacement: Boolean(slurDirectionTarget),
+        slurPlacement: slurDirectionTarget
+          ? window.PikakirjoitinScoreModel.getSlurPlacement(score, slurDirectionTarget.id)
+          : "auto",
         slurChoices: singleSlurChoices,
         canSlur:
           state.count === 1
@@ -1422,9 +2093,11 @@
 
   function start() {
     setupHistoryControls();
+    setupMusicStandMode();
     setupLayoutSettings();
     setupSelection();
     setupSystemLayoutEditor();
+    setupBarlineEditor();
 
     // Orientaation vaihto voi luoda OSMD:n SVG:n uudelleen rendererissä.
     // Päivitetään silloin vain valinnan geometria uuden SVG:n mukaan.
@@ -1442,6 +2115,7 @@
         ) {
           refreshSelectionFromRenderedScore();
           if (layoutEditor) layoutEditor.refresh();
+          if (barlineEditor && barlineEditor.isActive()) barlineEditor.refresh();
         }
       });
     }
@@ -1451,21 +2125,48 @@
       boundsElement: document.querySelector(".score-card"),
       onChange: function (state) {
         const wasLayout = Boolean(thumbState.layout);
+        const wasBarlines = Boolean(thumbState.barlines);
         const wasTie = Boolean(thumbState.tie);
         thumbState = state;
 
-        if (
-          layoutEditor &&
-          Boolean(state.layout) !== wasLayout
-        ) {
-          layoutEditor.setActive(
-            Boolean(state.layout)
-          );
+        let editModeChanged = false;
+        const layoutActive = Boolean(state.layout);
+        const barlinesActive = Boolean(state.barlines);
 
+        if (layoutEditor && layoutActive !== wasLayout) {
+          layoutEditor.setActive(layoutActive);
+          editModeChanged = true;
+        }
+
+        if (barlineEditor && barlinesActive !== wasBarlines) {
+          barlineEditor.setActive(barlinesActive);
+          editModeChanged = true;
+        }
+
+        // Rivinvaihto- ja tahtiviivamuokkaus ovat varsinaisia editointitiloja.
+        // Kun jompikumpi on aktiivinen, nuottien napautus, pyyhkäisyvalinta
+        // ja kelluva nuottipalkki ovat kokonaan pois käytöstä. Yhtenäinen
+        // lukko estää myös sen, että vaihto tahtiviivoista rivinvaihtoon ehtisi
+        // hetkeksi kytkeä nuottivalinnan takaisin päälle.
+        const scoreSelectionEnabled = !(layoutActive || barlinesActive);
+        if (selection && typeof selection.setEnabled === "function") {
+          selection.setEnabled(scoreSelectionEnabled);
+        } else if (!scoreSelectionEnabled && selection) {
+          selection.clear();
+        }
+
+        if (!scoreSelectionEnabled && selectionEditor) {
+          selectionEditor.update({ visible:false });
+          lastSelectionEditorAnchor = null;
+        }
+
+        if (editModeChanged) {
           updateStatus(
-            state.layout
-              ? "Rivien muokkaus päällä."
-              : "Rivien muokkaus pois.",
+            state.barlines
+              ? "Tahtiviivojen muokkaus päällä · valitse tahtiviivan yläpuolelta +."
+              : state.layout
+                ? "Rivien muokkaus päällä."
+                : "Muokkaustila pois.",
             "ok"
           );
           return;
@@ -1507,6 +2208,39 @@
       },
       onFinish: finishEntry
     });
+
+    // 0.17.6.17: Rivinvaihto- ja tahtiviivatilan voi sulkea myös
+    // napauttamalla mitä tahansa tavallista kohtaa nuottisivulla.
+    // Muokkaustilan omat ohjaimet jätetään rauhaan, jotta + -merkin,
+    // tahtiviivavalikon tai viimeisen rivin venytyskahvan käyttö ei
+    // sulje tilaa kesken varsinaisen toiminnon.
+    const scorePaper = document.getElementById("a4Paper");
+    if (scorePaper) {
+      scorePaper.addEventListener("click", function (event) {
+        if (!thumbRail) return;
+
+        const target = event.target instanceof Element ? event.target : null;
+        if (
+          target &&
+          target.closest(
+            ".system-break-marker, " +
+            ".last-system-stretch-handle, " +
+            ".barline-marker, " +
+            ".barline-choice, " +
+            ".barline-choice-popover"
+          )
+        ) {
+          return;
+        }
+
+        const state = thumbRail.state;
+        if (state.barlines) {
+          thumbRail.setToggle("barlines", false);
+        } else if (state.layout) {
+          thumbRail.setToggle("layout", false);
+        }
+      });
+    }
 
     renderScore().catch(function (error) {
       console.error(error);

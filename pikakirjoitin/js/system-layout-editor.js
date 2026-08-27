@@ -2,7 +2,8 @@
   "use strict";
 
   const MIN_FACTOR = 1;
-  const MAX_FACTOR = 6;
+  const MAX_FACTOR = 24;
+  const DRAG_THRESHOLD_PX = 6;
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -26,6 +27,7 @@
       this.onToggleSystemBreak = config.onToggleSystemBreak;
       this.getLastSystemFactor = config.getLastSystemFactor;
       this.onLastSystemFactorCommit = config.onLastSystemFactorCommit;
+      this.onLastSystemMaximize = config.onLastSystemMaximize;
 
       this.active = false;
       this.drag = null;
@@ -245,7 +247,8 @@
         currentWidth: currentWidth,
         paperWidth: paperWidth,
         startFactor: startFactor,
-        factor: startFactor
+        factor: startFactor,
+        moved: false
       };
 
       handle.classList.add("dragging");
@@ -288,6 +291,15 @@
       event.preventDefault();
 
       const dx = event.clientX - this.drag.startClientX;
+
+      // Nopea napautus on oma eleensä: vasta selvä liike aloittaa
+      // portaattoman venytyksen. Näin pieni sormen/hiiren heilahdus
+      // ei estä kertaklikkauksen "maksimiin"-toimintoa.
+      if (!this.drag.moved) {
+        if (Math.abs(dx) < DRAG_THRESHOLD_PX) return;
+        this.drag.moved = true;
+      }
+
       const minLeft = this.drag.lineStart + 80;
       const maxLeft = this.drag.paperWidth - 18;
 
@@ -322,8 +334,15 @@
 
       event.preventDefault();
 
-      const factor = this.drag.factor;
-      const handle = this.drag.handle;
+      const drag = this.drag;
+      const handle = drag.handle;
+
+      // Kertaklikkaus / nopea napautus käyttää erillistä "täytä oikeaan
+      // marginaaliin" -toimintoa. Se saa renderöidä ja mitata rivin
+      // uudelleen, jotta OSMD:n todellinen lopputulos ratkaisee eikä yksi
+      // laskennallinen kerroin. Paina + vedä säilyy portaattomana.
+      const wasMoved = drag.moved;
+      const factor = drag.factor;
 
       this.removeWindowDragListeners();
       this.drag = null;
@@ -332,10 +351,35 @@
         handle.classList.remove("dragging", "preview");
       }
 
-      if (
-        typeof this.onLastSystemFactorCommit === "function"
-      ) {
-        this.onLastSystemFactorCommit(factor);
+      if (!wasMoved && typeof this.onLastSystemMaximize === "function") {
+        const result = this.onLastSystemMaximize({
+          lineStart: drag.lineStart,
+          currentWidth: drag.currentWidth,
+          paperWidth: drag.paperWidth,
+          startFactor: drag.startFactor
+        });
+        if (result && typeof result.catch === "function") {
+          result.catch(function (error) {
+            console.error(error);
+          });
+        }
+        return;
+      }
+
+      // Fallback, jos erillistä maksimoijaa ei ole annettu.
+      let finalFactor = factor;
+      if (!wasMoved) {
+        const maxLeft = drag.paperWidth - 18;
+        const maxWidth = Math.max(80, maxLeft - drag.lineStart);
+        finalFactor = clamp(
+          drag.startFactor * (maxWidth / drag.currentWidth),
+          MIN_FACTOR,
+          MAX_FACTOR
+        );
+      }
+
+      if (typeof this.onLastSystemFactorCommit === "function") {
+        this.onLastSystemFactorCommit(finalFactor);
       }
     }
 

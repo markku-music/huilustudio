@@ -126,7 +126,10 @@
     }
 
     if (entry.slurStart) {
-      notations.push('          <slur type="start" number="1"/>');
+      const placement = entry.slurPlacement === "above" || entry.slurPlacement === "below"
+        ? ' placement="' + entry.slurPlacement + '"'
+        : "";
+      notations.push('          <slur type="start" number="1"' + placement + '/>');
     }
 
     const articulations = Array.isArray(entry.articulations)
@@ -198,6 +201,10 @@
 
     parts.push.apply(parts, dotsToXML(entry.dots));
 
+    if (entry.stemDirection === "up" || entry.stemDirection === "down") {
+      parts.push('        <stem>' + entry.stemDirection + '</stem>');
+    }
+
     if (entry.beam) {
       parts.push('        <beam number="1">' + escapeXML(entry.beam) + '</beam>');
     }
@@ -261,15 +268,22 @@
   function buildSlurMarkers(score) {
     const startIds = new Set();
     const stopIds = new Set();
+    const startPlacements = new Map();
     const slurs = Array.isArray(score && score.slurs) ? score.slurs : [];
 
     slurs.forEach(function (slur) {
       if (!slur || !slur.startId || !slur.endId) return;
       startIds.add(slur.startId);
       stopIds.add(slur.endId);
+      const placement = slur.placement === "above" || slur.placement === "below"
+        ? slur.placement
+        : "auto";
+      if (!startPlacements.has(slur.startId) || placement !== "auto") {
+        startPlacements.set(slur.startId, placement);
+      }
     });
 
-    return { startIds: startIds, stopIds: stopIds };
+    return { startIds: startIds, stopIds: stopIds, startPlacements: startPlacements };
   }
 
   function pitchMidiValue(pitch) {
@@ -336,7 +350,7 @@
     return { startIds: startIds, stopIds: stopIds };
   }
 
-  function makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, articulations) {
+  function makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, slurPlacement, articulations) {
     const piece = {
       id: entry.id,
       sourceId: entry.id,
@@ -352,6 +366,12 @@
       piece.tieStart = Boolean(tieStart);
       piece.slurStop = Boolean(slurStop);
       piece.slurStart = Boolean(slurStart);
+      piece.stemDirection = entry.stemDirection === "up" || entry.stemDirection === "down"
+        ? entry.stemDirection
+        : "auto";
+      if (piece.slurStart && (slurPlacement === "above" || slurPlacement === "below")) {
+        piece.slurPlacement = slurPlacement;
+      }
       if (Array.isArray(articulations) && articulations.length) {
         piece.articulations = articulations.slice();
       }
@@ -409,6 +429,9 @@
       let consumed = 0;
       const hasSourceSlurStart = Boolean(slurMarkers && slurMarkers.startIds && slurMarkers.startIds.has(entry.id));
       const hasSourceSlurStop = Boolean(slurMarkers && slurMarkers.stopIds && slurMarkers.stopIds.has(entry.id));
+      const sourceSlurPlacement = slurMarkers && slurMarkers.startPlacements
+        ? slurMarkers.startPlacements.get(entry.id) || "auto"
+        : "auto";
       const hasManualTieStart = Boolean(
         manualTieMarkers &&
         manualTieMarkers.startIds &&
@@ -448,7 +471,7 @@
           const slurStop = entry.kind !== "rest" && hasSourceSlurStop && isLastPiece;
 
           current.entries.push(
-            makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, isFirstPiece ? entry.articulations : [])
+            makeRenderPiece(entry, choice, tieStop, tieStart, slurStop, slurStart, sourceSlurPlacement, isFirstPiece ? entry.articulations : [])
           );
 
           current.used += choice.value;
@@ -724,6 +747,66 @@
     ).length;
   }
 
+
+  function customBarlineType(score, boundaryIndex) {
+    const list = score && Array.isArray(score.barlines) ? score.barlines : [];
+    const index = Math.round(Number(boundaryIndex));
+    const item = list.find(function (barline) {
+      return barline && Math.round(Number(barline.boundaryIndex)) === index;
+    });
+    return item ? String(item.type || "normal") : null;
+  }
+
+  function barlineXML(location, style, repeatDirection) {
+    const parts = [
+      '      <barline location="' + location + '">',
+      '        <bar-style>' + style + '</bar-style>'
+    ];
+    if (repeatDirection) {
+      parts.push('        <repeat direction="' + repeatDirection + '"/>');
+    }
+    parts.push('      </barline>');
+    return parts.join("\n");
+  }
+
+  function leftBoundaryXML(score, boundaryIndex, measureCount) {
+    const custom = customBarlineType(score, boundaryIndex);
+    const type = custom || "normal";
+
+    if (type === "repeat-start" || type === "repeat-both") {
+      return barlineXML("left", "heavy-light", "forward");
+    }
+
+    // Ensimmäisen tahdin vasemmassa reunassa sallitaan kaikki tyypit.
+    if (boundaryIndex !== 0 || !custom) return "";
+    if (type === "double") return barlineXML("left", "light-light", "");
+    if (type === "final") return barlineXML("left", "light-heavy", "");
+    if (type === "repeat-end") return barlineXML("left", "light-heavy", "backward");
+    return barlineXML("left", "regular", "");
+  }
+
+  function rightBoundaryXML(score, boundaryIndex, measureCount) {
+    const custom = customBarlineType(score, boundaryIndex);
+    const isLast = measureCount > 0 && boundaryIndex === measureCount;
+    const type = custom || (isLast ? "final" : "normal");
+
+    if (!custom && !isLast) return "";
+    if (type === "normal") return barlineXML("right", "regular", "");
+    if (type === "double") return barlineXML("right", "light-light", "");
+    if (type === "final") return barlineXML("right", "light-heavy", "");
+    if (type === "repeat-end" || type === "repeat-both") {
+      return barlineXML("right", "light-heavy", "backward");
+    }
+
+    // Kertauksen alku kuuluu normaalisti seuraavan tahdin vasempaan reunaan.
+    // Jos se valitaan kappaleen aivan viimeiselle rajalle, piirretään se silti
+    // näkyviin oikealle, jotta valinta ei katoa.
+    if (type === "repeat-start" && isLast) {
+      return barlineXML("right", "heavy-light", "forward");
+    }
+    return "";
+  }
+
   function createMusicXML(score) {
     if (!score || !Array.isArray(score.notes)) {
       throw new Error("Score Model puuttuu tai on virheellinen.");
@@ -760,9 +843,14 @@
       )
     );
 
+    const measureCount = measures.length;
+
     const measuresXML = measures.map(function (measure, index) {
       const implicit = measure.implicit ? ' implicit="yes"' : "";
       const parts = ["    <measure number=\"" + (index + 1) + "\"" + implicit + ">"];
+
+      const leftBarline = leftBoundaryXML(score, index, measureCount);
+      if (leftBarline) parts.push(leftBarline);
 
       if (index > 0 && systemBreaks.has(index)) {
         parts.push('      <print new-system="yes"/>');
@@ -788,6 +876,9 @@
         parts.push(hiddenRestXML(measure.capacity || capacity));
       }
 
+      const rightBarline = rightBoundaryXML(score, index + 1, measureCount);
+      if (rightBarline) parts.push(rightBarline);
+
       parts.push("    </measure>");
       return parts.join("\n");
     }).join("\n");
@@ -800,7 +891,7 @@
   <identification>
 ${composer ? `    <creator type="composer">${escapeXML(composer)}</creator>
 ` : ""}    <encoding>
-      <software>Pikakirjoitin 3 0.17.6.9</software>
+      <software>Pikakirjoitin 3 0.17.6.21</software>
     </encoding>
   </identification>
   <defaults>

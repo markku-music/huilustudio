@@ -114,6 +114,10 @@
     lastObservedPaperWidth = paperWidth();
 
     resizeObserver = new ResizeObserver(function (entries) {
+      // 0.17.6.20: print preview käyttää erillistä A4-snapshotia.
+      // Älä koskaan renderöi OSMD:tä uudelleen tulostusmedian koon vuoksi.
+      if (window.PikakirjoitinPrintMode || window.PikakirjoitinMusicStandMode) return;
+
       const width = Number(
         entries[0] && entries[0].contentRect && entries[0].contentRect.width
       ) || paperWidth();
@@ -191,7 +195,7 @@
         ? source.systemBreaks.slice()
         : [],
       lastSystemMaxScalingFactor:
-        Math.max(1, Math.min(6, factor)),
+        Math.max(1, Math.min(24, factor)),
       notationScale: Math.max(0.75, Math.min(1.2, notationScale)),
       systemSpacing: Math.max(0.5, Math.min(3, systemSpacing)),
       instrumentCreditDistance: Math.max(2, Math.min(14, instrumentCreditDistance)),

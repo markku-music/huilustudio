@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Pikakirjoitin 3 · 0.17.6.9 Palkitus</title>
+  <title>Pikakirjoitin 3 · 0.17.6.23 Nuottiteline sisältö täyttää näytön</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -245,7 +245,7 @@
         <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
       <h1>Pikakirjoitin 3</h1>
-      <p>0.17.6.9 · Palkitus · Swipe-turvavyöhyke · Soitinnimen korkeus 14 · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2</p>
+      <p>0.17.6.23 · Nuottiteline sisältö täyttää näytön · Tabletin PDF-jakovalikko · Print yhtenäinen · Palkitus · Swipe-turvavyöhyke · Asettelu · Artikulaatiot · Recent 50 · FI / EN · OSMD 2.1.2</p>
     </header>
 
     <section class="layout-settings-panel" id="layoutSettingsPanel" role="dialog"
@@ -297,6 +297,8 @@
         <div id="osmd-container"></div>
         <div class="system-layout-overlay" id="systemLayoutOverlay"
              aria-hidden="true" hidden></div>
+        <div class="barline-editor-overlay" id="barlineEditorOverlay"
+             aria-hidden="true" hidden></div>
       </div>
       <p id="status" class="status" aria-live="polite">Valitse sävel.</p>
     </section>
@@ -334,6 +336,14 @@
               aria-pressed="false"
               title="Tie / sidekaari">
         <img class="thumb-tie-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
+      </button>
+
+
+      <button class="thumb-modifier thumb-barline-toggle" id="barlineEditButton"
+              type="button" data-modifier="barlines"
+              aria-label="Tahtiviivojen muokkaus" aria-pressed="false"
+              title="Tahtiviivojen muokkaus">
+        <span class="thumb-barline-symbol" aria-hidden="true">|</span>
       </button>
 
       <button class="thumb-modifier thumb-layout-toggle" id="lineEditButton"
@@ -383,6 +393,13 @@
                 aria-label="Asettelu" title="Asettelu" aria-expanded="false" aria-controls="layoutSettingsPanel">
           <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="4"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l2.8 2.8M21.7 21.7l2.8 2.8M24.5 7.5l-2.8 2.8M10.3 21.7l-2.8 2.8"/></svg>
         </button>
+        <button class="keyboard-tool-button keyboard-tool-stand" id="musicStandButton" type="button"
+                aria-label="Nuottiteline" title="Nuottiteline" aria-pressed="false">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M8 5h16v15H8z"/>
+            <path d="M16 20v5M11 28l5-3 5 3"/>
+          </svg>
+        </button>
       </aside>
 
       <div class="gesture-guide" aria-label="Aika-arvoeleet">
@@ -409,6 +426,7 @@
   <script src="js/score-selection.js"></script>
   <script src="js/selection-editor.js"></script>
   <script src="js/system-layout-editor.js"></script>
+  <script src="js/barline-editor.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
