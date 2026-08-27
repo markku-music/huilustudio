@@ -852,9 +852,13 @@
     const scale = Math.min(usableWidth / contentWidth, usableHeight / contentHeight);
 
     const scaledWidth = contentWidth * scale;
-    const scaledHeight = contentHeight * scale;
     const x = viewportPad + (usableWidth - scaledWidth) / 2 - bounds.left * scale;
-    const y = viewportPad + (usableHeight - scaledHeight) / 2 - bounds.top * scale;
+
+    // Nuottitelineessä sisältö ankkuroidaan pystysuunnassa yläreunaan.
+    // Vaakasuunnassa se pysyy keskitettynä. Näin lyhytkään nuotti ei
+    // kellu keskellä näyttöä, vaan alkaa aina samasta luonnollisesta
+    // lukukohdasta pienellä turvavälillä.
+    const y = viewportPad - bounds.top * scale;
 
     paper.style.setProperty("--pk-stand-scale", String(scale));
     paper.style.setProperty("--pk-stand-x", x + "px");
