@@ -1,3 +1,5 @@
+Pikakirjoitin 3 0.17.6.31 - iPad tulostaa PDF:n kautta
+
 VERSION 0.17.6.19 — varren suunta ja slurin sijoitus
 
 Uutta tässä versiossa:

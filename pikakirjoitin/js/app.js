@@ -268,7 +268,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.21",
+      version: "0.17.6.31",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),
@@ -470,34 +470,38 @@
     return new Blob(parts, { type: "application/pdf" });
   }
 
+  async function buildCurrentPdfBlob() {
+    await rendering;
+    const container = document.getElementById("osmd-container");
+    if (!container) throw new Error("Nuottikuvaa ei löytynyt.");
+
+    let svgs = Array.from(container.children).filter(function (element) {
+      return element.tagName && element.tagName.toLowerCase() === "svg";
+    });
+    if (!svgs.length) {
+      svgs = Array.from(container.querySelectorAll("svg")).filter(function (svg) {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 80 && rect.height > 80;
+      });
+    }
+    if (!svgs.length) throw new Error("PDF:ään ei löytynyt nuottisivua.");
+
+    const paper = container.closest(".a4-paper");
+    const pages = [];
+    for (const svg of svgs) {
+      pages.push(await svgToJpegBytes(svg, paper));
+    }
+
+    return buildPdfFromJpegs(pages);
+  }
+
   async function savePdfFile() {
     const button = document.getElementById("savePdfButton");
     if (button) button.disabled = true;
     updateStatus("Muodostetaan PDF…");
 
     try {
-      await rendering;
-      const container = document.getElementById("osmd-container");
-      if (!container) throw new Error("Nuottikuvaa ei löytynyt.");
-
-      let svgs = Array.from(container.children).filter(function (element) {
-        return element.tagName && element.tagName.toLowerCase() === "svg";
-      });
-      if (!svgs.length) {
-        svgs = Array.from(container.querySelectorAll("svg")).filter(function (svg) {
-          const rect = svg.getBoundingClientRect();
-          return rect.width > 80 && rect.height > 80;
-        });
-      }
-      if (!svgs.length) throw new Error("PDF:ään ei löytynyt nuottisivua.");
-
-      const paper = container.closest(".a4-paper");
-      const pages = [];
-      for (const svg of svgs) {
-        pages.push(await svgToJpegBytes(svg, paper));
-      }
-
-      const pdfBlob = buildPdfFromJpegs(pages);
+      const pdfBlob = await buildCurrentPdfBlob();
       const pdfFilename = fileBaseName() + ".pdf";
       const shared = await sharePdfOnTouchDevice(pdfBlob, pdfFilename);
       if (!shared) {
@@ -651,14 +655,68 @@
   async function printScore() {
     audio.noteOff();
 
+    // iPad / kosketustabletit: tulostetaan sama A4-PDF, jonka PDF-tallennus
+    // muodostaa. iOS:n HTML-printtaus voi lisätä omia marginaaleja tai tyhjän
+    // lisäsivun, mutta PDF:n sivugeometria on yksiselitteinen.
+    if (isTouchShareDevice()) {
+      const button = document.getElementById("printButton");
+      if (button) button.disabled = true;
+      updateStatus("Muodostetaan tulostettava PDF…");
+      try {
+        await preparePaperGeometryForPrint();
+        const pdfBlob = await buildCurrentPdfBlob();
+        const filename = fileBaseName() + ".pdf";
+
+        if (typeof navigator.share === "function" && typeof navigator.canShare === "function" && typeof File === "function") {
+          const file = new File([pdfBlob], filename, { type: "application/pdf" });
+          let canShare = false;
+          try {
+            canShare = navigator.canShare({ files: [file] });
+          } catch (_) {}
+
+          if (canShare) {
+            updateStatus("Valitse jakovalikosta Tulosta.");
+            try {
+              await navigator.share({ files: [file], title: filename });
+              updateStatus("Tulostusvalikko suljettu.", "ok");
+              return;
+            } catch (error) {
+              if (error && error.name === "AbortError") {
+                updateStatus("Tulostus peruttiin.");
+                return;
+              }
+              console.warn("PDF-tulostuksen jakovalikko ei avautunut.", error);
+            }
+          }
+        }
+
+        // Varareitti: avataan täsmälleen sama PDF. iPadissa sen Jaa-valikosta
+        // voi valita Tulosta ilman HTML-sivutuksen marginaaleja tai lisäsivuja.
+        const url = URL.createObjectURL(pdfBlob);
+        const opened = window.open(url, "_blank");
+        if (!opened) downloadBlob(pdfBlob, filename);
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        updateStatus("PDF avattu tulostusta varten.", "ok");
+        return;
+      } catch (error) {
+        console.error(error);
+        updateStatus(
+          "Tulostus epäonnistui: " + (error && error.message ? error.message : String(error)),
+          "error"
+        );
+        return;
+      } finally {
+        window.PikakirjoitinPrintMode = false;
+        if (button) button.disabled = false;
+      }
+    }
+
+    // Mac / desktop: pidetään nykyinen suora print preview, joka toimii oikein.
     try {
       await preparePaperGeometryForPrint();
       createPrintSnapshot();
       document.body.classList.add("pk-printing");
 
-      // Snapshot on nyt rakennettu varmasti normaalinäkymän geometriasta.
-      // Vielä yksi maalauskierros antaa iPad Safarille aikaa rekisteröidä se
-      // ennen natiivin Print Previewn avaamista.
       await nextAnimationFrame();
 
       const cleanup = function () {
