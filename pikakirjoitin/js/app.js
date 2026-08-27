@@ -2209,6 +2209,19 @@
       onFinish: finishEntry
     });
 
+    document.addEventListener("pk-project-ui-ready", function () {
+      const activeElement = document.activeElement;
+      if (activeElement && activeElement !== document.body && typeof activeElement.blur === "function") {
+        activeElement.blur();
+      }
+      if (!keyboard || typeof keyboard.resetInteractionState !== "function") return;
+      keyboard.resetInteractionState();
+      requestAnimationFrame(function () {
+        if (!keyboard) return;
+        keyboard.scrollToMidi(Number(settings.keyboardStartMidi) || 60);
+      });
+    });
+
     // 0.17.6.17: Rivinvaihto- ja tahtiviivatilan voi sulkea myös
     // napauttamalla mitä tahansa tavallista kohtaa nuottisivulla.
     // Muokkaustilan omat ohjaimet jätetään rauhaan, jotta + -merkin,

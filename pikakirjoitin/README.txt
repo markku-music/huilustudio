@@ -45,3 +45,8 @@ Kaikki aiemmat palkitus-, tahtiviiva-, rivinvaihto-, scroll-valinta- ja viimeise
 0.17.6.25
 - Valittu yksittäinen nuotti voidaan muokata suoraan koskettimiston sävel- ja aika-arvoeleillä.
 - Valinta pysyy päällä muokkauksen jälkeen.
+
+0.17.6.26: 50 viimeisimmän listasta avatun projektin jalkeen koskettimiston
+pointer/touch-tila nollataan vasta projektimodaalin sulkeuduttua. Tavoite on
+estaa iPad/Safarin tilanne, jossa pystysuuntaiset ylos/alas-eleet lakkaavat
+toimimasta projektin avaamisen jalkeen.

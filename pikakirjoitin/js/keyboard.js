@@ -292,6 +292,58 @@
       this.active.timer = null;
     }
 
+    resetInteractionState() {
+      // Projektin avaaminen kosketuksella (esim. 50 viimeisimmän listasta)
+      // voi iPad/Safarissa jattaa edellisen pointer/scroll-ketjun eloon.
+      // Tyhjennetaan kaikki elekohtainen tila vasta kun projektimodaali on suljettu.
+      this.clearLongPress();
+
+      if (this.active) {
+        const active = this.active;
+        if (active.key) {
+          active.key.classList.remove(
+            "active",
+            "gesture-down",
+            "gesture-up",
+            "gesture-right",
+            "gesture-left",
+            "gesture-whole"
+          );
+        }
+        try {
+          if (this.piano.hasPointerCapture(active.pointerId)) {
+            this.piano.releasePointerCapture(active.pointerId);
+          }
+        } catch (error) {}
+        if (active.soundOn && typeof this.onSoundStop === "function") {
+          this.onSoundStop();
+        }
+      }
+
+      if (this.scrollPointerId !== null) {
+        try {
+          if (this.rail.hasPointerCapture(this.scrollPointerId)) {
+            this.rail.releasePointerCapture(this.scrollPointerId);
+          }
+        } catch (error) {}
+      }
+
+      this.active = null;
+      this.scrollPointerId = null;
+      this.scrollGrabOffset = 0;
+
+      // Varmistetaan myos WebKitille, etta koskettimisto on elealue eika
+      // modalin vierityksen jatke. CSS:ssa arvo on jo none; inline-varmistus
+      // ja layout-read pakottavat uuden hit-test/touch-action -tilan.
+      this.viewport.style.touchAction = "none";
+      this.piano.style.touchAction = "none";
+      this.piano.querySelectorAll(".key").forEach((key) => {
+        key.style.touchAction = "none";
+      });
+      void this.piano.offsetHeight;
+      this.syncThumb();
+    }
+
     centerOnMiddleC() {
       this.scrollToMidi(60);
     }
