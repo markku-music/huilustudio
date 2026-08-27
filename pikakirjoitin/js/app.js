@@ -268,7 +268,7 @@
   function currentProjectPayload() {
     return {
       format: "Pikakirjoitin3",
-      version: "0.17.6.33",
+      version: "0.17.6.35",
       projectId: currentProjectId,
       savedAt: new Date().toISOString(),
       score: clonePlain(score),

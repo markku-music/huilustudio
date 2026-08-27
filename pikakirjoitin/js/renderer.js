@@ -215,6 +215,10 @@
     lastLayoutOptions = normalized;
 
     osmd.EngravingRules.NewSystemAtXMLNewSystemAttribute = true;
+    // 0.17.6.35: kokeillaan OSMD:n omaa slurien stem-sijoittelua.
+    // Tavoite: eri suuntaisten varsien välisen slurin päät asettuvat
+    // johdonmukaisemmin eikä toinen pää näytä tarttuvan satunnaisesti varteen.
+    osmd.EngravingRules.SlurPlacementAtStems = true;
     osmd.EngravingRules.StretchLastSystemLine = false;
     osmd.EngravingRules.LastSystemMaxScalingFactor =
       normalized.lastSystemMaxScalingFactor;

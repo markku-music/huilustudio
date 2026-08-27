@@ -1,4 +1,4 @@
-Pikakirjoitin 3 0.17.6.33 - iPad tulostaa PDF:n kautta
+Pikakirjoitin 3 0.17.6.35 - SlurPlacementAtStems-kokeilu
 
 VERSION 0.17.6.19 — varren suunta ja slurin sijoitus
 
@@ -84,3 +84,9 @@ toimimasta projektin avaamisen jalkeen.
 - Jos edellisessä tahdissa on ollut sävellajiin kuulumaton muunnesävel, seuraavan tahdin ensimmäiseen vastaavaan sävellajin mukaiseen säveleen lisätään muistutusetumerkki.
 - Sidotun nuotin jatkoon yli tahtiviivan ei lisätä muistutusetumerkkiä.
 - Nuottikuvan uusi oletuskoko on 95 %.
+
+
+0.17.6.35
+- OSMD EngravingRules.SlurPlacementAtStems = true.
+- Kokeilu slurien päätepisteiden johdonmukaistamiseksi erityisesti silloin, kun alku- ja loppunuotin varret ovat eri suuntiin.
+- Muita slurien geometria-arvoja ei muutettu.
