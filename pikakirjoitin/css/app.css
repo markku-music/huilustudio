@@ -140,6 +140,8 @@ button {
   grid-template-rows: 44px minmax(0, 1fr) auto;
   overflow: hidden;
   margin-top: 0;
+  touch-action: none;
+  overscroll-behavior: none;
   border: 0;
   border-top: 1px solid #c8ced6;
   border-radius: 0;
@@ -305,7 +307,7 @@ button {
   min-height: 0;
   width: 56px;
   display: grid;
-  grid-template-rows: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(7, minmax(0, 1fr));
   gap: 4px;
   padding: 5px 6px;
   border-left: 1px solid #434a53;
@@ -1023,11 +1025,33 @@ button {
 }
 
 @media print {
-  html, body {
+  /*
+   * 0.17.6.30 · Tulostuksen sivulaatikko
+   *
+   * @page määrää varsinaisen A4:n ilman selaimen lisäämää CSS-marginaalia.
+   * Itse dokumentin korkeus jätetään 0,2 mm A4-rajan sisään. Tämä ei lisää
+   * näkyvää marginaalia nuottiin, koska snapshotin sisältö on prosentteina,
+   * mutta estää iPad/WebKitin mm→px-pyöristyksen synnyttämän tyhjän kakkossivun.
+   */
+  html {
     width: 210mm !important;
-    height: 297mm !important;
+    height: 296.8mm !important;
     min-width: 0 !important;
     min-height: 0 !important;
+    max-height: 296.8mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  body {
+    position: relative !important;
+    width: 210mm !important;
+    height: 296.8mm !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: 296.8mm !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
@@ -1036,7 +1060,7 @@ button {
 
   /*
    * display:none on ratkaiseva myös tyhjän lisäsivun kannalta:
-   * visibility:hidden jätti aiemmin koko appin viemään tulostuslayoutissa tilaa.
+   * visibility:hidden jättäisi muun appin viemään tulostuslayoutissa tilaa.
    */
   body > * {
     display: none !important;
@@ -1048,18 +1072,25 @@ button {
     left: 0 !important;
     top: 0 !important;
     width: 210mm !important;
-    height: 297mm !important;
+    height: 296.8mm !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 210mm !important;
+    max-height: 296.8mm !important;
     box-sizing: border-box !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
     background: #fff !important;
     border: 0 !important;
+    outline: 0 !important;
     box-shadow: none !important;
     page-break-before: avoid !important;
     page-break-after: avoid !important;
+    page-break-inside: avoid !important;
     break-before: avoid-page !important;
     break-after: avoid-page !important;
+    break-inside: avoid-page !important;
   }
 
   .pk-print-snapshot svg {
@@ -1577,4 +1608,81 @@ button {
 .pk-selection-editor [data-action="stem-direction"].active img,
 .pk-selection-editor [data-action="slur-placement"].active img {
   filter: brightness(0) invert(1);
+}
+
+
+/* ==========================================================
+ * 0.17.6.22 · Nuottiteline
+ * Sama valmis A4-sivu skaalataan kokonaisena näkymään.
+ * Paperin layout-mittoja ei muuteta, joten OSMD ei reflowaa.
+ * ========================================================== */
+body.pk-music-stand-mode {
+  background: #fff;
+  overflow: hidden !important;
+}
+
+body.pk-music-stand-mode .test-header,
+body.pk-music-stand-mode .keyboard-panel,
+body.pk-music-stand-mode .thumb-rail,
+body.pk-music-stand-mode .status,
+body.pk-music-stand-mode .layout-settings-panel,
+body.pk-music-stand-mode .pk-selection-editor,
+body.pk-music-stand-mode .system-layout-overlay,
+body.pk-music-stand-mode .barline-editor-overlay {
+  display: none !important;
+}
+
+body.pk-music-stand-mode .app-shell {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  background: #fff;
+}
+
+body.pk-music-stand-mode .score-card {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  scroll-padding: 0;
+}
+
+body.pk-music-stand-mode .a4-paper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--pk-stand-paper-width) !important;
+  min-width: var(--pk-stand-paper-width) !important;
+  height: var(--pk-stand-paper-height) !important;
+  min-height: var(--pk-stand-paper-height) !important;
+  aspect-ratio: auto !important;
+  margin: 0;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  transform-origin: 0 0;
+  transform: translate3d(var(--pk-stand-x, 0px), var(--pk-stand-y, 0px), 0)
+             scale(var(--pk-stand-scale, 1));
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Nuottitelineeseen siirrytään oikean reunan työkalusta. */
+.keyboard-tool-stand svg {
+  stroke-width: 2.1;
 }
