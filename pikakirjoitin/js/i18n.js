@@ -7,8 +7,8 @@
   const STRINGS = {
     fi: {
       appName: "Pikakirjoitin 3",
-      documentTitle: "Pikakirjoitin 3 · 0.17.6.21 PDF-jakovalikko",
-      subtitle: "0.17.6.21 · Tabletin PDF-jakovalikko · Print yhtenäinen · Varren suunta · Slurin suunta · Tahtiviivat · Palkitus · FI / EN · OSMD 2.1.2",
+      documentTitle: "Pikakirjoitin 3 · 0.17.6.18 Varsi ja slur",
+      subtitle: "0.17.6.18 · Varren suunta · Slurin suunta · Tahtiviivat · Palkitus · Viimeisen rivin venytys · Artikulaatiot · FI / EN · OSMD 2.1.2",
       projectDetails: "Kappaleen tiedot",
       openProject: "Avaa projekti",
       recentProjects: "Viimeisimmät",
@@ -119,8 +119,8 @@
     },
     en: {
       appName: "SwipeScore",
-      documentTitle: "SwipeScore · 0.17.6.21 PDF Share Sheet",
-      subtitle: "0.17.6.21 · Tablet PDF share sheet · Unified print · Stem direction · Slur placement · Barlines · Beaming · FI / EN · OSMD 2.1.2",
+      documentTitle: "SwipeScore · 0.17.6.18 Stem & Slur Direction",
+      subtitle: "0.17.6.18 · Stem direction · Slur placement · Barline edit lock · Beaming · Last-system fill · Articulations · FI / EN · OSMD 2.1.2",
       projectDetails: "Score details",
       openProject: "Open project",
       recentProjects: "Recent",
@@ -240,9 +240,6 @@
     "Tallennus viimeisimpiin epäonnistui.": "Saving to Recent failed.",
     "Projekti avattu.": "Project opened.",
     "Muodostetaan PDF…": "Creating PDF…",
-    "Avataan jakovalikko…": "Opening share sheet…",
-    "PDF jaettu.": "PDF shared.",
-    "PDF:n jako peruttiin.": "PDF sharing canceled.",
     "PDF tallennettu.": "PDF saved.",
     "Slur voi alkaa vain nuotista.": "A slur can start only on a note.",
     "Slur on jo valitusta nuotista seuraavaan nuottiin.": "A slur already connects the selected note to the next note.",
