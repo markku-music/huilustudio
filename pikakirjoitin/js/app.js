@@ -647,6 +647,7 @@
     container.getBoundingClientRect();
   }
 
+  // 0.17.6.30 · print-layoutin sivuraja ja marginaalittomuus hoidetaan CSS:ssä.
   async function printScore() {
     audio.noteOff();
 
