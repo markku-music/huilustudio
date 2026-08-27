@@ -48,6 +48,47 @@
     return "t" + (nextTieId++);
   }
 
+  // Kun tallennettu projekti avataan, sen olemassa olevat tunnukset
+  // palautuvat sellaisinaan. Moduulin laskurit elävät kuitenkin muistissa
+  // erillään projektidatasta, joten ne täytyy siirtää aina olemassa olevien
+  // ID:iden yläpuolelle ennen uusien nuottien, slurien tai tie-kaarten luontia.
+  // Muuten esim. avatun n1..n8-kappaleen ensimmäinen uusi nuotti voisi saada
+  // uudelleen tunnuksen n1, jolloin getEntry()/setDuration() osuisi vanhaan
+  // nuottiin.
+  function syncIdCounters(scoreLike) {
+    const source = scoreLike || {};
+    let maxEntry = 0;
+    let maxSlur = 0;
+    let maxTie = 0;
+
+    (Array.isArray(source.notes) ? source.notes : []).forEach(function (entry) {
+      const match = /^(?:n|r|e)(\d+)$/.exec(String(entry && entry.id || ""));
+      if (match) maxEntry = Math.max(maxEntry, Number(match[1]) || 0);
+    });
+
+    (Array.isArray(source.slurs) ? source.slurs : []).forEach(function (slur) {
+      const match = /^s(\d+)$/.exec(String(slur && slur.id || ""));
+      if (match) maxSlur = Math.max(maxSlur, Number(match[1]) || 0);
+    });
+
+    (Array.isArray(source.ties) ? source.ties : []).forEach(function (tie) {
+      const match = /^t(\d+)$/.exec(String(tie && tie.id || ""));
+      if (match) maxTie = Math.max(maxTie, Number(match[1]) || 0);
+    });
+
+    // Laskureita ei koskaan siirretä taaksepäin saman appisession aikana.
+    // Tämä tekee myös Undo/Redo- ja eri projektien välillä vaihtamisesta turvallista.
+    nextEntryId = Math.max(nextEntryId, maxEntry + 1);
+    nextSlurId = Math.max(nextSlurId, maxSlur + 1);
+    nextTieId = Math.max(nextTieId, maxTie + 1);
+
+    return {
+      nextEntryId: nextEntryId,
+      nextSlurId: nextSlurId,
+      nextTieId: nextTieId
+    };
+  }
+
   function pitchMidiValue(pitch) {
     const match = /^([A-G])([#b]?)(-?\d+)$/.exec(String(pitch || ""));
     if (!match) return null;
@@ -306,6 +347,10 @@
 
   function createScore(options) {
     const config = options || {};
+
+    // Synkronoi ensin raakadatasta, jotta myös puuttuville ID:ille tässä
+    // createScore-kierroksessa luotavat tunnukset ovat varmasti uusia.
+    syncIdCounters(config);
 
     const score = {
       metadata: {
@@ -1570,6 +1615,7 @@
 
   window.PikakirjoitinScoreModel = {
     createScore: createScore,
+    syncIdCounters: syncIdCounters,
     addNote: addNote,
     addRest: addRest,
     getEntry: getEntry,
