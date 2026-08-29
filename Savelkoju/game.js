@@ -2,17 +2,71 @@
 'use strict';
 const TOTAL=10;
 const LEVELS={
-  1:{name:'ENSISÄVELET',notes:['G','A','H'],image:'taso_1_ensissavelet.jpg'},
-  2:{name:'TASAPAINOTEMPPU',notes:['C','H','A','G'],image:'taso_2_tasapainotemppu.jpg'},
-  3:{name:'SORMISIRKUS',notes:['D','C','H','A','G'],image:'taso_3_sormisirkus.jpg'}
+  1:{name:'ENSISÄVELET',notes:['G','A','H'],image:'assets/taso_1_ensissavelet.jpg'},
+  2:{name:'TASAPAINOTEMPPU',notes:['C','H','A','G'],image:'assets/taso_2_tasapainotemppu.jpg'},
+  3:{name:'SORMISIRKUS',notes:['D','C','H','A','G'],image:'assets/taso_3_sormisirkus.jpg'}
 };
 const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:648},D:{cx:750,cy:365}};
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
+const TARGET_PITCH_CLASS={C:0,D:2,G:7,A:9,H:11};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),tunerLeds=$('tunerLeds'),tunerOnlyLeds=$('tunerOnlyLeds'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),tunerOverlay=$('tunerOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
-let gameEngine=null,tunerEngine=null,gameLedAnalyser=null,gameLedTracker=null,gameLedBuffer=null,gameLedRaf=0,gameLedRunning=false,gameLedLastSoundTime=0,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
+const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),tunerLeds=$('tunerLeds'),tunerOnlyLeds=$('tunerOnlyLeds'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),tunerOverlay=$('tunerOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps'),fingeringHint=$('fingeringHint');
+let gameEngine=null,tunerEngine=null,gameLedAnalyser=null,gameLedTracker=null,gameLedBuffer=null,gameLedRaf=0,gameLedRunning=false,gameLedLastSoundTime=0,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false,fingeringImg=null,fingeringHintVisible=false;
 const TUNER_STEP_CENTS=5,TUNER_MAX_CENTS=50,TUNER_LED_COUNT=21,TUNER_CENTER_INDEX=10;
+const FINGERING_HINT_Y_OFFSET=112;
+const FINGERING_HINT_IMAGES={G:'assets/sormitus_G_savelkoju.png',A:'assets/sormitus_A_savelkoju.png',H:'assets/sormitus_H_savelkoju.png',C:'assets/sormitus_C_savelkoju.png',D:'assets/sormitus_D_savelkoju.png'};
 
+function initFingeringHint(){
+  if(!fingeringHint)return;
+  fingeringHint.textContent='';
+  const img=document.createElement('img');
+  img.alt='';
+  img.draggable=false;
+  img.decoding='async';
+  img.loading='eager';
+  img.setAttribute('aria-hidden','true');
+  fingeringHint.appendChild(img);
+  fingeringImg=img;
+
+  Object.values(FINGERING_HINT_IMAGES).forEach(src=>{
+    const preloadImg=new Image();
+    preloadImg.decoding='async';
+    preloadImg.src=src;
+  });
+}
+function positionFingeringHint(){
+  if(!fingeringHint)return;
+  const p=POS[target];
+  if(!p)return;
+  fingeringHint.style.left=p.cx+'px';
+  fingeringHint.style.top=(p.cy+FINGERING_HINT_Y_OFFSET)+'px';
+}
+function hideFingeringHint(){
+  fingeringHintVisible=false;
+  if(!fingeringHint)return;
+  fingeringHint.classList.remove('show');
+  fingeringHint.setAttribute('aria-hidden','true');
+}
+function showTargetFingeringHint(){
+  if(!fingeringHint||!fingeringImg)return;
+  const src=FINGERING_HINT_IMAGES[target];
+  if(!src)return;
+  if(!fingeringImg.getAttribute('src')||!fingeringImg.getAttribute('src').endsWith(src)){
+    fingeringImg.src=src;
+  }
+  positionFingeringHint();
+  fingeringHint.classList.add('show');
+  fingeringHint.setAttribute('aria-hidden','false');
+  fingeringHintVisible=true;
+}
+function registerWrongStablePitch(){
+  if(!running||!accepting||fingeringHintVisible)return;
+  // Näytä vihje heti ensimmäisestä vakaasta väärän sävelen havainnosta.
+  showTargetFingeringHint();
+}
+function registerCorrectStablePitch(){
+  if(fingeringHintVisible)hideFingeringHint();
+}
 function midiInfoFromHz(hz){
   if(!Number.isFinite(hz)||hz<=0)return null;
   const midiFloat=69+12*Math.log2(hz/440);
@@ -183,6 +237,7 @@ function stopFinaleLights(){
 
 async function changePlayer(){
   stopFinaleLights();
+  hideFingeringHint();
   running=false;
   accepting=false;
   reticle.style.opacity='0';
@@ -205,11 +260,11 @@ async function changePlayer(){
 
   requestAnimationFrame(()=>sessionName.focus());
 }
-function setTarget(note){target=note;targetEl.textContent=note;const p=POS[note];reticle.classList.remove('hit');reticle.style.left=(p.cx-41)+'px';reticle.style.top=(p.cy-41)+'px';reticle.style.opacity='.62';accepting=true;}
+function setTarget(note){hideFingeringHint();target=note;targetEl.textContent=note;const p=POS[note];reticle.classList.remove('hit');reticle.style.left=(p.cx-41)+'px';reticle.style.top=(p.cy-41)+'px';reticle.style.opacity='.62';positionFingeringHint();accepting=true;}
 function nextTarget(){const choices=level.notes.filter(n=>n!==target);setTarget(choices[Math.floor(Math.random()*choices.length)]);}
 function showMessage(text){message.textContent=text;message.style.display='block';clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>message.style.display='none',650);}
 function hitEffect(){const p=POS[target];reticle.classList.remove('hit');void reticle.offsetWidth;reticle.classList.add('hit');flash.style.left=p.cx+'px';flash.style.top=p.cy+'px';flash.classList.remove('show');void flash.offsetWidth;flash.classList.add('show');hitText.style.left=p.cx+'px';hitText.style.top=(p.cy-45)+'px';hitText.classList.remove('show');void hitText.offsetWidth;hitText.classList.add('show');}
-function hear(note){if(!running||!accepting||note!==target)return;const now=performance.now();if(now-lastAccepted<500)return;lastAccepted=now;accepting=false;score++;scoreEl.textContent=score;updateProgressLamps();playHitSound();hitEffect();showMessage('Hieno osuma!');setTimeout(()=>{if(score>=TOTAL){finaleLampShow();}else nextTarget();},500);}
+function hear(note){if(!running||!accepting||note!==target)return;hideFingeringHint();const now=performance.now();if(now-lastAccepted<500)return;lastAccepted=now;accepting=false;score++;scoreEl.textContent=score;updateProgressLamps();playHitSound();hitEffect();showMessage('Hieno osuma!');setTimeout(()=>{if(score>=TOTAL){finaleLampShow();}else nextTarget();},500);}
 /* ---------------------------------------------------------
    PELI: alkuperäinen Nuottikompassi Microphone Engine 1.0
    --------------------------------------------------------- */
@@ -262,7 +317,18 @@ function handleGameLedStableHz(stableHz){
   const tuningInfo=midiInfoFromHz(stableHz);
   if(!tuningInfo)return;
 
-  // Tästä eteenpäin sama LED-esitys kuin erillisessä viritystilassa.
+  const targetPitchClass=TARGET_PITCH_CLASS[target];
+  const isTargetPitch=tuningInfo.pitchClass===targetPitchClass;
+
+  if(running&&accepting&&!isTargetPitch){
+    // Väärällä sävelellä ei näytetä "hyvää virettä" väärälle nuotille.
+    // Hertsimittarin tunnistusketju jatkaa silti täysin ennallaan.
+    clearTunerReadout(tunerLeds);
+    registerWrongStablePitch();
+    return;
+  }
+
+  registerCorrectStablePitch();
   renderTunerCents(tuningInfo.cents,tunerLeds);
 }
 
@@ -578,6 +644,7 @@ async function loadBoard(levelId,el,statusEl,highlightId='',highlightRow=null){
   }
 }
 async function prepareFinishOverlay(){
+  hideFingeringHint();
   updateSemesterLabels();
   running=false;
   accepting=false;
@@ -756,7 +823,7 @@ async function closeTunerMode(){
   await stopTunerMic();
 }
 
-async function chooseLevels(){stopFinaleLights();await pauseMic();await stopTunerMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
+async function chooseLevels(){hideFingeringHint();stopFinaleLights();await pauseMic();await stopTunerMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
 async function openHelp(){await pauseMic();await stopTunerMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
 document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -832,5 +899,5 @@ $('adminLogoutBtn').addEventListener('click',async()=>{
 
 document.querySelectorAll('.score-tab').forEach(btn=>btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel))));
 window.SavelkojuScoreboard?.init();
-addEventListener('beforeunload',()=>{gameEngine?.stop();tunerEngine?.stop();});createTunerLeds();clearTunerReadout();setLevel(1);
+addEventListener('beforeunload',()=>{gameEngine?.stop();tunerEngine?.stop();});initFingeringHint();createTunerLeds();clearTunerReadout();setLevel(1);
 })();

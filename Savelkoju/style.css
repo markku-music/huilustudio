@@ -11,6 +11,33 @@ button{font:inherit}
 #reticle i{position:absolute;inset:7px;border:3px solid rgba(247,241,229,.8);border-radius:50%;box-shadow:0 0 0 2px rgba(36,35,31,.55)}
 #reticle.hit{animation:reticleHit .3s ease-in forwards}
 @keyframes reticleHit{0%{transform:scale(1);opacity:.62}100%{transform:scale(.05);opacity:0}}
+
+/* Väärän sävelen sormitusvihje: taulun alla */
+.fingering-hint{
+  position:absolute;
+  width:300px;
+  transform:translate(-50%,0);
+  opacity:0;
+  visibility:hidden;
+  transition:none;
+  pointer-events:none;
+  z-index:16;
+}
+.fingering-hint.show{
+  opacity:1;
+  visibility:visible;
+  transform:translate(-50%,0);
+  transition:none;
+}
+.fingering-hint img{
+  display:block;
+  width:100%;
+  height:auto;
+  -webkit-user-drag:none;
+  user-select:none;
+  image-rendering:auto;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.12));
+}
 #flash{position:absolute;width:90px;height:90px;border:8px solid #ffe16b;border-radius:50%;opacity:0;pointer-events:none;transform:translate(-50%,-50%)}
 #flash.show{animation:flash .55s ease-out}
 @keyframes flash{0%{opacity:1;transform:translate(-50%,-50%) scale(.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.4)}}

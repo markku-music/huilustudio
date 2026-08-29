@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-sharedstream-hertsimittari-v4';
+const CACHE_NAME = 'savelkoju-fingering-png-assets-v7';
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -11,16 +11,21 @@ const APP_SHELL = [
   "./pitch-engine.js",
   "./scoreboard.js",
   "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./icon-maskable-512.png",
-  "./apple-touch-icon.png",
+  "./assets/icon-192.png",
+  "./assets/icon-512.png",
+  "./assets/icon-maskable-512.png",
+  "./assets/apple-touch-icon.png",
   "./Lamppu.wav",
   "./Sirkusmusa.wav",
   "./Infovideo.mp4",
-  "./taso_1_ensissavelet.jpg",
-  "./taso_2_tasapainotemppu.jpg",
-  "./taso_3_sormisirkus.jpg"
+  "./assets/taso_1_ensissavelet.jpg",
+  "./assets/taso_2_tasapainotemppu.jpg",
+  "./assets/taso_3_sormisirkus.jpg",
+  "./assets/sormitus_G_savelkoju.png",
+  "./assets/sormitus_A_savelkoju.png",
+  "./assets/sormitus_H_savelkoju.png",
+  "./assets/sormitus_C_savelkoju.png",
+  "./assets/sormitus_D_savelkoju.png"
 ];
 
 self.addEventListener('install', event => {
