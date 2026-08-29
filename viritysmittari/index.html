@@ -571,10 +571,8 @@
 
   const YIN_THRESHOLD = 0.12;
 
-  // Ensimmäinen lukitus
+  // Ensimmäisen lukituksen Hz-puskuri.
   const ACQUIRE_WINDOW = 5;
-  const ACQUIRE_REQUIRED = 4;
-  const ACQUIRE_TOLERANCE = 2;
 
   // Nykyisen lukituksen seuranta
   const LOCK_TOLERANCE = 4;
@@ -618,9 +616,11 @@
   const YIN_LEARN_FACTOR = 2.2;
   const YIN_LEARN_MAD_FACTOR = 4.5;
   const YIN_LEARN_MIN_DELTA = 0.00025;
-  const LEVEL_TREND_MS = 90;
-  const LEVEL_DROP_DB = 0.8;
-  const GUARD_RECOVERY_REQUIRED = 3;
+  // Ei pysyvää loppuhännän jäädytystilaa. Jokainen YIN-mittaus arvioidaan
+  // erikseen: luotettava mittaus pääsee heti näyttöön, selvästi hajonnut
+  // mittaus ohitetaan vain kyseisen framien ajan. Seuraava hyvä mittaus
+  // jatkaa mittaria välittömästi. Näin pitkä ääni pysyy elävänä, mutta
+  // loppuhännän virheelliset taajuudet eivät pääse heilauttamaan mittaria.
 
   const acquireBuffer = [];
   const onsetHistory = [];
@@ -632,9 +632,6 @@
   let lastSoundTime = 0;
 
   const yinQualityHistory = [];
-  const levelHistory = [];
-  let yinTailGuardActive = false;
-  let yinTailGuardRecovery = 0;
   let lastReliableHz = null;
 
   function rmsOf(buffer) {
@@ -684,27 +681,8 @@
     );
   }
 
-  function levelIsFalling(now, currentDb) {
-    trimTimedHistory(levelHistory, now, LEVEL_TREND_MS);
-    if (levelHistory.length < 4) return false;
-
-    const oldestDb = levelHistory[0].db;
-    let fallingSteps = 0;
-    for (let i = 1; i < levelHistory.length; i++) {
-      if (levelHistory[i].db <= levelHistory[i - 1].db + 0.08) {
-        fallingSteps++;
-      }
-    }
-
-    const mostlyFalling = fallingSteps >= Math.ceil((levelHistory.length - 1) * 0.65);
-    return mostlyFalling && currentDb <= oldestDb - LEVEL_DROP_DB;
-  }
-
   function resetTailGuard() {
     yinQualityHistory.length = 0;
-    levelHistory.length = 0;
-    yinTailGuardActive = false;
-    yinTailGuardRecovery = 0;
     lastReliableHz = null;
   }
 
@@ -996,7 +974,6 @@
         tryAcquireLock(integerHz, yinValue);
       } else {
         const profile = yinProfile(now);
-        const falling = levelIsFalling(now, currentDb);
         const degradeLimit = yinAdaptiveLimit(
           profile,
           YIN_DEGRADE_FACTOR,
@@ -1005,47 +982,12 @@
         );
         const degraded = degradeLimit !== null && yinValue >= degradeLimit;
 
-        // Kun pitch-laatu romahtaa samaan aikaan kun ääni vaimenee,
-        // kyse on todennäköisesti huiluäänen loppuhännästä.
-        // Älä päästä loppuhännän taajuuksia näyttöön tai uuteen lukitukseen.
-        if (!yinTailGuardActive && degraded && falling) {
-          yinTailGuardActive = true;
-          yinTailGuardRecovery = 0;
-
-          if (Number.isFinite(lastReliableHz)) {
-            // Poista myös jo alkaneen loppuhännän arvot mediaanipuskurista,
-            // jotta ne eivät palaa näkyviin, jos ääni hetkeksi vahvistuu uudelleen.
-            displayBuffer.length = 0;
-            displayBuffer.push(lastReliableHz);
-            switchBuffer.length = 0;
-            hzEl.textContent = String(lastReliableHz);
-          }
-        }
-
-        if (yinTailGuardActive) {
-          const recoveryLimit = yinAdaptiveLimit(
-            profile,
-            YIN_TRUST_FACTOR,
-            YIN_TRUST_MAD_FACTOR,
-            YIN_TRUST_MIN_DELTA
-          );
-          const recovered = recoveryLimit !== null &&
-            yinValue <= recoveryLimit &&
-            !falling;
-
-          if (recovered) {
-            yinTailGuardRecovery++;
-            if (yinTailGuardRecovery >= GUARD_RECOVERY_REQUIRED) {
-              yinTailGuardActive = false;
-              yinTailGuardRecovery = 0;
-              yinQualityHistory.length = 0;
-            }
-          } else {
-            yinTailGuardRecovery = 0;
-          }
-        }
-
-        if (!yinTailGuardActive) {
+        // Tärkeä periaate: mittaria ei koskaan lukita pysyvään "tail guard"
+        // -tilaan. Jos tämän framen YIN-laatu on selvästi äänen omaa normaalia
+        // huonompi, jätä vain tämä mittaus näyttämättä. Seuraava luotettava
+        // frame pääsee heti läpi, vaikka ääni olisi jatkunut pitkään tai
+        // voimakkuus olisi muuttunut.
+        if (!degraded) {
           processLockedPitch(integerHz);
 
           const trustLimit = yinAdaptiveLimit(
@@ -1056,8 +998,6 @@
           );
           const trustedQuality = trustLimit === null || yinValue <= trustLimit;
 
-          // Viimeinen luotettava Hz päivittyy vain äänen oman normaalin
-          // YIN-profiilin sisällä. Sävelkorkeus saa silti heilua vapaasti.
           if (trustedQuality) {
             const shownHz = Number(hzEl.textContent);
             if (Number.isFinite(shownHz)) {
@@ -1065,9 +1005,9 @@
             }
           }
 
-          // Profiilia opetetaan vain, kun ääni ei ole selvästi vaimenemassa.
-          // Lisäksi jo opitun profiilin poikkeuksellisen huonoja arvoja ei
-          // syötetä takaisin vertailutasoon, jotta loppuhäntä ei nosta rimaa.
+          // Opeta profiilia vain äänen oman normaalin laatualueen arvoilla.
+          // Selvästi hajonneita loppuhännän mittauksia ei koskaan syötetä
+          // takaisin profiiliin.
           const learnLimit = yinAdaptiveLimit(
             profile,
             YIN_LEARN_FACTOR,
@@ -1075,14 +1015,16 @@
             YIN_LEARN_MIN_DELTA
           );
           const learnableQuality = profile === null || yinValue <= learnLimit;
-          if (!falling && learnableQuality) {
+          if (learnableQuality) {
             yinQualityHistory.push({ t: now, yin: yinValue });
             trimTimedHistory(yinQualityHistory, now, YIN_PROFILE_MS);
           }
+        } else if (Number.isFinite(lastReliableHz)) {
+          // Pidä vain tämän epäluotettavan framen ajan viimeinen hyvä arvo.
+          // Ei tilaa, ei ajastinta, ei palautusviivettä.
+          hzEl.textContent = String(lastReliableHz);
         }
 
-        levelHistory.push({ t: now, db: currentDb });
-        trimTimedHistory(levelHistory, now, LEVEL_TREND_MS);
       }
     }
 
