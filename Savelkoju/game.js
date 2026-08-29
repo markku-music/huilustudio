@@ -539,13 +539,11 @@ function gameLedTick(){
       gameLedTracker.locked &&
       now-gameLedLastSoundTime>config.silenceReleaseMs
     ){
-      // Sama kuin PitchEngine 1.0:
-      // pura lukitus 260 ms hiljaisuuden jälkeen.
+      // Lukitus vapautuu normaalisti 260 ms hiljaisuuden jälkeen,
+      // mutta viimeinen LED-lukema jätetään näkyviin seuraavaan ääneen asti.
       gameLedTracker.reset({keepStable:true});
-      clearTunerReadout(tunerLeds);
     }else if(!gameLedTracker.locked){
       gameLedTracker.clearCandidates();
-      clearTunerReadout(tunerLeds);
     }
 
     gameLedRaf=requestAnimationFrame(gameLedTick);
