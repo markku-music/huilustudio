@@ -422,6 +422,86 @@
     transition:width 60ms linear;
   }
 
+
+  .dev-toggle-row {
+    width:100%;
+    display:flex;
+    justify-content:flex-end;
+  }
+  #devToggle {
+    border:1px solid rgba(255,255,255,.28);
+    border-radius:12px;
+    padding:8px 12px;
+    background:rgba(12,18,28,.72);
+    color:rgba(255,255,255,.8);
+    font-size:13px;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+  }
+  #devPanel {
+    display:none;
+    width:100%;
+    border:1px solid rgba(255,255,255,.24);
+    border-radius:16px;
+    padding:12px;
+    background:rgba(8,12,20,.92);
+    color:#fff;
+    backdrop-filter:blur(12px);
+  }
+  #devPanel.open { display:block; }
+  .dev-head {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .dev-title { font-size:14px; font-weight:750; }
+  .dev-state { font-size:12px; color:rgba(255,255,255,.62); }
+  .dev-grid {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:7px;
+    margin-bottom:10px;
+  }
+  .dev-cell {
+    min-width:0;
+    padding:7px 8px;
+    border-radius:10px;
+    background:rgba(255,255,255,.07);
+  }
+  .dev-cell span {
+    display:block;
+    font-size:10px;
+    color:rgba(255,255,255,.5);
+    margin-bottom:2px;
+  }
+  .dev-cell strong {
+    display:block;
+    font-size:13px;
+    font-weight:650;
+    font-variant-numeric:tabular-nums;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .dev-actions { display:flex; flex-wrap:wrap; gap:8px; }
+  .dev-actions button {
+    border:1px solid rgba(255,255,255,.24);
+    border-radius:10px;
+    padding:8px 10px;
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    font-size:12px;
+    cursor:pointer;
+  }
+  #devMessage {
+    min-height:1.4em;
+    margin-top:8px;
+    font-size:11px;
+    color:rgba(255,255,255,.62);
+  }
+
   @media(max-width:760px) {
     .world-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
     .world img { height:74px; }
@@ -448,6 +528,7 @@
     .note-label { min-width:74px; }
     #noteName { font-size:26px; }
     .statusbox { grid-template-columns:1fr; }
+    .dev-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   }
 </style>
 </head>
@@ -543,6 +624,35 @@
     </div>
 
     <div class="level"><div id="levelBar"></div></div>
+
+    <div class="dev-toggle-row">
+      <button id="devToggle" type="button" aria-expanded="false">Kehittäjätila</button>
+    </div>
+
+    <section id="devPanel" aria-label="Kehittäjätila">
+      <div class="dev-head">
+        <div class="dev-title">Diagnostiikka</div>
+        <div id="devState" class="dev-state">Tallennus pois</div>
+      </div>
+      <div class="dev-grid">
+        <div class="dev-cell"><span>Raaka Hz</span><strong id="devRawHz">—</strong></div>
+        <div class="dev-cell"><span>Kokonais-Hz</span><strong id="devIntegerHz">—</strong></div>
+        <div class="dev-cell"><span>RMS dBFS</span><strong id="devDb">—</strong></div>
+        <div class="dev-cell"><span>YIN-arvo</span><strong id="devYin">—</strong></div>
+        <div class="dev-cell"><span>Lukitus</span><strong id="devLock">—</strong></div>
+        <div class="dev-cell"><span>Näytetty Hz</span><strong id="devDisplayed">—</strong></div>
+        <div class="dev-cell"><span>Ehdokas</span><strong id="devCandidate">—</strong></div>
+        <div class="dev-cell"><span>Ääniportti</span><strong id="devGate">—</strong></div>
+      </div>
+      <div class="dev-actions">
+        <button id="devRecord" type="button">Aloita tallennus</button>
+        <button id="devMark" type="button">Merkitse hyppy</button>
+        <button id="devCopy" type="button">Kopioi JSON</button>
+        <button id="devDownload" type="button">Lataa JSON</button>
+        <button id="devClear" type="button">Tyhjennä</button>
+      </div>
+      <div id="devMessage">JSON sisältää enintään noin viimeiset 15 sekuntia mittauksia.</div>
+    </section>
   </section>
 </main>
 
@@ -553,6 +663,34 @@
   const lockInfoEl = document.getElementById("lockInfo");
   const levelBar = document.getElementById("levelBar");
   const toggleBtn = document.getElementById("toggle");
+
+  // Kehittäjätila on vain diagnostiikkaa varten. Se ei muuta mittauslogiikkaa.
+  const devToggle = document.getElementById("devToggle");
+  const devPanel = document.getElementById("devPanel");
+  const devState = document.getElementById("devState");
+  const devRawHz = document.getElementById("devRawHz");
+  const devIntegerHz = document.getElementById("devIntegerHz");
+  const devDb = document.getElementById("devDb");
+  const devYin = document.getElementById("devYin");
+  const devLock = document.getElementById("devLock");
+  const devDisplayed = document.getElementById("devDisplayed");
+  const devCandidate = document.getElementById("devCandidate");
+  const devGate = document.getElementById("devGate");
+  const devRecord = document.getElementById("devRecord");
+  const devMark = document.getElementById("devMark");
+  const devCopy = document.getElementById("devCopy");
+  const devDownload = document.getElementById("devDownload");
+  const devClear = document.getElementById("devClear");
+  const devMessage = document.getElementById("devMessage");
+
+  let devEnabled = false;
+  let devRecording = false;
+  let devStartTime = 0;
+  let devSessionId = null;
+  const devSamples = [];
+  const devEvents = [];
+  const DEV_MAX_MS = 15000;
+  let lastYinValue = null;
 
   let audioContext = null;
   let analyser = null;
@@ -591,12 +729,10 @@
   const displayBuffer = [];
   const switchBuffer = [];
 
-  // Näytön Hz-arvon vaihto vahvistetaan normaalisti kahdella
-  // peräkkäisellä samalla mediaanituloksella. Yli 10 sentin
-  // äkillinen muutos on epäilyttävämpi ja vaatii 5 vahvistusta.
+  // Näytön Hz-arvon vaihto vahvistetaan kahdella peräkkäisellä
+  // samalla mediaanituloksella. Yksittäinen loppuhännän harha ei
+  // näin ehdi liikuttaa mittaria.
   const DISPLAY_CONFIRM_REQUIRED = 2;
-  const LARGE_JUMP_CENTS = 10;
-  const LARGE_JUMP_CONFIRM_REQUIRED = 5;
   let displayedHz = null;
   let displayCandidateHz = null;
   let displayCandidateCount = 0;
@@ -604,6 +740,174 @@
   let locked = false;
   let lockHz = null;
   let lastSoundTime = 0;
+
+  function dbfsFromRms(rms) {
+    return rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+  }
+
+  function devTargetInfo() {
+    const note = document.getElementById("noteName")?.textContent || null;
+    const hzText = document.getElementById("noteFreq")?.textContent || "";
+    const targetHz = Number.parseFloat(hzText);
+    return { note, targetHz: Number.isFinite(targetHz) ? targetHz : null };
+  }
+
+  function devTrim(now) {
+    const cutoff = now - DEV_MAX_MS;
+    while (devSamples.length && devSamples[0].t < cutoff) devSamples.shift();
+    while (devEvents.length && devEvents[0].t < cutoff) devEvents.shift();
+  }
+
+  function devEvent(type, data = {}) {
+    if (!devRecording) return;
+    const now = performance.now();
+    devEvents.push({ t: Math.round(now - devStartTime), type, ...data });
+    devTrim(now - devStartTime);
+  }
+
+  function devSnapshot(rawHz, integerHz, rms, gateOpen) {
+    const db = dbfsFromRms(rms);
+
+    if (devEnabled) {
+      devRawHz.textContent = Number.isFinite(rawHz) ? rawHz.toFixed(2) : "—";
+      devIntegerHz.textContent = Number.isFinite(integerHz) ? String(integerHz) : "—";
+      devDb.textContent = Number.isFinite(db) ? db.toFixed(1) : "−∞";
+      devYin.textContent = Number.isFinite(lastYinValue) ? lastYinValue.toFixed(4) : "—";
+      devLock.textContent = locked ? `${lockHz} Hz` : "ei";
+      devDisplayed.textContent = displayedHz === null ? "—" : `${displayedHz} Hz`;
+      devCandidate.textContent = displayCandidateHz === null ? "—" : `${displayCandidateHz} × ${displayCandidateCount}`;
+      devGate.textContent = gateOpen ? "auki" : "kiinni";
+    }
+
+    if (!devRecording) return;
+
+    const now = performance.now();
+    const rel = now - devStartTime;
+    const target = devTargetInfo();
+    devSamples.push({
+      t: Math.round(rel),
+      rms: Number(rms.toFixed(6)),
+      dbfs: Number.isFinite(db) ? Number(db.toFixed(2)) : null,
+      gateOpen,
+      rawHz: Number.isFinite(rawHz) ? Number(rawHz.toFixed(3)) : null,
+      integerHz: Number.isFinite(integerHz) ? integerHz : null,
+      yin: Number.isFinite(lastYinValue) ? Number(lastYinValue.toFixed(5)) : null,
+      locked,
+      lockHz,
+      displayedHz,
+      displayCandidateHz,
+      displayCandidateCount,
+      acquireBuffer: [...acquireBuffer],
+      displayBuffer: [...displayBuffer],
+      switchBuffer: [...switchBuffer],
+      targetNote: target.note,
+      targetHz: target.targetHz
+    });
+    devTrim(rel);
+  }
+
+  function devPayload() {
+    return {
+      format: "viritysmittari-diagnostics-v1",
+      createdAt: new Date().toISOString(),
+      settings: {
+        inputGateDb: INPUT_GATE_DB,
+        yinThreshold: YIN_THRESHOLD,
+        acquireWindow: ACQUIRE_WINDOW,
+        acquireRequired: ACQUIRE_REQUIRED,
+        acquireToleranceHz: ACQUIRE_TOLERANCE,
+        lockToleranceHz: LOCK_TOLERANCE,
+        displaySize: DISPLAY_SIZE,
+        displayConfirmRequired: DISPLAY_CONFIRM_REQUIRED,
+        switchWindow: SWITCH_WINDOW,
+        switchRequired: SWITCH_REQUIRED,
+        switchToleranceHz: SWITCH_TOLERANCE,
+        silenceReleaseMs: SILENCE_RELEASE_MS,
+        analyserFftSize: analyser?.fftSize || 4096,
+        sampleRate: audioContext?.sampleRate || null
+      },
+      sessionId: devSessionId,
+      samples: devSamples,
+      events: devEvents
+    };
+  }
+
+  function devJson() {
+    return JSON.stringify(devPayload(), null, 2);
+  }
+
+  async function copyDevJson() {
+    const text = devJson();
+    try {
+      await navigator.clipboard.writeText(text);
+      devMessage.textContent = `JSON kopioitu (${devSamples.length} mittausta).`;
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      devMessage.textContent = ok ? `JSON kopioitu (${devSamples.length} mittausta).` : "Kopiointi epäonnistui. Käytä Lataa JSON -painiketta.";
+    }
+  }
+
+  function downloadDevJson() {
+    const blob = new Blob([devJson()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `viritysmittari-diagnostiikka-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    devMessage.textContent = `JSON ladattu (${devSamples.length} mittausta).`;
+  }
+
+  devToggle.addEventListener("click", () => {
+    devEnabled = !devEnabled;
+    devPanel.classList.toggle("open", devEnabled);
+    devToggle.setAttribute("aria-expanded", String(devEnabled));
+  });
+
+  devRecord.addEventListener("click", () => {
+    if (!devRecording) {
+      devRecording = true;
+      devSamples.length = 0;
+      devEvents.length = 0;
+      devStartTime = performance.now();
+      devSessionId = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+      devRecord.textContent = "Lopeta tallennus";
+      devState.textContent = "Tallennus päällä · viimeiset 15 s";
+      devMessage.textContent = "Soita ongelmatilanne ja paina sen jälkeen Merkitse hyppy.";
+      devEvent("recording-start");
+    } else {
+      devEvent("recording-stop");
+      devRecording = false;
+      devRecord.textContent = "Aloita tallennus";
+      devState.textContent = `Tallennus pois · ${devSamples.length} mittausta`;
+    }
+  });
+
+  devMark.addEventListener("click", () => {
+    if (!devRecording) {
+      devMessage.textContent = "Aloita tallennus ensin.";
+      return;
+    }
+    devEvent("user-mark", { label: "hyppy" });
+    devMessage.textContent = "Hyppy merkitty JSONiin.";
+  });
+
+  devCopy.addEventListener("click", copyDevJson);
+  devDownload.addEventListener("click", downloadDevJson);
+  devClear.addEventListener("click", () => {
+    devSamples.length = 0;
+    devEvents.length = 0;
+    devMessage.textContent = "Diagnostiikka tyhjennetty.";
+  });
 
   function rmsOf(buffer) {
     let sum = 0;
@@ -638,6 +942,7 @@
   }
 
   function detectPitchYIN(buffer, sampleRate) {
+    lastYinValue = null;
     const n = buffer.length;
     const tauMin = Math.max(2, Math.floor(sampleRate / MAX_HZ));
     const tauMax = Math.min(Math.floor(sampleRate / MIN_HZ), Math.floor(n / 2));
@@ -705,6 +1010,7 @@
     }
 
     const hz = sampleRate / betterTau;
+    lastYinValue = yin[tauEstimate];
 
     return (
       Number.isFinite(hz) &&
@@ -714,6 +1020,7 @@
   }
 
   function resetAll(keepDisplay = false) {
+    if (locked || lockHz !== null) devEvent("reset", { keepDisplay, previousLockHz: lockHz, previousDisplayedHz: displayedHz });
     locked = false;
     lockHz = null;
     acquireBuffer.length = 0;
@@ -730,6 +1037,7 @@
   }
 
   function setLock(newHz) {
+    const previousLockHz = lockHz;
     lockHz = newHz;
     locked = true;
 
@@ -745,6 +1053,7 @@
     hzEl.textContent = String(newHz);
     statusEl.textContent = "Lukittu";
     lockInfoEl.textContent = `Lukitus ${newHz} Hz`;
+    devEvent("set-lock", { previousLockHz, newHz });
   }
 
   function tryAcquireLock(integerHz) {
@@ -782,18 +1091,10 @@
 
     if (cluster.length >= SWITCH_REQUIRED) {
       const newHz = Math.round(median(cluster));
-      const jumpCents = Math.abs(hzToCents(newHz, lockHz) ?? 0);
-      const required = jumpCents > LARGE_JUMP_CENTS
-        ? LARGE_JUMP_CONFIRM_REQUIRED
-        : SWITCH_REQUIRED;
 
       // Estetään turha "uudelleenlukitus" lähes samaan paikkaan.
-      // Yli 10 sentin hyppy hyväksytään vasta, kun koko viiden
-      // mittauksen ikkuna tukee uutta taajuutta.
       if (Math.abs(newHz - lockHz) > LOCK_TOLERANCE) {
-        if (cluster.length >= required) {
-          setLock(newHz);
-        }
+        setLock(newHz);
       } else {
         switchBuffer.length = 0;
       }
@@ -832,14 +1133,11 @@
           displayCandidateCount = 1;
         }
 
-        const jumpCents = Math.abs(hzToCents(stable, displayedHz) ?? 0);
-        const required = jumpCents > LARGE_JUMP_CENTS
-          ? LARGE_JUMP_CONFIRM_REQUIRED
-          : DISPLAY_CONFIRM_REQUIRED;
-
-        if (displayCandidateCount >= required) {
+        if (displayCandidateCount >= DISPLAY_CONFIRM_REQUIRED) {
+          const previousDisplayedHz = displayedHz;
           displayedHz = stable;
           hzEl.textContent = String(stable);
+          devEvent("display-change", { previousDisplayedHz, displayedHz: stable, lockHz });
           displayCandidateHz = null;
           displayCandidateCount = 0;
         }
@@ -871,6 +1169,7 @@
     }
 
     if (rms < RMS_GATE) {
+      lastYinValue = null;
       if (locked && now - lastSoundTime > SILENCE_RELEASE_MS) {
         resetAll(true);
         statusEl.textContent = "Kuuntelen…";
@@ -881,14 +1180,16 @@
         lockInfoEl.textContent = "";
       }
 
+      devSnapshot(null, null, rms, false);
       rafId = requestAnimationFrame(tick);
       return;
     }
 
     const rawHz = detectPitchYIN(buffer, audioContext.sampleRate);
+    let integerHz = null;
 
     if (rawHz !== null) {
-      const integerHz = Math.round(rawHz);
+      integerHz = Math.round(rawHz);
 
       if (!locked) {
         tryAcquireLock(integerHz);
@@ -897,6 +1198,7 @@
       }
     }
 
+    devSnapshot(rawHz, integerHz, rms, true);
     rafId = requestAnimationFrame(tick);
   }
 
