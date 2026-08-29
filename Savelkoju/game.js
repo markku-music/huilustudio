@@ -83,6 +83,7 @@ const TUNER_CENTER_INDEX=10;
 const TUNER_NOTE_NAMES=['C','Cis','D','Dis','E','F','Fis','G','Gis','A','B','H'];
 const GAME_TUNER_RMS_GATE=0.001;
 const STANDALONE_TUNER_RMS_GATE=0.00025;
+const DOMINANT_HZ_WINDOW_SIZE=15;
 const FINGERING_HINT_Y_OFFSET=112;
 const FINGERING_HINT_IMAGES={
   G:'assets/sormitus_G_savelkoju.png',
@@ -94,43 +95,74 @@ const FINGERING_HINT_IMAGES={
 
 function createDominantHzState(){
   return {
+    samples:[],
     counts:new Map(),
     dominantHz:null,
-    dominantCount:0,
     active:false
   };
 }
 
 function resetDominantHzState(state){
+  state.samples.length=0;
   state.counts.clear();
   state.dominantHz=null;
-  state.dominantCount=0;
   state.active=false;
 }
 
 function endDominantHzSegment(state){
+  // Äänen lopussa näyttö jää viimeiseen liukuvaan hallitsevaan arvoon.
+  // Seuraava uusi ääni aloittaa uuden ikkunan.
   state.active=false;
+}
+
+function clearDominantHzWindow(state){
+  state.samples.length=0;
+  state.counts.clear();
+  state.dominantHz=null;
 }
 
 function addDominantHzSample(state,hz){
   if(!Number.isFinite(hz))return null;
 
   if(!state.active){
-    state.counts.clear();
-    state.dominantHz=null;
-    state.dominantCount=0;
+    clearDominantHzWindow(state);
     state.active=true;
   }
 
   const integerHz=Math.round(hz);
-  const count=(state.counts.get(integerHz)||0)+1;
-  state.counts.set(integerHz,count);
+  state.samples.push(integerHz);
+  state.counts.set(integerHz,(state.counts.get(integerHz)||0)+1);
 
-  // Tasatilanteessa pidetään nykyinen arvo, jotta näyttö ei turhaan hypi.
-  if(state.dominantHz===null||count>state.dominantCount){
-    state.dominantHz=integerHz;
-    state.dominantCount=count;
+  if(state.samples.length>DOMINANT_HZ_WINDOW_SIZE){
+    const oldHz=state.samples.shift();
+    const oldCount=(state.counts.get(oldHz)||0)-1;
+    if(oldCount<=0)state.counts.delete(oldHz);
+    else state.counts.set(oldHz,oldCount);
   }
+
+  let maxCount=0;
+  for(const count of state.counts.values()){
+    if(count>maxCount)maxCount=count;
+  }
+
+  const candidates=[];
+  for(const [candidateHz,count] of state.counts){
+    if(count===maxCount)candidates.push(candidateHz);
+  }
+
+  // Tasatilanteessa pidetään nykyinen arvo, jos se on edelleen ikkunan
+  // hallitsevien joukossa. Muuten valitaan uusin havainto lähimpänä oleva
+  // hallitseva arvo. Näin mittari on vakaa mutta ei jähmety pitkän äänen aikana.
+  if(state.dominantHz!==null&&candidates.includes(state.dominantHz)){
+    return state.dominantHz;
+  }
+
+  state.dominantHz=candidates.reduce((best,candidate)=>{
+    if(best===null)return candidate;
+    const bestDistance=Math.abs(best-integerHz);
+    const candidateDistance=Math.abs(candidate-integerHz);
+    return candidateDistance<bestDistance?candidate:best;
+  },null);
 
   return state.dominantHz;
 }
@@ -578,7 +610,7 @@ function gameLedTick(){
       gameLedTracker.locked &&
       now-gameLedLastSoundTime>config.silenceReleaseMs
     ){
-      // Vapauta sävellukitus ja päätä tämän äänen hallitsevan Hz:n keräys.
+      // Vapauta sävellukitus ja päätä tämän äänen liukuva Hz-jakso.
       // Viimeinen hallitseva lukema jää silti näyttöön.
       gameLedTracker.reset({keepStable:true});
       endDominantHzSegment(gameDominantHz);
@@ -776,9 +808,8 @@ function tunerPitchOutput(event){
 function tunerLockOutput(event){
   if(!event)return;
 
-  // Hallitsevan Hz:n keräys päätetään vain oikeaan hiljaisuuteen.
-  // Re-lock voi syntyä myös äänen hiipuvan hännän epävakaasta YIN-arvosta,
-  // joten se ei saa nollata jo kerättyä hallitsevaa sävelkorkeutta.
+  // Liukuva Hz-jakso päätetään vain oikeaan hiljaisuuteen.
+  // Re-lock ei nollaa ikkunaa, joten lyhyt äänen häntä ei yksin kaappaa näyttöä.
   if(event.action==='unlocked'){
     endDominantHzSegment(standaloneDominantHz);
   }
