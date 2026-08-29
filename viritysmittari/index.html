@@ -587,6 +587,22 @@
 
   const SILENCE_RELEASE_MS = 260;
 
+  // Huiluäänen alukkeen YIN-portti.
+  // Mittari ei lukitu pelkän ensimmäisen uskottavan Hz-luvun perusteella, vaan
+  // odottaa että YIN-laatu joko selvästi paranee tai asettuu oman alukkeen
+  // sisällä vakaaksi. Hyvä aluke pääsee läpi heti, rosoinen aluke saa hetken
+  // aikaa järjestyä. Tässä ei ole kiinteää odotusaikaa.
+  const ONSET_HISTORY_SIZE = 10;
+  const ONSET_MIN_SAMPLES = 5;
+  const ONSET_CLUSTER_REQUIRED = 4;
+  const ONSET_TOLERANCE = 2;
+  const ONSET_IMPROVEMENT_RATIO = 0.65;
+  const ONSET_STABLE_MAX_YIN = 0.08;
+  const ONSET_STABLE_MAD_MIN = 0.004;
+  const ONSET_STABLE_MAD_FACTOR = 0.25;
+  const ONSET_QUALITY_CUTOFF_MIN = 0.015;
+  const ONSET_QUALITY_CUTOFF_FACTOR = 2.5;
+
   // Huilun loppuhännän adaptiivinen YIN-laatusuoja.
   // Jokaiselle lukitulle äänelle opitaan oma normaali YIN-taso JA sen normaali vaihtelu.
   // Näin oppilaan luonnostaan epävakaampi/rosoisempi ääni ei laukaise suojaa vain siksi,
@@ -607,6 +623,7 @@
   const GUARD_RECOVERY_REQUIRED = 3;
 
   const acquireBuffer = [];
+  const onsetHistory = [];
   const displayBuffer = [];
   const switchBuffer = [];
 
@@ -689,6 +706,37 @@
     yinTailGuardActive = false;
     yinTailGuardRecovery = 0;
     lastReliableHz = null;
+  }
+
+  function resetOnsetGate() {
+    onsetHistory.length = 0;
+    acquireBuffer.length = 0;
+  }
+
+  function onsetQualityReady() {
+    if (onsetHistory.length < ONSET_MIN_SAMPLES) return false;
+
+    const recent = onsetHistory.slice(-ONSET_MIN_SAMPLES);
+    const recentYin = recent.map(item => item.yin);
+    const recentCenter = median(recentYin);
+    const recentMad = median(recentYin.map(value => Math.abs(value - recentCenter))) || 0;
+
+    // 1) Laatu on jo itsessään tasainen, vaikka oppilaan ääni olisi rosoisempi.
+    const stable =
+      recentCenter <= ONSET_STABLE_MAX_YIN &&
+      recentMad <= Math.max(ONSET_STABLE_MAD_MIN, recentCenter * ONSET_STABLE_MAD_FACTOR);
+
+    // 2) Tai aluke on selvästi järjestymässä: viimeiset kolme YIN-arvoa ovat
+    // selvästi parempia kuin niitä edeltävät kolme.
+    let improving = false;
+    if (onsetHistory.length >= 6) {
+      const six = onsetHistory.slice(-6);
+      const earlier = median(six.slice(0, 3).map(item => item.yin));
+      const later = median(six.slice(3).map(item => item.yin));
+      improving = later <= earlier * ONSET_IMPROVEMENT_RATIO;
+    }
+
+    return stable || improving;
   }
 
   function bestCluster(values, tolerance) {
@@ -788,7 +836,7 @@
   function resetAll(keepDisplay = false) {
     locked = false;
     lockHz = null;
-    acquireBuffer.length = 0;
+    resetOnsetGate();
     displayBuffer.length = 0;
     switchBuffer.length = 0;
     resetTailGuard();
@@ -803,7 +851,7 @@
     lockHz = newHz;
     locked = true;
 
-    acquireBuffer.length = 0;
+    resetOnsetGate();
     displayBuffer.length = 0;
     switchBuffer.length = 0;
 
@@ -816,21 +864,41 @@
     lockInfoEl.textContent = `Lukitus ${newHz} Hz`;
   }
 
-  function tryAcquireLock(integerHz) {
-    acquireBuffer.push(integerHz);
-
-    if (acquireBuffer.length > ACQUIRE_WINDOW) {
-      acquireBuffer.shift();
+  function tryAcquireLock(integerHz, yinValue) {
+    onsetHistory.push({ hz: integerHz, yin: yinValue });
+    if (onsetHistory.length > ONSET_HISTORY_SIZE) {
+      onsetHistory.shift();
     }
 
-    statusEl.textContent = "Etsitään vakaata säveltä…";
+    statusEl.textContent = "YIN tarkistaa aluketta…";
+
+    if (!onsetQualityReady()) {
+      lockInfoEl.textContent = `${onsetHistory.length}/${ONSET_MIN_SAMPLES}`;
+      return;
+    }
+
+    // Kun YIN-laatu on asettunut, käytetään lukitukseen vain niitä viimeaikaisia
+    // Hz-havaintoja, joiden YIN-laatu kuuluu alukkeen hyvään osaan. Raja on
+    // suhteellinen juuri tämän alukkeen omaan viimeaikaiseen laatuun.
+    const recentYin = onsetHistory.slice(-3).map(item => item.yin);
+    const qualityCenter = median(recentYin);
+    const qualityCutoff = Math.min(
+      YIN_THRESHOLD,
+      Math.max(ONSET_QUALITY_CUTOFF_MIN, qualityCenter * ONSET_QUALITY_CUTOFF_FACTOR)
+    );
+
+    const eligible = onsetHistory
+      .filter(item => item.yin <= qualityCutoff)
+      .map(item => item.hz);
+
+    acquireBuffer.length = 0;
+    acquireBuffer.push(...eligible.slice(-ACQUIRE_WINDOW));
+
     lockInfoEl.textContent = `${acquireBuffer.length}/${ACQUIRE_WINDOW}`;
+    if (acquireBuffer.length < ONSET_CLUSTER_REQUIRED) return;
 
-    if (acquireBuffer.length < ACQUIRE_WINDOW) return;
-
-    const cluster = bestCluster(acquireBuffer, ACQUIRE_TOLERANCE);
-
-    if (cluster.length >= ACQUIRE_REQUIRED) {
+    const cluster = bestCluster(acquireBuffer, ONSET_TOLERANCE);
+    if (cluster.length >= ONSET_CLUSTER_REQUIRED) {
       setLock(Math.round(median(cluster)));
     }
   }
@@ -906,7 +974,7 @@
         resetAll(true);
         statusEl.textContent = "Kuuntelen…";
       } else if (!locked) {
-        acquireBuffer.length = 0;
+        resetOnsetGate();
         switchBuffer.length = 0;
         statusEl.textContent = "Kuuntelen…";
         lockInfoEl.textContent = "";
@@ -925,7 +993,7 @@
       const currentDb = dbfsOf(rms);
 
       if (!locked) {
-        tryAcquireLock(integerHz);
+        tryAcquireLock(integerHz, yinValue);
       } else {
         const profile = yinProfile(now);
         const falling = levelIsFalling(now, currentDb);
