@@ -1,9 +1,0 @@
-Viritysmittarin HUD siivottu:
-
-- OSUMAT-näyttö poistettu näkyvistä
-- SOITA / tavoitesävel -näyttö poistettu näkyvistä
-- ENSISÄVELET-taso-otsikko poistettu mittari-ikkunasta
-- KUUNTELEN…-teksti poistettu normaalista odotustilasta
-- senttilukeman snt-yksikkö poistettu (esim. +4)
-
-Pelin osumalaskenta, tavoitesävel ja PitchEngine-logiikka säilyvät ennallaan.

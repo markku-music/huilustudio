@@ -10,7 +10,7 @@ const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:64
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
 const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),tunerLeds=$('tunerLeds'),tunerOnlyLeds=$('tunerOnlyLeds'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),tunerOverlay=$('tunerOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
-let gameEngine=null,tunerEngine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
+let gameEngine=null,tunerEngine=null,gameLedAnalyser=null,gameLedTracker=null,gameLedBuffer=null,gameLedRaf=0,gameLedRunning=false,gameLedLastSoundTime=0,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
 const TUNER_STEP_CENTS=5,TUNER_MAX_CENTS=50,TUNER_LED_COUNT=21,TUNER_CENTER_INDEX=10;
 
 function midiInfoFromHz(hz){
@@ -216,31 +216,180 @@ function hear(note){if(!running||!accepting||note!==target)return;const now=perf
 function gameMicrophoneOutput(output){
   /*
     PELIN NUOTTITUNNISTUS:
-    edelleen täysin vanhan Nuottikompassi-moottorin pitchClass.
+    täysin vanhan Nuottikompassi-moottorin pitchClass.
 
-    PELIN ALLA OLEVA VIRITYSMITTARI:
-    EI käytä vanhan moottorin meterCents-arvoa.
-    Se ottaa vanhan moottorin havaitseman taajuuden (frequency)
-    ja laskee poikkeaman samalla equal-temperament / A4=440
-    senttilaskennalla kuin erillinen PitchEngine-viritysmittari.
+    PELIN LED-VIRITYSMITTARI:
+    EI käytä tästä callbackista frequency-, cents- eikä meterCents-arvoa.
+    LED-mittarilla on oma Hertsimittari/PitchEngine-analyysihaara
+    samasta mikrofonistreamista.
   */
-  if(Number.isFinite(output.frequency)){
-    const tuningInfo=midiInfoFromHz(output.frequency);
-    if(tuningInfo){
-      renderTunerCents(tuningInfo.cents,tunerLeds);
-    }
-  }
-
   if(output.status==='signal'){
     const note=PITCH_CLASS[output.pitchClass];
     if(note)hear(note);
+  }
+}
+
+/* ---------------------------------------------------------
+   PELIN LED-MITTARI:
+   Hertsimittari_LED_Pysty_B / PitchEngine 1.0 -logiikka,
+   mutta EI omaa getUserMedia-kutsua.
+
+   Sama MediaStreamAudioSourceNode haarautuu:
+     1) vanha pelimoottori -> GainNode -> vanha AnalyserNode
+     2) tämä haara -> 4096 AnalyserNode -> YIN -> Hz-lukitus -> LEDit
+
+   Haara 2 kytketään suoraan gameEngine.sourceen ENNEN vanhan
+   moottorin inputGainNodea, kuten alkuperäinen Hertsimittari.
+   --------------------------------------------------------- */
+function ensureGameLedTracker(){
+  const U=window.PitchEngineUtils;
+  const T=window.PitchLockTracker;
+
+  if(!U||!T){
+    throw new Error('Hertsimittarin PitchEngine-apufunktioita ei voitu ladata.');
+  }
+
+  if(!gameLedTracker){
+    gameLedTracker=new T(U.DEFAULTS);
+  }
+
+  return {U,T};
+}
+
+function handleGameLedStableHz(stableHz){
+  if(!Number.isFinite(stableHz))return;
+
+  const tuningInfo=midiInfoFromHz(stableHz);
+  if(!tuningInfo)return;
+
+  // Tästä eteenpäin sama LED-esitys kuin erillisessä viritystilassa.
+  renderTunerCents(tuningInfo.cents,tunerLeds);
+}
+
+function gameLedTick(){
+  if(
+    !gameLedRunning ||
+    !gameLedAnalyser ||
+    !gameEngine?.audioContext
+  ){
     return;
   }
 
-  // Hiljaisuudessa pelin LEDit palautetaan tyhjiksi.
-  if(output.status==='waiting'||output.status==='idle'||output.status==='error'){
-    clearTunerReadout(tunerLeds);
+  const {U}=ensureGameLedTracker();
+  const config=U.DEFAULTS;
+
+  gameLedAnalyser.getFloatTimeDomainData(gameLedBuffer);
+
+  const now=performance.now();
+  const rms=U.rmsOf(gameLedBuffer);
+
+  if(rms>=config.rmsGate){
+    gameLedLastSoundTime=now;
   }
+
+  if(rms<config.rmsGate){
+    if(
+      gameLedTracker.locked &&
+      now-gameLedLastSoundTime>config.silenceReleaseMs
+    ){
+      // Sama kuin PitchEngine 1.0:
+      // pura lukitus 260 ms hiljaisuuden jälkeen.
+      gameLedTracker.reset({keepStable:true});
+      clearTunerReadout(tunerLeds);
+    }else if(!gameLedTracker.locked){
+      gameLedTracker.clearCandidates();
+      clearTunerReadout(tunerLeds);
+    }
+
+    gameLedRaf=requestAnimationFrame(gameLedTick);
+    return;
+  }
+
+  const rawHz=U.detectPitchYIN(
+    gameLedBuffer,
+    gameEngine.audioContext.sampleRate,
+    config
+  );
+
+  if(rawHz!==null){
+    const integerHz=Math.round(rawHz);
+    const result=gameLedTracker.process(integerHz);
+
+    // Sama kuin PitchEngine._handleTrackerResult:
+    // LEDiin päästetään vain lukittu/vakautettu stableHz.
+    if(
+      result.type==='locked' ||
+      result.type==='relocked' ||
+      result.type==='pitch'
+    ){
+      handleGameLedStableHz(result.stableHz);
+    }
+
+    // switching-tilassa jätetään edellinen LED-lukema näkyviin,
+    // kuten PitchEnginen vakaassa lukituksessa.
+  }
+
+  gameLedRaf=requestAnimationFrame(gameLedTick);
+}
+
+function startGameLedTracker(){
+  if(gameLedRunning)return;
+
+  if(
+    !gameEngine?.source ||
+    !gameEngine?.audioContext
+  ){
+    throw new Error('Pelin mikrofonistreamia ei ole vielä avattu.');
+  }
+
+  const {U}=ensureGameLedTracker();
+
+  gameLedTracker.reset({keepStable:false});
+  clearTunerReadout(tunerLeds);
+
+  const analyser=gameEngine.audioContext.createAnalyser();
+  analyser.fftSize=U.DEFAULTS.fftSize;                 // 4096
+  analyser.smoothingTimeConstant=U.DEFAULTS.analyserSmoothing; // 0
+
+  /*
+    TÄRKEÄÄ:
+    sama MediaStreamAudioSourceNode saa useita connect()-haaroja.
+    Tämä EI avaa toista mikrofonistreamia.
+  */
+  gameEngine.source.connect(analyser);
+
+  gameLedAnalyser=analyser;
+  gameLedBuffer=new Float32Array(analyser.fftSize);
+  gameLedLastSoundTime=performance.now();
+  gameLedRunning=true;
+  gameLedRaf=requestAnimationFrame(gameLedTick);
+}
+
+function stopGameLedTracker({keepStable=false}={}){
+  gameLedRunning=false;
+
+  if(gameLedRaf){
+    cancelAnimationFrame(gameLedRaf);
+    gameLedRaf=0;
+  }
+
+  if(gameLedAnalyser){
+    try{
+      gameEngine?.source?.disconnect(gameLedAnalyser);
+    }catch(_){}
+    try{
+      gameLedAnalyser.disconnect();
+    }catch(_){}
+  }
+
+  gameLedAnalyser=null;
+  gameLedBuffer=null;
+
+  if(gameLedTracker){
+    gameLedTracker.reset({keepStable});
+  }
+
+  clearTunerReadout(tunerLeds);
 }
 
 function ensureGameEngine(){
@@ -264,7 +413,9 @@ async function pauseMic(){
   running=false;
   accepting=false;
   reticle.style.opacity='0';
-  clearTunerReadout(tunerLeds);
+
+  // Pysäytä Hertsimittarin rinnakkaishaara ennen AudioContextin suspendia.
+  stopGameLedTracker();
 
   if(!gameEngine)return;
 
@@ -287,7 +438,9 @@ async function stopGameMic(){
   running=false;
   accepting=false;
   reticle.style.opacity='0';
-  clearTunerReadout(tunerLeds);
+
+  // Irrota rinnakkaishaara ennen kuin vanha moottori sulkee AudioContextin.
+  stopGameLedTracker();
 
   if(!gameEngine)return;
 
@@ -299,7 +452,7 @@ async function stopGameMic(){
 }
 
 async function resumeMic(){
-  // PitchEngine ei saa olla aktiivinen pelin aikana.
+  // Erillinen PitchEngine-viritystila ei saa olla aktiivinen pelin aikana.
   await stopTunerMic();
 
   const e=ensureGameEngine();
@@ -315,6 +468,9 @@ async function resumeMic(){
     ){
       await e.audioContext.resume();
     }
+
+    // Käynnistä Hertsimittarin 4096-YIN-haara SAMASTA lähteestä.
+    startGameLedTracker();
   }catch(err){
     console.warn(err);
   }

@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-oldgame-newledcalc-v3';
+const CACHE_NAME = 'savelkoju-sharedstream-hertsimittari-v4';
 const APP_SHELL = [
   "./",
   "./index.html",
