@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172033">
+<title>Viritysmittari – LED pysty B</title>
+<style>
+  :root {
+    color-scheme: dark;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; min-height:100%; background:#111; color:#fff; }
+  button { font:inherit; }
+
+  .app {
+    min-height:100vh;
+    position:relative;
+    overflow:hidden;
+    background:center/cover no-repeat;
+  }
+  .app::before {
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.22));
+    pointer-events:none;
+  }
+
+  .topbar {
+    position:relative;
+    z-index:5;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px;
+  }
+
+  .glass {
+    border:1px solid rgba(255,255,255,.35);
+    background:rgba(12,18,28,.75);
+    color:#fff;
+    border-radius:16px;
+    padding:12px 16px;
+    min-height:48px;
+    font-weight:750;
+    backdrop-filter:blur(12px);
+    cursor:pointer;
+  }
+
+  .world-picker {
+    display:none;
+    position:absolute;
+    z-index:12;
+    top:72px;
+    left:14px;
+    width:min(650px, calc(100% - 28px));
+    padding:12px;
+    background:rgba(10,15,24,.92);
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:18px;
+    backdrop-filter:blur(15px);
+  }
+  .world-picker.open { display:block; }
+  .world-grid {
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:10px;
+  }
+  .world {
+    padding:0;
+    border:2px solid transparent;
+    border-radius:14px;
+    overflow:hidden;
+    background:#222;
+    cursor:pointer;
+    position:relative;
+  }
+  .world.active { border-color:#fff; }
+  .world img {
+    width:100%;
+    height:90px;
+    display:block;
+    object-fit:cover;
+  }
+  .world span {
+    position:absolute;
+    left:6px; right:6px; bottom:6px;
+    background:rgba(0,0,0,.58);
+    color:#fff;
+    padding:5px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:750;
+    text-align:center;
+  }
+
+  .stage {
+    position:relative;
+    z-index:2;
+    width:min(940px, calc(100% - 24px));
+    margin:0 auto;
+    padding-bottom:26px;
+    display:grid;
+    gap:14px;
+    justify-items:center;
+  }
+
+  .meter-card {
+    width:100%;
+    border-radius:30px;
+    padding:16px;
+    background:linear-gradient(#f6f8fa, #d9dee4);
+    color:#111;
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:0 18px 50px rgba(0,0,0,.3);
+  }
+
+  .meter-shell {
+    border-radius:24px;
+    background:linear-gradient(#222b34, #11171d);
+    padding:16px;
+    min-height:420px;
+    display:grid;
+    grid-template-columns: 1fr 240px 1fr;
+    align-items:center;
+    gap:18px;
+  }
+
+  .side-readout {
+    display:grid;
+    align-content:center;
+    justify-items:center;
+    gap:10px;
+    color:#fff;
+  }
+
+  #targetNote {
+    font-size:clamp(44px, 8vw, 82px);
+    font-weight:850;
+    line-height:1;
+    letter-spacing:-.03em;
+  }
+  #targetHz {
+    font-size:clamp(15px, 2.5vw, 22px);
+    font-weight:700;
+    opacity:.76;
+  }
+
+  .live-readout {
+    display:flex;
+    justify-content:center;
+    align-items:baseline;
+    gap:.18em;
+    font-variant-numeric:tabular-nums;
+    min-height:1.2em;
+  }
+  #hz {
+    font-size:clamp(48px, 8vw, 86px);
+    font-weight:800;
+    line-height:1;
+    letter-spacing:-.04em;
+  }
+  .unit {
+    font-size:clamp(22px, 4vw, 36px);
+    font-weight:700;
+    opacity:.5;
+  }
+
+  .cent-row {
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    font-variant-numeric:tabular-nums;
+  }
+  #centValue {
+    font-size:clamp(22px, 4vw, 34px);
+    font-weight:800;
+  }
+  #centLabel {
+    font-size:clamp(14px, 2.3vw, 20px);
+    font-weight:700;
+    opacity:.62;
+  }
+
+  .meter-center {
+    display:grid;
+    justify-items:center;
+    align-items:center;
+  }
+
+  .led-meter-wrap {
+    position:relative;
+    width:220px;
+    height:360px;
+    display:grid;
+    grid-template-columns:52px 1fr 52px;
+    align-items:stretch;
+    gap:12px;
+  }
+
+  .scale {
+    position:relative;
+    height:100%;
+    font-variant-numeric:tabular-nums;
+    color:#fff;
+    opacity:.95;
+    font-weight:750;
+    font-size:18px;
+  }
+  .scale span {
+    position:absolute;
+    right:0;
+    transform:translateY(-50%);
+    white-space:nowrap;
+  }
+  .scale.right span {
+    left:0;
+    right:auto;
+  }
+  .scale .zero {
+    color:#56da79;
+    font-size:20px;
+  }
+
+  .led-frame {
+    position:relative;
+    height:100%;
+    border-radius:28px;
+    padding:18px 20px;
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,.10),
+      inset 0 10px 26px rgba(255,255,255,.03);
+  }
+
+  .led-column {
+    position:relative;
+    height:100%;
+    display:grid;
+    gap:6px;
+    align-content:center;
+  }
+
+  .led-seg {
+    height:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.12);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    transition:background-color 80ms linear, box-shadow 80ms linear, opacity 80ms linear, transform 80ms linear;
+    opacity:.42;
+  }
+
+  .led-seg.on {
+    opacity:1;
+    transform:scaleX(1.02);
+  }
+
+  .led-seg.good.on {
+    background:#56da79;
+    box-shadow:0 0 10px rgba(86,218,121,.55), inset 0 0 0 1px rgba(255,255,255,.22);
+  }
+  .led-seg.warn.on {
+    background:#f1c34f;
+    box-shadow:0 0 10px rgba(241,195,79,.5), inset 0 0 0 1px rgba(255,255,255,.22);
+  }
+  .led-seg.bad.on {
+    background:#f06a5f;
+    box-shadow:0 0 10px rgba(240,106,95,.52), inset 0 0 0 1px rgba(255,255,255,.22);
+  }
+
+  .led-center-line {
+    position:absolute;
+    left:12px;
+    right:12px;
+    top:50%;
+    height:2px;
+    transform:translateY(-50%);
+    background:rgba(255,255,255,.18);
+    pointer-events:none;
+  }
+
+  .zero-badge {
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%);
+    min-width:60px;
+    text-align:center;
+    padding:4px 10px;
+    border-radius:999px;
+    background:rgba(12,18,28,.88);
+    color:#56da79;
+    border:1px solid rgba(255,255,255,.15);
+    font-weight:800;
+    font-size:14px;
+    letter-spacing:.02em;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);
+    pointer-events:none;
+  }
+
+  .legend {
+    margin-top:14px;
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    flex-wrap:wrap;
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+  }
+  .legend-item {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(12,18,28,.72);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;
+    padding:6px 10px;
+  }
+  .swatch {
+    width:12px;
+    height:12px;
+    border-radius:999px;
+  }
+  .swatch.good { background:#56da79; }
+  .swatch.warn { background:#f1c34f; }
+  .swatch.bad { background:#f06a5f; }
+
+  .controls {
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    gap:12px;
+    align-items:center;
+  }
+  .note-control {
+    grid-column:2;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px;
+    background:rgba(12,18,28,.8);
+    border:1px solid rgba(255,255,255,.35);
+    border-radius:20px;
+    backdrop-filter:blur(12px);
+  }
+  .note-btn {
+    width:52px;
+    height:52px;
+    border-radius:15px;
+    border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:28px;
+    cursor:pointer;
+  }
+  .note-label {
+    min-width:96px;
+    text-align:center;
+    color:#fff;
+  }
+  #noteName {
+    font-size:30px;
+    font-weight:850;
+    line-height:1;
+  }
+  #noteFreq {
+    font-size:12px;
+    opacity:.62;
+    margin-top:4px;
+  }
+
+  #toggle {
+    grid-column:3;
+    justify-self:end;
+    border:1px solid rgba(255,255,255,.45);
+    border-radius:18px;
+    min-height:56px;
+    padding:0 20px;
+    background:rgba(12,18,28,.82);
+    color:#fff;
+    font-weight:800;
+    cursor:pointer;
+    backdrop-filter:blur(12px);
+  }
+
+  .statusbox {
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:10px;
+    padding:10px 14px;
+    border-radius:16px;
+    background:rgba(12,18,28,.75);
+    border:1px solid rgba(255,255,255,.24);
+    backdrop-filter:blur(10px);
+  }
+  #status {
+    font-size:15px;
+    font-weight:650;
+    color:#fff;
+  }
+  #lockInfo {
+    font-size:13px;
+    color:rgba(255,255,255,.65);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .level {
+    width:100%;
+    height:6px;
+    border-radius:999px;
+    overflow:hidden;
+    background:rgba(255,255,255,.2);
+  }
+  #levelBar {
+    width:0%;
+    height:100%;
+    background:#fff;
+    transition:width 60ms linear;
+  }
+
+  @media(max-width:760px) {
+    .world-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .world img { height:74px; }
+    .stage { width:calc(100% - 16px); }
+    .meter-card { padding:10px; border-radius:22px; }
+    .meter-shell {
+      grid-template-columns:1fr;
+      min-height:auto;
+      gap:14px;
+      padding:14px;
+    }
+    .side-readout:first-child { order:1; }
+    .meter-center { order:2; }
+    .side-readout:last-child { order:3; }
+    .led-meter-wrap {
+      width:100%;
+      max-width:260px;
+      height:320px;
+    }
+    .controls { grid-template-columns:1fr auto; }
+    .note-control { grid-column:1; }
+    #toggle { grid-column:2; padding:0 14px; }
+    .note-btn { width:46px; height:46px; }
+    .note-label { min-width:74px; }
+    #noteName { font-size:26px; }
+    .statusbox { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="app" id="app">
+  <div class="topbar">
+    <button id="worldButton" class="glass" type="button" aria-expanded="false">Maailma: Karkkimaa</button>
+  </div>
+
+  <section id="worldPicker" class="world-picker">
+    <div class="world-grid">
+      <button class="world active" data-world="0" type="button"><img src="assets/karkkimaa.png" alt=""><span>Karkkimaa</span></button>
+      <button class="world" data-world="1" type="button"><img src="assets/robottipaja.png" alt=""><span>Robottipaja</span></button>
+      <button class="world" data-world="2" type="button"><img src="assets/yokaupunki.png" alt=""><span>Yökaupunki</span></button>
+      <button class="world" data-world="3" type="button"><img src="assets/avaruus.png" alt=""><span>Avaruus</span></button>
+      <button class="world" data-world="4" type="button"><img src="assets/dinosaurukset.png" alt=""><span>Dinosaurukset</span></button>
+      <button class="world" data-world="5" type="button"><img src="assets/merirosvot.png" alt=""><span>Merirosvot</span></button>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="meter-card">
+      <div class="meter-shell">
+        <div class="side-readout">
+          <div id="targetNote">A1</div>
+          <div id="targetHz">440 Hz</div>
+        </div>
+
+        <div class="meter-center">
+          <div class="led-meter-wrap">
+            <div class="scale left">
+              <span style="top:0%;">+50</span>
+              <span style="top:10%;">+40</span>
+              <span style="top:20%;">+30</span>
+              <span style="top:30%;">+20</span>
+              <span style="top:40%;">+10</span>
+              <span class="zero" style="top:50%;">0</span>
+              <span style="top:60%;">−10</span>
+              <span style="top:70%;">−20</span>
+              <span style="top:80%;">−30</span>
+              <span style="top:90%;">−40</span>
+              <span style="top:100%;">−50</span>
+            </div>
+
+            <div class="led-frame">
+              <div class="led-center-line"></div>
+              <div class="zero-badge">0</div>
+              <div id="ledColumn" class="led-column" aria-label="Pystysuuntainen LED-viritysmittari"></div>
+            </div>
+
+            <div class="scale right">
+              <span style="top:0%;">korkea</span>
+              <span class="zero" style="top:50%;">vireessä</span>
+              <span style="top:100%;">matala</span>
+            </div>
+          </div>
+
+          <div class="legend">
+            <div class="legend-item"><span class="swatch good"></span> lähellä oikeaa</div>
+            <div class="legend-item"><span class="swatch warn"></span> vähän pielessä</div>
+            <div class="legend-item"><span class="swatch bad"></span> paljon pielessä</div>
+          </div>
+        </div>
+
+        <div class="side-readout">
+          <div class="live-readout" aria-live="polite">
+            <span id="hz">---</span>
+            <span class="unit">Hz</span>
+          </div>
+          <div class="cent-row" aria-live="polite">
+            <span id="centValue">0</span>
+            <span id="centLabel">snt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="note-control" aria-label="Valitse mittarin tavoitesävel">
+        <button id="prevNote" class="note-btn" type="button" aria-label="Edellinen sävel">‹</button>
+        <div class="note-label">
+          <div id="noteName">A1</div>
+          <div id="noteFreq">440 Hz</div>
+        </div>
+        <button id="nextNote" class="note-btn" type="button" aria-label="Seuraava sävel">›</button>
+      </div>
+      <button id="toggle" type="button">Käynnistä</button>
+    </div>
+
+    <div class="statusbox">
+      <div id="status">Paina käynnistä ja anna mikrofonilupa.</div>
+      <div id="lockInfo"></div>
+    </div>
+
+    <div class="level"><div id="levelBar"></div></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const hzEl = document.getElementById("hz");
+  const statusEl = document.getElementById("status");
+  const lockInfoEl = document.getElementById("lockInfo");
+  const levelBar = document.getElementById("levelBar");
+  const toggleBtn = document.getElementById("toggle");
+
+  let audioContext = null;
+  let analyser = null;
+  let stream = null;
+  let source = null;
+  let rafId = 0;
+  let running = false;
+
+  const MIN_HZ = 45;
+  const MAX_HZ = 3000;
+  const RMS_GATE = 0.008;
+  const YIN_THRESHOLD = 0.12;
+
+  // Ensimmäinen lukitus
+  const ACQUIRE_WINDOW = 5;
+  const ACQUIRE_REQUIRED = 4;
+  const ACQUIRE_TOLERANCE = 2;
+
+  // Nykyisen lukituksen seuranta
+  const LOCK_TOLERANCE = 4;
+  const DISPLAY_SIZE = 5;
+
+  // Uuden sävelen tunnistus lukituksen aikana
+  const SWITCH_WINDOW = 5;
+  const SWITCH_REQUIRED = 4;
+  const SWITCH_TOLERANCE = 2;
+
+  const SILENCE_RELEASE_MS = 260;
+
+  const acquireBuffer = [];
+  const displayBuffer = [];
+  const switchBuffer = [];
+
+  let locked = false;
+  let lockHz = null;
+  let lastSoundTime = 0;
+
+  function rmsOf(buffer) {
+    let sum = 0;
+    for (let i = 0; i < buffer.length; i++) {
+      const v = buffer[i];
+      sum += v * v;
+    }
+    return Math.sqrt(sum / buffer.length);
+  }
+
+  function median(values) {
+    if (!values.length) return null;
+    const a = [...values].sort((x, y) => x - y);
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+  }
+
+  function bestCluster(values, tolerance) {
+    let best = [];
+
+    for (const candidate of values) {
+      const cluster = values.filter(v =>
+        Math.abs(v - candidate) <= tolerance
+      );
+
+      if (cluster.length > best.length) {
+        best = cluster;
+      }
+    }
+
+    return best;
+  }
+
+  function detectPitchYIN(buffer, sampleRate) {
+    const n = buffer.length;
+    const tauMin = Math.max(2, Math.floor(sampleRate / MAX_HZ));
+    const tauMax = Math.min(Math.floor(sampleRate / MIN_HZ), Math.floor(n / 2));
+
+    if (tauMax <= tauMin) return null;
+
+    const yin = new Float32Array(tauMax + 1);
+
+    for (let tau = 1; tau <= tauMax; tau++) {
+      let sum = 0;
+      const limit = n - tau;
+
+      for (let i = 0; i < limit; i++) {
+        const d = buffer[i] - buffer[i + tau];
+        sum += d * d;
+      }
+
+      yin[tau] = sum;
+    }
+
+    yin[0] = 1;
+    let runningSum = 0;
+
+    for (let tau = 1; tau <= tauMax; tau++) {
+      runningSum += yin[tau];
+      yin[tau] = runningSum === 0 ? 1 : (yin[tau] * tau) / runningSum;
+    }
+
+    let tauEstimate = -1;
+
+    for (let tau = tauMin; tau <= tauMax; tau++) {
+      if (yin[tau] < YIN_THRESHOLD) {
+        while (tau + 1 <= tauMax && yin[tau + 1] < yin[tau]) tau++;
+        tauEstimate = tau;
+        break;
+      }
+    }
+
+    if (tauEstimate < 0) {
+      let bestTau = tauMin;
+      let bestValue = yin[tauMin];
+
+      for (let tau = tauMin + 1; tau <= tauMax; tau++) {
+        if (yin[tau] < bestValue) {
+          bestValue = yin[tau];
+          bestTau = tau;
+        }
+      }
+
+      if (bestValue > 0.22) return null;
+      tauEstimate = bestTau;
+    }
+
+    let betterTau = tauEstimate;
+
+    if (tauEstimate > 1 && tauEstimate < tauMax) {
+      const s0 = yin[tauEstimate - 1];
+      const s1 = yin[tauEstimate];
+      const s2 = yin[tauEstimate + 1];
+      const denom = 2 * (2 * s1 - s2 - s0);
+
+      if (Math.abs(denom) > 1e-12) {
+        betterTau += (s2 - s0) / denom;
+      }
+    }
+
+    const hz = sampleRate / betterTau;
+
+    return (
+      Number.isFinite(hz) &&
+      hz >= MIN_HZ &&
+      hz <= MAX_HZ
+    ) ? hz : null;
+  }
+
+  function resetAll(keepDisplay = false) {
+    locked = false;
+    lockHz = null;
+    acquireBuffer.length = 0;
+    displayBuffer.length = 0;
+    switchBuffer.length = 0;
+    lockInfoEl.textContent = "";
+
+    if (!keepDisplay) {
+      hzEl.textContent = "---";
+    }
+  }
+
+  function setLock(newHz) {
+    lockHz = newHz;
+    locked = true;
+
+    acquireBuffer.length = 0;
+    displayBuffer.length = 0;
+    switchBuffer.length = 0;
+
+    displayBuffer.push(newHz);
+
+    hzEl.textContent = String(newHz);
+    statusEl.textContent = "Lukittu";
+    lockInfoEl.textContent = `Lukitus ${newHz} Hz`;
+  }
+
+  function tryAcquireLock(integerHz) {
+    acquireBuffer.push(integerHz);
+
+    if (acquireBuffer.length > ACQUIRE_WINDOW) {
+      acquireBuffer.shift();
+    }
+
+    statusEl.textContent = "Etsitään vakaata säveltä…";
+    lockInfoEl.textContent = `${acquireBuffer.length}/${ACQUIRE_WINDOW}`;
+
+    if (acquireBuffer.length < ACQUIRE_WINDOW) return;
+
+    const cluster = bestCluster(acquireBuffer, ACQUIRE_TOLERANCE);
+
+    if (cluster.length >= ACQUIRE_REQUIRED) {
+      setLock(Math.round(median(cluster)));
+    }
+  }
+
+  function trySwitchLock(integerHz) {
+    switchBuffer.push(integerHz);
+
+    if (switchBuffer.length > SWITCH_WINDOW) {
+      switchBuffer.shift();
+    }
+
+    statusEl.textContent = "Tarkistetaan uutta säveltä…";
+    lockInfoEl.textContent = `${switchBuffer.length}/${SWITCH_WINDOW}`;
+
+    if (switchBuffer.length < SWITCH_WINDOW) return;
+
+    const cluster = bestCluster(switchBuffer, SWITCH_TOLERANCE);
+
+    if (cluster.length >= SWITCH_REQUIRED) {
+      const newHz = Math.round(median(cluster));
+
+      // Estetään turha "uudelleenlukitus" lähes samaan paikkaan.
+      if (Math.abs(newHz - lockHz) > LOCK_TOLERANCE) {
+        setLock(newHz);
+      } else {
+        switchBuffer.length = 0;
+      }
+    }
+  }
+
+  function processLockedPitch(integerHz) {
+    if (lockHz === null) return;
+
+    // Nykyiseen säveleen kuuluva havainto.
+    if (Math.abs(integerHz - lockHz) <= LOCK_TOLERANCE) {
+      switchBuffer.length = 0;
+
+      displayBuffer.push(integerHz);
+      if (displayBuffer.length > DISPLAY_SIZE) {
+        displayBuffer.shift();
+      }
+
+      const stable = Math.round(median(displayBuffer));
+
+      hzEl.textContent = String(stable);
+      statusEl.textContent = "Lukittu";
+      lockInfoEl.textContent = `Lukitus ${lockHz} Hz`;
+      return;
+    }
+
+    // Selvästi eri taajuus: älä liikuta näyttöä vielä.
+    // Kerää kuitenkin uusi vakaa ehdokas, jotta seuraava nuotti voidaan hyväksyä.
+    trySwitchLock(integerHz);
+  }
+
+  function tick() {
+    if (!running || !analyser || !audioContext) return;
+
+    const buffer = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buffer);
+
+    const now = performance.now();
+    const rms = rmsOf(buffer);
+    const levelPct = Math.max(0, Math.min(100, (rms / 0.12) * 100));
+    levelBar.style.width = levelPct.toFixed(1) + "%";
+
+    if (rms >= RMS_GATE) {
+      lastSoundTime = now;
+    }
+
+    if (rms < RMS_GATE) {
+      if (locked && now - lastSoundTime > SILENCE_RELEASE_MS) {
+        resetAll(true);
+        statusEl.textContent = "Kuuntelen…";
+      } else if (!locked) {
+        acquireBuffer.length = 0;
+        switchBuffer.length = 0;
+        statusEl.textContent = "Kuuntelen…";
+        lockInfoEl.textContent = "";
+      }
+
+      rafId = requestAnimationFrame(tick);
+      return;
+    }
+
+    const rawHz = detectPitchYIN(buffer, audioContext.sampleRate);
+
+    if (rawHz !== null) {
+      const integerHz = Math.round(rawHz);
+
+      if (!locked) {
+        tryAcquireLock(integerHz);
+      } else {
+        processLockedPitch(integerHz);
+      }
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  async function start() {
+    try {
+      toggleBtn.disabled = true;
+      statusEl.textContent = "Avataan mikrofonia…";
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        },
+        video: false
+      });
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      await audioContext.resume();
+
+      source = audioContext.createMediaStreamSource(stream);
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
+
+      source.connect(analyser);
+
+      running = true;
+      resetAll(false);
+      toggleBtn.textContent = "Pysäytä";
+      statusEl.textContent = "Kuuntelen…";
+      toggleBtn.disabled = false;
+
+      tick();
+
+    } catch (err) {
+      console.error(err);
+      toggleBtn.disabled = false;
+      toggleBtn.textContent = "Käynnistä";
+      resetAll(false);
+      statusEl.textContent = "Mikrofonia ei voitu avata.";
+    }
+  }
+
+  async function stop() {
+    running = false;
+    cancelAnimationFrame(rafId);
+
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+
+    if (audioContext) {
+      try { await audioContext.close(); } catch {}
+      audioContext = null;
+    }
+
+    analyser = null;
+    source = null;
+    levelBar.style.width = "0%";
+    toggleBtn.textContent = "Käynnistä";
+    resetAll(false);
+    statusEl.textContent = "Mittari pysäytetty.";
+  }
+
+  toggleBtn.addEventListener("click", async () => {
+    if (running) await stop();
+    else await start();
+  });
+})();
+</script>
+
+<script>
+(() => {
+  const app = document.getElementById("app");
+  const worldButton = document.getElementById("worldButton");
+  const worldPicker = document.getElementById("worldPicker");
+  const worldEls = [...document.querySelectorAll(".world")];
+
+  const worlds = [
+    ["Karkkimaa","assets/karkkimaa.png"],
+    ["Robottipaja","assets/robottipaja.png"],
+    ["Yökaupunki","assets/yokaupunki.png"],
+    ["Avaruus","assets/avaruus.png"],
+    ["Dinosaurukset","assets/dinosaurukset.png"],
+    ["Merirosvot","assets/merirosvot.png"]
+  ];
+
+  function setWorld(i) {
+    const [name, file] = worlds[i];
+    app.style.backgroundImage = `url("${file}")`;
+    worldButton.textContent = `Maailma: ${name}`;
+    worldEls.forEach((el, n) => el.classList.toggle("active", n === i));
+  }
+
+  worldButton.addEventListener("click", () => {
+    const open = !worldPicker.classList.contains("open");
+    worldPicker.classList.toggle("open", open);
+    worldButton.setAttribute("aria-expanded", String(open));
+  });
+
+  worldEls.forEach(el => {
+    el.addEventListener("click", () => {
+      setWorld(Number(el.dataset.world));
+      worldPicker.classList.remove("open");
+      worldButton.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  document.addEventListener("pointerdown", (e) => {
+    if (!worldPicker.contains(e.target) && e.target !== worldButton) {
+      worldPicker.classList.remove("open");
+      worldButton.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  const notes = [
+    ["C1",262],["C♯1",277],["D1",294],["D♯1",311],["E1",330],["F1",349],
+    ["F♯1",370],["G1",392],["G♯1",415],["A1",440],["A♯1",466],["H1",494],
+    ["C2",523],["C♯2",554],["D2",587],["D♯2",622],["E2",659],["F2",698],
+    ["F♯2",740],["G2",784],["G♯2",831],["A2",880],["A♯2",932],["H2",988],
+    ["C3",1047]
+  ];
+  let noteIndex = 9;
+
+  const noteName = document.getElementById("noteName");
+  const noteFreq = document.getElementById("noteFreq");
+  const targetNote = document.getElementById("targetNote");
+  const targetHz = document.getElementById("targetHz");
+  const hzEl = document.getElementById("hz");
+  const centValue = document.getElementById("centValue");
+  const ledColumn = document.getElementById("ledColumn");
+
+  const STEP_CENTS = 5;
+  const MAX_CENTS = 50;
+  const LED_COUNT = 21; // 10 above + center + 10 below
+  const CENTER_INDEX = 10;
+
+  function currentTargetHz() {
+    return notes[noteIndex][1];
+  }
+
+  function updateNote() {
+    const [name, hz] = notes[noteIndex];
+    noteName.textContent = name;
+    noteFreq.textContent = `${hz} Hz`;
+    targetNote.textContent = name;
+    targetHz.textContent = `${hz} Hz`;
+    updateMeterFromReadout();
+  }
+
+  function hzToCents(hz, targetHzValue) {
+    if (!Number.isFinite(hz) || !Number.isFinite(targetHzValue) || hz <= 0 || targetHzValue <= 0) return null;
+    return 1200 * Math.log2(hz / targetHzValue);
+  }
+
+  function zoneClassForDistance(stepDistance) {
+    if (stepDistance <= 1) return "good";
+    if (stepDistance <= 5) return "warn";
+    return "bad";
+  }
+
+  function createSegments() {
+    ledColumn.textContent = "";
+    for (let i = 0; i < LED_COUNT; i++) {
+      const seg = document.createElement("div");
+      seg.className = "led-seg";
+      ledColumn.appendChild(seg);
+    }
+  }
+
+  function clearSegments() {
+    [...ledColumn.children].forEach(seg => {
+      seg.className = "led-seg";
+    });
+  }
+
+  function lightSegments(cents) {
+    clearSegments();
+    const segs = [...ledColumn.children];
+    if (!Number.isFinite(cents)) return;
+
+    const clipped = Math.max(-MAX_CENTS, Math.min(MAX_CENTS, cents));
+    const steps = Math.round(Math.abs(clipped) / STEP_CENTS);
+    const direction = Math.sign(clipped);
+
+    if (steps === 0) {
+      segs[CENTER_INDEX].classList.add("on", "good");
+      return;
+    }
+
+    // Vaihtoehto B: palkki kasvaa keskeltä poispäin.
+    segs[CENTER_INDEX].classList.add("on", "good");
+
+    for (let s = 1; s <= steps; s++) {
+      const idx = direction > 0 ? CENTER_INDEX - s : CENTER_INDEX + s;
+      if (idx < 0 || idx >= segs.length) continue;
+      segs[idx].classList.add("on", zoneClassForDistance(s));
+    }
+  }
+
+  function updateMeterFromReadout() {
+    const value = Number(hzEl.textContent);
+    if (!Number.isFinite(value)) {
+      centValue.textContent = "0";
+      clearSegments();
+      return;
+    }
+
+    const cents = hzToCents(value, currentTargetHz());
+    if (!Number.isFinite(cents)) {
+      centValue.textContent = "0";
+      clearSegments();
+      return;
+    }
+
+    const rounded = Math.round(cents);
+    centValue.textContent = rounded > 0 ? `+${rounded}` : String(rounded);
+    lightSegments(cents);
+  }
+
+  document.getElementById("prevNote").addEventListener("click", () => {
+    noteIndex = (noteIndex - 1 + notes.length) % notes.length;
+    updateNote();
+  });
+
+  document.getElementById("nextNote").addEventListener("click", () => {
+    noteIndex = (noteIndex + 1) % notes.length;
+    updateNote();
+  });
+
+  const observer = new MutationObserver(updateMeterFromReadout);
+  observer.observe(hzEl, { childList: true, characterData: true, subtree: true });
+
+  createSegments();
+  setWorld(0);
+  updateNote();
+})();
+</script>
+</body>
+</html>
