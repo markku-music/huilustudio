@@ -583,10 +583,10 @@ function startGameLedTracker(){
   if(gameLedRunning)return;
 
   if(
-    !gameEngine?.source ||
+    !gameEngine?.inputGainNode ||
     !gameEngine?.audioContext
   ){
-    throw new Error('Pelin mikrofonistreamia ei ole vielä avattu.');
+    throw new Error('Pelin mikrofoniketjua ei ole vielä avattu.');
   }
 
   const {U}=ensureGameLedTracker();
@@ -598,8 +598,10 @@ function startGameLedTracker(){
   analyser.fftSize=U.DEFAULTS.fftSize;                 // 4096
   analyser.smoothingTimeConstant=U.DEFAULTS.analyserSmoothing; // 0
 
+  // Viritysmittari saa täsmälleen saman 4× vahvistetun
+  // sisääntulosignaalin kuin pelin vanha säveltunnistin.
   // Toinen connect()-haara ei avaa toista mikrofonistreamia.
-  gameEngine.source.connect(analyser);
+  gameEngine.inputGainNode.connect(analyser);
 
   gameLedAnalyser=analyser;
   gameLedBuffer=new Float32Array(analyser.fftSize);
@@ -618,7 +620,7 @@ function stopGameLedTracker({keepStable=false}={}){
 
   if(gameLedAnalyser){
     try{
-      gameEngine?.source?.disconnect(gameLedAnalyser);
+      gameEngine?.inputGainNode?.disconnect(gameLedAnalyser);
     }catch(_){}
     try{
       gameLedAnalyser.disconnect();
