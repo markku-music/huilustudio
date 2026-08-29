@@ -71,6 +71,8 @@ let sessionPlayerName='';
 let finaleLightsRunning=false;
 let fingeringImg=null;
 let fingeringHintVisible=false;
+let fingeringGuardActive=false;
+let fingeringGuardPitchClass=null;
 const TUNER_STEP_CENTS=5;
 const TUNER_MAX_CENTS=50;
 const TUNER_LED_COUNT=21;
@@ -335,6 +337,12 @@ async function changePlayer(){
 }
 function setTarget(note){
   hideFingeringHint();
+
+  // Vihjeen UI-vaihtosuoja: jos edellinen tavoitesävel soi vielä
+  // uuden tähtäimen ilmestyessä, sitä ei tulkita heti vääräksi säveleksi.
+  // Tämä ei koske pelin mikrofonimoottoriin eikä osumatunnistukseen.
+  fingeringGuardPitchClass=TARGET_PITCH_CLASS[target] ?? null;
+  fingeringGuardActive=fingeringGuardPitchClass!==null;
   target=note;
   targetEl.textContent=note;
   prepareTargetFingeringImage();
@@ -405,6 +413,15 @@ function gameMicrophoneOutput(output){
     Sormitusvihje reagoi jo pelimoottorin vahvistusvaiheeseen.
     Varsinainen peliosuma hyväksytään edelleen VAIN status='signal'-tilasta.
   */
+  if(
+    fingeringGuardActive &&
+    (output.status==='waiting' || output.status==='holding')
+  ){
+    // Ääni katkesi: edellisen sävelen suojaa ei enää tarvita.
+    fingeringGuardActive=false;
+    fingeringGuardPitchClass=null;
+  }
+
   const pitchStatus=
     output.status==='confirming-note' ||
     output.status==='confirming-octave' ||
@@ -420,6 +437,22 @@ function gameMicrophoneOutput(output){
     }
 
     if(detectedPitchClass!==null){
+      if(fingeringGuardActive){
+        if(detectedPitchClass===fingeringGuardPitchClass){
+          // Edellinen tavoitesävel soi vielä. Vihje ei reagoi siihen.
+          // Osumatunnistus jatkuu tämän jälkeenkin normaalisti vain signal-tilasta.
+          if(output.status==='signal'){
+            const note=PITCH_CLASS[output.pitchClass];
+            if(note)hear(note);
+          }
+          return;
+        }
+
+        // Havaittiin jokin muu sävel: uuden tilanteen vihjelogiikka aktivoituu heti.
+        fingeringGuardActive=false;
+        fingeringGuardPitchClass=null;
+      }
+
       const targetPitchClass=TARGET_PITCH_CLASS[target];
 
       if(detectedPitchClass===targetPitchClass){
