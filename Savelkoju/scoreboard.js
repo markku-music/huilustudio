@@ -73,7 +73,6 @@ async function loadScores(levelId,limit=10){
     .slice(0,limit);
 }
 
-
 async function signInAdmin(email,password){
   if(!init()) throw new Error('Firebase ei latautunut.');
   const cred=await firebase.auth().signInWithEmailAndPassword(String(email||'').trim(),String(password||''));
@@ -124,7 +123,6 @@ async function deleteCurrentSemesterScores(levelId){
   return deleted;
 }
 
-
 async function updateAdminPassword(newPassword){
   if(!init()) throw new Error('Firebase ei latautunut.');
   const user=firebase.auth().currentUser;
@@ -139,5 +137,16 @@ async function updateAdminPassword(newPassword){
   await user.updatePassword(password);
 }
 
-window.SavelkojuScoreboard={init,saveScore,loadScores,cleanName,currentSemester,signInAdmin,signOutAdmin,getCurrentAdmin,deleteCurrentSemesterScores,updateAdminPassword};
+window.SavelkojuScoreboard={
+  init,
+  saveScore,
+  loadScores,
+  cleanName,
+  currentSemester,
+  signInAdmin,
+  signOutAdmin,
+  getCurrentAdmin,
+  deleteCurrentSemesterScores,
+  updateAdminPassword
+};
 })();

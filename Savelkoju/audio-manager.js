@@ -221,20 +221,6 @@ class SavelkojuAudioManager {
     });
   }
 
-  playFinale(){
-    this.stopFinale();
-
-    if(this.mode==='webaudio'){
-      const buffer=this.buffers.get('finale');
-      if(buffer){
-        this.finaleSource=this.playWebBuffer(buffer,{volume:1});
-        return;
-      }
-    }
-
-    this.finaleSource=this.playHtml('finale',{volume:1});
-  }
-
   stopFinale(){
     if(!this.finaleSource) return;
 

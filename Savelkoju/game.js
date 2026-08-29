@@ -10,11 +10,79 @@ const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:64
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const TARGET_PITCH_CLASS={C:0,D:2,G:7,A:9,H:11};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),tunerLeds=$('tunerLeds'),tunerOnlyLeds=$('tunerOnlyLeds'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),tunerOverlay=$('tunerOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps'),fingeringHint=$('fingeringHint');
-let gameEngine=null,tunerEngine=null,gameLedAnalyser=null,gameLedTracker=null,gameLedBuffer=null,gameLedRaf=0,gameLedRunning=false,gameLedLastSoundTime=0,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false,fingeringImg=null,fingeringHintVisible=false;
-const TUNER_STEP_CENTS=5,TUNER_MAX_CENTS=50,TUNER_LED_COUNT=21,TUNER_CENTER_INDEX=10;
+const stage=$('stage');
+const reticle=$('reticle');
+const flash=$('flash');
+const hitText=$('hitText');
+const scoreEl=$('score');
+const targetEl=$('targetNote');
+const tunerLeds=$('tunerLeds');
+const tunerOnlyLeds=$('tunerOnlyLeds');
+const message=$('message');
+const hud=$('hud');
+const levelOverlay=$('levelOverlay');
+const tunerOverlay=$('tunerOverlay');
+const finishOverlay=$('finishOverlay');
+const timeResult=$('timeResult');
+const finishLevel=$('finishLevel');
+const levelNameHud=$('levelNameHud');
+const videoOverlay=$('videoOverlay');
+const helpVideo=$('helpVideo');
+const sessionName=$('sessionName');
+const nameDoneBtn=$('nameDoneBtn');
+const levelChooser=$('levelChooser');
+const saveStatus=$('saveStatus');
+const finishScores=$('finishScores');
+const scoreboardOverlay=$('scoreboardOverlay');
+const scoreboardScores=$('scoreboardScores');
+const scoreboardStatus=$('scoreboardStatus');
+const adminOverlay=$('adminOverlay');
+const adminLogin=$('adminLogin');
+const adminControls=$('adminControls');
+const adminEmail=$('adminEmail');
+const adminPassword=$('adminPassword');
+const adminIdentity=$('adminIdentity');
+const adminStatus=$('adminStatus');
+const adminNewPassword=$('adminNewPassword');
+const adminNewPassword2=$('adminNewPassword2');
+const finishSemester=$('finishSemester');
+const scoreboardSemester=$('scoreboardSemester');
+const progressLamps=$('progressLamps');
+const fingeringHint=$('fingeringHint');
+let gameEngine=null;
+let tunerEngine=null;
+let gameLedAnalyser=null;
+let gameLedTracker=null;
+let gameLedBuffer=null;
+let gameLedRaf=0;
+let gameLedRunning=false;
+let gameLedLastSoundTime=0;
+let level=LEVELS[1];
+let currentLevelId=1;
+let target='A';
+let score=0;
+let running=false;
+let accepting=false;
+let startedAt=0;
+let lastAccepted=0;
+let finalTimeMs=0;
+let currentBoardLevel=1;
+let sessionPlayerName='';
+let finaleLightsRunning=false;
+let fingeringImg=null;
+let fingeringHintVisible=false;
+const TUNER_STEP_CENTS=5;
+const TUNER_MAX_CENTS=50;
+const TUNER_LED_COUNT=21;
+const TUNER_CENTER_INDEX=10;
 const FINGERING_HINT_Y_OFFSET=112;
-const FINGERING_HINT_IMAGES={G:'assets/sormitus_G_savelkoju.png',A:'assets/sormitus_A_savelkoju.png',H:'assets/sormitus_H_savelkoju.png',C:'assets/sormitus_C_savelkoju.png',D:'assets/sormitus_D_savelkoju.png'};
+const FINGERING_HINT_IMAGES={
+  G:'assets/sormitus_G_savelkoju.png',
+  A:'assets/sormitus_A_savelkoju.png',
+  H:'assets/sormitus_H_savelkoju.png',
+  C:'assets/sormitus_C_savelkoju.png',
+  D:'assets/sormitus_D_savelkoju.png'
+};
 
 function initFingeringHint(){
   if(!fingeringHint)return;
@@ -141,9 +209,6 @@ function playHitSound(){
   gameAudio.playHit();
 }
 
-function playFinaleSound(){
-  gameAudio.playFinale();
-}
 
 async function playFinaleSoundUntilEnd(){
   try{
@@ -154,7 +219,10 @@ async function playFinaleSoundUntilEnd(){
     finaleLightsRunning=false;
   }
 }
-function fitStage(){const scale=Math.min(innerWidth/1536,innerHeight/1024);stage.style.transform=`translate(-50%,-50%) scale(${scale})`;}
+function fitStage(){
+  const scale=Math.min(innerWidth/1536,innerHeight/1024);
+  stage.style.transform=`translate(-50%,-50%) scale(${scale})`;
+}
 addEventListener('resize',fitStage);fitStage();
 
 if(window.visualViewport){
@@ -185,7 +253,12 @@ function captureSessionName(){
   sessionPlayerName=name;
   return true;
 }
-function setLevel(n){currentLevelId=Number(n);level=LEVELS[currentLevelId];stage.style.backgroundImage=`url("${level.image}")`;levelNameHud.textContent=level.name;}
+function setLevel(n){
+  currentLevelId=Number(n);
+  level=LEVELS[currentLevelId];
+  stage.style.backgroundImage=`url("${level.image}")`;
+  levelNameHud.textContent=level.name;
+}
 function updateProgressLamps(){
   const lamps=progressLamps.querySelectorAll('span');
   lamps.forEach((lamp,i)=>{
@@ -205,7 +278,7 @@ async function finaleLampShow(){
   finaleLightsRunning=true;
 
   // Käynnistä musiikki ja pidä random-valoshow päällä koko musiikin ajan.
-  const musicDone=playFinaleSoundUntilEnd();
+  void playFinaleSoundUntilEnd();
 
   while(finaleLightsRunning){
     lamps.forEach(l=>{
@@ -260,42 +333,85 @@ async function changePlayer(){
 
   requestAnimationFrame(()=>sessionName.focus());
 }
-function setTarget(note){hideFingeringHint();target=note;targetEl.textContent=note;const p=POS[note];reticle.classList.remove('hit');reticle.style.left=(p.cx-41)+'px';reticle.style.top=(p.cy-41)+'px';reticle.style.opacity='.62';positionFingeringHint();accepting=true;}
-function nextTarget(){const choices=level.notes.filter(n=>n!==target);setTarget(choices[Math.floor(Math.random()*choices.length)]);}
-function showMessage(text){message.textContent=text;message.style.display='block';clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>message.style.display='none',650);}
-function hitEffect(){const p=POS[target];reticle.classList.remove('hit');void reticle.offsetWidth;reticle.classList.add('hit');flash.style.left=p.cx+'px';flash.style.top=p.cy+'px';flash.classList.remove('show');void flash.offsetWidth;flash.classList.add('show');hitText.style.left=p.cx+'px';hitText.style.top=(p.cy-45)+'px';hitText.classList.remove('show');void hitText.offsetWidth;hitText.classList.add('show');}
-function hear(note){if(!running||!accepting||note!==target)return;hideFingeringHint();const now=performance.now();if(now-lastAccepted<500)return;lastAccepted=now;accepting=false;score++;scoreEl.textContent=score;updateProgressLamps();playHitSound();hitEffect();showMessage('Hieno osuma!');setTimeout(()=>{if(score>=TOTAL){finaleLampShow();}else nextTarget();},500);}
-/* ---------------------------------------------------------
-   PELI: alkuperäinen Nuottikompassi Microphone Engine 1.0
-   --------------------------------------------------------- */
-function gameMicrophoneOutput(output){
-  /*
-    PELIN NUOTTITUNNISTUS:
-    täysin vanhan Nuottikompassi-moottorin pitchClass.
+function setTarget(note){
+  hideFingeringHint();
+  target=note;
+  targetEl.textContent=note;
 
-    PELIN LED-VIRITYSMITTARI:
-    EI käytä tästä callbackista frequency-, cents- eikä meterCents-arvoa.
-    LED-mittarilla on oma Hertsimittari/PitchEngine-analyysihaara
-    samasta mikrofonistreamista.
-  */
+  const p=POS[note];
+  reticle.classList.remove('hit');
+  reticle.style.left=(p.cx-41)+'px';
+  reticle.style.top=(p.cy-41)+'px';
+  reticle.style.opacity='.62';
+
+  positionFingeringHint();
+  accepting=true;
+}
+function nextTarget(){
+  const choices=level.notes.filter(n=>n!==target);
+  setTarget(choices[Math.floor(Math.random()*choices.length)]);
+}
+function showMessage(text){
+  message.textContent=text;
+  message.style.display='block';
+  clearTimeout(showMessage.timer);
+  showMessage.timer=setTimeout(()=>message.style.display='none',650);
+}
+function hitEffect(){
+  const p=POS[target];
+
+  reticle.classList.remove('hit');
+  void reticle.offsetWidth;
+  reticle.classList.add('hit');
+
+  flash.style.left=p.cx+'px';
+  flash.style.top=p.cy+'px';
+  flash.classList.remove('show');
+  void flash.offsetWidth;
+  flash.classList.add('show');
+
+  hitText.style.left=p.cx+'px';
+  hitText.style.top=(p.cy-45)+'px';
+  hitText.classList.remove('show');
+  void hitText.offsetWidth;
+  hitText.classList.add('show');
+}
+function hear(note){
+  if(!running||!accepting||note!==target)return;
+
+  hideFingeringHint();
+
+  const now=performance.now();
+  if(now-lastAccepted<500)return;
+
+  lastAccepted=now;
+  accepting=false;
+  score++;
+  scoreEl.textContent=score;
+  updateProgressLamps();
+  playHitSound();
+  hitEffect();
+  showMessage('Hieno osuma!');
+
+  setTimeout(()=>{
+    if(score>=TOTAL)finaleLampShow();
+    else nextTarget();
+  },500);
+}
+/* Pelin osumat tulevat alkuperäisen Nuottikompassi-moottorin pitchClass-arvosta. */
+function gameMicrophoneOutput(output){
+  // LED-mittari ei käytä tämän callbackin frequency/cents-arvoja.
   if(output.status==='signal'){
     const note=PITCH_CLASS[output.pitchClass];
     if(note)hear(note);
   }
 }
 
-/* ---------------------------------------------------------
-   PELIN LED-MITTARI:
-   Hertsimittari_LED_Pysty_B / PitchEngine 1.0 -logiikka,
-   mutta EI omaa getUserMedia-kutsua.
-
-   Sama MediaStreamAudioSourceNode haarautuu:
-     1) vanha pelimoottori -> GainNode -> vanha AnalyserNode
-     2) tämä haara -> 4096 AnalyserNode -> YIN -> Hz-lukitus -> LEDit
-
-   Haara 2 kytketään suoraan gameEngine.sourceen ENNEN vanhan
-   moottorin inputGainNodea, kuten alkuperäinen Hertsimittari.
-   --------------------------------------------------------- */
+/*
+  Pelissä on yksi mikrofonistream ja kaksi analyysihaaraa:
+  1) alkuperäinen pelimoottori -> pelin osumat
+  2) raw source -> 4096 analyser -> PitchEngine YIN/lukitus -> LEDit
+*/
 function ensureGameLedTracker(){
   const U=window.PitchEngineUtils;
   const T=window.PitchLockTracker;
@@ -417,11 +533,7 @@ function startGameLedTracker(){
   analyser.fftSize=U.DEFAULTS.fftSize;                 // 4096
   analyser.smoothingTimeConstant=U.DEFAULTS.analyserSmoothing; // 0
 
-  /*
-    TÄRKEÄÄ:
-    sama MediaStreamAudioSourceNode saa useita connect()-haaroja.
-    Tämä EI avaa toista mikrofonistreamia.
-  */
+  // Toinen connect()-haara ei avaa toista mikrofonistreamia.
   gameEngine.source.connect(analyser);
 
   gameLedAnalyser=analyser;
@@ -543,9 +655,7 @@ async function resumeMic(){
 }
 
 
-/* ---------------------------------------------------------
-   VIRITYSMITTARI: PitchEngine 1.0
-   --------------------------------------------------------- */
+/* Erillinen VIRITYS-tila käyttää PitchEngine 1.0:aa. */
 function tunerPitchOutput(event){
   const info=midiInfoFromHz(event.hz);
   if(!info)return;
@@ -591,13 +701,42 @@ async function stopTunerMic(){
   }
 }
 
-async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
+async function startGame(levelNumber=null){
+  try{
+    stopFinaleLights();
+    closeHelp(false);
+    closeScoreboard();
+    closeAdmin();
+
+    if(levelNumber)setLevel(levelNumber);
+    await resumeMic();
+
+    levelOverlay.classList.add('hidden');
+    finishOverlay.classList.add('hidden');
+    finishOverlay.classList.remove('finale-fade');
+    hud.classList.remove('hidden');
+
+    score=0;
+    scoreEl.textContent='0';
+    updateProgressLamps();
+    startedAt=performance.now();
+    running=true;
+    accepting=true;
+
+    setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);
+  }catch(err){
+    alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');
+    console.error(err);
+  }
+}
 function updateSemesterLabels(){
   const s=window.SavelkojuScoreboard.currentSemester();
   if(finishSemester) finishSemester.textContent='· '+s.label;
   if(scoreboardSemester) scoreboardSemester.textContent=s.label;
 }
-function formatTime(ms){return (ms/1000).toFixed(1).replace('.',',')+' s';}
+function formatTime(ms){
+  return (ms/1000).toFixed(1).replace('.',',')+' s';
+}
 function renderScores(list,el,highlightId='',highlightRow=null){
   el.innerHTML='';
   if(!list.length){
@@ -690,7 +829,9 @@ async function openScoreboard(levelId=currentBoardLevel){
   scoreboardOverlay.classList.remove('hidden');
   await loadBoard(currentBoardLevel,scoreboardScores,scoreboardStatus);
 }
-function closeScoreboard(){scoreboardOverlay.classList.add('hidden');}
+function closeScoreboard(){
+  scoreboardOverlay.classList.add('hidden');
+}
 
 async function refreshAdminUI(){
   adminStatus.textContent='';
@@ -823,15 +964,45 @@ async function closeTunerMode(){
   await stopTunerMic();
 }
 
-async function chooseLevels(){hideFingeringHint();stopFinaleLights();await pauseMic();await stopTunerMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
-async function openHelp(){await pauseMic();await stopTunerMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
-function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
+async function chooseLevels(){
+  hideFingeringHint();
+  stopFinaleLights();
+  await pauseMic();
+  await stopTunerMic();
+  closeScoreboard();
+  finishOverlay.classList.add('hidden');
+  finishOverlay.classList.remove('finale-fade');
+  hud.classList.add('hidden');
+  levelOverlay.classList.remove('hidden');
+}
+async function openHelp(){
+  await pauseMic();
+  await stopTunerMic();
+  helpVideo.currentTime=0;
+  videoOverlay.classList.remove('hidden');
+  videoOverlay.setAttribute('aria-hidden','false');
+
+  try{
+    await helpVideo.play();
+  }catch(e){
+    console.warn(e);
+  }
+}
+function closeHelp(rewind=true){
+  helpVideo.pause();
+  if(rewind)helpVideo.currentTime=0;
+  videoOverlay.classList.add('hidden');
+  videoOverlay.setAttribute('aria-hidden','true');
+}
 document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',async()=>{
   if(!captureSessionName())return;
   await unlockGameAudio();
   await startGame(Number(btn.dataset.level));
 }));
-$('againBtn').addEventListener('click',async()=>{await unlockGameAudio();await startGame();});
+$('againBtn').addEventListener('click',async()=>{
+  await unlockGameAudio();
+  await startGame();
+});
 $('levelsBtn').addEventListener('click',chooseLevels);
 $('changePlayerBtn').addEventListener('click',changePlayer);
 
@@ -885,8 +1056,12 @@ $('adminBtn').addEventListener('click',openAdmin);
 $('closeAdminBtn').addEventListener('click',closeAdmin);
 $('adminLoginBtn').addEventListener('click',adminSignIn);
 $('adminChangePasswordBtn').addEventListener('click',changeAdminPassword);
-adminPassword.addEventListener('keydown',e=>{if(e.key==='Enter')adminSignIn();});
-adminNewPassword2.addEventListener('keydown',e=>{if(e.key==='Enter')changeAdminPassword();});
+adminPassword.addEventListener('keydown',e=>{
+  if(e.key==='Enter')adminSignIn();
+});
+adminNewPassword2.addEventListener('keydown',e=>{
+  if(e.key==='Enter')changeAdminPassword();
+});
 document.querySelectorAll('.admin-reset-btn[data-reset-level]').forEach(btn=>
   btn.addEventListener('click',()=>resetSemesterLevel(Number(btn.dataset.resetLevel)))
 );
@@ -897,7 +1072,17 @@ $('adminLogoutBtn').addEventListener('click',async()=>{
   adminStatus.textContent='Kirjauduttu ulos.';
 });
 
-document.querySelectorAll('.score-tab').forEach(btn=>btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel))));
+document.querySelectorAll('.score-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel)));
+});
 window.SavelkojuScoreboard?.init();
-addEventListener('beforeunload',()=>{gameEngine?.stop();tunerEngine?.stop();});initFingeringHint();createTunerLeds();clearTunerReadout();setLevel(1);
+addEventListener('beforeunload',()=>{
+  gameEngine?.stop();
+  tunerEngine?.stop();
+});
+
+initFingeringHint();
+createTunerLeds();
+clearTunerReadout();
+setLevel(1);
 })();
