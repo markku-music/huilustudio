@@ -79,9 +79,8 @@ const TUNER_MAX_CENTS=50;
 const TUNER_LED_COUNT=21;
 const TUNER_CENTER_INDEX=10;
 const TUNER_NOTE_NAMES=['C','Cis','D','Dis','E','F','Fis','G','Gis','A','B','H'];
-// Pelin viritysmittarin oma äänenvoimakkuusportti.
-// PitchEngine 1.0:n standalone VIRITYS-tila säilyy alkuperäisessä 0.008-arvossa.
 const GAME_TUNER_RMS_GATE=0.001;
+const STANDALONE_TUNER_RMS_GATE=0.00025;
 const FINGERING_HINT_Y_OFFSET=112;
 const FINGERING_HINT_IMAGES={
   G:'assets/sormitus_G_savelkoju.png',
@@ -136,7 +135,6 @@ function showTargetFingeringHint(){
 }
 function registerWrongStablePitch(){
   if(!running||!accepting||fingeringHintVisible)return;
-  // Näytä vihje heti ensimmäisestä vakaasta väärän sävelen havainnosta.
   showTargetFingeringHint();
 }
 function registerCorrectStablePitch(){
@@ -215,7 +213,6 @@ async function unlockGameAudio(){
 function playHitSound(){
   gameAudio.playHit();
 }
-
 
 async function playFinaleSoundUntilEnd(){
   try{
@@ -343,9 +340,7 @@ async function changePlayer(){
 function setTarget(note){
   hideFingeringHint();
 
-  // Vihjeen UI-vaihtosuoja: jos edellinen tavoitesävel soi vielä
-  // uuden tähtäimen ilmestyessä, sitä ei tulkita heti vääräksi säveleksi.
-  // Tämä ei koske pelin mikrofonimoottoriin eikä osumatunnistukseen.
+  // Estä edellisen vielä soivan sävelen tulkitseminen uuden tavoitteen virheeksi.
   fingeringGuardPitchClass=TARGET_PITCH_CLASS[target] ?? null;
   fingeringGuardActive=fingeringGuardPitchClass!==null;
   target=note;
@@ -412,17 +407,12 @@ function hear(note){
     else nextTarget();
   },500);
 }
-/* Pelin osumat ja sormitusvihje tulevat alkuperäisen Nuottikompassi-moottorin pitchClass-arvosta. */
+/* Nuottikompassi ohjaa peliosumia ja nopeaa sormitusvihjettä. */
 function gameMicrophoneOutput(output){
-  /*
-    Sormitusvihje reagoi jo pelimoottorin vahvistusvaiheeseen.
-    Varsinainen peliosuma hyväksytään edelleen VAIN status='signal'-tilasta.
-  */
   if(
     fingeringGuardActive &&
     (output.status==='waiting' || output.status==='holding')
   ){
-    // Ääni katkesi: edellisen sävelen suojaa ei enää tarvita.
     fingeringGuardActive=false;
     fingeringGuardPitchClass=null;
   }
@@ -444,8 +434,7 @@ function gameMicrophoneOutput(output){
     if(detectedPitchClass!==null){
       if(fingeringGuardActive){
         if(detectedPitchClass===fingeringGuardPitchClass){
-          // Edellinen tavoitesävel soi vielä. Vihje ei reagoi siihen.
-          // Osumatunnistus jatkuu tämän jälkeenkin normaalisti vain signal-tilasta.
+          // Edellinen tavoitesävel soi vielä: älä näytä vihjettä siitä.
           if(output.status==='signal'){
             const note=PITCH_CLASS[output.pitchClass];
             if(note)hear(note);
@@ -453,7 +442,6 @@ function gameMicrophoneOutput(output){
           return;
         }
 
-        // Havaittiin jokin muu sävel: uuden tilanteen vihjelogiikka aktivoituu heti.
         fingeringGuardActive=false;
         fingeringGuardPitchClass=null;
       }
@@ -469,7 +457,7 @@ function gameMicrophoneOutput(output){
     }
   }
 
-  // Peliosuma säilyy täsmälleen vanhan moottorin hyväksytyssä signal-tilassa.
+  // Varsinainen osuma hyväksytään edelleen vain vanhan moottorin signal-tilasta.
   if(output.status!=='signal')return;
 
   const note=PITCH_CLASS[output.pitchClass];
@@ -478,8 +466,8 @@ function gameMicrophoneOutput(output){
 
 /*
   Pelissä on yksi mikrofonistream ja kaksi analyysihaaraa:
-  1) alkuperäinen pelimoottori -> pelin osumat
-  2) raw source -> 4096 analyser -> PitchEngine YIN/lukitus -> LEDit
+  1) inputGainNode -> vanha 2048-analyser -> pelin osumat
+  2) sama inputGainNode -> 4096-analyser -> PitchEngine YIN/lukitus -> LEDit
 */
 function ensureGameLedTracker(){
   const U=window.PitchEngineUtils;
@@ -506,8 +494,7 @@ function handleGameLedStableHz(stableHz){
   const isTargetPitch=tuningInfo.pitchClass===targetPitchClass;
 
   if(running&&accepting&&!isTargetPitch){
-    // Väärällä sävelellä ei näytetä "hyvää virettä" väärälle nuotille.
-    // Sormitusvihjeen näkyvyydestä päättää pelin vanha Nuottikompassi-moottori.
+    // Väärälle sävelelle ei näytetä viritysarvoa.
     clearTunerReadout(tunerLeds);
     return;
   }
@@ -541,8 +528,7 @@ function gameLedTick(){
       gameLedTracker.locked &&
       now-gameLedLastSoundTime>config.silenceReleaseMs
     ){
-      // Lukitus vapautuu normaalisti 260 ms hiljaisuuden jälkeen,
-      // mutta viimeinen LED-lukema jätetään näkyviin seuraavaan ääneen asti.
+      // Vapauta sävellukitus, mutta säilytä viimeinen LED-lukema.
       gameLedTracker.reset({keepStable:true});
     }else if(!gameLedTracker.locked){
       gameLedTracker.clearCandidates();
@@ -598,9 +584,7 @@ function startGameLedTracker(){
   analyser.fftSize=U.DEFAULTS.fftSize;                 // 4096
   analyser.smoothingTimeConstant=U.DEFAULTS.analyserSmoothing; // 0
 
-  // Viritysmittari saa täsmälleen saman 4× vahvistetun
-  // sisääntulosignaalin kuin pelin vanha säveltunnistin.
-  // Toinen connect()-haara ei avaa toista mikrofonistreamia.
+  // Sama 4× inputGainNode kuin pelin säveltunnistimella; ei toista mikrofonistreamia.
   gameEngine.inputGainNode.connect(analyser);
 
   gameLedAnalyser=analyser;
@@ -722,7 +706,7 @@ async function resumeMic(){
 }
 
 
-/* Erillinen VIRITYS-tila käyttää PitchEngine 1.0:aa. */
+/* Erillinen VIRITYS-tila käyttää PitchEngine 1.0:aa omalla herkkyysrajalla. */
 function tunerPitchOutput(event){
   const info=midiInfoFromHz(event.hz);
   if(!info)return;
@@ -734,20 +718,14 @@ function tunerPitchOutput(event){
   renderTunerCents(info.cents,tunerOnlyLeds);
 }
 
-function tunerPitchState(event){
-  // Hiljaisuus ei tyhjennä erillisen viritysmittarin näyttöä.
-  // Viimeinen sävelnimi ja LED-asento säilyvät, kunnes uusi pitch-event päivittää ne.
-}
-
 function ensureTunerEngine(){
   if(tunerEngine)return tunerEngine;
 
   const E=window.PitchEngine;
   if(!E)throw new Error('PitchEngine 1.0 -moottoria ei voitu ladata.');
 
-  tunerEngine=new E({rmsGate:0.00025});
+  tunerEngine=new E({rmsGate:STANDALONE_TUNER_RMS_GATE});
   tunerEngine.on('pitch',tunerPitchOutput);
-  tunerEngine.on('state',tunerPitchState);
   tunerEngine.on('error',e=>console.error(e.error||e));
 
   return tunerEngine;

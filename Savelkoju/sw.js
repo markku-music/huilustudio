@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-tuner-hold-v18';
+const CACHE_NAME = 'savelkoju-final-clean-v19';
 const APP_SHELL = [
   "./",
   "./index.html",
