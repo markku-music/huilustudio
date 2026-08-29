@@ -25,39 +25,42 @@
     <div id="hitText">PLING!</div>
   </div>
 
-  <div id="hud" class="panel hidden">
-    <div><small>OSUMAT</small><strong><span id="score">0</span>/10</strong></div>
-    <div id="tuningMeter" class="tuning-meter" role="img" aria-label="Viritysmittari">
-      <div class="tuning-track" aria-hidden="true"></div>
-      <div class="tuning-center" aria-hidden="true"></div>
-      <div id="tuningDot" class="tuning-dot" aria-hidden="true"></div>
+  <div id="hud" class="panel hidden" aria-label="Viritysmittari">
+    <div class="hud-tuner">
+      <div id="tunerLeds" class="tuner-leds" aria-hidden="true"></div>
     </div>
-    <div><small>SOITA</small><strong id="targetNote">A</strong></div>
+    <span id="score" hidden>0</span>
+    <span id="targetNote" hidden>A</span>
+    <span id="levelNameHud" hidden></span>
   </div>
 
   <div id="message" class="panel"></div>
 
   <div id="levelOverlay" class="overlay">
-    <div class="level-card panel">
-      <h1>Sävelkoju</h1>
-      <div class="session-name-box direct-name">
+    <div class="level-card panel locked-start-card">
+      <div class="session-name-box direct-name locked-name-row">
         <input id="sessionName" maxlength="20" autocomplete="off" enterkeyhint="done" placeholder="Nimi" aria-label="Nimi">
-        <button id="nameDoneBtn" class="name-done-btn" type="button">Valmis</button>
+        <button id="nameDoneBtn" class="name-done-btn" type="button">ALOITA</button>
       </div>
-      <div id="levelChooser">
-        <p class="lead">Valitse peli</p>
-      <div class="levels">
-        <button class="level-btn" data-level="1"><b>ENSISÄVELET</b><span>G · A · H</span></button>
-        <button class="level-btn" data-level="2"><b>TASAPAINOTEMPPU</b><span>C · H · A · G</span></button>
-        <button class="level-btn" data-level="3"><b>SORMISIRKUS</b><span>D · C · H · A · G</span></button>
+      <div id="levelChooser" class="locked-level-chooser">
+        <div class="levels locked-levels">
+          <button class="level-btn" data-level="1">TASO 1</button>
+          <button class="level-btn" data-level="2">TASO 2</button>
+          <button class="level-btn" data-level="3">TASO 3</button>
+        </div>
+        <div class="menu-actions locked-menu-actions">
+          <button id="tunerBtn" class="help-btn tuner-open-btn" type="button">VIRITYS</button>
+          <button id="helpBtn" class="help-btn" type="button">OHJE</button>
+          <button id="scoreboardBtn" class="help-btn scoreboard-btn" type="button">TULOKSET</button>
+        </div>
       </div>
-      <div class="menu-actions">
-  <button id="helpBtn" class="help-btn" type="button">▶ KATSO OHJE</button>
-  <button id="scoreboardBtn" class="help-btn scoreboard-btn" type="button">🏆 TULOSTAULU</button>
-</div>
-    
-      </div>
-</div>
+    </div>
+  </div>
+  <div id="tunerOverlay" class="tuner-overlay hidden" aria-hidden="true">
+    <div class="tuner-only-panel panel" role="dialog" aria-label="Viritysmittari">
+      <div id="tunerOnlyLeds" class="tuner-leds tuner-only-leds" aria-hidden="true"></div>
+    </div>
+    <button id="closeTunerBtn" class="tuner-close" type="button" aria-label="Sulje viritysmittari">✕</button>
   </div>
 
   <div id="videoOverlay" class="video-overlay hidden" aria-hidden="true">
@@ -83,10 +86,11 @@
         <h2>Parhaat ajat <span id="finishSemester" class="semester-label"></span></h2>
         <ol id="finishScores" class="score-list"></ol>
       </div>
-
-      <button id="againBtn">Pelaa uudestaan</button>
-      <button id="levelsBtn" class="secondary">Valitse toinen peli</button>
-      <button id="changePlayerBtn" class="secondary change-player">Vaihda pelaajaa</button>
+      <div class="finish-actions locked-finish-actions">
+        <button id="againBtn">UUDESTAAN</button>
+        <button id="levelsBtn" class="secondary">VAIHDA PELIÄ</button>
+        <button id="changePlayerBtn" class="secondary change-player">UUSI PELAAJA</button>
+      </div>
     </div>
   </div>
 
@@ -146,7 +150,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-<script src="microphone-engine.js"></script>
+<script src="pitch-engine.js"></script>
 <script src="scoreboard.js"></script>
 <script src="audio-manager.js"></script>
 <script src="game.js"></script>

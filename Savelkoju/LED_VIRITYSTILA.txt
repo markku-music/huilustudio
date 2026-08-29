@@ -1,0 +1,19 @@
+SÄVELKOJU – LED-MITTARI + ERILLINEN VIRITYSTILA
+
+Muutos:
+- Pelin HUD-viritysmittarissa näkyvät nyt VAIN 21 LED-segmenttiä.
+- Poistettu näkyvistä:
+  * -50 / +50
+  * kuultu sävel
+  * senttilukema
+  * muut mittari-infoelementit
+- Aloitusikkunaan lisätty VIRITYSMITTARI-painike.
+- Viritysmittari avautuu erilliseen tilaan ilman pelin käynnistymistä.
+- Erillisessä viritystilassa näkyvät vain LEDit; sulkeminen tapahtuu erillisellä ✕-painikkeella.
+- Viritystila käyttää samaa PitchEngine 1.0 -instanssia kuin peli.
+- Viritystilassa running=false, joten pelin hear()-osumalogiiikka ei hyväksy osumia.
+- PitchEngine-ydintä ei muutettu.
+
+Viritysmittari virittää automaattisesti lähimpään kromaattiseen säveleen:
+PitchEngine tuottaa vakaan Hz-arvon, jonka perusteella mittari laskee poikkeaman
+lähimmästä tasavireisestä sävelestä ja näyttää sen LED-palkkina -50…+50 sentin alueella.

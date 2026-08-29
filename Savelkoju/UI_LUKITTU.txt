@@ -1,0 +1,2 @@
+Aloitus- ja tulosikkunan ulkoasu on lukittu JSON-asetuksiin.
+PitchEngine- ja pelilogiikkaa ei muutettu.

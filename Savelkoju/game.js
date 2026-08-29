@@ -9,8 +9,65 @@ const LEVELS={
 const POS={C:{cx:312,cy:648},H:{cx:548,cy:648},A:{cx:777,cy:648},G:{cx:996,cy:648},D:{cx:750,cy:365}};
 const PITCH_CLASS={0:'C',2:'D',7:'G',9:'A',11:'H'};
 const $=id=>document.getElementById(id);
-const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),tuningMeter=$('tuningMeter'),tuningDot=$('tuningDot'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
+const stage=$('stage'),reticle=$('reticle'),flash=$('flash'),hitText=$('hitText'),scoreEl=$('score'),targetEl=$('targetNote'),tunerLeds=$('tunerLeds'),tunerOnlyLeds=$('tunerOnlyLeds'),message=$('message'),hud=$('hud'),levelOverlay=$('levelOverlay'),tunerOverlay=$('tunerOverlay'),finishOverlay=$('finishOverlay'),timeResult=$('timeResult'),finishLevel=$('finishLevel'),levelNameHud=$('levelNameHud'),videoOverlay=$('videoOverlay'),helpVideo=$('helpVideo'),sessionName=$('sessionName'),nameDoneBtn=$('nameDoneBtn'),levelChooser=$('levelChooser'),saveStatus=$('saveStatus'),finishScores=$('finishScores'),scoreboardOverlay=$('scoreboardOverlay'),scoreboardScores=$('scoreboardScores'),scoreboardStatus=$('scoreboardStatus'),adminOverlay=$('adminOverlay'),adminLogin=$('adminLogin'),adminControls=$('adminControls'),adminEmail=$('adminEmail'),adminPassword=$('adminPassword'),adminIdentity=$('adminIdentity'),adminStatus=$('adminStatus'),adminNewPassword=$('adminNewPassword'),adminNewPassword2=$('adminNewPassword2'),finishSemester=$('finishSemester'),scoreboardSemester=$('scoreboardSemester'),progressLamps=$('progressLamps');
 let engine=null,level=LEVELS[1],currentLevelId=1,target='A',score=0,running=false,accepting=false,startedAt=0,lastAccepted=0,finalTimeMs=0,currentBoardLevel=1,sessionPlayerName='',finaleLightsRunning=false;
+const TUNER_STEP_CENTS=5,TUNER_MAX_CENTS=50,TUNER_LED_COUNT=21,TUNER_CENTER_INDEX=10;
+
+function midiInfoFromHz(hz){
+  if(!Number.isFinite(hz)||hz<=0)return null;
+  const midiFloat=69+12*Math.log2(hz/440);
+  const midi=Math.round(midiFloat);
+  const pitchClass=((midi%12)+12)%12;
+  const targetHz=440*Math.pow(2,(midi-69)/12);
+  const cents=1200*Math.log2(hz/targetHz);
+  return {midi,midiFloat,pitchClass,targetHz,cents};
+}
+function tunerZone(stepDistance){
+  if(stepDistance<=1)return'good';
+  if(stepDistance<=5)return'warn';
+  return'bad';
+}
+function tunerContainers(){
+  return [tunerLeds,tunerOnlyLeds].filter(Boolean);
+}
+function createTunerLeds(){
+  tunerContainers().forEach(container=>{
+    container.textContent='';
+    for(let i=0;i<TUNER_LED_COUNT;i++){
+      const led=document.createElement('span');
+      led.className='tuner-led'+(i===TUNER_CENTER_INDEX?' center':'');
+      container.appendChild(led);
+    }
+  });
+}
+function clearTunerLeds(){
+  tunerContainers().forEach(container=>{
+    [...container.children].forEach((led,i)=>{
+      led.className='tuner-led'+(i===TUNER_CENTER_INDEX?' center':'');
+    });
+  });
+}
+function renderTunerCents(cents){
+  if(!Number.isFinite(cents))return;
+  clearTunerLeds();
+  const clipped=Math.max(-TUNER_MAX_CENTS,Math.min(TUNER_MAX_CENTS,cents));
+  const steps=Math.round(Math.abs(clipped)/TUNER_STEP_CENTS);
+  const direction=Math.sign(clipped);
+
+  tunerContainers().forEach(container=>{
+    const leds=[...container.children];
+    leds[TUNER_CENTER_INDEX]?.classList.add('on','good');
+
+    for(let s=1;s<=steps;s++){
+      const idx=direction>0?TUNER_CENTER_INDEX+s:TUNER_CENTER_INDEX-s;
+      if(idx<0||idx>=leds.length)continue;
+      leds[idx].classList.add('on',tunerZone(s));
+    }
+  });
+}
+function clearTunerReadout(){
+  clearTunerLeds();
+}
 const gameAudio=new window.SavelkojuAudioManager({
   hit:'Lamppu.wav',
   finale:'Sirkusmusa.wav'
@@ -73,7 +130,7 @@ function captureSessionName(){
   sessionPlayerName=name;
   return true;
 }
-function setLevel(n){currentLevelId=Number(n);level=LEVELS[currentLevelId];stage.style.backgroundImage=`url("${level.image}")`;}
+function setLevel(n){currentLevelId=Number(n);level=LEVELS[currentLevelId];stage.style.backgroundImage=`url("${level.image}")`;levelNameHud.textContent=level.name;}
 function updateProgressLamps(){
   const lamps=progressLamps.querySelectorAll('span');
   lamps.forEach((lamp,i)=>{
@@ -154,32 +211,37 @@ function nextTarget(){const choices=level.notes.filter(n=>n!==target);setTarget(
 function showMessage(text){message.textContent=text;message.style.display='block';clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>message.style.display='none',650);}
 function hitEffect(){const p=POS[target];reticle.classList.remove('hit');void reticle.offsetWidth;reticle.classList.add('hit');flash.style.left=p.cx+'px';flash.style.top=p.cy+'px';flash.classList.remove('show');void flash.offsetWidth;flash.classList.add('show');hitText.style.left=p.cx+'px';hitText.style.top=(p.cy-45)+'px';hitText.classList.remove('show');void hitText.offsetWidth;hitText.classList.add('show');}
 function hear(note){if(!running||!accepting||note!==target)return;const now=performance.now();if(now-lastAccepted<500)return;lastAccepted=now;accepting=false;score++;scoreEl.textContent=score;updateProgressLamps();playHitSound();hitEffect();showMessage('Hieno osuma!');setTimeout(()=>{if(score>=TOTAL){finaleLampShow();}else nextTarget();},500);}
-function resetTuningMeter(){tuningMeter.classList.remove('signal');tuningDot.style.left='50%';}
-function updateTuningMeter(output){
-  const cents=Number(output?.meterCents);
-  if(output?.status!=='signal'||!Number.isFinite(cents)){
-    resetTuningMeter();
-    return;
-  }
-  const clamped=Math.max(-50,Math.min(50,cents));
-  tuningMeter.classList.add('signal');
-  tuningDot.style.left=`${50+clamped}%`;
+function pitchEngineOutput(event){
+  const info=midiInfoFromHz(event.hz);
+  if(!info)return;
+  const note=PITCH_CLASS[info.pitchClass];
+  renderTunerCents(info.cents);
+  if(note)hear(note);
 }
-function microphoneOutput(output){
-  updateTuningMeter(output);
-  if(output.status==='signal'){
-    const note=PITCH_CLASS[output.pitchClass];
-    if(note)hear(note);
+function pitchEngineState(event){
+  if(event.state==='listening'){
+    // Hiljaisuuden jälkeen PitchEngine vapauttaa lukituksen.
+    // LEDit tyhjennetään vasta silloin, ettei äänen loppu tee heilahdusta.
+    clearTunerReadout();
   }
 }
-function ensureEngine(){if(engine)return engine;const M=window.NuottikompassiMicrophoneEngine;if(!M)throw new Error('Mikrofonimoottoria ei voitu ladata.');engine=new M.MicrophoneEngine({...M.DEFAULTS,referenceEnabled:false,liveReferenceEnabled:false},microphoneOutput);return engine;}
+function ensureEngine(){
+  if(engine)return engine;
+  const E=window.PitchEngine;
+  if(!E)throw new Error('PitchEngine 1.0 -moottoria ei voitu ladata.');
+  engine=new E();
+  engine.on('pitch',pitchEngineOutput);
+  engine.on('state',pitchEngineState);
+  engine.on('error',e=>{console.error(e.error||e);});
+  return engine;
+}
 async function pauseMic(){
   running=false;
   accepting=false;
   reticle.style.opacity='0';
-  resetTuningMeter();
   if(!engine)return;
   try{
+    engine.reset?.({keepStable:false});
     if(engine.stream)engine.stream.getAudioTracks().forEach(track=>track.enabled=false);
     if(engine.audioContext&&engine.audioContext.state==='running')await engine.audioContext.suspend();
   }catch(e){console.warn(e);}
@@ -192,7 +254,7 @@ async function resumeMic(){
     if(e.audioContext&&e.audioContext.state==='suspended')await e.audioContext.resume();
   }catch(err){console.warn(err);}
 }
-async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);resetTuningMeter();await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){resetTuningMeter();alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
+async function startGame(levelNumber=null){try{stopFinaleLights();closeHelp(false);closeScoreboard();closeAdmin();if(levelNumber)setLevel(levelNumber);await resumeMic();levelOverlay.classList.add('hidden');finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.remove('hidden');score=0;scoreEl.textContent='0';updateProgressLamps();startedAt=performance.now();running=true;accepting=true;setTarget(level.notes[Math.floor(Math.random()*level.notes.length)]);}catch(err){alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');console.error(err);}}
 function updateSemesterLabels(){
   const s=window.SavelkojuScoreboard.currentSemester();
   if(finishSemester) finishSemester.textContent='· '+s.label;
@@ -396,6 +458,31 @@ async function resetAllSemesterScores(){
   }
 }
 
+async function openTunerMode(){
+  try{
+    stopFinaleLights();
+    closeHelp(false);
+    closeScoreboard();
+    closeAdmin();
+    running=false;
+    accepting=false;
+    reticle.style.opacity='0';
+    clearTunerReadout();
+    await resumeMic();
+    tunerOverlay.classList.remove('hidden');
+    tunerOverlay.setAttribute('aria-hidden','false');
+  }catch(err){
+    console.error(err);
+    alert('Mikrofonia ei voitu avata. Tarkista selaimen mikrofonilupa.');
+  }
+}
+async function closeTunerMode(){
+  tunerOverlay.classList.add('hidden');
+  tunerOverlay.setAttribute('aria-hidden','true');
+  clearTunerReadout();
+  await pauseMic();
+}
+
 async function chooseLevels(){stopFinaleLights();await pauseMic();closeScoreboard();finishOverlay.classList.add('hidden');finishOverlay.classList.remove('finale-fade');hud.classList.add('hidden');levelOverlay.classList.remove('hidden');}
 async function openHelp(){await pauseMic();helpVideo.currentTime=0;videoOverlay.classList.remove('hidden');videoOverlay.setAttribute('aria-hidden','false');try{await helpVideo.play();}catch(e){console.warn(e);}}
 function closeHelp(rewind=true){helpVideo.pause();if(rewind)helpVideo.currentTime=0;videoOverlay.classList.add('hidden');videoOverlay.setAttribute('aria-hidden','true');}
@@ -445,6 +532,8 @@ sessionName.addEventListener('keydown',e=>{
 });
 nameDoneBtn.addEventListener('click',finishNameEntry);
 
+$('tunerBtn').addEventListener('click',openTunerMode);
+$('closeTunerBtn').addEventListener('click',closeTunerMode);
 $('helpBtn').addEventListener('click',openHelp);
 $('closeVideoBtn').addEventListener('click',()=>closeHelp());
 helpVideo.addEventListener('ended',()=>closeHelp());
@@ -470,5 +559,5 @@ $('adminLogoutBtn').addEventListener('click',async()=>{
 
 document.querySelectorAll('.score-tab').forEach(btn=>btn.addEventListener('click',()=>openScoreboard(Number(btn.dataset.scoreLevel))));
 window.SavelkojuScoreboard?.init();
-addEventListener('beforeunload',()=>engine?.stop());setLevel(1);
+addEventListener('beforeunload',()=>engine?.stop());createTunerLeds();clearTunerReadout();setLevel(1);
 })();
