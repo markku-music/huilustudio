@@ -112,10 +112,10 @@ function endDominantHzSegment(state){
   state.active=false;
 }
 
-function addDominantHzSample(state,hz,{newSegment=false}={}){
+function addDominantHzSample(state,hz){
   if(!Number.isFinite(hz))return null;
 
-  if(newSegment||!state.active){
+  if(!state.active){
     state.counts.clear();
     state.dominantHz=null;
     state.dominantCount=0;
@@ -529,7 +529,7 @@ function ensureGameLedTracker(){
   return {U,T};
 }
 
-function handleGameLedStableHz(stableHz,{newSegment=false}={}){
+function handleGameLedStableHz(stableHz){
   if(!Number.isFinite(stableHz))return;
 
   const tuningInfo=midiInfoFromHz(stableHz);
@@ -545,11 +545,7 @@ function handleGameLedStableHz(stableHz,{newSegment=false}={}){
     return;
   }
 
-  const dominantHz=addDominantHzSample(
-    gameDominantHz,
-    stableHz,
-    {newSegment}
-  );
+  const dominantHz=addDominantHzSample(gameDominantHz,stableHz);
   const dominantInfo=midiInfoFromHz(dominantHz);
   if(!dominantInfo)return;
 
@@ -611,7 +607,7 @@ function gameLedTick(){
       result.type==='relocked' ||
       result.type==='pitch'
     ){
-      handleGameLedStableHz(result.stableHz,{newSegment:result.type==='relocked'});
+      handleGameLedStableHz(result.stableHz);
     }
 
     // switching-tilassa jätetään edellinen LED-lukema näkyviin,
@@ -780,10 +776,10 @@ function tunerPitchOutput(event){
 function tunerLockOutput(event){
   if(!event)return;
 
-  // Hiljaisuus päättää yhden äänen. Re-lock tarkoittaa uutta säveltä
-  // ilman väliin tullutta hiljaisuutta. Molemmissa seuraava pitch aloittaa
-  // uuden hallitsevan Hz:n laskennan, mutta nykyinen näyttö jää siihen asti.
-  if(event.action==='unlocked'||event.action==='relocked'){
+  // Hallitsevan Hz:n keräys päätetään vain oikeaan hiljaisuuteen.
+  // Re-lock voi syntyä myös äänen hiipuvan hännän epävakaasta YIN-arvosta,
+  // joten se ei saa nollata jo kerättyä hallitsevaa sävelkorkeutta.
+  if(event.action==='unlocked'){
     endDominantHzSegment(standaloneDominantHz);
   }
 }
