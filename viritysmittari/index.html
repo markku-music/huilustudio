@@ -591,6 +591,14 @@
   const displayBuffer = [];
   const switchBuffer = [];
 
+  // Näytön Hz-arvon vaihto vahvistetaan kahdella peräkkäisellä
+  // samalla mediaanituloksella. Yksittäinen loppuhännän harha ei
+  // näin ehdi liikuttaa mittaria.
+  const DISPLAY_CONFIRM_REQUIRED = 2;
+  let displayedHz = null;
+  let displayCandidateHz = null;
+  let displayCandidateCount = 0;
+
   let locked = false;
   let lockHz = null;
   let lastSoundTime = 0;
@@ -709,9 +717,12 @@
     acquireBuffer.length = 0;
     displayBuffer.length = 0;
     switchBuffer.length = 0;
+    displayCandidateHz = null;
+    displayCandidateCount = 0;
     lockInfoEl.textContent = "";
 
     if (!keepDisplay) {
+      displayedHz = null;
       hzEl.textContent = "---";
     }
   }
@@ -726,6 +737,9 @@
 
     displayBuffer.push(newHz);
 
+    displayedHz = newHz;
+    displayCandidateHz = null;
+    displayCandidateCount = 0;
     hzEl.textContent = String(newHz);
     statusEl.textContent = "Lukittu";
     lockInfoEl.textContent = `Lukitus ${newHz} Hz`;
@@ -790,7 +804,32 @@
 
       const stable = Math.round(median(displayBuffer));
 
-      hzEl.textContent = String(stable);
+      if (displayedHz === null) {
+        displayedHz = stable;
+        hzEl.textContent = String(stable);
+        displayCandidateHz = null;
+        displayCandidateCount = 0;
+      } else if (stable === displayedHz) {
+        // Nykyinen arvo vahvistui: mahdollinen vaihtoehdokas raukeaa.
+        displayCandidateHz = null;
+        displayCandidateCount = 0;
+      } else {
+        // Uutta kokonais-Hz-arvoa ei näytetä ensimmäisestä havainnosta.
+        if (stable === displayCandidateHz) {
+          displayCandidateCount += 1;
+        } else {
+          displayCandidateHz = stable;
+          displayCandidateCount = 1;
+        }
+
+        if (displayCandidateCount >= DISPLAY_CONFIRM_REQUIRED) {
+          displayedHz = stable;
+          hzEl.textContent = String(stable);
+          displayCandidateHz = null;
+          displayCandidateCount = 0;
+        }
+      }
+
       statusEl.textContent = "Lukittu";
       lockInfoEl.textContent = `Lukitus ${lockHz} Hz`;
       return;
