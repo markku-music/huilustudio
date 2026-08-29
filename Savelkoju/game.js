@@ -735,10 +735,8 @@ function tunerPitchOutput(event){
 }
 
 function tunerPitchState(event){
-  if(event.state==='listening'){
-    clearTunerReadout(tunerOnlyLeds);
-    if(tunerNoteName)tunerNoteName.textContent='';
-  }
+  // Hiljaisuus ei tyhjennä erillisen viritysmittarin näyttöä.
+  // Viimeinen sävelnimi ja LED-asento säilyvät, kunnes uusi pitch-event päivittää ne.
 }
 
 function ensureTunerEngine(){
