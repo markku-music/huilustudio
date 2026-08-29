@@ -587,39 +587,35 @@
 
   const SILENCE_RELEASE_MS = 260;
 
-  // Huiluäänen loppuhännän suojaus.
-  // Uuden äänen herkkyys säilyy -68 dBFS:ssä, mutta jo lukitun äänen
-  // voimakkuuden nopeaa romahtamista seurataan erikseen.
-  const TAIL_LEVEL_WINDOW_MS = 500;
-  const TAIL_REFERENCE_MIN_MS = 180;
-  const TAIL_FREEZE_DROP_DB = 10;
-  const TAIL_STRONG_MARGIN_DB = 4;
-  const TAIL_CONFIRM_FRAMES = 2;
+  // Huilun loppuhännän laatusuoja.
+  // YIN-arvon kasvu tarkoittaa, että periodisuuden laatu heikkenee.
+  // Suoja aktivoituu vain, jos YIN heikkenee selvästi JA äänen taso on samaan aikaan laskussa.
+  const YIN_BASELINE_MS = 300;
+  const YIN_BASELINE_MIN_SAMPLES = 8;
+  // Raja on tarkoituksella suhteellinen: eri huiluäänillä YINin absoluuttinen taso vaihtelee.
+  // Nykyisen testilokin perusteella loppuhäntä alkaa näkyä jo noin 1.8-kertaisena heikkenemisenä,
+  // kun äänenvoimakkuus on samaan aikaan selvästi laskussa.
+  const YIN_DEGRADE_FACTOR = 1.8;
+  const YIN_DEGRADE_MIN_DELTA = 0.0005;
+  const YIN_BASELINE_ACCEPT_FACTOR = 1.5;
+  const YIN_BASELINE_ACCEPT_DELTA = 0.0004;
+  const LEVEL_TREND_MS = 90;
+  const LEVEL_DROP_DB = 0.8;
+  const GUARD_RECOVERY_REQUIRED = 3;
 
   const acquireBuffer = [];
   const displayBuffer = [];
   const switchBuffer = [];
 
-  // Näytön Hz-arvon vaihto vahvistetaan kahdella peräkkäisellä
-  // samalla mediaanituloksella. Yksittäinen loppuhännän harha ei
-  // näin ehdi liikuttaa mittaria.
-  const DISPLAY_CONFIRM_REQUIRED = 2;
-  let displayedHz = null;
-  let displayCandidateHz = null;
-  let displayCandidateCount = 0;
-
   let locked = false;
   let lockHz = null;
   let lastSoundTime = 0;
 
-  // Loppuhäntävahti ei muuta pitch-laskentaa. Se seuraa vain lukitun
-  // äänen viimeaikaista voimakkuustasoa ja muistaa viimeisen näytetyn
-  // Hz-arvon silloin, kun signaali oli vielä selvästi vahva.
-  const tailLevelHistory = [];
-  let tailFrozen = false;
-  let tailDropCount = 0;
-  let tailReferenceDb = null;
-  let lastStrongDisplayedHz = null;
+  const yinQualityHistory = [];
+  const levelHistory = [];
+  let yinTailGuardActive = false;
+  let yinTailGuardRecovery = 0;
+  let lastReliableHz = null;
 
   function rmsOf(buffer) {
     let sum = 0;
@@ -637,77 +633,44 @@
     return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
   }
 
-  function resetTailTracking() {
-    tailLevelHistory.length = 0;
-    tailFrozen = false;
-    tailDropCount = 0;
-    tailReferenceDb = null;
-    lastStrongDisplayedHz = displayedHz;
+  function dbfsOf(rms) {
+    return 20 * Math.log10(Math.max(rms, 1e-12));
   }
 
-  function updateTailProtection(now, dbfs) {
-    if (!locked || !Number.isFinite(dbfs)) return false;
-
-    // Jos loppuhäntä on jo jäädytetty, jatka jäädytystä kunnes
-    // signaali joko loppuu tai palautuu selvästi takaisin normaalitasolle.
-    if (tailFrozen) {
-      if (Number.isFinite(tailReferenceDb) &&
-          dbfs >= tailReferenceDb - TAIL_STRONG_MARGIN_DB) {
-        tailFrozen = false;
-        tailDropCount = 0;
-        tailLevelHistory.length = 0;
-        tailLevelHistory.push({ t: now, db: dbfs });
-        lastStrongDisplayedHz = displayedHz;
-        return false;
-      }
-      return true;
+  function trimTimedHistory(history, now, maxAgeMs) {
+    while (history.length && now - history[0].t > maxAgeMs) {
+      history.shift();
     }
+  }
 
-    const cutoff = now - TAIL_LEVEL_WINDOW_MS;
-    while (tailLevelHistory.length && tailLevelHistory[0].t < cutoff) {
-      tailLevelHistory.shift();
-    }
+  function yinBaseline(now) {
+    trimTimedHistory(yinQualityHistory, now, YIN_BASELINE_MS);
+    if (yinQualityHistory.length < YIN_BASELINE_MIN_SAMPLES) return null;
+    return median(yinQualityHistory.map(item => item.yin));
+  }
 
-    const historySpan = tailLevelHistory.length
-      ? now - tailLevelHistory[0].t
-      : 0;
+  function levelIsFalling(now, currentDb) {
+    trimTimedHistory(levelHistory, now, LEVEL_TREND_MS);
+    if (levelHistory.length < 4) return false;
 
-    if (tailLevelHistory.length >= 3 && historySpan >= TAIL_REFERENCE_MIN_MS) {
-      const reference = median(tailLevelHistory.map(x => x.db));
-      tailReferenceDb = reference;
-      const dropDb = reference - dbfs;
-
-      // Viimeinen varmasti hyvä näyttöarvo: voimakkuus on vielä lähellä
-      // viimeaikaista normaalitasoa.
-      if (dropDb <= TAIL_STRONG_MARGIN_DB && displayedHz !== null) {
-        lastStrongDisplayedHz = displayedHz;
-      }
-
-      if (dropDb >= TAIL_FREEZE_DROP_DB) {
-        tailDropCount += 1;
-      } else {
-        tailDropCount = 0;
-      }
-
-      if (tailDropCount >= TAIL_CONFIRM_FRAMES) {
-        tailFrozen = true;
-
-        // Palauta viimeiseen vahvan signaalin aikana nähtyyn arvoon.
-        if (lastStrongDisplayedHz !== null) {
-          displayedHz = lastStrongDisplayedHz;
-          hzEl.textContent = String(lastStrongDisplayedHz);
-          displayBuffer.length = 0;
-          displayBuffer.push(lastStrongDisplayedHz);
-          displayCandidateHz = null;
-          displayCandidateCount = 0;
-        }
-
-        return true;
+    const oldestDb = levelHistory[0].db;
+    let fallingSteps = 0;
+    for (let i = 1; i < levelHistory.length; i++) {
+      if (levelHistory[i].db <= levelHistory[i - 1].db + 0.08) {
+        fallingSteps++;
       }
     }
 
-    tailLevelHistory.push({ t: now, db: dbfs });
-    return false;
+    const mostlyFalling = fallingSteps >= Math.ceil((levelHistory.length - 1) * 0.65);
+    return mostlyFalling && currentDb <= oldestDb - LEVEL_DROP_DB;
+  }
+
+  function resetTailGuard() {
+    yinQualityHistory.length = 0;
+    levelHistory.length = 0;
+    yinTailGuardActive = false;
+    yinTailGuardRecovery = 0;
+    lastReliableHz = null;
   }
 
   function bestCluster(values, tolerance) {
@@ -794,12 +757,14 @@
     }
 
     const hz = sampleRate / betterTau;
+    const yinValue = yin[tauEstimate];
 
     return (
       Number.isFinite(hz) &&
+      Number.isFinite(yinValue) &&
       hz >= MIN_HZ &&
       hz <= MAX_HZ
-    ) ? hz : null;
+    ) ? { hz, yinValue } : null;
   }
 
   function resetAll(keepDisplay = false) {
@@ -808,13 +773,10 @@
     acquireBuffer.length = 0;
     displayBuffer.length = 0;
     switchBuffer.length = 0;
-    displayCandidateHz = null;
-    displayCandidateCount = 0;
-    resetTailTracking();
+    resetTailGuard();
     lockInfoEl.textContent = "";
 
     if (!keepDisplay) {
-      displayedHz = null;
       hzEl.textContent = "---";
     }
   }
@@ -828,12 +790,9 @@
     switchBuffer.length = 0;
 
     displayBuffer.push(newHz);
+    resetTailGuard();
+    lastReliableHz = newHz;
 
-    displayedHz = newHz;
-    displayCandidateHz = null;
-    displayCandidateCount = 0;
-    resetTailTracking();
-    lastStrongDisplayedHz = newHz;
     hzEl.textContent = String(newHz);
     statusEl.textContent = "Lukittu";
     lockInfoEl.textContent = `Lukitus ${newHz} Hz`;
@@ -898,32 +857,7 @@
 
       const stable = Math.round(median(displayBuffer));
 
-      if (displayedHz === null) {
-        displayedHz = stable;
-        hzEl.textContent = String(stable);
-        displayCandidateHz = null;
-        displayCandidateCount = 0;
-      } else if (stable === displayedHz) {
-        // Nykyinen arvo vahvistui: mahdollinen vaihtoehdokas raukeaa.
-        displayCandidateHz = null;
-        displayCandidateCount = 0;
-      } else {
-        // Uutta kokonais-Hz-arvoa ei näytetä ensimmäisestä havainnosta.
-        if (stable === displayCandidateHz) {
-          displayCandidateCount += 1;
-        } else {
-          displayCandidateHz = stable;
-          displayCandidateCount = 1;
-        }
-
-        if (displayCandidateCount >= DISPLAY_CONFIRM_REQUIRED) {
-          displayedHz = stable;
-          hzEl.textContent = String(stable);
-          displayCandidateHz = null;
-          displayCandidateCount = 0;
-        }
-      }
-
+      hzEl.textContent = String(stable);
       statusEl.textContent = "Lukittu";
       lockInfoEl.textContent = `Lukitus ${lockHz} Hz`;
       return;
@@ -942,7 +876,6 @@
 
     const now = performance.now();
     const rms = rmsOf(buffer);
-    const dbfs = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
     const levelPct = Math.max(0, Math.min(100, (rms / 0.12) * 100));
     levelBar.style.width = levelPct.toFixed(1) + "%";
 
@@ -957,7 +890,6 @@
       } else if (!locked) {
         acquireBuffer.length = 0;
         switchBuffer.length = 0;
-        resetTailTracking();
         statusEl.textContent = "Kuuntelen…";
         lockInfoEl.textContent = "";
       }
@@ -966,25 +898,84 @@
       return;
     }
 
-    // Kun jo lukitun huiluäänen voimakkuus romahtaa nopeasti noin
-    // 10 dB viimeaikaisesta normaalitasosta, lopeta pitch-päivitykset
-    // ennen kuin YIN alkaa seurata äänen epävakaata loppuhäntää.
-    if (locked && updateTailProtection(now, dbfs)) {
-      statusEl.textContent = "Lukittu";
-      lockInfoEl.textContent = `Lukitus ${lockHz} Hz`;
-      rafId = requestAnimationFrame(tick);
-      return;
-    }
+    const pitch = detectPitchYIN(buffer, audioContext.sampleRate);
 
-    const rawHz = detectPitchYIN(buffer, audioContext.sampleRate);
-
-    if (rawHz !== null) {
+    if (pitch !== null) {
+      const rawHz = pitch.hz;
+      const yinValue = pitch.yinValue;
       const integerHz = Math.round(rawHz);
+      const currentDb = dbfsOf(rms);
 
       if (!locked) {
         tryAcquireLock(integerHz);
       } else {
-        processLockedPitch(integerHz);
+        const baseline = yinBaseline(now);
+        const falling = levelIsFalling(now, currentDb);
+        const degraded = baseline !== null &&
+          yinValue >= Math.max(
+            baseline * YIN_DEGRADE_FACTOR,
+            baseline + YIN_DEGRADE_MIN_DELTA
+          );
+
+        // Kun pitch-laatu romahtaa samaan aikaan kun ääni vaimenee,
+        // kyse on todennäköisesti huiluäänen loppuhännästä.
+        // Älä päästä loppuhännän taajuuksia näyttöön tai uuteen lukitukseen.
+        if (!yinTailGuardActive && degraded && falling) {
+          yinTailGuardActive = true;
+          yinTailGuardRecovery = 0;
+
+          if (Number.isFinite(lastReliableHz)) {
+            // Poista myös jo alkaneen loppuhännän arvot mediaanipuskurista,
+            // jotta ne eivät palaa näkyviin, jos ääni hetkeksi vahvistuu uudelleen.
+            displayBuffer.length = 0;
+            displayBuffer.push(lastReliableHz);
+            switchBuffer.length = 0;
+            hzEl.textContent = String(lastReliableHz);
+          }
+        }
+
+        if (yinTailGuardActive) {
+          const recovered = baseline !== null &&
+            yinValue <= Math.max(baseline * 2.0, baseline + 0.0004) &&
+            !falling;
+
+          if (recovered) {
+            yinTailGuardRecovery++;
+            if (yinTailGuardRecovery >= GUARD_RECOVERY_REQUIRED) {
+              yinTailGuardActive = false;
+              yinTailGuardRecovery = 0;
+              yinQualityHistory.length = 0;
+            }
+          } else {
+            yinTailGuardRecovery = 0;
+          }
+        }
+
+        if (!yinTailGuardActive) {
+          processLockedPitch(integerHz);
+
+          const trustedQuality = baseline === null ||
+            yinValue <= Math.max(
+              baseline * YIN_BASELINE_ACCEPT_FACTOR,
+              baseline + YIN_BASELINE_ACCEPT_DELTA
+            );
+
+          // Viimeinen luotettava Hz päivitetään vain silloin, kun YIN-laatu on
+          // vielä normaalilla tasolla. Näin ensimmäinen loppuhännän nytkähdys
+          // ei ehdi korvata palautuspistettä ennen kuin vartija aktivoituu.
+          if (trustedQuality) {
+            const shownHz = Number(hzEl.textContent);
+            if (Number.isFinite(shownHz)) {
+              lastReliableHz = shownHz;
+            }
+
+            yinQualityHistory.push({ t: now, yin: yinValue });
+            trimTimedHistory(yinQualityHistory, now, YIN_BASELINE_MS);
+          }
+        }
+
+        levelHistory.push({ t: now, db: currentDb });
+        trimTimedHistory(levelHistory, now, LEVEL_TREND_MS);
       }
     }
 
