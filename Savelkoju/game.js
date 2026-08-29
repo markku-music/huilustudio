@@ -739,7 +739,7 @@ function ensureTunerEngine(){
   const E=window.PitchEngine;
   if(!E)throw new Error('PitchEngine 1.0 -moottoria ei voitu ladata.');
 
-  tunerEngine=new E();
+  tunerEngine=new E({rmsGate:0.00025});
   tunerEngine.on('pitch',tunerPitchOutput);
   tunerEngine.on('state',tunerPitchState);
   tunerEngine.on('error',e=>console.error(e.error||e));
