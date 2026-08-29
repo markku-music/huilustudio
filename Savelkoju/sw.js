@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-fingering-png-guard-fixed-v12';
+const CACHE_NAME = 'savelkoju-tuner-sensitive-v13';
 const APP_SHELL = [
   "./",
   "./index.html",

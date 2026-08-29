@@ -77,6 +77,9 @@ const TUNER_STEP_CENTS=5;
 const TUNER_MAX_CENTS=50;
 const TUNER_LED_COUNT=21;
 const TUNER_CENTER_INDEX=10;
+// Pelin viritysmittarin oma äänenvoimakkuusportti.
+// PitchEngine 1.0:n standalone VIRITYS-tila säilyy alkuperäisessä 0.008-arvossa.
+const GAME_TUNER_RMS_GATE=0.001;
 const FINGERING_HINT_Y_OFFSET=112;
 const FINGERING_HINT_IMAGES={
   G:'assets/sormitus_G_savelkoju.png',
@@ -527,11 +530,11 @@ function gameLedTick(){
   const now=performance.now();
   const rms=U.rmsOf(gameLedBuffer);
 
-  if(rms>=config.rmsGate){
+  if(rms>=GAME_TUNER_RMS_GATE){
     gameLedLastSoundTime=now;
   }
 
-  if(rms<config.rmsGate){
+  if(rms<GAME_TUNER_RMS_GATE){
     if(
       gameLedTracker.locked &&
       now-gameLedLastSoundTime>config.silenceReleaseMs
