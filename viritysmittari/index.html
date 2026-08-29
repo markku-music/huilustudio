@@ -587,18 +587,21 @@
 
   const SILENCE_RELEASE_MS = 260;
 
-  // Huilun loppuhännän laatusuoja.
-  // YIN-arvon kasvu tarkoittaa, että periodisuuden laatu heikkenee.
-  // Suoja aktivoituu vain, jos YIN heikkenee selvästi JA äänen taso on samaan aikaan laskussa.
-  const YIN_BASELINE_MS = 300;
-  const YIN_BASELINE_MIN_SAMPLES = 8;
-  // Raja on tarkoituksella suhteellinen: eri huiluäänillä YINin absoluuttinen taso vaihtelee.
-  // Nykyisen testilokin perusteella loppuhäntä alkaa näkyä jo noin 1.8-kertaisena heikkenemisenä,
-  // kun äänenvoimakkuus on samaan aikaan selvästi laskussa.
-  const YIN_DEGRADE_FACTOR = 1.8;
-  const YIN_DEGRADE_MIN_DELTA = 0.0005;
-  const YIN_BASELINE_ACCEPT_FACTOR = 1.5;
-  const YIN_BASELINE_ACCEPT_DELTA = 0.0004;
+  // Huilun loppuhännän adaptiivinen YIN-laatusuoja.
+  // Jokaiselle lukitulle äänelle opitaan oma normaali YIN-taso JA sen normaali vaihtelu.
+  // Näin oppilaan luonnostaan epävakaampi/rosoisempi ääni ei laukaise suojaa vain siksi,
+  // että sen YIN-arvot ovat korkeampia kuin puhtaalla synteettisellä äänellä.
+  const YIN_PROFILE_MS = 700;
+  const YIN_PROFILE_MIN_SAMPLES = 12;
+  const YIN_DEGRADE_FACTOR = 2.4;
+  const YIN_DEGRADE_MAD_FACTOR = 6.0;
+  const YIN_DEGRADE_MIN_DELTA = 0.00035;
+  const YIN_TRUST_FACTOR = 1.5;
+  const YIN_TRUST_MAD_FACTOR = 2.5;
+  const YIN_TRUST_MIN_DELTA = 0.00012;
+  const YIN_LEARN_FACTOR = 2.2;
+  const YIN_LEARN_MAD_FACTOR = 4.5;
+  const YIN_LEARN_MIN_DELTA = 0.00025;
   const LEVEL_TREND_MS = 90;
   const LEVEL_DROP_DB = 0.8;
   const GUARD_RECOVERY_REQUIRED = 3;
@@ -643,10 +646,25 @@
     }
   }
 
-  function yinBaseline(now) {
-    trimTimedHistory(yinQualityHistory, now, YIN_BASELINE_MS);
-    if (yinQualityHistory.length < YIN_BASELINE_MIN_SAMPLES) return null;
-    return median(yinQualityHistory.map(item => item.yin));
+  function yinProfile(now) {
+    trimTimedHistory(yinQualityHistory, now, YIN_PROFILE_MS);
+    if (yinQualityHistory.length < YIN_PROFILE_MIN_SAMPLES) return null;
+
+    const values = yinQualityHistory.map(item => item.yin);
+    const center = median(values);
+    const deviations = values.map(value => Math.abs(value - center));
+    const mad = median(deviations) || 0;
+
+    return { center, mad };
+  }
+
+  function yinAdaptiveLimit(profile, factor, madFactor, minDelta) {
+    if (!profile) return null;
+    return Math.max(
+      profile.center * factor,
+      profile.center + profile.mad * madFactor,
+      profile.center + minDelta
+    );
   }
 
   function levelIsFalling(now, currentDb) {
@@ -909,13 +927,15 @@
       if (!locked) {
         tryAcquireLock(integerHz);
       } else {
-        const baseline = yinBaseline(now);
+        const profile = yinProfile(now);
         const falling = levelIsFalling(now, currentDb);
-        const degraded = baseline !== null &&
-          yinValue >= Math.max(
-            baseline * YIN_DEGRADE_FACTOR,
-            baseline + YIN_DEGRADE_MIN_DELTA
-          );
+        const degradeLimit = yinAdaptiveLimit(
+          profile,
+          YIN_DEGRADE_FACTOR,
+          YIN_DEGRADE_MAD_FACTOR,
+          YIN_DEGRADE_MIN_DELTA
+        );
+        const degraded = degradeLimit !== null && yinValue >= degradeLimit;
 
         // Kun pitch-laatu romahtaa samaan aikaan kun ääni vaimenee,
         // kyse on todennäköisesti huiluäänen loppuhännästä.
@@ -935,8 +955,14 @@
         }
 
         if (yinTailGuardActive) {
-          const recovered = baseline !== null &&
-            yinValue <= Math.max(baseline * 2.0, baseline + 0.0004) &&
+          const recoveryLimit = yinAdaptiveLimit(
+            profile,
+            YIN_TRUST_FACTOR,
+            YIN_TRUST_MAD_FACTOR,
+            YIN_TRUST_MIN_DELTA
+          );
+          const recovered = recoveryLimit !== null &&
+            yinValue <= recoveryLimit &&
             !falling;
 
           if (recovered) {
@@ -954,23 +980,36 @@
         if (!yinTailGuardActive) {
           processLockedPitch(integerHz);
 
-          const trustedQuality = baseline === null ||
-            yinValue <= Math.max(
-              baseline * YIN_BASELINE_ACCEPT_FACTOR,
-              baseline + YIN_BASELINE_ACCEPT_DELTA
-            );
+          const trustLimit = yinAdaptiveLimit(
+            profile,
+            YIN_TRUST_FACTOR,
+            YIN_TRUST_MAD_FACTOR,
+            YIN_TRUST_MIN_DELTA
+          );
+          const trustedQuality = trustLimit === null || yinValue <= trustLimit;
 
-          // Viimeinen luotettava Hz päivitetään vain silloin, kun YIN-laatu on
-          // vielä normaalilla tasolla. Näin ensimmäinen loppuhännän nytkähdys
-          // ei ehdi korvata palautuspistettä ennen kuin vartija aktivoituu.
+          // Viimeinen luotettava Hz päivittyy vain äänen oman normaalin
+          // YIN-profiilin sisällä. Sävelkorkeus saa silti heilua vapaasti.
           if (trustedQuality) {
             const shownHz = Number(hzEl.textContent);
             if (Number.isFinite(shownHz)) {
               lastReliableHz = shownHz;
             }
+          }
 
+          // Profiilia opetetaan vain, kun ääni ei ole selvästi vaimenemassa.
+          // Lisäksi jo opitun profiilin poikkeuksellisen huonoja arvoja ei
+          // syötetä takaisin vertailutasoon, jotta loppuhäntä ei nosta rimaa.
+          const learnLimit = yinAdaptiveLimit(
+            profile,
+            YIN_LEARN_FACTOR,
+            YIN_LEARN_MAD_FACTOR,
+            YIN_LEARN_MIN_DELTA
+          );
+          const learnableQuality = profile === null || yinValue <= learnLimit;
+          if (!falling && learnableQuality) {
             yinQualityHistory.push({ t: now, yin: yinValue });
-            trimTimedHistory(yinQualityHistory, now, YIN_BASELINE_MS);
+            trimTimedHistory(yinQualityHistory, now, YIN_PROFILE_MS);
           }
         }
 
