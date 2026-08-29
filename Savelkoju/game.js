@@ -90,17 +90,21 @@ function initFingeringHint(){
   const img=document.createElement('img');
   img.alt='';
   img.draggable=false;
-  img.decoding='async';
   img.loading='eager';
   img.setAttribute('aria-hidden','true');
   fingeringHint.appendChild(img);
   fingeringImg=img;
-
-  Object.values(FINGERING_HINT_IMAGES).forEach(src=>{
-    const preloadImg=new Image();
-    preloadImg.decoding='async';
-    preloadImg.src=src;
-  });
+}
+function prepareTargetFingeringImage(){
+  if(!fingeringImg)return;
+  const src=FINGERING_HINT_IMAGES[target];
+  if(!src)return;
+  if(fingeringImg.getAttribute('src')!==src){
+    fingeringImg.src=src;
+    if(typeof fingeringImg.decode==='function'){
+      fingeringImg.decode().catch(()=>{});
+    }
+  }
 }
 function positionFingeringHint(){
   if(!fingeringHint)return;
@@ -117,11 +121,7 @@ function hideFingeringHint(){
 }
 function showTargetFingeringHint(){
   if(!fingeringHint||!fingeringImg)return;
-  const src=FINGERING_HINT_IMAGES[target];
-  if(!src)return;
-  if(!fingeringImg.getAttribute('src')||!fingeringImg.getAttribute('src').endsWith(src)){
-    fingeringImg.src=src;
-  }
+  prepareTargetFingeringImage();
   positionFingeringHint();
   fingeringHint.classList.add('show');
   fingeringHint.setAttribute('aria-hidden','false');
@@ -337,6 +337,7 @@ function setTarget(note){
   hideFingeringHint();
   target=note;
   targetEl.textContent=note;
+  prepareTargetFingeringImage();
 
   const p=POS[note];
   reticle.classList.remove('hit');
@@ -398,13 +399,23 @@ function hear(note){
     else nextTarget();
   },500);
 }
-/* Pelin osumat tulevat alkuperäisen Nuottikompassi-moottorin pitchClass-arvosta. */
+/* Pelin osumat ja sormitusvihje tulevat alkuperäisen Nuottikompassi-moottorin pitchClass-arvosta. */
 function gameMicrophoneOutput(output){
   // LED-mittari ei käytä tämän callbackin frequency/cents-arvoja.
-  if(output.status==='signal'){
-    const note=PITCH_CLASS[output.pitchClass];
-    if(note)hear(note);
+  if(output.status!=='signal')return;
+
+  if(running&&accepting){
+    const targetPitchClass=TARGET_PITCH_CLASS[target];
+    if(output.pitchClass===targetPitchClass){
+      registerCorrectStablePitch();
+    }else{
+      clearTunerReadout(tunerLeds);
+      registerWrongStablePitch();
+    }
   }
+
+  const note=PITCH_CLASS[output.pitchClass];
+  if(note)hear(note);
 }
 
 /*
@@ -438,13 +449,11 @@ function handleGameLedStableHz(stableHz){
 
   if(running&&accepting&&!isTargetPitch){
     // Väärällä sävelellä ei näytetä "hyvää virettä" väärälle nuotille.
-    // Hertsimittarin tunnistusketju jatkaa silti täysin ennallaan.
+    // Sormitusvihjeen näkyvyydestä päättää pelin vanha Nuottikompassi-moottori.
     clearTunerReadout(tunerLeds);
-    registerWrongStablePitch();
     return;
   }
 
-  registerCorrectStablePitch();
   renderTunerCents(tuningInfo.cents,tunerLeds);
 }
 
