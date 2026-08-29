@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-fingering-png-ipad-hint-v9';
+const CACHE_NAME = 'savelkoju-fingering-png-fast-wrong-note-v10';
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -401,18 +401,38 @@ function hear(note){
 }
 /* Pelin osumat ja sormitusvihje tulevat alkuperäisen Nuottikompassi-moottorin pitchClass-arvosta. */
 function gameMicrophoneOutput(output){
-  // LED-mittari ei käytä tämän callbackin frequency/cents-arvoja.
-  if(output.status!=='signal')return;
+  /*
+    Sormitusvihje reagoi jo pelimoottorin vahvistusvaiheeseen.
+    Varsinainen peliosuma hyväksytään edelleen VAIN status='signal'-tilasta.
+  */
+  const pitchStatus=
+    output.status==='confirming-note' ||
+    output.status==='confirming-octave' ||
+    output.status==='signal';
 
-  if(running&&accepting){
-    const targetPitchClass=TARGET_PITCH_CLASS[target];
-    if(output.pitchClass===targetPitchClass){
-      registerCorrectStablePitch();
-    }else{
-      clearTunerReadout(tunerLeds);
-      registerWrongStablePitch();
+  if(running&&accepting&&pitchStatus){
+    let detectedPitchClass=null;
+
+    if(output.status==='signal'&&Number.isInteger(output.pitchClass)){
+      detectedPitchClass=output.pitchClass;
+    }else if(Number.isFinite(output.frequency)){
+      detectedPitchClass=midiInfoFromHz(output.frequency)?.pitchClass ?? null;
+    }
+
+    if(detectedPitchClass!==null){
+      const targetPitchClass=TARGET_PITCH_CLASS[target];
+
+      if(detectedPitchClass===targetPitchClass){
+        registerCorrectStablePitch();
+      }else{
+        clearTunerReadout(tunerLeds);
+        registerWrongStablePitch();
+      }
     }
   }
+
+  // Peliosuma säilyy täsmälleen vanhan moottorin hyväksytyssä signal-tilassa.
+  if(output.status!=='signal')return;
 
   const note=PITCH_CLASS[output.pitchClass];
   if(note)hear(note);
