@@ -18,6 +18,7 @@ const scoreEl=$('score');
 const targetEl=$('targetNote');
 const tunerLeds=$('tunerLeds');
 const tunerOnlyLeds=$('tunerOnlyLeds');
+const tunerNoteName=$('tunerNoteName');
 const message=$('message');
 const hud=$('hud');
 const levelOverlay=$('levelOverlay');
@@ -77,6 +78,7 @@ const TUNER_STEP_CENTS=5;
 const TUNER_MAX_CENTS=50;
 const TUNER_LED_COUNT=21;
 const TUNER_CENTER_INDEX=10;
+const TUNER_NOTE_NAMES=['C','Cis','D','Dis','E','F','Fis','G','Gis','A','B','H'];
 // Pelin viritysmittarin oma äänenvoimakkuusportti.
 // PitchEngine 1.0:n standalone VIRITYS-tila säilyy alkuperäisessä 0.008-arvossa.
 const GAME_TUNER_RMS_GATE=0.001;
@@ -724,12 +726,18 @@ async function resumeMic(){
 function tunerPitchOutput(event){
   const info=midiInfoFromHz(event.hz);
   if(!info)return;
+
+  if(tunerNoteName){
+    tunerNoteName.textContent=TUNER_NOTE_NAMES[info.pitchClass]||'';
+  }
+
   renderTunerCents(info.cents,tunerOnlyLeds);
 }
 
 function tunerPitchState(event){
   if(event.state==='listening'){
     clearTunerReadout(tunerOnlyLeds);
+    if(tunerNoteName)tunerNoteName.textContent='';
   }
 }
 
@@ -757,6 +765,7 @@ async function startTunerMic(){
 
 async function stopTunerMic(){
   clearTunerReadout(tunerOnlyLeds);
+  if(tunerNoteName)tunerNoteName.textContent='';
   if(!tunerEngine)return;
 
   try{
