@@ -1,0 +1,33 @@
+SÄVELKOJU – KAKSI ERILLISTÄ MIKROFONIMOOTTORIA
+
+PELI
+- käyttää vanhaa Nuottikompassi Microphone Engine 1.0 -moottoria
+- microphone-engine.js on kopioitu byte-for-byte käyttäjän toimittamasta
+  Savelkoju_3_Tasoa_3.5.7_PWA(9).zip-versiosta
+- SHA-256 lähde: 1a27019e93b9ed058c74fabfcd303357ca58081577deefe274487cc7b19e379b
+- SHA-256 tässä paketissa: 1a27019e93b9ed058c74fabfcd303357ca58081577deefe274487cc7b19e379b
+- pelin nuottiosumat tulevat output.pitchClass-arvosta
+- pelin LEDit tulevat vanhan moottorin output.meterCents-arvosta
+
+VIRITYS
+- käyttää PitchEngine 1.0:aa
+- PitchEngineä ei käytetä pelin nuottiosumien tunnistukseen
+- erillinen Viritys-tila näyttää PitchEnginen senttipoikkeaman LED-palkissa
+
+MOOTTORIEN VAIHTO
+- Viritys avattaessa vanha pelimoottori stopataan kokonaan ennen PitchEngineä
+- peli käynnistettäessä PitchEngine stopataan ennen vanhaa pelimoottoria
+- moottoreita ei pidetä yhtä aikaa mikrofonissa
+
+
+MUUTOS: PELIN ALLA OLEVA VIRITYSMITTARI
+- Pelin nuottitunnistus on edelleen vanha Nuottikompassi-moottori.
+- Pelin LED-mittari ei enää käytä output.meterCents-arvoa.
+- LED-mittari ottaa output.frequency-taajuuden vanhasta moottorista.
+- Senttipoikkeama lasketaan game.js:n midiInfoFromHz()-funktiolla:
+    midiFloat = 69 + 12 * log2(hz / 440)
+    lähin MIDI-sävel = round(midiFloat)
+    targetHz = 440 * 2^((midi - 69) / 12)
+    cents = 1200 * log2(hz / targetHz)
+- Tämä on sama senttilaskenta, jota PitchEngine-viritystilan LED-esitys käyttää.
+- Pelin aikana ei käynnistetä PitchEngineä eikä toista mikrofoniketjua.

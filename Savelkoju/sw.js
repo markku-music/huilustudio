@@ -1,12 +1,13 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-ui-json-locked-v1';
+const CACHE_NAME = 'savelkoju-oldgame-newledcalc-v3';
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./game.js",
   "./audio-manager.js",
+  "./microphone-engine.js",
   "./pitch-engine.js",
   "./scoreboard.js",
   "./manifest.webmanifest",
