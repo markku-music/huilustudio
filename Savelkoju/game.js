@@ -74,8 +74,6 @@ let fingeringImg=null;
 let fingeringHintVisible=false;
 let fingeringGuardActive=false;
 let fingeringGuardPitchClass=null;
-let gameDominantHz=createDominantHzState();
-let standaloneDominantHz=createDominantHzState();
 const TUNER_STEP_CENTS=5;
 const TUNER_MAX_CENTS=50;
 const TUNER_LED_COUNT=21;
@@ -83,7 +81,6 @@ const TUNER_CENTER_INDEX=10;
 const TUNER_NOTE_NAMES=['C','Cis','D','Dis','E','F','Fis','G','Gis','A','B','H'];
 const GAME_TUNER_RMS_GATE=0.001;
 const STANDALONE_TUNER_RMS_GATE=0.00025;
-const DOMINANT_HZ_WINDOW_SIZE=15;
 const FINGERING_HINT_Y_OFFSET=112;
 const FINGERING_HINT_IMAGES={
   G:'assets/sormitus_G_savelkoju.png',
@@ -92,80 +89,6 @@ const FINGERING_HINT_IMAGES={
   C:'assets/sormitus_C_savelkoju.png',
   D:'assets/sormitus_D_savelkoju.png'
 };
-
-function createDominantHzState(){
-  return {
-    samples:[],
-    counts:new Map(),
-    dominantHz:null,
-    active:false
-  };
-}
-
-function resetDominantHzState(state){
-  state.samples.length=0;
-  state.counts.clear();
-  state.dominantHz=null;
-  state.active=false;
-}
-
-function endDominantHzSegment(state){
-  // Äänen lopussa näyttö jää viimeiseen liukuvaan hallitsevaan arvoon.
-  // Seuraava uusi ääni aloittaa uuden ikkunan.
-  state.active=false;
-}
-
-function clearDominantHzWindow(state){
-  state.samples.length=0;
-  state.counts.clear();
-  state.dominantHz=null;
-}
-
-function addDominantHzSample(state,hz){
-  if(!Number.isFinite(hz))return null;
-
-  if(!state.active){
-    clearDominantHzWindow(state);
-    state.active=true;
-  }
-
-  const integerHz=Math.round(hz);
-  state.samples.push(integerHz);
-  state.counts.set(integerHz,(state.counts.get(integerHz)||0)+1);
-
-  if(state.samples.length>DOMINANT_HZ_WINDOW_SIZE){
-    const oldHz=state.samples.shift();
-    const oldCount=(state.counts.get(oldHz)||0)-1;
-    if(oldCount<=0)state.counts.delete(oldHz);
-    else state.counts.set(oldHz,oldCount);
-  }
-
-  let maxCount=0;
-  for(const count of state.counts.values()){
-    if(count>maxCount)maxCount=count;
-  }
-
-  const candidates=[];
-  for(const [candidateHz,count] of state.counts){
-    if(count===maxCount)candidates.push(candidateHz);
-  }
-
-  // Tasatilanteessa pidetään nykyinen arvo, jos se on edelleen ikkunan
-  // hallitsevien joukossa. Muuten valitaan uusin havainto lähimpänä oleva
-  // hallitseva arvo. Näin mittari on vakaa mutta ei jähmety pitkän äänen aikana.
-  if(state.dominantHz!==null&&candidates.includes(state.dominantHz)){
-    return state.dominantHz;
-  }
-
-  state.dominantHz=candidates.reduce((best,candidate)=>{
-    if(best===null)return candidate;
-    const bestDistance=Math.abs(best-integerHz);
-    const candidateDistance=Math.abs(candidate-integerHz);
-    return candidateDistance<bestDistance?candidate:best;
-  },null);
-
-  return state.dominantHz;
-}
 
 function initFingeringHint(){
   if(!fingeringHint)return;
@@ -571,17 +494,14 @@ function handleGameLedStableHz(stableHz){
   const isTargetPitch=tuningInfo.pitchClass===targetPitchClass;
 
   if(running&&accepting&&!isTargetPitch){
-    // Väärälle sävelelle ei näytetä viritysarvoa eikä sitä lasketa mukaan.
-    resetDominantHzState(gameDominantHz);
+    // Väärälle sävelelle ei näytetä viritysarvoa.
     clearTunerReadout(tunerLeds);
     return;
   }
 
-  const dominantHz=addDominantHzSample(gameDominantHz,stableHz);
-  const dominantInfo=midiInfoFromHz(dominantHz);
-  if(!dominantInfo)return;
-
-  renderTunerCents(dominantInfo.cents,tunerLeds);
+  // PitchLockTrackerin stableHz on jo alkuperäisen Hertsimittarin
+  // 5 viimeisen hyväksytyn arvon mediaani. Älä vakauta sitä uudelleen.
+  renderTunerCents(tuningInfo.cents,tunerLeds);
 }
 
 function gameLedTick(){
@@ -610,10 +530,9 @@ function gameLedTick(){
       gameLedTracker.locked &&
       now-gameLedLastSoundTime>config.silenceReleaseMs
     ){
-      // Vapauta sävellukitus ja päätä tämän äänen liukuva Hz-jakso.
-      // Viimeinen hallitseva lukema jää silti näyttöön.
+      // Alkuperäisen Hertsimittarin tapaan lukitus puretaan,
+      // mutta viimeinen hyvä näyttö jätetään paikalleen.
       gameLedTracker.reset({keepStable:true});
-      endDominantHzSegment(gameDominantHz);
     }else if(!gameLedTracker.locked){
       gameLedTracker.clearCandidates();
     }
@@ -662,7 +581,6 @@ function startGameLedTracker(){
   const {U}=ensureGameLedTracker();
 
   gameLedTracker.reset({keepStable:false});
-  resetDominantHzState(gameDominantHz);
   clearTunerReadout(tunerLeds);
 
   const analyser=gameEngine.audioContext.createAnalyser();
@@ -702,7 +620,6 @@ function stopGameLedTracker({keepStable=false}={}){
   if(gameLedTracker){
     gameLedTracker.reset({keepStable});
   }
-  resetDominantHzState(gameDominantHz);
 
   clearTunerReadout(tunerLeds);
 }
@@ -794,25 +711,16 @@ async function resumeMic(){
 
 /* Erillinen VIRITYS-tila käyttää PitchEngine 1.0:aa omalla herkkyysrajalla. */
 function tunerPitchOutput(event){
-  const dominantHz=addDominantHzSample(standaloneDominantHz,event.hz);
-  const info=midiInfoFromHz(dominantHz);
+  const info=midiInfoFromHz(event.hz);
   if(!info)return;
 
   if(tunerNoteName){
     tunerNoteName.textContent=TUNER_NOTE_NAMES[info.pitchClass]||'';
   }
 
+  // event.hz on PitchEnginen oman PitchLockTrackerin stableHz:
+  // alkuperäisen Hertsimittarin 5 viimeisen hyväksytyn arvon mediaani.
   renderTunerCents(info.cents,tunerOnlyLeds);
-}
-
-function tunerLockOutput(event){
-  if(!event)return;
-
-  // Liukuva Hz-jakso päätetään vain oikeaan hiljaisuuteen.
-  // Re-lock ei nollaa ikkunaa, joten lyhyt äänen häntä ei yksin kaappaa näyttöä.
-  if(event.action==='unlocked'){
-    endDominantHzSegment(standaloneDominantHz);
-  }
 }
 
 function ensureTunerEngine(){
@@ -823,7 +731,6 @@ function ensureTunerEngine(){
 
   tunerEngine=new E({rmsGate:STANDALONE_TUNER_RMS_GATE});
   tunerEngine.on('pitch',tunerPitchOutput);
-  tunerEngine.on('lock',tunerLockOutput);
   tunerEngine.on('error',e=>console.error(e.error||e));
 
   return tunerEngine;
@@ -833,7 +740,6 @@ async function startTunerMic(){
   // Vanha pelimoottori vapauttaa mikrofonin kokonaan.
   await stopGameMic();
 
-  resetDominantHzState(standaloneDominantHz);
   const e=ensureTunerEngine();
   await e.start();
 }
@@ -841,7 +747,6 @@ async function startTunerMic(){
 async function stopTunerMic(){
   clearTunerReadout(tunerOnlyLeds);
   if(tunerNoteName)tunerNoteName.textContent='';
-  resetDominantHzState(standaloneDominantHz);
   if(!tunerEngine)return;
 
   try{

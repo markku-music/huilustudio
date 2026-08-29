@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'savelkoju-dominant-hz-rolling-v22';
+const CACHE_NAME = 'savelkoju-hertsimittari-original-display-v23';
 const APP_SHELL = [
   "./",
   "./index.html",
