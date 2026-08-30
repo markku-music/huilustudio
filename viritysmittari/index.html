@@ -215,10 +215,6 @@
     transform:translateY(-50%);
     white-space:nowrap;
   }
-  .scale.right span {
-    left:0;
-    right:auto;
-  }
   .scale .zero {
     color:#56da79;
     font-size:20px;
@@ -299,34 +295,6 @@
     box-shadow:0 4px 18px rgba(0,0,0,.22);
     pointer-events:none;
   }
-
-  .legend {
-    margin-top:14px;
-    display:flex;
-    justify-content:center;
-    gap:12px;
-    flex-wrap:wrap;
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-  }
-  .legend-item {
-    display:flex;
-    align-items:center;
-    gap:6px;
-    background:rgba(12,18,28,.72);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:999px;
-    padding:6px 10px;
-  }
-  .swatch {
-    width:12px;
-    height:12px;
-    border-radius:999px;
-  }
-  .swatch.good { background:#56da79; }
-  .swatch.warn { background:#f1c34f; }
-  .swatch.bad { background:#f06a5f; }
 
   .controls {
     width:100%;
@@ -450,15 +418,6 @@
     .statusbox { grid-template-columns:1fr; }
   }
 
-  /* Analoginen mittari: lisätty erillisenä ulkoasukerroksena. */
-  .meter-mode-btn {
-    margin-left:auto;
-  }
-
-  .meter-view-hidden {
-    display:none !important;
-  }
-
   .analog-meter-wrap {
     position:relative;
     width:300px;
@@ -516,44 +475,6 @@
     width:4px;
   }
 
-  .analog-label {
-    position:absolute;
-    font-size:14px;
-    font-weight:750;
-    color:#22272c;
-    font-variant-numeric:tabular-nums;
-  }
-
-  .analog-label.low { left:34px; bottom:32px; }
-  .analog-label.midlow { left:61px; top:82px; }
-  .analog-label.zero { left:50%; top:24px; transform:translateX(-50%); color:#267c44; font-size:17px; }
-  .analog-label.midhigh { right:61px; top:82px; }
-  .analog-label.high { right:30px; bottom:32px; }
-
-  .analog-caption {
-    position:absolute;
-    left:50%;
-    top:57px;
-    transform:translateX(-50%);
-    font-size:12px;
-    font-weight:750;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:rgba(30,35,40,.58);
-    white-space:nowrap;
-  }
-
-  .analog-low-word,
-  .analog-high-word {
-    position:absolute;
-    bottom:11px;
-    font-size:12px;
-    font-weight:750;
-    color:rgba(30,35,40,.6);
-  }
-  .analog-low-word { left:20px; }
-  .analog-high-word { right:20px; }
-
   .analog-needle {
     position:absolute;
     left:50%;
@@ -610,7 +531,6 @@
   @media(max-width:760px) {
     .analog-meter-wrap { width:100%; max-width:300px; height:220px; }
     .analog-dial { width:280px; height:200px; }
-    .meter-mode-btn { margin-left:0; }
   }
 
 
@@ -618,13 +538,7 @@
   .meter-shell { grid-template-columns: 1fr; }
   .side-readout { display: none !important; }
 
-  /* LED-mittarin pelkistetty näkymä: oikean puolen sanalliset selitteet ja väriselite piiloon. */
-  .scale.right { visibility:hidden; }
-  .legend { display:none !important; }
-
-
-  /* Molemmat mittarit samalla sivulla. */
-  .meter-mode-btn { display:none !important; }
+  /* LED- ja analogimittari näkyvät aina rinnakkain. */
   .meter-center {
     width:100%;
     display:flex;
@@ -635,13 +549,7 @@
     flex-wrap:nowrap;
   }
   .led-meter-wrap,
-  .led-meter-wrap.meter-view-hidden {
-    display:grid !important;
-    flex:0 0 auto;
-  }
-  .analog-meter-wrap,
-  .analog-meter-wrap.meter-view-hidden {
-    display:grid !important;
+  .analog-meter-wrap {
     flex:0 0 auto;
   }
 
@@ -683,8 +591,8 @@
   }
 
 
-  /* Edellisen äänen tulosalue. Rajat ovat täsmälleen analogiviisarin
-     updateAnalog()-funktion käyttämät pienin ja suurin clipped-centtiarvo. */
+  /* Edellisen äänen tulosalue. Rajat seuraavat analogiviisarin ruudulla
+     näkyneen liikkeen pienintä ja suurinta centtiasentoa. */
   .analog-range-overlay {
     position:absolute;
     inset:0;
@@ -723,7 +631,6 @@
 <main class="app" id="app">
   <div class="topbar">
     <button id="worldButton" class="glass" type="button" aria-expanded="false">Maailma: Karkkimaa</button>
-    <button id="meterModeButton" class="glass meter-mode-btn" type="button">Mittari: LED pysty</button>
   </div>
 
   <section id="worldPicker" class="world-picker">
@@ -768,16 +675,9 @@
               <div id="ledColumn" class="led-column" aria-label="Pystysuuntainen LED-viritysmittari"></div>
             </div>
 
-            <div class="scale right">
-              <span style="top:0%;">korkea</span>
-              <span class="zero" style="top:50%;">vireessä</span>
-              <span style="top:100%;">matala</span>
-            </div>
           </div>
 
-
-
-          <div id="analogMeter" class="analog-meter-wrap meter-view-hidden" aria-label="Analoginen viritysmittari">
+          <div id="analogMeter" class="analog-meter-wrap" aria-label="Analoginen viritysmittari">
             <div class="analog-dial">
               <div class="analog-tick major" style="transform:translateX(-50%) rotate(-60deg)"></div>
               <div class="analog-tick" style="transform:translateX(-50%) rotate(-48deg)"></div>
@@ -798,12 +698,6 @@
               <div class="analog-pivot"></div>
             </div>
             <div id="analogCentReadout" class="analog-cent-readout">0</div>
-          </div>
-
-          <div class="legend">
-            <div class="legend-item"><span class="swatch good"></span> lähellä oikeaa</div>
-            <div class="legend-item"><span class="swatch warn"></span> vähän pielessä</div>
-            <div class="legend-item"><span class="swatch bad"></span> paljon pielessä</div>
           </div>
         </div>
 
@@ -1388,11 +1282,9 @@
 </script>
 <script>
 (() => {
-  // Analoginen näkymä on erillinen alkuperäisestä lukitus- ja LED-logiikasta.
-  // Tulosalue seuraa requestAnimationFrame-silmukassa viisarin TODELLISTA
-  // ruudulla näkyvää kulmaa CSS-siirtymän jälkeen. Muuta pitch-analyysiä ei tehdä.
-  const meterModeButton = document.getElementById("meterModeButton");
-  const ledMeter = document.querySelector(".led-meter-wrap");
+  // Analoginen mittari ja tulosalue. Pitch- ja LED-moottoriin ei puututa.
+  // Tulosalue seuraa requestAnimationFrame-silmukassa viisarin ruudulla
+  // näkyvää kulmaa CSS-siirtymän jälkeen.
   const analogMeter = document.getElementById("analogMeter");
   const analogDial = analogMeter.querySelector(".analog-dial");
   const analogNeedle = document.getElementById("analogNeedle");
@@ -1406,9 +1298,6 @@
   const hzEl = document.getElementById("hz");
   const targetHzEl = document.getElementById("targetHz");
   const lockInfoEl = document.getElementById("lockInfo");
-  const legend = document.querySelector(".legend");
-
-  let mode = "led";
   let lastRawHz = null;
 
   // Yhden äänen aikana muistetaan VAIN viisarin pienin ja suurin RUUDULLA NÄKYNYT
@@ -1621,20 +1510,6 @@
     analogCentReadout.textContent = `${rounded > 0 ? "+" : ""}${rounded}`;
   }
 
-  function renderMode() {
-    const analog = mode === "analog";
-    ledMeter.classList.toggle("meter-view-hidden", analog);
-    analogMeter.classList.toggle("meter-view-hidden", !analog);
-    if (legend) legend.classList.toggle("meter-view-hidden", analog);
-    meterModeButton.textContent = analog ? "Mittari: Analoginen" : "Mittari: LED pysty";
-    if (analog) updateAnalog();
-  }
-
-  meterModeButton.addEventListener("click", () => {
-    mode = mode === "led" ? "analog" : "led";
-    renderMode();
-  });
-
   window.addEventListener("tunerrawpitch", (event) => {
     const hz = Number(event.detail?.hz);
     if (!Number.isFinite(hz) || hz <= 0) return;
@@ -1685,8 +1560,6 @@
   window.addEventListener("resize", () => {
     if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) drawResultRange();
   });
-
-  renderMode();
 })();
 </script>
 
