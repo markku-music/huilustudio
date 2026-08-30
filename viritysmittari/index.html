@@ -680,6 +680,21 @@
     inset:0;
     background:transparent;
   }
+  .pitch-heatmap-indicator {
+    position:absolute;
+    z-index:4;
+    top:5px;
+    bottom:5px;
+    width:3px;
+    left:50%;
+    opacity:0;
+    transform:translateX(-50%);
+    border-radius:999px;
+    background:rgba(248,251,252,.98);
+    box-shadow:0 0 0 1px rgba(8,28,30,.24), 0 0 9px rgba(255,255,255,.22);
+    pointer-events:none;
+    transition:opacity 80ms linear;
+  }
   .pitch-heatmap-zero {
     position:absolute;
     z-index:3;
@@ -780,10 +795,11 @@
           <div id="pitchHeatmap" class="pitch-heatmap" aria-label="Vaakasuuntainen virityksen aikajakauma, miinus 50 sentistä plus 50 senttiin" title="Klikkaa mittaria nollataksesi tuloksen">
             <div class="pitch-heatmap-track">
               <div id="pitchHeatBins" class="pitch-heatmap-bins" aria-hidden="true"></div>
+              <div id="pitchHeatIndicator" class="pitch-heatmap-indicator" aria-hidden="true"></div>
               <div class="pitch-heatmap-tick" style="left:25%"></div>
               <div class="pitch-heatmap-zero"></div>
               <div class="pitch-heatmap-tick" style="left:75%"></div>
-              <div class="pitch-heatmap-hint">teal = ei käyty · orange = viipymisaika</div>
+              <div class="pitch-heatmap-hint">viiva = vire · orange = pisin viipymä</div>
             </div>
             <div class="pitch-heatmap-scale" aria-hidden="true">
               <span class="edge-left" style="left:0%">−50</span>
@@ -1443,6 +1459,7 @@
   const lockInfoEl = document.getElementById("lockInfo");
   const pitchHeatmap = document.getElementById("pitchHeatmap");
   const pitchHeatBins = document.getElementById("pitchHeatBins");
+  const pitchHeatIndicator = document.getElementById("pitchHeatIndicator");
   let lastRawHz = null;
 
   // Yhden äänen aikana muistetaan VAIN viisarin pienin ja suurin RUUDULLA NÄKYNYT
@@ -1497,6 +1514,9 @@
   const HEAT_SMOOTH_SIGMA_BINS = 3.0;
   const HEAT_STRENGTH_GAMMA = 0.9;
   const HEAT_PEAK_INSET_CENTS = 2.0;
+  // Huippu valitaan yksittäisen 0,5 c lokeron sijasta lähialueen
+  // yhteenlasketun viipymäajan perusteella. Näin pitkä hieman elävä sävel
+  // voittaa lyhyen, yhteen lokeroon tiiviisti osuvan loppuheilahduksen.
   const HEAT_VISUAL_TAU_MS = 400;
   const HEAT_VISUAL_EPS_CENTS = 0.01;
   let lastHeatSampleTime = null;
@@ -1505,10 +1525,23 @@
   let heatVisualCurrent = null;
   let heatVisualRaf = 0;
   let heatVisualLastFrame = null;
+  let heatPeakCents = null;
 
   function currentTargetHz() {
     const value = Number.parseFloat(targetHzEl.textContent);
     return Number.isFinite(value) ? value : null;
+  }
+
+  function showPitchHeatIndicator(cents) {
+    if (!Number.isFinite(cents)) return;
+    const clipped = Math.max(HEAT_MIN_CENTS, Math.min(HEAT_MAX_CENTS, cents));
+    const pct = ((clipped - HEAT_MIN_CENTS) / (HEAT_MAX_CENTS - HEAT_MIN_CENTS)) * 100;
+    pitchHeatIndicator.style.left = `${pct.toFixed(4)}%`;
+    pitchHeatIndicator.style.opacity = "1";
+  }
+
+  function hidePitchHeatIndicator() {
+    pitchHeatIndicator.style.opacity = "0";
   }
 
   function createHeatBins() {
@@ -1544,17 +1577,9 @@
     const TEAL_RGB = [24, 79, 82];
     const ORANGE_RGB = [242, 140, 40];
 
-    // Huippu seuraa dataa pehmeästi, mutta jätetään molemmille reunoille aina
-    // tilaa feidata täysin tealiin kuten hyväksytyssä edellisessä versiossa.
-    const peakInsetCents = Math.min(
-      HEAT_PEAK_INSET_CENTS,
-      Math.max(HEAT_BIN_STEP_CENTS, visitedWidthCents / 2 - 0.001)
-    );
-    const minPeakCents = visitedMinEdge + peakInsetCents;
-    const maxPeakCents = visitedMaxEdge - peakInsetCents;
-    const visiblePeakCents = minPeakCents <= maxPeakCents
-      ? Math.max(minPeakCents, Math.min(maxPeakCents, state.peakCents))
-      : (visitedMinEdge + visitedMaxEdge) / 2;
+    // Orangen huippu on täsmälleen sama kohta, jossa sama näkyvä viiva on
+    // viipynyt pisimpään. Sitä ei siirretä visuaalisesti pois todellisesta kohdasta.
+    const visiblePeakCents = Math.max(visitedMinEdge, Math.min(visitedMaxEdge, state.peakCents));
     const peakX = Math.max(0, Math.min(100,
       ((visiblePeakCents - visitedMinEdge) / visitedWidthCents) * 100
     ));
@@ -1646,17 +1671,23 @@
   function renderPitchHeatmap() {
     let totalTime = 0;
     let peakIndex = -1;
-    let peakTime = 0;
+    let peakTime = -1;
     let visitedMinIndex = -1;
     let visitedMaxIndex = -1;
 
+    // Kaikki tulee samasta näkyvän viivan viipymädatasta.
+    // Orange-huippu on se 0,5 c lokero, jonka OMA kumulatiivinen viipymäaika
+    // on suurin. Naapurilokeroiden aikaa ei summata, joten nopeasti laskeva
+    // häntä ei saa ylimääräistä etua kulkiessaan monen lokeron kautta.
     for (let i = 0; i < HEAT_BIN_COUNT; i += 1) {
       const value = heatTimes[i];
       totalTime += value;
+
       if (value > 0) {
         if (visitedMinIndex < 0) visitedMinIndex = i;
         visitedMaxIndex = i;
       }
+
       if (value > peakTime) {
         peakTime = value;
         peakIndex = i;
@@ -1664,6 +1695,7 @@
     }
 
     if (!(totalTime > 0) || peakIndex < 0 || visitedMinIndex < 0 || visitedMaxIndex < 0) {
+      heatPeakCents = null;
       heatVisualTarget = null;
       if (heatVisualRaf) cancelAnimationFrame(heatVisualRaf);
       heatVisualRaf = 0;
@@ -1679,6 +1711,7 @@
     const visitedMinEdge = Math.max(HEAT_MIN_CENTS, visitedMinCenter - halfBin);
     const visitedMaxEdge = Math.min(HEAT_MAX_CENTS, visitedMaxCenter + halfBin);
     const peakCenterCents = HEAT_MIN_CENTS + peakIndex * HEAT_BIN_STEP_CENTS;
+    heatPeakCents = peakCenterCents;
 
     // Mittausdata määrää edelleen täsmälleen saman tavoitteen kuin ennen.
     // Vain näkyvä kerros liukuu kohti sitä omassa 60 fps RAF-animaatiossaan.
@@ -1695,6 +1728,8 @@
     heatTimes.fill(0);
     lastHeatSampleTime = null;
     lastHeatRenderTime = 0;
+    heatPeakCents = null;
+    hidePitchHeatIndicator();
     renderPitchHeatmap();
   }
 
@@ -1793,12 +1828,16 @@
       settleMinCents = null;
       settleMaxCents = null;
       lastHeatSampleTime = null;
+      if (!rangeActive) hidePitchHeatIndicator();
       return;
     }
 
     const now = performance.now();
     const cents = renderedNeedleCents();
     if (!Number.isFinite(cents)) return;
+
+    // Sama ruudulla näkyvä viiva on koko uuden vaakamittarin mittauslähde.
+    showPitchHeatIndicator(cents);
 
     // Älä ota keskeltä varsinaiseen virekohtaan kulkevaa lähtösiirtymää mukaan.
     // Aloita min/max vasta, kun näkyvä viisari on pysynyt 50 ms sellaisessa
@@ -1827,7 +1866,8 @@
       toneMinCents = settledCents;
       toneMaxCents = settledCents;
       initialSettled = true;
-      beginHeatSampling(settledCents, now);
+      // Viipymä alkaa täsmälleen siitä kohdasta, jossa sama näkyvä viiva on nyt.
+      beginHeatSampling(cents, now);
       settleStart = null;
       settleMinCents = null;
       settleMaxCents = null;
@@ -2000,6 +2040,12 @@
     rangeLockedNow = false;
     lastHeatSampleTime = null;
     renderPitchHeatmap();
+    if (Number.isFinite(heatPeakCents)) {
+      // Äänen lopussa viiva hyppää heti pisimmän viipymän kohtaan.
+      showPitchHeatIndicator(heatPeakCents);
+    } else {
+      hidePitchHeatIndicator();
+    }
     cancelAnimationFrame(sampleRaf);
     rangeSawLock = false;
     resetInitialSettle();
