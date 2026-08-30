@@ -681,6 +681,42 @@
     height:320px;
     align-self:center;
   }
+
+
+  /* Edellisen äänen tulosalue. Rajat ovat täsmälleen analogiviisarin
+     updateAnalog()-funktion käyttämät pienin ja suurin clipped-centtiarvo. */
+  .analog-range-overlay {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    z-index:2;
+    overflow:visible;
+  }
+  .analog-range-sector {
+    fill:rgba(53, 116, 171, .20);
+    stroke:rgba(39, 91, 139, .72);
+    stroke-width:2;
+  }
+  .analog-range-line {
+    stroke:rgba(39, 91, 139, .85);
+    stroke-width:4;
+    stroke-linecap:round;
+  }
+
+  .led-result-band {
+    position:absolute;
+    display:none;
+    pointer-events:none;
+    border:2px solid rgba(95, 190, 255, .82);
+    background:rgba(95, 190, 255, .18);
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(95, 190, 255, .42);
+    z-index:2;
+  }
+  .led-column { z-index:3; }
+
 </style>
 </head>
 <body>
@@ -726,6 +762,7 @@
             </div>
 
             <div class="led-frame">
+              <div id="ledResultBand" class="led-result-band" aria-hidden="true"></div>
               <div class="led-center-line"></div>
               <div class="zero-badge">0</div>
               <div id="ledColumn" class="led-column" aria-label="Pystysuuntainen LED-viritysmittari"></div>
@@ -753,6 +790,10 @@
               <div class="analog-tick" style="transform:translateX(-50%) rotate(36deg)"></div>
               <div class="analog-tick" style="transform:translateX(-50%) rotate(48deg)"></div>
               <div class="analog-tick major" style="transform:translateX(-50%) rotate(60deg)"></div>
+              <svg id="analogRangeOverlay" class="analog-range-overlay" aria-hidden="true">
+                <path id="analogRangeSector" class="analog-range-sector" d=""></path>
+                <line id="analogRangeLine" class="analog-range-line" visibility="hidden"></line>
+              </svg>
               <div id="analogNeedle" class="analog-needle"></div>
               <div class="analog-pivot"></div>
             </div>
@@ -1348,12 +1389,20 @@
 <script>
 (() => {
   // Analoginen näkymä on erillinen alkuperäisestä lukitus- ja LED-logiikasta.
-  // Viisari saa raakaa YIN-taajuutta vain omaa −50…+50 centin näyttöään varten.
+  // Tulosalue seuraa requestAnimationFrame-silmukassa viisarin TODELLISTA
+  // ruudulla näkyvää kulmaa CSS-siirtymän jälkeen. Muuta pitch-analyysiä ei tehdä.
   const meterModeButton = document.getElementById("meterModeButton");
   const ledMeter = document.querySelector(".led-meter-wrap");
   const analogMeter = document.getElementById("analogMeter");
+  const analogDial = analogMeter.querySelector(".analog-dial");
   const analogNeedle = document.getElementById("analogNeedle");
   const analogCentReadout = document.getElementById("analogCentReadout");
+  const analogRangeOverlay = document.getElementById("analogRangeOverlay");
+  const analogRangeSector = document.getElementById("analogRangeSector");
+  const analogRangeLine = document.getElementById("analogRangeLine");
+  const ledFrame = document.querySelector(".led-frame");
+  const ledColumn = document.getElementById("ledColumn");
+  const ledResultBand = document.getElementById("ledResultBand");
   const hzEl = document.getElementById("hz");
   const targetHzEl = document.getElementById("targetHz");
   const lockInfoEl = document.getElementById("lockInfo");
@@ -1362,49 +1411,192 @@
   let mode = "led";
   let lastRawHz = null;
 
-  // Näyttöä varten kerätään lukitun äänen vire centeissä.
-  // Varsinainen pitch-, lukitus- ja LED-logiikka säilyy ennallaan.
-  let activeLockText = null;
-  let toneCentSamples = [];
+  // Yhden äänen aikana muistetaan VAIN viisarin pienin ja suurin RUUDULLA NÄKYNYT
+  // centtiasento. Ensimmäinen raakapitch aloittaa keruun jo ennen lukitusta.
+  let rangeActive = false;
+  let rangeSawLock = false;
+  let sampleRaf = 0;
+  let rangeIgnoreUntil = 0;
+  let toneMinCents = null;
+  let toneMaxCents = null;
+  let resultMinCents = null;
+  let resultMaxCents = null;
 
   function currentTargetHz() {
     const value = Number.parseFloat(targetHzEl.textContent);
     return Number.isFinite(value) ? value : null;
   }
 
-  function beginToneAverage(lockText) {
-    activeLockText = lockText;
-    toneCentSamples = [];
+  function clearResultRange() {
+    resultMinCents = null;
+    resultMaxCents = null;
+    analogRangeSector.setAttribute("d", "");
+    analogRangeLine.setAttribute("visibility", "hidden");
+    ledResultBand.style.display = "none";
   }
 
-  function finishToneAverage() {
-    if (!activeLockText || !toneCentSamples.length) {
-      activeLockText = null;
-      toneCentSamples = [];
+  function renderedNeedleAngle() {
+    const transform = getComputedStyle(analogNeedle).transform;
+    if (!transform || transform === "none") return 0;
+
+    if (transform.startsWith("matrix3d(")) {
+      const v = transform.slice(9, -1).split(",").map(Number);
+      if (v.length === 16 && v.every(Number.isFinite)) {
+        return Math.atan2(v[1], v[0]) * 180 / Math.PI;
+      }
+    }
+
+    if (transform.startsWith("matrix(")) {
+      const v = transform.slice(7, -1).split(",").map(Number);
+      if (v.length === 6 && v.every(Number.isFinite)) {
+        return Math.atan2(v[1], v[0]) * 180 / Math.PI;
+      }
+    }
+    return 0;
+  }
+
+  function renderedNeedleCents() {
+    const angle = Math.max(-60, Math.min(60, renderedNeedleAngle()));
+    return (angle / 60) * 50;
+  }
+
+  function rememberVisibleNeedlePosition() {
+    if (!rangeActive) return;
+    // Älä kirjaa lepokeskuksesta lähtevää 90 ms CSS-siirtymää tulosalueeseen.
+    // Keruu alkaa vasta kun ensimmäisen liikkeen alusta on kulunut hieman yli
+    // viisarin transition-ajan. Sen jälkeen talteen menee vain ruudulla näkyvä min/max.
+    if (performance.now() < rangeIgnoreUntil) return;
+    const cents = renderedNeedleCents();
+    if (!Number.isFinite(cents)) return;
+    if (toneMinCents === null || cents < toneMinCents) toneMinCents = cents;
+    if (toneMaxCents === null || cents > toneMaxCents) toneMaxCents = cents;
+  }
+
+  function sampleVisibleNeedle() {
+    if (!rangeActive) return;
+    rememberVisibleNeedlePosition();
+    sampleRaf = requestAnimationFrame(sampleVisibleNeedle);
+  }
+
+  function beginNeedleRange() {
+    rangeActive = true;
+    rangeSawLock = false;
+    rangeIgnoreUntil = performance.now() + 100;
+    toneMinCents = null;
+    toneMaxCents = null;
+    clearResultRange();
+    cancelAnimationFrame(sampleRaf);
+    sampleVisibleNeedle();
+  }
+
+  function polarPoint(cx, cy, radius, degrees) {
+    const rad = degrees * Math.PI / 180;
+    return {
+      x: cx + radius * Math.sin(rad),
+      y: cy - radius * Math.cos(rad)
+    };
+  }
+
+  function drawAnalogRange(minCents, maxCents) {
+    const width = analogDial.clientWidth || 290;
+    const height = analogDial.clientHeight || 210;
+    analogRangeOverlay.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const cx = width / 2;
+    const cy = height - 18;
+    const outerR = Math.min(138, height - 54);
+    const innerR = Math.max(88, outerR - 24);
+    const minAngle = (Math.max(-50, Math.min(50, minCents)) / 50) * 60;
+    const maxAngle = (Math.max(-50, Math.min(50, maxCents)) / 50) * 60;
+
+    if (Math.abs(maxAngle - minAngle) < 0.8) {
+      const angle = (minAngle + maxAngle) / 2;
+      const a = polarPoint(cx, cy, innerR, angle);
+      const b = polarPoint(cx, cy, outerR, angle);
+      analogRangeSector.setAttribute("d", "");
+      analogRangeLine.setAttribute("x1", a.x.toFixed(2));
+      analogRangeLine.setAttribute("y1", a.y.toFixed(2));
+      analogRangeLine.setAttribute("x2", b.x.toFixed(2));
+      analogRangeLine.setAttribute("y2", b.y.toFixed(2));
+      analogRangeLine.setAttribute("visibility", "visible");
       return;
     }
 
-    // Jos havaintoja on riittävästi, jätetään aivan alun ja lopun kaksi
-    // näytettä pois. Näin äänen aluke/loppuhäntä ei painota tulosta.
-    const samples = toneCentSamples.length >= 9
-      ? toneCentSamples.slice(2, -2)
-      : [...toneCentSamples];
+    analogRangeLine.setAttribute("visibility", "hidden");
+    const p1 = polarPoint(cx, cy, outerR, minAngle);
+    const p2 = polarPoint(cx, cy, outerR, maxAngle);
+    const p3 = polarPoint(cx, cy, innerR, maxAngle);
+    const p4 = polarPoint(cx, cy, innerR, minAngle);
+    analogRangeSector.setAttribute("d", [
+      `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`,
+      `A ${outerR} ${outerR} 0 0 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`,
+      `L ${p3.x.toFixed(2)} ${p3.y.toFixed(2)}`,
+      `A ${innerR} ${innerR} 0 0 0 ${p4.x.toFixed(2)} ${p4.y.toFixed(2)}`,
+      "Z"
+    ].join(" "));
+  }
 
-    const averageCents = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+  function drawLedRange(minCents, maxCents) {
+    const segs = [...ledColumn.children];
+    if (segs.length < 2) return;
+
+    const frameRect = ledFrame.getBoundingClientRect();
+    const first = segs[0].getBoundingClientRect();
+    const last = segs[segs.length - 1].getBoundingClientRect();
+    const topCenter = first.top + first.height / 2 - frameRect.top;
+    const bottomCenter = last.top + last.height / 2 - frameRect.top;
+    const yForCents = cents =>
+      topCenter + ((50 - Math.max(-50, Math.min(50, cents))) / 100) * (bottomCenter - topCenter);
+
+    const y1 = yForCents(maxCents);
+    const y2 = yForCents(minCents);
+    const top = Math.min(y1, y2);
+    const bottom = Math.max(y1, y2);
+    const height = Math.max(8, bottom - top);
+    const center = (top + bottom) / 2;
+    const colRect = ledColumn.getBoundingClientRect();
+
+    ledResultBand.style.left = `${colRect.left - frameRect.left}px`;
+    ledResultBand.style.width = `${colRect.width}px`;
+    ledResultBand.style.top = `${center - height / 2}px`;
+    ledResultBand.style.height = `${height}px`;
+    ledResultBand.style.display = "block";
+  }
+
+  function drawResultRange() {
+    if (!Number.isFinite(resultMinCents) || !Number.isFinite(resultMaxCents)) return;
+    drawAnalogRange(resultMinCents, resultMaxCents);
+    drawLedRange(resultMinCents, resultMaxCents);
+  }
+
+  function finishNeedleRange() {
+    // Ota mukaan vielä viimeinen RUUDULLA NÄKYVÄ viisariasento ennen palautusta.
+    rememberVisibleNeedlePosition();
+    const shouldKeep = rangeSawLock && Number.isFinite(toneMinCents) && Number.isFinite(toneMaxCents);
+
+    rangeActive = false; // Nollaan palautumista ei kirjata alueeseen.
+    cancelAnimationFrame(sampleRaf);
+    rangeSawLock = false;
+    rangeIgnoreUntil = 0;
+
+    if (shouldKeep) {
+      resultMinCents = Math.min(toneMinCents, toneMaxCents);
+      resultMaxCents = Math.max(toneMinCents, toneMaxCents);
+    }
+
+    toneMinCents = null;
+    toneMaxCents = null;
+
+    // Äänen loputtua varsinaiset mittarit keskelle. Tulosalue jää erikseen näkyviin.
     const targetHz = currentTargetHz();
+    analogNeedle.style.transform = "translateX(-50%) rotate(0deg)";
+    analogCentReadout.textContent = "0";
+    if (Number.isFinite(targetHz) && targetHz > 0) {
+      lastRawHz = targetHz;
+      hzEl.textContent = String(targetHz);
+    }
 
-    activeLockText = null;
-    toneCentSamples = [];
-
-    if (!Number.isFinite(averageCents) || !Number.isFinite(targetHz) || targetHz <= 0) return;
-
-    // Muunnetaan keskimääräinen centtiarvo takaisin Hz-arvoksi vain näyttöä varten.
-    // Tämän kirjoittaminen hz-elementtiin päivittää olemassa olevan LED-mittarin
-    // ilman että sen omaa logiikkaa tarvitsee muuttaa.
-    const averageHz = targetHz * Math.pow(2, averageCents / 1200);
-    lastRawHz = averageHz;
-    hzEl.textContent = averageHz.toFixed(3);
-    updateAnalog();
+    if (shouldKeep) requestAnimationFrame(drawResultRange);
   }
 
   function updateAnalog() {
@@ -1423,6 +1615,8 @@
     const angle = (clipped / 50) * 60;
     const rounded = Math.round(cents);
 
+    // Viisaria käsketään edelleen täsmälleen kuten ennen. Tulosalue EI tallenna
+    // tätä tavoitearvoa, vaan selaimen oikeasti ruudulla näyttämää kulmaa RAF-seurannassa.
     analogNeedle.style.transform = `translateX(-50%) rotate(${angle.toFixed(2)}deg)`;
     analogCentReadout.textContent = `${rounded > 0 ? "+" : ""}${rounded}`;
   }
@@ -1444,39 +1638,35 @@
   window.addEventListener("tunerrawpitch", (event) => {
     const hz = Number(event.detail?.hz);
     if (!Number.isFinite(hz) || hz <= 0) return;
+
+    // Keruu alkaa ensimmäisestä samasta raakadatasta, joka saa viisarin liikkeelle.
+    if (!rangeActive) beginNeedleRange();
     lastRawHz = hz;
     updateAnalog();
-  });
-
-  // Keskiarvoon otetaan vain alkuperäisen lukituslogiikan hyväksymät
-  // raakataajuudet. Analoginen viisari saa edelleen kaiken raakadatan, mutta
-  // loppuhännän hylätyt mittaukset eivät voi vetää lopputulosta ääriasentoon.
-  window.addEventListener("tuneracceptedpitch", (event) => {
-    const hz = Number(event.detail?.hz);
-    if (!Number.isFinite(hz) || hz <= 0 || !activeLockText) return;
-
-    const targetHz = currentTargetHz();
-    if (!Number.isFinite(targetHz) || targetHz <= 0) return;
-
-    const cents = 1200 * Math.log2(hz / targetHz);
-    if (Number.isFinite(cents) && Math.abs(cents) <= 75) {
-      toneCentSamples.push(cents);
-    }
   });
 
   const lockObserver = new MutationObserver(() => {
     const text = lockInfoEl.textContent.trim();
 
     if (text.startsWith("Lukitus")) {
-      // Aloita uusi keskiarvo vain kun lukitus todella vaihtuu. Sama teksti
-      // kirjoitetaan normaalissa seurannassa monta kertaa.
-      if (text !== activeLockText) beginToneAverage(text);
+      rangeSawLock = true;
       return;
     }
 
-    // 0 ms -vapautuksessa resetAll(true) tyhjentää lockInfo-kentän heti
-    // äänen loputtua. Juuri silloin jätetään mittarit äänen keskiarvoon.
-    if (text === "" && activeLockText) finishToneAverage();
+    // 0 ms -vapautuksessa lukitun äänen loppu tyhjentää lockInfo-kentän.
+    // Lopetetaan keruu ENNEN viisarin palauttamista nollaan.
+    if (text === "" && rangeActive) {
+      if (rangeSawLock) {
+        finishNeedleRange();
+      } else {
+        // Jos ääni ei koskaan lukittunut, hylätään sen min/max eikä anneta
+        // sen sotkea seuraavan oikean sävelen aluetta.
+        rangeActive = false;
+        rangeIgnoreUntil = 0;
+        toneMinCents = null;
+        toneMaxCents = null;
+      }
+    }
   });
   lockObserver.observe(lockInfoEl, { childList:true, characterData:true, subtree:true });
 
@@ -1486,8 +1676,15 @@
   });
   hzObserver.observe(hzEl, { childList:true, characterData:true, subtree:true });
 
-  const targetObserver = new MutationObserver(updateAnalog);
+  const targetObserver = new MutationObserver(() => {
+    clearResultRange();
+    updateAnalog();
+  });
   targetObserver.observe(targetHzEl, { childList:true, characterData:true, subtree:true });
+
+  window.addEventListener("resize", () => {
+    if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) drawResultRange();
+  });
 
   renderMode();
 })();
