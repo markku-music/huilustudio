@@ -1320,11 +1320,19 @@
   let rangeSawLock = false;
   let rangeLockedNow = false;
   let sampleRaf = 0;
-  let rangeIgnoreUntil = Infinity;
   let toneMinCents = null;
   let toneMaxCents = null;
   let resultMinCents = null;
   let resultMaxCents = null;
+
+  // Lukituksen jälkeen tulosalue ei ala kellon perusteella, vaan vasta kun
+  // näkyvä viisari on oikeasti asettunut lähtökohtaansa.
+  const INITIAL_SETTLE_MS = 50;
+  const INITIAL_SETTLE_SPAN_CENTS = 0.75;
+  let initialSettled = false;
+  let settleStart = null;
+  let settleMinCents = null;
+  let settleMaxCents = null;
 
   // Uusi ääripiste hyväksytään vasta, kun viisari on pysynyt nykyisen
   // vahvistetun alueen ulkopuolella vähintään tämän ajan. Näin yksittäinen
@@ -1333,7 +1341,7 @@
   const EXTREME_STABILITY_CENTS = 1.5;
   // Jos min/max-kaaren näkyvä pituus jää tämän alle, käyttäjä näkee
   // viisarin käytännössä yhtenä paikallaan olevana asentona. Näytä silloin viiva.
-  const SINGLE_POSITION_ARC_PX = 12;
+  const SINGLE_POSITION_ARC_PX = 4;
   let minCandidateStart = null;
   let minCandidateValue = null;
   let maxCandidateStart = null;
@@ -1394,27 +1402,56 @@
     maxCandidateValue = null;
   }
 
+  function resetInitialSettle() {
+    initialSettled = false;
+    settleStart = null;
+    settleMinCents = null;
+    settleMaxCents = null;
+  }
+
   function rememberVisibleNeedlePosition() {
     if (!rangeActive || !rangeLockedNow) {
       resetExtremeCandidates();
+      settleStart = null;
+      settleMinCents = null;
+      settleMaxCents = null;
       return;
     }
 
-    // Tulosalue alkaa vasta lukituksen jälkeen. Lukituksen alussa odotetaan
-    // 100 ms, jotta lepokeskuksesta tuleva 90 ms CSS-siirtymä ei päädy min/maxiin.
     const now = performance.now();
-    if (now < rangeIgnoreUntil) {
-      resetExtremeCandidates();
-      return;
-    }
-
     const cents = renderedNeedleCents();
     if (!Number.isFinite(cents)) return;
 
-    // Ensimmäinen oikea näkyvä asento muodostaa lähtöpisteen.
-    if (toneMinCents === null || toneMaxCents === null) {
-      toneMinCents = cents;
-      toneMaxCents = cents;
+    // Älä ota keskeltä varsinaiseen virekohtaan kulkevaa lähtösiirtymää mukaan.
+    // Aloita min/max vasta, kun näkyvä viisari on pysynyt 50 ms sellaisessa
+    // ikkunassa, jonka koko liike on enintään 0,75 c.
+    if (!initialSettled) {
+      if (settleStart === null) {
+        settleStart = now;
+        settleMinCents = cents;
+        settleMaxCents = cents;
+        return;
+      }
+
+      settleMinCents = Math.min(settleMinCents, cents);
+      settleMaxCents = Math.max(settleMaxCents, cents);
+
+      if (settleMaxCents - settleMinCents > INITIAL_SETTLE_SPAN_CENTS) {
+        settleStart = now;
+        settleMinCents = cents;
+        settleMaxCents = cents;
+        return;
+      }
+
+      if (now - settleStart < INITIAL_SETTLE_MS) return;
+
+      const settledCents = (settleMinCents + settleMaxCents) / 2;
+      toneMinCents = settledCents;
+      toneMaxCents = settledCents;
+      initialSettled = true;
+      settleStart = null;
+      settleMinCents = null;
+      settleMaxCents = null;
       resetExtremeCandidates();
       return;
     }
@@ -1474,9 +1511,9 @@
     rangeActive = true;
     rangeSawLock = false;
     rangeLockedNow = false;
-    rangeIgnoreUntil = Infinity;
     toneMinCents = null;
     toneMaxCents = null;
+    resetInitialSettle();
     resetExtremeCandidates();
     clearResultRange();
     cancelAnimationFrame(sampleRaf);
@@ -1579,7 +1616,7 @@
     rangeLockedNow = false;
     cancelAnimationFrame(sampleRaf);
     rangeSawLock = false;
-    rangeIgnoreUntil = Infinity;
+    resetInitialSettle();
 
     if (shouldKeep) {
       resultMinCents = Math.min(toneMinCents, toneMaxCents);
@@ -1643,8 +1680,8 @@
         // Unohdetaan kaikki ennen lukitusta syntynyt liike kokonaan.
         toneMinCents = null;
         toneMaxCents = null;
+        resetInitialSettle();
         resetExtremeCandidates();
-        rangeIgnoreUntil = performance.now() + 100;
       }
       rangeSawLock = true;
       rangeLockedNow = true;
@@ -1662,9 +1699,9 @@
         finishNeedleRange();
       } else {
         rangeActive = false;
-        rangeIgnoreUntil = Infinity;
         toneMinCents = null;
         toneMaxCents = null;
+        resetInitialSettle();
         resetExtremeCandidates();
       }
     }
