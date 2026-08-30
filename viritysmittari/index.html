@@ -1066,7 +1066,7 @@
 
     if (rms < RMS_GATE) {
       if (locked && now - lastSoundTime > SILENCE_RELEASE_MS) {
-        resetAll(false);
+        resetAll(true);
         statusEl.textContent = "Kuuntelen…";
       } else if (!locked) {
         acquireBuffer.length = 0;
@@ -1300,7 +1300,7 @@
     const value = Number(hzEl.textContent);
     if (!Number.isFinite(value)) {
       centValue.textContent = "0";
-      lightSegments(0);
+      clearSegments();
       return;
     }
 
