@@ -1345,14 +1345,55 @@
   const analogCentReadout = document.getElementById("analogCentReadout");
   const hzEl = document.getElementById("hz");
   const targetHzEl = document.getElementById("targetHz");
+  const lockInfoEl = document.getElementById("lockInfo");
   const legend = document.querySelector(".legend");
 
   let mode = "led";
   let lastRawHz = null;
 
+  // Näyttöä varten kerätään lukitun äänen vire centeissä.
+  // Varsinainen pitch-, lukitus- ja LED-logiikka säilyy ennallaan.
+  let activeLockText = null;
+  let toneCentSamples = [];
+
   function currentTargetHz() {
     const value = Number.parseFloat(targetHzEl.textContent);
     return Number.isFinite(value) ? value : null;
+  }
+
+  function beginToneAverage(lockText) {
+    activeLockText = lockText;
+    toneCentSamples = [];
+  }
+
+  function finishToneAverage() {
+    if (!activeLockText || !toneCentSamples.length) {
+      activeLockText = null;
+      toneCentSamples = [];
+      return;
+    }
+
+    // Jos havaintoja on riittävästi, jätetään aivan alun ja lopun kaksi
+    // näytettä pois. Näin äänen aluke/loppuhäntä ei painota tulosta.
+    const samples = toneCentSamples.length >= 9
+      ? toneCentSamples.slice(2, -2)
+      : [...toneCentSamples];
+
+    const averageCents = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    const targetHz = currentTargetHz();
+
+    activeLockText = null;
+    toneCentSamples = [];
+
+    if (!Number.isFinite(averageCents) || !Number.isFinite(targetHz) || targetHz <= 0) return;
+
+    // Muunnetaan keskimääräinen centtiarvo takaisin Hz-arvoksi vain näyttöä varten.
+    // Tämän kirjoittaminen hz-elementtiin päivittää olemassa olevan LED-mittarin
+    // ilman että sen omaa logiikkaa tarvitsee muuttaa.
+    const averageHz = targetHz * Math.pow(2, averageCents / 1200);
+    lastRawHz = averageHz;
+    hzEl.textContent = averageHz.toFixed(3);
+    updateAnalog();
   }
 
   function updateAnalog() {
@@ -1393,8 +1434,38 @@
     const hz = Number(event.detail?.hz);
     if (!Number.isFinite(hz) || hz <= 0) return;
     lastRawHz = hz;
+
+    // Kerää keskiarvoon vain silloin kun sama sävel on oikeasti lukittuna.
+    // ±75 centin raja torjuu uuden sävelen / harmonisen selvästi väärät ehdokkaat,
+    // mutta kattaa koko näkyvän ±50 centin mittarialueen.
+    if (activeLockText && lockInfoEl.textContent.startsWith("Lukitus")) {
+      const targetHz = currentTargetHz();
+      if (Number.isFinite(targetHz) && targetHz > 0) {
+        const cents = 1200 * Math.log2(hz / targetHz);
+        if (Number.isFinite(cents) && Math.abs(cents) <= 75) {
+          toneCentSamples.push(cents);
+        }
+      }
+    }
+
     updateAnalog();
   });
+
+  const lockObserver = new MutationObserver(() => {
+    const text = lockInfoEl.textContent.trim();
+
+    if (text.startsWith("Lukitus")) {
+      // Aloita uusi keskiarvo vain kun lukitus todella vaihtuu. Sama teksti
+      // kirjoitetaan normaalissa seurannassa monta kertaa.
+      if (text !== activeLockText) beginToneAverage(text);
+      return;
+    }
+
+    // 0 ms -vapautuksessa resetAll(true) tyhjentää lockInfo-kentän heti
+    // äänen loputtua. Juuri silloin jätetään mittarit äänen keskiarvoon.
+    if (text === "" && activeLockText) finishToneAverage();
+  });
+  lockObserver.observe(lockInfoEl, { childList:true, characterData:true, subtree:true });
 
   const hzObserver = new MutationObserver(() => {
     if (!Number.isFinite(Number(hzEl.textContent))) lastRawHz = null;
