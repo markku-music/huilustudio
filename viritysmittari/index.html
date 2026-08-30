@@ -1494,6 +1494,9 @@
   const HEAT_TAIL_GAIN = 2.15;
   const HEAT_TAIL_CUTOFF = 0.008;
   const HEAT_EDGE_FADE_CENTS = 2.0;
+  const HEAT_SMOOTH_SIGMA_BINS = 3.0;
+  const HEAT_STRENGTH_GAMMA = 0.9;
+  const HEAT_PEAK_INSET_CENTS = 2.0;
   let lastHeatSampleTime = null;
   let lastHeatRenderTime = 0;
 
@@ -1557,21 +1560,68 @@
     pitchHeatBins.style.right = "auto";
     pitchHeatBins.style.width = `${widthPct.toFixed(4)}%`;
 
-    // Yksi huippu = se sävelkorkeus, jossa ääni vietti eniten aikaa.
-    // Näkyvä pinta on nyt aito väriliuku, ei oranssi alpha-halo tealin päällä:
-    // teal -> orange huipun kohdalla -> teal. Koska overlay on fyysisesti
-    // rajattu käytyyn alueeseen ja sen molemmat reunat ovat samaa tealia kuin
-    // tausta, käydyn alueen rajat sulautuvat täysin näkymättömästi taustaan.
+    // Vain pisimpään viivytty sävelkorkeus määrää oranssin huipun.
+    // Muu viipymädata ei tee sivuhuippuja. Käydyn alueen vasen ja oikea
+    // reuna pysyvät täysin tealeina ja väri feidaa tasaisesti kohti yhtä
+    // 100 % orange-huippua. Vasen ja oikea puoli voivat olla eri mittaiset.
+    const TEAL_RGB = [24, 79, 82];
+    const ORANGE_RGB = [242, 140, 40];
     const peakCenterCents = HEAT_MIN_CENTS + peakIndex * HEAT_BIN_STEP_CENTS;
-    const peakPct = Math.max(
-      0,
-      Math.min(100, ((peakCenterCents - visitedMinEdge) / visitedWidthCents) * 100)
-    );
+    const rawPeakX = Math.max(0, Math.min(100,
+      ((peakCenterCents - visitedMinEdge) / visitedWidthCents) * 100
+    ));
+    // Jos pisin viipymä osuu aivan käydyn alueen reunaan, toiselle puolelle ei
+    // muuten jäisi lainkaan tilaa feidata takaisin tealiin. Siksi näkyvä huippu
+    // pidetään hieman sisempänä, kuitenkin enintään puolet alueen leveydestä.
+    const peakInsetCents = Math.min(HEAT_PEAK_INSET_CENTS, Math.max(HEAT_BIN_STEP_CENTS, visitedWidthCents / 2 - 0.001));
+    const peakInsetPct = (peakInsetCents > 0 && visitedWidthCents > 0)
+      ? (peakInsetCents / visitedWidthCents) * 100
+      : 0;
+    const peakX = Math.max(peakInsetPct, Math.min(100 - peakInsetPct, rawPeakX));
 
-    const TEAL = "#184F52";
-    const ORANGE = "#F28C28";
-    pitchHeatBins.style.background =
-      `linear-gradient(90deg, ${TEAL} 0%, ${ORANGE} ${peakPct.toFixed(2)}%, ${TEAL} 100%)`;
+    const smooth01 = (t) => {
+      const x = Math.max(0, Math.min(1, t));
+      return x * x * x * (x * (x * 6 - 15) + 10);
+    };
+
+    const mixColor = (amount) => {
+      const a = Math.max(0, Math.min(1, amount));
+      const r = Math.round(TEAL_RGB[0] + (ORANGE_RGB[0] - TEAL_RGB[0]) * a);
+      const g = Math.round(TEAL_RGB[1] + (ORANGE_RGB[1] - TEAL_RGB[1]) * a);
+      const b = Math.round(TEAL_RGB[2] + (ORANGE_RGB[2] - TEAL_RGB[2]) * a);
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+
+    const stops = [`${mixColor(0)} 0%`];
+
+    // Tehdään tiheä jatkuva värikartta käydyn alueen sisälle. Intensiteetti
+    // riippuu vain etäisyydestä pisimpään viivytystä kohdasta, joten näkyviin
+    // voi syntyä vain yksi huippu.
+    const VISUAL_STEPS = 120;
+    for (let step = 1; step < VISUAL_STEPS; step += 1) {
+      const x = (step / VISUAL_STEPS) * 100;
+      let amount;
+
+      if (x <= peakX) {
+        const denom = Math.max(0.0001, peakX);
+        amount = smooth01(x / denom);
+      } else {
+        const denom = Math.max(0.0001, 100 - peakX);
+        amount = smooth01((100 - x) / denom);
+      }
+
+      stops.push(`${mixColor(amount)} ${x.toFixed(3)}%`);
+    }
+
+    // Huipun oma stoppi pakottaa pisimpään viivytyn kohdan täsmälleen
+    // puhtaaksi orangeksi myös silloin, kun se osuu askelten väliin.
+    stops.push(`${mixColor(1)} ${peakX.toFixed(3)}%`);
+    stops.push(`${mixColor(0)} 100%`);
+
+    // CSS vaatii stopit kasvavaan järjestykseen. Peak-stoppi lisättiin lopuksi,
+    // joten järjestetään ne prosenttiposition mukaan ennen piirtämistä.
+    stops.sort((a, b) => parseFloat(a.match(/([0-9.]+)%$/)[1]) - parseFloat(b.match(/([0-9.]+)%$/)[1]));
+    pitchHeatBins.style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
   }
 
   function clearPitchHeatmap() {
