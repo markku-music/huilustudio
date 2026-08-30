@@ -637,6 +637,118 @@
   }
   .led-column { z-index:3; }
 
+
+
+  /* KOKEILU: vaakasuora teal/orange-aikajakaumamittari.
+     Vanha LED- ja analoginäkymä jää näkymättömäksi moottorikerrokseksi,
+     jotta hyväksi havaittu asettumis-/lukituslogiikka säilyy ennallaan. */
+  .meter-center {
+    position:relative;
+    min-height:190px;
+  }
+  .pitch-heatmap {
+    width:min(920px, 94vw);
+    display:grid;
+    grid-template-rows:auto auto;
+    gap:12px;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .pitch-heatmap-track {
+    position:relative;
+    height:104px;
+    display:flex;
+    overflow:hidden;
+    border-radius:22px;
+    background:#184F52;
+    border:2px solid rgba(255,255,255,.64);
+    box-shadow:
+      inset 0 0 0 2px rgba(7,35,38,.25),
+      inset 0 -14px 24px rgba(3,31,33,.22),
+      0 12px 28px rgba(0,0,0,.22);
+  }
+  .pitch-heatmap-track::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.13), transparent 35%, rgba(0,0,0,.10));
+  }
+  .pitch-heatmap-bins {
+    position:absolute;
+    inset:0;
+    background:transparent;
+  }
+  .pitch-heatmap-zero {
+    position:absolute;
+    z-index:3;
+    left:50%;
+    top:0;
+    bottom:0;
+    width:2px;
+    transform:translateX(-1px);
+    background:rgba(236,246,244,.88);
+    box-shadow:0 0 7px rgba(236,246,244,.25);
+    pointer-events:none;
+  }
+  .pitch-heatmap-tick {
+    position:absolute;
+    z-index:2;
+    top:0;
+    bottom:0;
+    width:1px;
+    background:rgba(238,246,245,.20);
+    pointer-events:none;
+  }
+  .pitch-heatmap-scale {
+    position:relative;
+    height:28px;
+    color:rgba(255,255,255,.88);
+    font-size:13px;
+    font-weight:650;
+    font-variant-numeric:tabular-nums;
+  }
+  .pitch-heatmap-scale span {
+    position:absolute;
+    top:0;
+    transform:translateX(-50%);
+  }
+  .pitch-heatmap-scale .edge-left { transform:none; }
+  .pitch-heatmap-scale .edge-right { transform:translateX(-100%); }
+  .pitch-heatmap-hint {
+    position:absolute;
+    z-index:4;
+    left:50%;
+    bottom:8px;
+    transform:translateX(-50%);
+    padding:3px 8px;
+    border-radius:999px;
+    background:rgba(8,32,34,.38);
+    color:rgba(255,255,255,.62);
+    font-size:11px;
+    letter-spacing:.02em;
+    pointer-events:none;
+    opacity:.82;
+  }
+
+  /* Moottorikerrokset pidetään renderöityvinä, mutta pois näkyvästä layoutista.
+     Analogiviisarin CSS-transition tarvitaan edelleen taustalla. */
+  .meter-center > .led-meter-wrap,
+  .meter-center > .analog-meter-wrap {
+    position:absolute !important;
+    left:-10000px !important;
+    top:0 !important;
+    opacity:0 !important;
+    pointer-events:none !important;
+  }
+
+  @media(max-width:760px) {
+    .meter-center { min-height:165px; }
+    .pitch-heatmap { width:min(94vw, 680px); }
+    .pitch-heatmap-track { height:88px; border-radius:18px; }
+  }
+
 </style>
 </head>
 <body>
@@ -665,6 +777,23 @@
         </div>
 
         <div class="meter-center">
+          <div id="pitchHeatmap" class="pitch-heatmap" aria-label="Vaakasuuntainen virityksen aikajakauma, miinus 50 sentistä plus 50 senttiin" title="Klikkaa mittaria nollataksesi tuloksen">
+            <div class="pitch-heatmap-track">
+              <div id="pitchHeatBins" class="pitch-heatmap-bins" aria-hidden="true"></div>
+              <div class="pitch-heatmap-tick" style="left:25%"></div>
+              <div class="pitch-heatmap-zero"></div>
+              <div class="pitch-heatmap-tick" style="left:75%"></div>
+              <div class="pitch-heatmap-hint">teal = ei käyty · orange = viipymisaika</div>
+            </div>
+            <div class="pitch-heatmap-scale" aria-hidden="true">
+              <span class="edge-left" style="left:0%">−50</span>
+              <span style="left:25%">−25</span>
+              <span style="left:50%">0</span>
+              <span style="left:75%">+25</span>
+              <span class="edge-right" style="left:100%">+50</span>
+            </div>
+          </div>
+
           <div class="led-meter-wrap">
             <div class="scale left">
               <span style="top:0%;">+50</span>
@@ -1312,6 +1441,8 @@
   const hzEl = document.getElementById("hz");
   const targetHzEl = document.getElementById("targetHz");
   const lockInfoEl = document.getElementById("lockInfo");
+  const pitchHeatmap = document.getElementById("pitchHeatmap");
+  const pitchHeatBins = document.getElementById("pitchHeatBins");
   let lastRawHz = null;
 
   // Yhden äänen aikana muistetaan VAIN viisarin pienin ja suurin RUUDULLA NÄKYNYT
@@ -1347,9 +1478,138 @@
   let maxCandidateStart = null;
   let maxCandidateValue = null;
 
+  // Uusi vaakamittari: 201 puolen centin lokeroa (-50 ... +50).
+  // Arvo on aika millisekunteina, jonka HYVÄKSYTTY, asettumisen jälkeinen
+  // näkyvä viisari on viettänyt kyseisessä lokerossa.
+  const HEAT_MIN_CENTS = -50;
+  const HEAT_MAX_CENTS = 50;
+  const HEAT_BIN_STEP_CENTS = 0.5;
+  const HEAT_BIN_COUNT = 201;
+  const HEAT_RENDER_INTERVAL_MS = 45;
+  const heatTimes = new Float64Array(HEAT_BIN_COUNT);
+  // Yhden huipun visualisointi. Mittausdata pysyy sellaisenaan, mutta näkyvä
+  // pinta pakotetaan unimodaaliseksi: yksi hallitseva huippu ja erikseen
+  // datasta johdetut vasen/oikea häntä.
+  const HEAT_MIN_SIGMA_CENTS = 0.38;
+  const HEAT_TAIL_GAIN = 2.15;
+  const HEAT_TAIL_CUTOFF = 0.008;
+  const HEAT_EDGE_FADE_CENTS = 2.0;
+  let lastHeatSampleTime = null;
+  let lastHeatRenderTime = 0;
+
   function currentTargetHz() {
     const value = Number.parseFloat(targetHzEl.textContent);
     return Number.isFinite(value) ? value : null;
+  }
+
+  function createHeatBins() {
+    // Näkyvä pinta piirretään yhtenä jatkuvana gradienttina.
+    // Varsinainen viipymisdata säilyy edelleen 0,5 centin lokeroissa.
+    pitchHeatBins.replaceChildren();
+    pitchHeatBins.style.left = "0%";
+    pitchHeatBins.style.right = "auto";
+    pitchHeatBins.style.width = "100%";
+    pitchHeatBins.style.background = "transparent";
+  }
+
+  function renderPitchHeatmap() {
+    let totalTime = 0;
+    let peakIndex = -1;
+    let peakTime = 0;
+    let visitedMinIndex = -1;
+    let visitedMaxIndex = -1;
+
+    for (let i = 0; i < HEAT_BIN_COUNT; i += 1) {
+      const value = heatTimes[i];
+      totalTime += value;
+      if (value > 0) {
+        if (visitedMinIndex < 0) visitedMinIndex = i;
+        visitedMaxIndex = i;
+      }
+      if (value > peakTime) {
+        peakTime = value;
+        peakIndex = i;
+      }
+    }
+
+    if (!(totalTime > 0) || peakIndex < 0 || visitedMinIndex < 0 || visitedMaxIndex < 0) {
+      pitchHeatBins.style.left = "0%";
+      pitchHeatBins.style.right = "auto";
+      pitchHeatBins.style.width = "100%";
+      pitchHeatBins.style.background = "transparent";
+      return;
+    }
+
+    // Oranssi kerros rajataan FYYSISESTI ensimmäisen ja viimeisen oikeasti
+    // käydyn 0,5 centin lokeron reunoihin. Tämän ulkopuolelle gradientti ei
+    // voi vuotaa edes selaimen lineaarisen interpoloinnin vuoksi.
+    const halfBin = HEAT_BIN_STEP_CENTS / 2;
+    const visitedMinCenter = HEAT_MIN_CENTS + visitedMinIndex * HEAT_BIN_STEP_CENTS;
+    const visitedMaxCenter = HEAT_MIN_CENTS + visitedMaxIndex * HEAT_BIN_STEP_CENTS;
+    const visitedMinEdge = Math.max(HEAT_MIN_CENTS, visitedMinCenter - halfBin);
+    const visitedMaxEdge = Math.min(HEAT_MAX_CENTS, visitedMaxCenter + halfBin);
+    const visitedWidthCents = Math.max(HEAT_BIN_STEP_CENTS / 2, visitedMaxEdge - visitedMinEdge);
+    const fullWidthCents = HEAT_MAX_CENTS - HEAT_MIN_CENTS;
+    const leftPct = ((visitedMinEdge - HEAT_MIN_CENTS) / fullWidthCents) * 100;
+    const widthPct = (visitedWidthCents / fullWidthCents) * 100;
+
+    pitchHeatBins.style.left = `${leftPct.toFixed(4)}%`;
+    pitchHeatBins.style.right = "auto";
+    pitchHeatBins.style.width = `${widthPct.toFixed(4)}%`;
+
+    // Yksi huippu = se sävelkorkeus, jossa ääni vietti eniten aikaa.
+    // Näkyvä pinta on nyt aito väriliuku, ei oranssi alpha-halo tealin päällä:
+    // teal -> orange huipun kohdalla -> teal. Koska overlay on fyysisesti
+    // rajattu käytyyn alueeseen ja sen molemmat reunat ovat samaa tealia kuin
+    // tausta, käydyn alueen rajat sulautuvat täysin näkymättömästi taustaan.
+    const peakCenterCents = HEAT_MIN_CENTS + peakIndex * HEAT_BIN_STEP_CENTS;
+    const peakPct = Math.max(
+      0,
+      Math.min(100, ((peakCenterCents - visitedMinEdge) / visitedWidthCents) * 100)
+    );
+
+    const TEAL = "#184F52";
+    const ORANGE = "#F28C28";
+    pitchHeatBins.style.background =
+      `linear-gradient(90deg, ${TEAL} 0%, ${ORANGE} ${peakPct.toFixed(2)}%, ${TEAL} 100%)`;
+  }
+
+  function clearPitchHeatmap() {
+    heatTimes.fill(0);
+    lastHeatSampleTime = null;
+    lastHeatRenderTime = 0;
+    renderPitchHeatmap();
+  }
+
+  function heatBinIndex(cents) {
+    const clipped = Math.max(HEAT_MIN_CENTS, Math.min(HEAT_MAX_CENTS, cents));
+    return Math.max(0, Math.min(HEAT_BIN_COUNT - 1, Math.round((clipped - HEAT_MIN_CENTS) / HEAT_BIN_STEP_CENTS)));
+  }
+
+  function beginHeatSampling(cents, now) {
+    lastHeatSampleTime = now;
+    const index = heatBinIndex(cents);
+    // Lyhyt siemen tekee jo täysin vakaasta lyhyestä äänestä näkyvän viivan.
+    heatTimes[index] += 1;
+    renderPitchHeatmap();
+    lastHeatRenderTime = now;
+  }
+
+  function recordHeatSample(cents, now) {
+    if (!Number.isFinite(cents)) return;
+    if (lastHeatSampleTime === null) {
+      lastHeatSampleTime = now;
+      return;
+    }
+    // RAF voi selaimen taustalla pysähtyä pitkäksi aikaa. Älä kirjaa taukoa äänen viipymisajaksi.
+    const elapsed = Math.max(0, Math.min(50, now - lastHeatSampleTime));
+    lastHeatSampleTime = now;
+    heatTimes[heatBinIndex(cents)] += elapsed;
+
+    if (now - lastHeatRenderTime >= HEAT_RENDER_INTERVAL_MS) {
+      renderPitchHeatmap();
+      lastHeatRenderTime = now;
+    }
   }
 
   function clearResultRange() {
@@ -1415,6 +1675,7 @@
       settleStart = null;
       settleMinCents = null;
       settleMaxCents = null;
+      lastHeatSampleTime = null;
       return;
     }
 
@@ -1449,12 +1710,17 @@
       toneMinCents = settledCents;
       toneMaxCents = settledCents;
       initialSettled = true;
+      beginHeatSampling(settledCents, now);
       settleStart = null;
       settleMinCents = null;
       settleMaxCents = null;
       resetExtremeCandidates();
       return;
     }
+
+    // Vaakajakauma käyttää täsmälleen samaa hyväksyttyä, asettunutta
+    // näkyvän viisarin paikkaa, mutta tallentaa min/maxin sijasta VIIPYMISAIKAA.
+    recordHeatSample(cents, now);
 
     // Uusi minimi hyväksytään vasta, jos viisari pysyy uuden ääripään
     // tuntumassa vähintään 50 ms. Jos se käy vain yhden ruudun kaukana ja
@@ -1516,6 +1782,7 @@
     resetInitialSettle();
     resetExtremeCandidates();
     clearResultRange();
+    clearPitchHeatmap();
     cancelAnimationFrame(sampleRaf);
     sampleVisibleNeedle();
   }
@@ -1614,6 +1881,8 @@
 
     rangeActive = false; // Nollaan palautumista ei kirjata alueeseen.
     rangeLockedNow = false;
+    lastHeatSampleTime = null;
+    renderPitchHeatmap();
     cancelAnimationFrame(sampleRaf);
     rangeSawLock = false;
     resetInitialSettle();
@@ -1701,6 +1970,7 @@
         rangeActive = false;
         toneMinCents = null;
         toneMaxCents = null;
+        clearPitchHeatmap();
         resetInitialSettle();
         resetExtremeCandidates();
       }
@@ -1716,6 +1986,7 @@
 
   const targetObserver = new MutationObserver(() => {
     clearResultRange();
+    clearPitchHeatmap();
     updateAnalog();
   });
   targetObserver.observe(targetHzEl, { childList:true, characterData:true, subtree:true });
@@ -1723,11 +1994,17 @@
   function resetResultRangeByClick(event) {
     event.stopPropagation();
     clearResultRange();
+    clearPitchHeatmap();
   }
 
-  // Koko mittarin näyttöalue resetoi edellisen tulosalueen.
+  // Uudessa konseptissa näkyvän vaakamittarin klikkaus nollaa tuloksen.
+  pitchHeatmap.addEventListener("click", resetResultRangeByClick);
+  // Myös taustamoottorien vanhat pinnat säilyttävät saman toiminnon.
   analogMeter.addEventListener("click", resetResultRangeByClick);
   ledFrame.addEventListener("click", resetResultRangeByClick);
+
+  createHeatBins();
+  renderPitchHeatmap();
 
   window.addEventListener("resize", () => {
     if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) drawResultRange();
