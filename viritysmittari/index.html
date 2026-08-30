@@ -1090,7 +1090,18 @@
       if (!locked) {
         tryAcquireLock(integerHz);
       } else {
+        // Keskiarvonäyttöä varten ilmoitetaan erikseen vain sellainen raakadata,
+        // jonka alkuperäinen lukituslogiikka hyväksyy nykyiseen ääneen kuuluvaksi.
+        // Tämä ei muuta lukituksen toimintaa, vaan estää loppuhännän virhearvoja
+        // päätymästä jälkikäteen laskettavaan keskiarvoon.
+        const acceptedForCurrentLock =
+          lockHz !== null && Math.abs(integerHz - lockHz) <= LOCK_TOLERANCE;
+
         processLockedPitch(integerHz);
+
+        if (acceptedForCurrentLock) {
+          window.dispatchEvent(new CustomEvent("tuneracceptedpitch", { detail: { hz: rawHz } }));
+        }
       }
     }
 
@@ -1434,21 +1445,23 @@
     const hz = Number(event.detail?.hz);
     if (!Number.isFinite(hz) || hz <= 0) return;
     lastRawHz = hz;
-
-    // Kerää keskiarvoon vain silloin kun sama sävel on oikeasti lukittuna.
-    // ±75 centin raja torjuu uuden sävelen / harmonisen selvästi väärät ehdokkaat,
-    // mutta kattaa koko näkyvän ±50 centin mittarialueen.
-    if (activeLockText && lockInfoEl.textContent.startsWith("Lukitus")) {
-      const targetHz = currentTargetHz();
-      if (Number.isFinite(targetHz) && targetHz > 0) {
-        const cents = 1200 * Math.log2(hz / targetHz);
-        if (Number.isFinite(cents) && Math.abs(cents) <= 75) {
-          toneCentSamples.push(cents);
-        }
-      }
-    }
-
     updateAnalog();
+  });
+
+  // Keskiarvoon otetaan vain alkuperäisen lukituslogiikan hyväksymät
+  // raakataajuudet. Analoginen viisari saa edelleen kaiken raakadatan, mutta
+  // loppuhännän hylätyt mittaukset eivät voi vetää lopputulosta ääriasentoon.
+  window.addEventListener("tuneracceptedpitch", (event) => {
+    const hz = Number(event.detail?.hz);
+    if (!Number.isFinite(hz) || hz <= 0 || !activeLockText) return;
+
+    const targetHz = currentTargetHz();
+    if (!Number.isFinite(targetHz) || targetHz <= 0) return;
+
+    const cents = 1200 * Math.log2(hz / targetHz);
+    if (Number.isFinite(cents) && Math.abs(cents) <= 75) {
+      toneCentSamples.push(cents);
+    }
   });
 
   const lockObserver = new MutationObserver(() => {
