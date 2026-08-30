@@ -99,3 +99,13 @@ toimimasta projektin avaamisen jalkeen.
 - 32-osista alaspäin ihanneväli ei mene alle 1.60 viivastovälin.
 - VexFlow'n oma törmäyksiä estävä minimigeometria säilyy pohjalla.
 - Muutos on rajattu renderer.js:ään; OSMD-vendor-tiedostoa ei ole muutettu.
+
+0.17.6.37 Dorico-välistyskoe + Swipe yksi valinta
+--------------------------------------------------
+- Nuottiviivaston vaakaswipe käyttää nyt yhtä yhtenäistä X-aluevalintaa.
+- Swipe voidaan aloittaa mistä tahansa saman viivaston alueelta; nuotinpään osumaa ei tarvita.
+- Valintaan tulevat kaikki nuottitapahtumat, joiden vaakakeskipiste osuu vedon alku- ja loppukohdan väliin.
+- Nuotin päältä ja tyhjästä viivastokohdasta aloitettu swipe muodostavat nyt täsmälleen saman valintajoukon.
+- Kelluva nuottityökalupalkki, mukaan lukien palkitustyökalu, saa valinnan aina samasta selectedIds-joukosta.
+- Yksittäisen nuotin napautusvalinta ja kahden tapahtuman jälkeen aktivoituva swipe-lukitus säilyvät ennallaan.
+- Dorico-välistyskoe ja muu nuotinnuslogiikka on jätetty ennalleen.

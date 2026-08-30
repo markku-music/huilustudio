@@ -358,27 +358,23 @@ class ScoreRangeSelection {
         return;
       }
 
-      // Jos kosketus osui heti tapahtumaan, juuri se on ankkuri. Muussa tapauksessa
-      // ankkuri napsahtaa saman viivaston lähimpään tapahtumaan.
-      g.anchorEvent = g.anchorEvent || this.#nearestEventInBand(g.band, g.startX);
-      if (!g.anchorEvent) {
-        this.#restoreSelection(g.previous);
-        this.#gesture = null;
-        return;
-      }
-
+      // Vaakavalinta on yksi yhtenäinen X-aluevalinta riippumatta siitä,
+      // osuiko sormi pointerdownissa nuottiin, varteen vai tyhjään viivaston kohtaan.
+      // Vedon todellinen alku- ja loppu-X määräävät valinnan. Näin nuotinpäähän
+      // osuminen ei muodosta erillistä "toista" swipe-tapaa eikä kontekstityökalujen
+      // näkyvyys riipu siitä, mihin kohtaan viivastoa sormi osui.
       g.state = 'selecting';
+      g.rangeStartX = Math.max(g.band.left, Math.min(g.band.right, g.startX));
       try { this.#viewport.setPointerCapture(ev.pointerId); } catch {}
-      g.endEvent = this.#nearestEventInBand(g.band, ev.clientX) || g.anchorEvent;
-      this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
+      g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
+      this.#selectBetweenX(g.band, g.rangeStartX, g.currentX);
       return;
     }
 
     if (g.state === 'selecting') {
       ev.preventDefault();
       g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
-      g.endEvent = this.#nearestEventInBand(g.band, g.currentX) || g.anchorEvent;
-      this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
+      this.#selectBetweenX(g.band, g.rangeStartX, g.currentX);
     }
   }
 
@@ -393,10 +389,9 @@ class ScoreRangeSelection {
     if (g.state === 'selecting') {
       ev.preventDefault();
       g.currentX = Math.max(g.band.left, Math.min(g.band.right, ev.clientX));
-      g.endEvent = this.#nearestEventInBand(g.band, g.currentX) || g.anchorEvent;
-      this.#selectBetweenEvents(g.band, g.anchorEvent, g.endEvent);
+      this.#selectBetweenX(g.band, g.rangeStartX, g.currentX);
       try { this.#viewport.releasePointerCapture(ev.pointerId); } catch {}
-      // Kohdistin jää näkyviin viimeisen tapahtuman kohdalle sormen noston jälkeenkin.
+      // Kohdistin jää näkyviin vedon loppupäätä lähimmän valitun tapahtuman kohdalle.
     } else if (g.state === 'pending') {
       if (g.initialEvent) {
         // Lyhyt napautus jäi jo pointerdownissa yksittäiseksi valinnaksi.
@@ -516,23 +511,39 @@ class ScoreRangeSelection {
     this.#emitChange();
   }
 
-  #selectBetweenEvents(band, startEvent, endEvent) {
-    if (!startEvent || !endEvent) return;
-    const left = Math.min(startEvent.x, endEvent.x);
-    const right = Math.max(startEvent.x, endEvent.x);
-    const ids = new Set();
+  #selectBetweenX(band, startX, endX) {
+    if (!band || !Number.isFinite(startX) || !Number.isFinite(endX)) return;
 
-    for (const event of this.#events) {
-      if (event.band !== band) continue;
-      if (event.x >= left - 0.5 && event.x <= right + 0.5) ids.add(event.sourceId);
-    }
+    const left = Math.min(startX, endX);
+    const right = Math.max(startX, endX);
+    const events = this.#eventsInBand(band);
+    const selectedEvents = events.filter(event =>
+      event.x >= left - 0.5 && event.x <= right + 0.5
+    );
+    const ids = new Set(selectedEvents.map(event => event.sourceId));
+
     this.#selectedIds = ids;
     if (this.#gesture && ids.size >= 2) {
       this.#gesture.selectionLocked = true;
       this.#viewport.classList.add('pk-selection-gesture-locked');
     }
+
     this.#paint();
-    this.#showCursor(band, endEvent);
+
+    if (selectedEvents.length) {
+      // Kohdistin seuraa vedon loppupäätä lähinnä olevaa valittua tapahtumaa.
+      // Tämä antaa selectionEditorille aina saman loogisen ankkurin riippumatta
+      // siitä, alkoiko swipe nuotin päältä vai tyhjästä viivastokohdasta.
+      const cursorEvent = selectedEvents.reduce((best, event) =>
+        Math.abs(endX - event.x) < Math.abs(endX - best.x) ? event : best,
+        selectedEvents[0]
+      );
+      this.#showCursor(band, cursorEvent);
+    } else {
+      this.#cursorTarget = null;
+      this.#hideCursor();
+    }
+
     this.#emitChange();
   }
 
