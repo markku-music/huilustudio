@@ -1514,11 +1514,11 @@
   const HEAT_SMOOTH_SIGMA_BINS = 3.0;
   const HEAT_STRENGTH_GAMMA = 0.9;
   const HEAT_PEAK_INSET_CENTS = 2.0;
-  // Huippu valitaan yksittäisen 0,5 c lokeron sijasta lähialueen
-  // yhteenlasketun viipymäajan perusteella. Näin pitkä hieman elävä sävel
-  // voittaa lyhyen, yhteen lokeroon tiiviisti osuvan loppuheilahduksen.
+  // Huippu perustuu yksittäisen 0,5 c lokeron omaan kumulatiiviseen aikaan.
+  // Live-näkymässä huipun vaihto vaatii lisäksi 100 ms selvän johtoaseman.
   const HEAT_VISUAL_TAU_MS = 400;
   const HEAT_VISUAL_EPS_CENTS = 0.01;
+  const HEAT_PEAK_SWITCH_MARGIN_MS = 100;
   let lastHeatSampleTime = null;
   let lastHeatRenderTime = 0;
   let heatVisualTarget = null;
@@ -1526,6 +1526,7 @@
   let heatVisualRaf = 0;
   let heatVisualLastFrame = null;
   let heatPeakCents = null;
+  let heatLivePeakIndex = -1;
 
   function currentTargetHz() {
     const value = Number.parseFloat(targetHzEl.textContent);
@@ -1681,7 +1682,7 @@
     }
   }
 
-  function renderPitchHeatmap() {
+  function renderPitchHeatmap(finalizePeak = false) {
     let totalTime = 0;
     let peakIndex = -1;
     let peakTime = -1;
@@ -1689,9 +1690,8 @@
     let visitedMaxIndex = -1;
 
     // Kaikki tulee samasta näkyvän viivan viipymädatasta.
-    // Orange-huippu on se 0,5 c lokero, jonka OMA kumulatiivinen viipymäaika
-    // on suurin. Naapurilokeroiden aikaa ei summata, joten nopeasti laskeva
-    // häntä ei saa ylimääräistä etua kulkiessaan monen lokeron kautta.
+    // Raaka voittaja on se 0,5 c lokero, jonka OMA kumulatiivinen viipymäaika
+    // on suurin. Naapurilokeroiden aikaa ei summata.
     for (let i = 0; i < HEAT_BIN_COUNT; i += 1) {
       const value = heatTimes[i];
       totalTime += value;
@@ -1709,6 +1709,7 @@
 
     if (!(totalTime > 0) || peakIndex < 0 || visitedMinIndex < 0 || visitedMaxIndex < 0) {
       heatPeakCents = null;
+      heatLivePeakIndex = -1;
       heatVisualTarget = null;
       if (heatVisualRaf) cancelAnimationFrame(heatVisualRaf);
       heatVisualRaf = 0;
@@ -1718,16 +1719,31 @@
       return;
     }
 
+    // Live-vaiheessa pidä nykyinen orange-huippu paikallaan, kunnes jokin
+    // toinen lokero johtaa sitä vähintään 100 ms. Tämä ei muuta heatTimes-dataa,
+    // vaan vakauttaa vain näkyvän huipun valintaa. Äänen lopussa finalizePeak=true
+    // ohittaa marginaalin ja käyttää aina todellista pisimmän viipymän lokeroa.
+    if (finalizePeak || heatLivePeakIndex < 0 || !(heatTimes[heatLivePeakIndex] > 0)) {
+      heatLivePeakIndex = peakIndex;
+    } else if (peakIndex !== heatLivePeakIndex) {
+      const currentPeakTime = heatTimes[heatLivePeakIndex];
+      const challengerTime = heatTimes[peakIndex];
+      if (challengerTime > currentPeakTime + HEAT_PEAK_SWITCH_MARGIN_MS) {
+        heatLivePeakIndex = peakIndex;
+      }
+    }
+
+    const visiblePeakIndex = finalizePeak ? peakIndex : heatLivePeakIndex;
     const halfBin = HEAT_BIN_STEP_CENTS / 2;
     const visitedMinCenter = HEAT_MIN_CENTS + visitedMinIndex * HEAT_BIN_STEP_CENTS;
     const visitedMaxCenter = HEAT_MIN_CENTS + visitedMaxIndex * HEAT_BIN_STEP_CENTS;
     const visitedMinEdge = Math.max(HEAT_MIN_CENTS, visitedMinCenter - halfBin);
     const visitedMaxEdge = Math.min(HEAT_MAX_CENTS, visitedMaxCenter + halfBin);
-    const peakCenterCents = HEAT_MIN_CENTS + peakIndex * HEAT_BIN_STEP_CENTS;
+    const peakCenterCents = HEAT_MIN_CENTS + visiblePeakIndex * HEAT_BIN_STEP_CENTS;
     heatPeakCents = peakCenterCents;
 
-    // Mittausdata määrää edelleen täsmälleen saman tavoitteen kuin ennen.
-    // Vain näkyvä kerros liukuu kohti sitä omassa 60 fps RAF-animaatiossaan.
+    // Mittausdata määrää reunat täsmälleen kuten ennen. Huipun ainoa uusi
+    // live-vakautus on yllä oleva 100 ms voittomarginaali.
     heatVisualTarget = {
       minEdge: visitedMinEdge,
       maxEdge: visitedMaxEdge,
@@ -1742,6 +1758,7 @@
     lastHeatSampleTime = null;
     lastHeatRenderTime = 0;
     heatPeakCents = null;
+    heatLivePeakIndex = -1;
     hidePitchHeatIndicator();
     renderPitchHeatmap();
   }
@@ -2070,7 +2087,8 @@
     rangeActive = false; // Nollaan palautumista ei kirjata alueeseen.
     rangeLockedNow = false;
     lastHeatSampleTime = null;
-    renderPitchHeatmap();
+    // Äänen lopussa ohita live-vaiheen 100 ms marginaali ja käytä todellista voittajaa.
+    renderPitchHeatmap(true);
     if (Number.isFinite(heatPeakCents)) {
       // Äänen lopussa viiva hyppää heti pisimmän viipymän kohtaan.
       showPitchHeatIndicatorImmediate(heatPeakCents);
