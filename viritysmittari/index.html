@@ -449,12 +449,245 @@
     #noteName { font-size:26px; }
     .statusbox { grid-template-columns:1fr; }
   }
+
+  /* Analoginen mittari: lisätty erillisenä ulkoasukerroksena. */
+  .meter-mode-btn {
+    margin-left:auto;
+  }
+
+  .meter-view-hidden {
+    display:none !important;
+  }
+
+  .analog-meter-wrap {
+    position:relative;
+    width:300px;
+    height:230px;
+    display:grid;
+    place-items:center;
+  }
+
+  .analog-dial {
+    position:relative;
+    width:290px;
+    height:210px;
+    overflow:hidden;
+    border-radius:150px 150px 26px 26px;
+    background:
+      radial-gradient(circle at 50% 100%, rgba(255,255,255,.12) 0 2px, transparent 3px),
+      linear-gradient(180deg, #f8f5e9 0%, #ded7c6 100%);
+    border:2px solid rgba(255,255,255,.72);
+    box-shadow:
+      inset 0 0 0 2px rgba(30,35,40,.18),
+      inset 0 -20px 35px rgba(70,55,30,.12),
+      0 10px 26px rgba(0,0,0,.24);
+  }
+
+  .analog-tick {
+    position:absolute;
+    left:50%;
+    bottom:18px;
+    width:2px;
+    height:150px;
+    transform-origin:50% 100%;
+    pointer-events:none;
+  }
+
+  .analog-tick::before {
+    content:"";
+    position:absolute;
+    top:0;
+    left:50%;
+    width:2px;
+    height:12px;
+    background:#272c31;
+    transform:translateX(-50%);
+    border-radius:2px;
+  }
+
+  .analog-tick.major::before {
+    width:3px;
+    height:18px;
+  }
+
+  .analog-tick.zero::before {
+    background:#2f9f55;
+    height:22px;
+    width:4px;
+  }
+
+  .analog-label {
+    position:absolute;
+    font-size:14px;
+    font-weight:750;
+    color:#22272c;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .analog-label.low { left:34px; bottom:32px; }
+  .analog-label.midlow { left:61px; top:82px; }
+  .analog-label.zero { left:50%; top:24px; transform:translateX(-50%); color:#267c44; font-size:17px; }
+  .analog-label.midhigh { right:61px; top:82px; }
+  .analog-label.high { right:30px; bottom:32px; }
+
+  .analog-caption {
+    position:absolute;
+    left:50%;
+    top:57px;
+    transform:translateX(-50%);
+    font-size:12px;
+    font-weight:750;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:rgba(30,35,40,.58);
+    white-space:nowrap;
+  }
+
+  .analog-low-word,
+  .analog-high-word {
+    position:absolute;
+    bottom:11px;
+    font-size:12px;
+    font-weight:750;
+    color:rgba(30,35,40,.6);
+  }
+  .analog-low-word { left:20px; }
+  .analog-high-word { right:20px; }
+
+  .analog-needle {
+    position:absolute;
+    left:50%;
+    bottom:18px;
+    width:6px;
+    height:138px;
+    transform:translateX(-50%) rotate(0deg);
+    transform-origin:50% 100%;
+    transition:transform 90ms linear;
+    z-index:3;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.28));
+  }
+
+  .analog-needle::before {
+    content:"";
+    position:absolute;
+    inset:0;
+    clip-path:polygon(50% 0, 100% 88%, 65% 100%, 35% 100%, 0 88%);
+    background:linear-gradient(90deg, #a82727 0 46%, #e35b49 47% 100%);
+  }
+
+  .analog-pivot {
+    position:absolute;
+    left:50%;
+    bottom:7px;
+    width:30px;
+    height:30px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:radial-gradient(circle at 38% 34%, #f5f7f8 0 16%, #8d969d 18% 52%, #353b40 54% 100%);
+    border:2px solid rgba(20,25,30,.45);
+    box-shadow:0 3px 8px rgba(0,0,0,.35);
+    z-index:4;
+  }
+
+  .analog-cent-readout {
+    position:absolute;
+    left:50%;
+    bottom:48px;
+    transform:translateX(-50%);
+    min-width:78px;
+    text-align:center;
+    padding:5px 10px;
+    border-radius:999px;
+    background:rgba(248,245,233,.92);
+    border:1px solid rgba(30,35,40,.2);
+    color:#20252a;
+    font-size:14px;
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    z-index:2;
+  }
+
+  @media(max-width:760px) {
+    .analog-meter-wrap { width:100%; max-width:300px; height:220px; }
+    .analog-dial { width:280px; height:200px; }
+    .meter-mode-btn { margin-left:0; }
+  }
+
+
+  /* Pelkistetty mittarinäkymä: sivulukemat piilossa, mutta DOM säilyy logiikkaa varten. */
+  .meter-shell { grid-template-columns: 1fr; }
+  .side-readout { display: none !important; }
+
+  /* LED-mittarin pelkistetty näkymä: oikean puolen sanalliset selitteet ja väriselite piiloon. */
+  .scale.right { visibility:hidden; }
+  .legend { display:none !important; }
+
+
+  /* Molemmat mittarit samalla sivulla. */
+  .meter-mode-btn { display:none !important; }
+  .meter-center {
+    width:100%;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:44px;
+    flex-wrap:nowrap;
+  }
+  .led-meter-wrap,
+  .led-meter-wrap.meter-view-hidden {
+    display:grid !important;
+    flex:0 0 auto;
+  }
+  .analog-meter-wrap,
+  .analog-meter-wrap.meter-view-hidden {
+    display:grid !important;
+    flex:0 0 auto;
+  }
+
+  @media(max-width:760px) {
+    .meter-center {
+      flex-direction:column;
+      gap:20px;
+    }
+  }
+
+  /* Analogimittarin centtiarvo mittarin alle. */
+  .analog-meter-wrap {
+    height:260px;
+    grid-template-rows:210px auto;
+    align-content:center;
+    row-gap:8px;
+  }
+  .analog-cent-readout {
+    position:static;
+    left:auto;
+    bottom:auto;
+    transform:none;
+    justify-self:center;
+    min-width:78px;
+  }
+  @media(max-width:760px) {
+    .analog-meter-wrap { height:250px; grid-template-rows:200px auto; }
+  }
+  /* LED-asteikon numerot pienemmiksi, jotta ne mahtuvat siististi palkkien kohdalle. */
+  .led-meter-wrap .scale.left { font-size:12px; line-height:1; }
+  .led-meter-wrap .scale.left .zero { font-size:13px; }
+
+  /* LED-asteikko kohdistetaan LED-palkkien keskikohtiin.
+     21 palkkia: 10 px korkeus + 6 px väli => ylimmän ja alimman palkin
+     keskikohtien väli on täsmälleen 320 px. */
+  .led-meter-wrap .scale.left {
+    height:320px;
+    align-self:center;
+  }
 </style>
 </head>
 <body>
 <main class="app" id="app">
   <div class="topbar">
     <button id="worldButton" class="glass" type="button" aria-expanded="false">Maailma: Karkkimaa</button>
+    <button id="meterModeButton" class="glass meter-mode-btn" type="button">Mittari: LED pysty</button>
   </div>
 
   <section id="worldPicker" class="world-picker">
@@ -505,6 +738,27 @@
             </div>
           </div>
 
+
+
+          <div id="analogMeter" class="analog-meter-wrap meter-view-hidden" aria-label="Analoginen viritysmittari">
+            <div class="analog-dial">
+              <div class="analog-tick major" style="transform:translateX(-50%) rotate(-60deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(-48deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(-36deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(-24deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(-12deg)"></div>
+              <div class="analog-tick major zero" style="transform:translateX(-50%) rotate(0deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(12deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(24deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(36deg)"></div>
+              <div class="analog-tick" style="transform:translateX(-50%) rotate(48deg)"></div>
+              <div class="analog-tick major" style="transform:translateX(-50%) rotate(60deg)"></div>
+              <div id="analogNeedle" class="analog-needle"></div>
+              <div class="analog-pivot"></div>
+            </div>
+            <div id="analogCentReadout" class="analog-cent-readout">0</div>
+          </div>
+
           <div class="legend">
             <div class="legend-item"><span class="swatch good"></span> lähellä oikeaa</div>
             <div class="legend-item"><span class="swatch warn"></span> vähän pielessä</div>
@@ -519,7 +773,6 @@
           </div>
           <div class="cent-row" aria-live="polite">
             <span id="centValue">0</span>
-            <span id="centLabel">snt</span>
           </div>
         </div>
       </div>
@@ -563,16 +816,13 @@
 
   const MIN_HZ = 45;
   const MAX_HZ = 3000;
-
-  // Huilulle herkempi Sävelkoju-tyyppinen ääniportti.
-  // -68 dBFS vastaa lineaarisena RMS-arvona noin 0.000398.
-  const INPUT_GATE_DB = -68;
-  const RMS_GATE = Math.pow(10, INPUT_GATE_DB / 20);
-
+  const RMS_GATE = 0.008;
   const YIN_THRESHOLD = 0.12;
 
-  // Ensimmäisen lukituksen Hz-puskuri.
+  // Ensimmäinen lukitus
   const ACQUIRE_WINDOW = 5;
+  const ACQUIRE_REQUIRED = 4;
+  const ACQUIRE_TOLERANCE = 2;
 
   // Nykyisen lukituksen seuranta
   const LOCK_TOLERANCE = 4;
@@ -585,54 +835,13 @@
 
   const SILENCE_RELEASE_MS = 260;
 
-  // Huiluäänen alukkeen YIN-portti.
-  // Mittari ei lukitu pelkän ensimmäisen uskottavan Hz-luvun perusteella, vaan
-  // odottaa että YIN-laatu joko selvästi paranee tai asettuu oman alukkeen
-  // sisällä vakaaksi. Hyvä aluke pääsee läpi heti, rosoinen aluke saa hetken
-  // aikaa järjestyä. Tässä ei ole kiinteää odotusaikaa.
-  const ONSET_HISTORY_SIZE = 10;
-  const ONSET_MIN_SAMPLES = 5;
-  const ONSET_CLUSTER_REQUIRED = 4;
-  const ONSET_TOLERANCE = 2;
-  const ONSET_IMPROVEMENT_RATIO = 0.65;
-  const ONSET_STABLE_MAX_YIN = 0.08;
-  const ONSET_STABLE_MAD_MIN = 0.004;
-  const ONSET_STABLE_MAD_FACTOR = 0.25;
-  const ONSET_QUALITY_CUTOFF_MIN = 0.015;
-  const ONSET_QUALITY_CUTOFF_FACTOR = 2.5;
-
-  // Huilun loppuhännän adaptiivinen YIN-laatusuoja.
-  // Jokaiselle lukitulle äänelle opitaan oma normaali YIN-taso JA sen normaali vaihtelu.
-  // Näin oppilaan luonnostaan epävakaampi/rosoisempi ääni ei laukaise suojaa vain siksi,
-  // että sen YIN-arvot ovat korkeampia kuin puhtaalla synteettisellä äänellä.
-  const YIN_PROFILE_MS = 700;
-  const YIN_PROFILE_MIN_SAMPLES = 12;
-  const YIN_DEGRADE_FACTOR = 2.4;
-  const YIN_DEGRADE_MAD_FACTOR = 6.0;
-  const YIN_DEGRADE_MIN_DELTA = 0.00035;
-  const YIN_TRUST_FACTOR = 1.5;
-  const YIN_TRUST_MAD_FACTOR = 2.5;
-  const YIN_TRUST_MIN_DELTA = 0.00012;
-  const YIN_LEARN_FACTOR = 2.2;
-  const YIN_LEARN_MAD_FACTOR = 4.5;
-  const YIN_LEARN_MIN_DELTA = 0.00025;
-  // Ei pysyvää loppuhännän jäädytystilaa. Jokainen YIN-mittaus arvioidaan
-  // erikseen: luotettava mittaus pääsee heti näyttöön, selvästi hajonnut
-  // mittaus ohitetaan vain kyseisen framien ajan. Seuraava hyvä mittaus
-  // jatkaa mittaria välittömästi. Näin pitkä ääni pysyy elävänä, mutta
-  // loppuhännän virheelliset taajuudet eivät pääse heilauttamaan mittaria.
-
   const acquireBuffer = [];
-  const onsetHistory = [];
   const displayBuffer = [];
   const switchBuffer = [];
 
   let locked = false;
   let lockHz = null;
   let lastSoundTime = 0;
-
-  const yinQualityHistory = [];
-  let lastReliableHz = null;
 
   function rmsOf(buffer) {
     let sum = 0;
@@ -648,73 +857,6 @@
     const a = [...values].sort((x, y) => x - y);
     const mid = Math.floor(a.length / 2);
     return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
-  }
-
-  function dbfsOf(rms) {
-    return 20 * Math.log10(Math.max(rms, 1e-12));
-  }
-
-  function trimTimedHistory(history, now, maxAgeMs) {
-    while (history.length && now - history[0].t > maxAgeMs) {
-      history.shift();
-    }
-  }
-
-  function yinProfile(now) {
-    trimTimedHistory(yinQualityHistory, now, YIN_PROFILE_MS);
-    if (yinQualityHistory.length < YIN_PROFILE_MIN_SAMPLES) return null;
-
-    const values = yinQualityHistory.map(item => item.yin);
-    const center = median(values);
-    const deviations = values.map(value => Math.abs(value - center));
-    const mad = median(deviations) || 0;
-
-    return { center, mad };
-  }
-
-  function yinAdaptiveLimit(profile, factor, madFactor, minDelta) {
-    if (!profile) return null;
-    return Math.max(
-      profile.center * factor,
-      profile.center + profile.mad * madFactor,
-      profile.center + minDelta
-    );
-  }
-
-  function resetTailGuard() {
-    yinQualityHistory.length = 0;
-    lastReliableHz = null;
-  }
-
-  function resetOnsetGate() {
-    onsetHistory.length = 0;
-    acquireBuffer.length = 0;
-  }
-
-  function onsetQualityReady() {
-    if (onsetHistory.length < ONSET_MIN_SAMPLES) return false;
-
-    const recent = onsetHistory.slice(-ONSET_MIN_SAMPLES);
-    const recentYin = recent.map(item => item.yin);
-    const recentCenter = median(recentYin);
-    const recentMad = median(recentYin.map(value => Math.abs(value - recentCenter))) || 0;
-
-    // 1) Laatu on jo itsessään tasainen, vaikka oppilaan ääni olisi rosoisempi.
-    const stable =
-      recentCenter <= ONSET_STABLE_MAX_YIN &&
-      recentMad <= Math.max(ONSET_STABLE_MAD_MIN, recentCenter * ONSET_STABLE_MAD_FACTOR);
-
-    // 2) Tai aluke on selvästi järjestymässä: viimeiset kolme YIN-arvoa ovat
-    // selvästi parempia kuin niitä edeltävät kolme.
-    let improving = false;
-    if (onsetHistory.length >= 6) {
-      const six = onsetHistory.slice(-6);
-      const earlier = median(six.slice(0, 3).map(item => item.yin));
-      const later = median(six.slice(3).map(item => item.yin));
-      improving = later <= earlier * ONSET_IMPROVEMENT_RATIO;
-    }
-
-    return stable || improving;
   }
 
   function bestCluster(values, tolerance) {
@@ -801,23 +943,20 @@
     }
 
     const hz = sampleRate / betterTau;
-    const yinValue = yin[tauEstimate];
 
     return (
       Number.isFinite(hz) &&
-      Number.isFinite(yinValue) &&
       hz >= MIN_HZ &&
       hz <= MAX_HZ
-    ) ? { hz, yinValue } : null;
+    ) ? hz : null;
   }
 
   function resetAll(keepDisplay = false) {
     locked = false;
     lockHz = null;
-    resetOnsetGate();
+    acquireBuffer.length = 0;
     displayBuffer.length = 0;
     switchBuffer.length = 0;
-    resetTailGuard();
     lockInfoEl.textContent = "";
 
     if (!keepDisplay) {
@@ -829,54 +968,32 @@
     lockHz = newHz;
     locked = true;
 
-    resetOnsetGate();
+    acquireBuffer.length = 0;
     displayBuffer.length = 0;
     switchBuffer.length = 0;
 
     displayBuffer.push(newHz);
-    resetTailGuard();
-    lastReliableHz = newHz;
 
     hzEl.textContent = String(newHz);
     statusEl.textContent = "Lukittu";
     lockInfoEl.textContent = `Lukitus ${newHz} Hz`;
   }
 
-  function tryAcquireLock(integerHz, yinValue) {
-    onsetHistory.push({ hz: integerHz, yin: yinValue });
-    if (onsetHistory.length > ONSET_HISTORY_SIZE) {
-      onsetHistory.shift();
+  function tryAcquireLock(integerHz) {
+    acquireBuffer.push(integerHz);
+
+    if (acquireBuffer.length > ACQUIRE_WINDOW) {
+      acquireBuffer.shift();
     }
 
-    statusEl.textContent = "YIN tarkistaa aluketta…";
-
-    if (!onsetQualityReady()) {
-      lockInfoEl.textContent = `${onsetHistory.length}/${ONSET_MIN_SAMPLES}`;
-      return;
-    }
-
-    // Kun YIN-laatu on asettunut, käytetään lukitukseen vain niitä viimeaikaisia
-    // Hz-havaintoja, joiden YIN-laatu kuuluu alukkeen hyvään osaan. Raja on
-    // suhteellinen juuri tämän alukkeen omaan viimeaikaiseen laatuun.
-    const recentYin = onsetHistory.slice(-3).map(item => item.yin);
-    const qualityCenter = median(recentYin);
-    const qualityCutoff = Math.min(
-      YIN_THRESHOLD,
-      Math.max(ONSET_QUALITY_CUTOFF_MIN, qualityCenter * ONSET_QUALITY_CUTOFF_FACTOR)
-    );
-
-    const eligible = onsetHistory
-      .filter(item => item.yin <= qualityCutoff)
-      .map(item => item.hz);
-
-    acquireBuffer.length = 0;
-    acquireBuffer.push(...eligible.slice(-ACQUIRE_WINDOW));
-
+    statusEl.textContent = "Etsitään vakaata säveltä…";
     lockInfoEl.textContent = `${acquireBuffer.length}/${ACQUIRE_WINDOW}`;
-    if (acquireBuffer.length < ONSET_CLUSTER_REQUIRED) return;
 
-    const cluster = bestCluster(acquireBuffer, ONSET_TOLERANCE);
-    if (cluster.length >= ONSET_CLUSTER_REQUIRED) {
+    if (acquireBuffer.length < ACQUIRE_WINDOW) return;
+
+    const cluster = bestCluster(acquireBuffer, ACQUIRE_TOLERANCE);
+
+    if (cluster.length >= ACQUIRE_REQUIRED) {
       setLock(Math.round(median(cluster)));
     }
   }
@@ -952,7 +1069,7 @@
         resetAll(true);
         statusEl.textContent = "Kuuntelen…";
       } else if (!locked) {
-        resetOnsetGate();
+        acquireBuffer.length = 0;
         switchBuffer.length = 0;
         statusEl.textContent = "Kuuntelen…";
         lockInfoEl.textContent = "";
@@ -962,69 +1079,18 @@
       return;
     }
 
-    const pitch = detectPitchYIN(buffer, audioContext.sampleRate);
+    const rawHz = detectPitchYIN(buffer, audioContext.sampleRate);
 
-    if (pitch !== null) {
-      const rawHz = pitch.hz;
-      const yinValue = pitch.yinValue;
+    if (rawHz !== null) {
+      // Vain analogisen lisänäkymän käyttöön: raakaa YIN-taajuutta ei käytetä
+      // muuttamaan alkuperäistä lukitus- tai LED-logiikkaa.
+      window.dispatchEvent(new CustomEvent("tunerrawpitch", { detail: { hz: rawHz } }));
       const integerHz = Math.round(rawHz);
-      const currentDb = dbfsOf(rms);
 
       if (!locked) {
-        tryAcquireLock(integerHz, yinValue);
+        tryAcquireLock(integerHz);
       } else {
-        const profile = yinProfile(now);
-        const degradeLimit = yinAdaptiveLimit(
-          profile,
-          YIN_DEGRADE_FACTOR,
-          YIN_DEGRADE_MAD_FACTOR,
-          YIN_DEGRADE_MIN_DELTA
-        );
-        const degraded = degradeLimit !== null && yinValue >= degradeLimit;
-
-        // Tärkeä periaate: mittaria ei koskaan lukita pysyvään "tail guard"
-        // -tilaan. Jos tämän framen YIN-laatu on selvästi äänen omaa normaalia
-        // huonompi, jätä vain tämä mittaus näyttämättä. Seuraava luotettava
-        // frame pääsee heti läpi, vaikka ääni olisi jatkunut pitkään tai
-        // voimakkuus olisi muuttunut.
-        if (!degraded) {
-          processLockedPitch(integerHz);
-
-          const trustLimit = yinAdaptiveLimit(
-            profile,
-            YIN_TRUST_FACTOR,
-            YIN_TRUST_MAD_FACTOR,
-            YIN_TRUST_MIN_DELTA
-          );
-          const trustedQuality = trustLimit === null || yinValue <= trustLimit;
-
-          if (trustedQuality) {
-            const shownHz = Number(hzEl.textContent);
-            if (Number.isFinite(shownHz)) {
-              lastReliableHz = shownHz;
-            }
-          }
-
-          // Opeta profiilia vain äänen oman normaalin laatualueen arvoilla.
-          // Selvästi hajonneita loppuhännän mittauksia ei koskaan syötetä
-          // takaisin profiiliin.
-          const learnLimit = yinAdaptiveLimit(
-            profile,
-            YIN_LEARN_FACTOR,
-            YIN_LEARN_MAD_FACTOR,
-            YIN_LEARN_MIN_DELTA
-          );
-          const learnableQuality = profile === null || yinValue <= learnLimit;
-          if (learnableQuality) {
-            yinQualityHistory.push({ t: now, yin: yinValue });
-            trimTimedHistory(yinQualityHistory, now, YIN_PROFILE_MS);
-          }
-        } else if (Number.isFinite(lastReliableHz)) {
-          // Pidä vain tämän epäluotettavan framen ajan viimeinen hyvä arvo.
-          // Ei tilaa, ei ajastinta, ei palautusviivettä.
-          hzEl.textContent = String(lastReliableHz);
-        }
-
+        processLockedPitch(integerHz);
       }
     }
 
@@ -1268,5 +1334,80 @@
   updateNote();
 })();
 </script>
+<script>
+(() => {
+  // Analoginen näkymä on erillinen alkuperäisestä lukitus- ja LED-logiikasta.
+  // Viisari saa raakaa YIN-taajuutta vain omaa −50…+50 centin näyttöään varten.
+  const meterModeButton = document.getElementById("meterModeButton");
+  const ledMeter = document.querySelector(".led-meter-wrap");
+  const analogMeter = document.getElementById("analogMeter");
+  const analogNeedle = document.getElementById("analogNeedle");
+  const analogCentReadout = document.getElementById("analogCentReadout");
+  const hzEl = document.getElementById("hz");
+  const targetHzEl = document.getElementById("targetHz");
+  const legend = document.querySelector(".legend");
+
+  let mode = "led";
+  let lastRawHz = null;
+
+  function currentTargetHz() {
+    const value = Number.parseFloat(targetHzEl.textContent);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  function updateAnalog() {
+    const displayedHz = Number(hzEl.textContent);
+    const hz = Number.isFinite(lastRawHz) ? lastRawHz : displayedHz;
+    const targetHz = currentTargetHz();
+
+    if (!Number.isFinite(hz) || !Number.isFinite(targetHz) || hz <= 0 || targetHz <= 0) {
+      analogNeedle.style.transform = "translateX(-50%) rotate(0deg)";
+      analogCentReadout.textContent = "0";
+      return;
+    }
+
+    const cents = 1200 * Math.log2(hz / targetHz);
+    const clipped = Math.max(-50, Math.min(50, cents));
+    const angle = (clipped / 50) * 60;
+    const rounded = Math.round(cents);
+
+    analogNeedle.style.transform = `translateX(-50%) rotate(${angle.toFixed(2)}deg)`;
+    analogCentReadout.textContent = `${rounded > 0 ? "+" : ""}${rounded}`;
+  }
+
+  function renderMode() {
+    const analog = mode === "analog";
+    ledMeter.classList.toggle("meter-view-hidden", analog);
+    analogMeter.classList.toggle("meter-view-hidden", !analog);
+    if (legend) legend.classList.toggle("meter-view-hidden", analog);
+    meterModeButton.textContent = analog ? "Mittari: Analoginen" : "Mittari: LED pysty";
+    if (analog) updateAnalog();
+  }
+
+  meterModeButton.addEventListener("click", () => {
+    mode = mode === "led" ? "analog" : "led";
+    renderMode();
+  });
+
+  window.addEventListener("tunerrawpitch", (event) => {
+    const hz = Number(event.detail?.hz);
+    if (!Number.isFinite(hz) || hz <= 0) return;
+    lastRawHz = hz;
+    updateAnalog();
+  });
+
+  const hzObserver = new MutationObserver(() => {
+    if (!Number.isFinite(Number(hzEl.textContent))) lastRawHz = null;
+    updateAnalog();
+  });
+  hzObserver.observe(hzEl, { childList:true, characterData:true, subtree:true });
+
+  const targetObserver = new MutationObserver(updateAnalog);
+  targetObserver.observe(targetHzEl, { childList:true, characterData:true, subtree:true });
+
+  renderMode();
+})();
+</script>
+
 </body>
 </html>
