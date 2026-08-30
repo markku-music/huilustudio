@@ -693,7 +693,7 @@
     background:rgba(248,251,252,.98);
     box-shadow:0 0 0 1px rgba(8,28,30,.24), 0 0 9px rgba(255,255,255,.22);
     pointer-events:none;
-    transition:opacity 80ms linear;
+    transition:left 90ms linear, opacity 80ms linear;
   }
   .pitch-heatmap-zero {
     position:absolute;
@@ -1540,6 +1540,19 @@
     pitchHeatIndicator.style.opacity = "1";
   }
 
+  function showPitchHeatIndicatorImmediate(cents) {
+    if (!Number.isFinite(cents)) return;
+    const clipped = Math.max(HEAT_MIN_CENTS, Math.min(HEAT_MAX_CENTS, cents));
+    const pct = ((clipped - HEAT_MIN_CENTS) / (HEAT_MAX_CENTS - HEAT_MIN_CENTS)) * 100;
+    const previousTransition = pitchHeatIndicator.style.transition;
+    pitchHeatIndicator.style.transition = "none";
+    pitchHeatIndicator.style.left = `${pct.toFixed(4)}%`;
+    pitchHeatIndicator.style.opacity = "1";
+    // Pakota lopputulos ruudulle heti, sitten palauta live-liikkeen CSS-transition.
+    void pitchHeatIndicator.offsetWidth;
+    pitchHeatIndicator.style.transition = previousTransition;
+  }
+
   function hidePitchHeatIndicator() {
     pitchHeatIndicator.style.opacity = "0";
   }
@@ -1798,6 +1811,23 @@
     return (angle / 60) * 50;
   }
 
+  function renderedPitchHeatIndicatorCents() {
+    const track = pitchHeatIndicator.parentElement;
+    if (!track) return null;
+
+    const trackRect = track.getBoundingClientRect();
+    const indicatorRect = pitchHeatIndicator.getBoundingClientRect();
+    const innerWidth = track.clientWidth;
+    if (!(innerWidth > 0)) return null;
+
+    // Luetaan nimenomaan viivan TÄMÄNHETKINEN ruudulla näkyvä paikka.
+    // Näin CSS:n 90 ms lineaarinen liike kuuluu myös gradientin mittausdataan.
+    const innerLeft = trackRect.left + track.clientLeft;
+    const indicatorCenterX = indicatorRect.left + indicatorRect.width / 2;
+    const ratio = Math.max(0, Math.min(1, (indicatorCenterX - innerLeft) / innerWidth));
+    return HEAT_MIN_CENTS + ratio * (HEAT_MAX_CENTS - HEAT_MIN_CENTS);
+  }
+
   function isVisuallySinglePosition(minCents, maxCents) {
     if (!Number.isFinite(minCents) || !Number.isFinite(maxCents)) return false;
     const height = analogDial.clientHeight || 210;
@@ -1833,11 +1863,12 @@
     }
 
     const now = performance.now();
-    const cents = renderedNeedleCents();
+    const cents = renderedPitchHeatIndicatorCents();
     if (!Number.isFinite(cents)) return;
 
-    // Sama ruudulla näkyvä viiva on koko uuden vaakamittarin mittauslähde.
-    showPitchHeatIndicator(cents);
+    // Gradientin min/max ja viipymä tulevat nyt täsmälleen SAMASTA näkyvästä
+    // live-viivasta. Viivan raw YIN -> cents -> 90 ms CSS-liike on siis myös
+    // gradientin mittauksen todellinen liikerata.
 
     // Älä ota keskeltä varsinaiseen virekohtaan kulkevaa lähtösiirtymää mukaan.
     // Aloita min/max vasta, kun näkyvä viisari on pysynyt 50 ms sellaisessa
@@ -1876,7 +1907,7 @@
     }
 
     // Vaakajakauma käyttää täsmälleen samaa hyväksyttyä, asettunutta
-    // näkyvän viisarin paikkaa, mutta tallentaa min/maxin sijasta VIIPYMISAIKAA.
+    // live-viivan paikkaa ja tallentaa siitä myös VIIPYMISAIKAA.
     recordHeatSample(cents, now);
 
     // Uusi minimi hyväksytään vasta, jos viisari pysyy uuden ääripään
@@ -2042,7 +2073,7 @@
     renderPitchHeatmap();
     if (Number.isFinite(heatPeakCents)) {
       // Äänen lopussa viiva hyppää heti pisimmän viipymän kohtaan.
-      showPitchHeatIndicator(heatPeakCents);
+      showPitchHeatIndicatorImmediate(heatPeakCents);
     } else {
       hidePitchHeatIndicator();
     }
@@ -2097,10 +2128,18 @@
     const hz = Number(event.detail?.hz);
     if (!Number.isFinite(hz) || hz <= 0) return;
 
-    // Keruu alkaa ensimmäisestä samasta raakadatasta, joka saa viisarin liikkeelle.
+    // Keruu alkaa ensimmäisestä samasta raakadatasta, joka saa analogiviisarin liikkeelle.
     if (!rangeActive) beginNeedleRange();
     lastRawHz = hz;
     updateAnalog();
+
+    // Live-viiva seuraa nyt täsmälleen vertailuapin analogiviisarin periaatetta:
+    // raaka YIN-taajuus -> cents -> uusi tavoite, CSS tekee 90 ms lineaarisen liikkeen.
+    const targetHz = currentTargetHz();
+    if (Number.isFinite(targetHz) && targetHz > 0) {
+      const cents = 1200 * Math.log2(hz / targetHz);
+      showPitchHeatIndicator(cents);
+    }
   });
 
   const lockObserver = new MutationObserver(() => {
