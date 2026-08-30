@@ -25,6 +25,320 @@
 
   const renderedListeners = new Set();
 
+  /*
+   * 0.17.6.37: Dorico-tyyppinen rytminen vaakavälistys.
+   *
+   * VexFlow jakaa normaalisti tahdin ylimääräisen vaakasuunnan tilan
+   * suoraan aika-arvon mukaan. Se tarkoittaa esimerkiksi sitä, että
+   * kahdeksasosa saa vain puolet neljäsosan tilasta.
+   *
+   * Pikakirjoittimen koeversiossa käytetään Doricon kaltaista käyrää:
+   *   neljäsosa  = 4.00 viivastoväliä
+   *   kahdeksas  = 2.83 viivastoväliä
+   *   16-osa     = 2.00 viivastoväliä
+   *   32-osa     = vähintään 1.60 viivastoväliä
+   *
+   * Yleinen kaava on 4 * sqrt(kesto / neljäsosa), kuitenkin niin että
+   * ihanneväli ei mene alle 1.6 viivastovälin. VexFlow'n oma törmäyksiä
+   * estävä minimigeometria säilytetään pohjalla. Muutamme siis vain sen
+   * ylimääräisen tilan rytmistä jakautumista, emme pakota nuotteja
+   * törmäysten läpi.
+   */
+  const DORICO_SPACING = Object.freeze({
+    quarterTicks: 4096,
+    quarterGap: 4,
+    minimumGap: 1.6
+  });
+
+  let doricoSpacingPatchInstalled = false;
+
+  function finiteNumber(value, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function doricoIdealGap(durationTicks) {
+    const duration = Math.max(0, finiteNumber(durationTicks, 0));
+    if (duration <= 0) return 0;
+
+    return Math.max(
+      DORICO_SPACING.minimumGap,
+      DORICO_SPACING.quarterGap * Math.sqrt(
+        duration / DORICO_SPACING.quarterTicks
+      )
+    );
+  }
+
+  function voiceArrayFromMeasure(measure) {
+    const result = [];
+    const voiceMap = measure && measure.vfVoices;
+    if (!voiceMap) return result;
+
+    Object.keys(voiceMap).forEach(function (key) {
+      const voice = voiceMap[key];
+      if (voice && result.indexOf(voice) < 0) result.push(voice);
+    });
+
+    return result;
+  }
+
+  function collectDoricoTickContexts(measure) {
+    const voices = voiceArrayFromMeasure(measure);
+    const contextTimes = new Map();
+    let totalTicks = 0;
+
+    voices.forEach(function (voice) {
+      if (!voice || typeof voice.getTickables !== "function") return;
+
+      let timestamp = 0;
+      const tickables = voice.getTickables() || [];
+
+      tickables.forEach(function (tickable) {
+        if (!tickable) return;
+
+        const context =
+          typeof tickable.getTickContext === "function"
+            ? tickable.getTickContext()
+            : tickable.tickContext;
+
+        if (context) {
+          const oldTimestamp = contextTimes.get(context);
+          if (!Number.isFinite(oldTimestamp) || timestamp < oldTimestamp) {
+            contextTimes.set(context, timestamp);
+          }
+        }
+
+        const ignoresTicks =
+          typeof tickable.shouldIgnoreTicks === "function" &&
+          tickable.shouldIgnoreTicks();
+
+        if (!ignoresTicks) {
+          const ticks =
+            tickable.getTicks && typeof tickable.getTicks === "function"
+              ? tickable.getTicks()
+              : null;
+
+          const value =
+            ticks && typeof ticks.value === "function"
+              ? finiteNumber(ticks.value(), 0)
+              : 0;
+
+          timestamp += Math.max(0, value);
+        }
+      });
+
+      let voiceTicks = timestamp;
+      if (typeof voice.getTicksUsed === "function") {
+        const used = voice.getTicksUsed();
+        if (used && typeof used.value === "function") {
+          voiceTicks = Math.max(
+            voiceTicks,
+            finiteNumber(used.value(), voiceTicks)
+          );
+        }
+      }
+
+      totalTicks = Math.max(totalTicks, voiceTicks);
+    });
+
+    const contexts = Array.from(contextTimes.entries())
+      .map(function (entry) {
+        return {
+          context: entry[0],
+          timestamp: entry[1]
+        };
+      })
+      .sort(function (a, b) {
+        return a.timestamp - b.timestamp;
+      });
+
+    return {
+      contexts: contexts,
+      totalTicks: totalTicks
+    };
+  }
+
+  function packedContextPositions(contexts) {
+    let x = 0;
+    let carry = 0;
+
+    const positions = contexts.map(function (item) {
+      const context = item.context;
+      if (!context) return 0;
+
+      const metrics =
+        typeof context.getMetrics === "function"
+          ? context.getMetrics()
+          : null;
+
+      const extraLeft = Math.max(
+        0,
+        finiteNumber(metrics && metrics.extraLeftPx, 0)
+      );
+
+      const width = Math.max(
+        0,
+        finiteNumber(
+          typeof context.getWidth === "function"
+            ? context.getWidth()
+            : context.width,
+          0
+        )
+      );
+
+      x = x + carry + extraLeft;
+      const packedX = x;
+      carry = Math.max(0, width - extraLeft);
+      return packedX;
+    });
+
+    return {
+      positions: positions,
+      minimumWidth: x + carry
+    };
+  }
+
+  function updateCenterAlignedTickables(context, targetWidth) {
+    if (!context || typeof context.getCenterAlignedTickables !== "function") {
+      return;
+    }
+
+    const tickables = context.getCenterAlignedTickables() || [];
+    const contextX =
+      typeof context.getX === "function"
+        ? finiteNumber(context.getX(), 0)
+        : finiteNumber(context.x, 0);
+
+    tickables.forEach(function (tickable) {
+      if (tickable) {
+        tickable.center_x_shift = targetWidth / 2 - contextX;
+      }
+    });
+  }
+
+  function applyDoricoRhythmicSpacing(measure) {
+    if (!measure || typeof measure.getVFStave !== "function") return;
+
+    const stave = measure.getVFStave();
+    if (!stave) return;
+
+    const collected = collectDoricoTickContexts(measure);
+    const contexts = collected.contexts;
+    if (!contexts.length || collected.totalTicks <= 0) return;
+
+    const packed = packedContextPositions(contexts);
+
+    const noteStartX =
+      typeof stave.getNoteStartX === "function"
+        ? finiteNumber(stave.getNoteStartX(), 0)
+        : 0;
+
+    const noteEndX =
+      typeof stave.getNoteEndX === "function"
+        ? finiteNumber(stave.getNoteEndX(), noteStartX)
+        : noteStartX;
+
+    // Täsmälleen sama käytettävissä oleva leveys kuin VexFlow Formatterissa.
+    const targetWidth = Math.max(0, noteEndX - noteStartX - 10);
+    const extraWidth = targetWidth - packed.minimumWidth;
+
+    if (!(extraWidth > 0)) return;
+
+    let previousTimestamp = 0;
+    let cumulativeIdealGap = 0;
+
+    const weighted = contexts.map(function (item) {
+      const duration = Math.max(0, item.timestamp - previousTimestamp);
+      cumulativeIdealGap += doricoIdealGap(duration);
+      previousTimestamp = item.timestamp;
+
+      return {
+        context: item.context,
+        cumulativeIdealGap: cumulativeIdealGap
+      };
+    });
+
+    const tailDuration = Math.max(
+      0,
+      collected.totalTicks - previousTimestamp
+    );
+
+    const totalIdealGap =
+      cumulativeIdealGap + doricoIdealGap(tailDuration);
+
+    if (!(totalIdealGap > 0)) return;
+
+    weighted.forEach(function (item, index) {
+      const context = item.context;
+      if (!context || typeof context.setX !== "function") return;
+
+      const targetX =
+        packed.positions[index] +
+        extraWidth * item.cumulativeIdealGap / totalIdealGap;
+
+      context.setX(targetX);
+      updateCenterAlignedTickables(context, targetWidth);
+    });
+  }
+
+  function installDoricoSpacingPatch() {
+    if (doricoSpacingPatchInstalled) return;
+
+    const namespace = window.opensheetmusicdisplay;
+    const Calculator =
+      namespace && namespace.VexFlowMusicSheetCalculator;
+
+    if (!Calculator || !Calculator.prototype) return;
+
+    const prototype = Calculator.prototype;
+    const originalCalculateMeasureXLayout =
+      prototype.calculateMeasureXLayout;
+
+    if (typeof originalCalculateMeasureXLayout !== "function") return;
+
+    if (originalCalculateMeasureXLayout.__pikakirjoitinDoricoSpacing) {
+      doricoSpacingPatchInstalled = true;
+      return;
+    }
+
+    function wrappedCalculateMeasureXLayout(measures) {
+      const width = originalCalculateMeasureXLayout.call(this, measures);
+
+      if (!Array.isArray(measures)) return width;
+
+      measures.forEach(function (measure) {
+        if (!measure || typeof measure.formatVoices !== "function") return;
+
+        const originalFormatVoices = measure.formatVoices;
+        if (originalFormatVoices.__pikakirjoitinDoricoSpacing) return;
+
+        function doricoFormatVoices(formatWidth, targetMeasure) {
+          const result = originalFormatVoices.call(
+            this,
+            formatWidth,
+            targetMeasure
+          );
+
+          applyDoricoRhythmicSpacing(targetMeasure || measure);
+          return result;
+        }
+
+        doricoFormatVoices.__pikakirjoitinDoricoSpacing = true;
+        doricoFormatVoices.__pikakirjoitinOriginal = originalFormatVoices;
+        measure.formatVoices = doricoFormatVoices;
+      });
+
+      return width;
+    }
+
+    wrappedCalculateMeasureXLayout.__pikakirjoitinDoricoSpacing = true;
+    wrappedCalculateMeasureXLayout.__pikakirjoitinOriginal =
+      originalCalculateMeasureXLayout;
+
+    prototype.calculateMeasureXLayout = wrappedCalculateMeasureXLayout;
+    doricoSpacingPatchInstalled = true;
+  }
+
   function viewportSize() {
     const viewport = window.visualViewport;
     return {
@@ -145,6 +459,8 @@
       throw new Error("OSMD-kirjastoa ei löytynyt.");
     }
 
+    installDoricoSpacingPatch();
+
     const nextContainer = document.getElementById(containerId);
     if (!nextContainer) throw new Error("OSMD-konttia ei löytynyt: " + containerId);
     if (osmd && container === nextContainer) return;
@@ -218,6 +534,10 @@
     osmd.EngravingRules.StretchLastSystemLine = false;
     osmd.EngravingRules.LastSystemMaxScalingFactor =
       normalized.lastSystemMaxScalingFactor;
+
+    // Dorico-kokeen nimellinen lyhyiden nuottien minimiväli.
+    // Varsinainen rytminen käyrä toteutetaan yllä VexFlow-tick contexteille.
+    osmd.EngravingRules.MinNoteDistance = DORICO_SPACING.minimumGap;
 
     osmd.EngravingRules.PageTopMargin = normalized.pageMargins.top;
     osmd.EngravingRules.PageRightMargin = normalized.pageMargins.right;

@@ -90,3 +90,12 @@ toimimasta projektin avaamisen jalkeen.
 - Kappaleen tiedot -painike yläpalkissa avaa aloitusikkunan uudelleen.
 - Nykyiset tiedot esitäytetään ja Tallenna päivittää olemassa olevan kappaleen nollaamatta nuotteja.
 - Editointi-ikkunan voi sulkea ×-painikkeesta tai Escillä.
+
+
+0.17.6.37 Dorico-välistyskoe
+-----------------------------
+- Vaakasuuntainen rytminen välistys käyttää nyt Doricon kaltaista neliöjuurikäyrää.
+- Neljäsosan ihanneväli 4.00 viivastoväliä, kahdeksasosan 2.83, 16-osan 2.00.
+- 32-osista alaspäin ihanneväli ei mene alle 1.60 viivastovälin.
+- VexFlow'n oma törmäyksiä estävä minimigeometria säilyy pohjalla.
+- Muutos on rajattu renderer.js:ään; OSMD-vendor-tiedostoa ei ole muutettu.
