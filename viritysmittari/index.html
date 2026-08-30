@@ -606,17 +606,29 @@
     fill:rgba(53, 116, 171, .20);
     stroke:rgba(39, 91, 139, .72);
     stroke-width:2;
+    pointer-events:visiblePainted;
+    cursor:pointer;
   }
   .analog-range-line {
     stroke:rgba(39, 91, 139, .85);
     stroke-width:4;
     stroke-linecap:round;
+    pointer-events:visibleStroke;
+    cursor:pointer;
+  }
+  .analog-range-hit-line {
+    stroke:transparent;
+    stroke-width:20;
+    stroke-linecap:round;
+    pointer-events:stroke;
+    cursor:pointer;
   }
 
   .led-result-band {
     position:absolute;
     display:none;
-    pointer-events:none;
+    pointer-events:auto;
+    cursor:pointer;
     border:2px solid rgba(95, 190, 255, .82);
     background:rgba(95, 190, 255, .18);
     border-radius:8px;
@@ -693,6 +705,7 @@
               <svg id="analogRangeOverlay" class="analog-range-overlay" aria-hidden="true">
                 <path id="analogRangeSector" class="analog-range-sector" d=""></path>
                 <line id="analogRangeLine" class="analog-range-line" visibility="hidden"></line>
+                <line id="analogRangeHitLine" class="analog-range-hit-line" visibility="hidden"></line>
               </svg>
               <div id="analogNeedle" class="analog-needle"></div>
               <div class="analog-pivot"></div>
@@ -1292,6 +1305,7 @@
   const analogRangeOverlay = document.getElementById("analogRangeOverlay");
   const analogRangeSector = document.getElementById("analogRangeSector");
   const analogRangeLine = document.getElementById("analogRangeLine");
+  const analogRangeHitLine = document.getElementById("analogRangeHitLine");
   const ledFrame = document.querySelector(".led-frame");
   const ledColumn = document.getElementById("ledColumn");
   const ledResultBand = document.getElementById("ledResultBand");
@@ -1321,6 +1335,7 @@
     resultMaxCents = null;
     analogRangeSector.setAttribute("d", "");
     analogRangeLine.setAttribute("visibility", "hidden");
+    analogRangeHitLine.setAttribute("visibility", "hidden");
     ledResultBand.style.display = "none";
   }
 
@@ -1408,10 +1423,16 @@
       analogRangeLine.setAttribute("x2", b.x.toFixed(2));
       analogRangeLine.setAttribute("y2", b.y.toFixed(2));
       analogRangeLine.setAttribute("visibility", "visible");
+      analogRangeHitLine.setAttribute("x1", a.x.toFixed(2));
+      analogRangeHitLine.setAttribute("y1", a.y.toFixed(2));
+      analogRangeHitLine.setAttribute("x2", b.x.toFixed(2));
+      analogRangeHitLine.setAttribute("y2", b.y.toFixed(2));
+      analogRangeHitLine.setAttribute("visibility", "visible");
       return;
     }
 
     analogRangeLine.setAttribute("visibility", "hidden");
+    analogRangeHitLine.setAttribute("visibility", "hidden");
     const p1 = polarPoint(cx, cy, outerR, minAngle);
     const p2 = polarPoint(cx, cy, outerR, maxAngle);
     const p3 = polarPoint(cx, cy, innerR, maxAngle);
@@ -1556,6 +1577,16 @@
     updateAnalog();
   });
   targetObserver.observe(targetHzEl, { childList:true, characterData:true, subtree:true });
+
+  function resetResultRangeByClick(event) {
+    event.stopPropagation();
+    clearResultRange();
+  }
+
+  analogRangeSector.addEventListener("click", resetResultRangeByClick);
+  analogRangeLine.addEventListener("click", resetResultRangeByClick);
+  analogRangeHitLine.addEventListener("click", resetResultRangeByClick);
+  ledResultBand.addEventListener("click", resetResultRangeByClick);
 
   window.addEventListener("resize", () => {
     if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) drawResultRange();
