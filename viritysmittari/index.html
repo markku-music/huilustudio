@@ -833,7 +833,7 @@
   const SWITCH_REQUIRED = 4;
   const SWITCH_TOLERANCE = 2;
 
-  const SILENCE_RELEASE_MS = 260;
+  const SILENCE_RELEASE_MS = 0;
 
   const acquireBuffer = [];
   const displayBuffer = [];
@@ -1066,7 +1066,7 @@
 
     if (rms < RMS_GATE) {
       if (locked && now - lastSoundTime > SILENCE_RELEASE_MS) {
-        resetAll(true);
+        resetAll(false);
         statusEl.textContent = "Kuuntelen…";
       } else if (!locked) {
         acquireBuffer.length = 0;
@@ -1300,7 +1300,7 @@
     const value = Number(hzEl.textContent);
     if (!Number.isFinite(value)) {
       centValue.textContent = "0";
-      clearSegments();
+      lightSegments(0);
       return;
     }
 
