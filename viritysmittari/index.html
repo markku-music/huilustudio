@@ -324,6 +324,24 @@
     font-size:28px;
     cursor:pointer;
   }
+  .auto-note-btn {
+    height:52px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:.04em;
+    cursor:pointer;
+  }
+  .auto-note-btn.active {
+    background:#56da79;
+    color:#0b2011;
+    border-color:#8bf0a4;
+    box-shadow:0 0 12px rgba(86,218,121,.38);
+  }
   .note-label {
     min-width:96px;
     text-align:center;
@@ -413,6 +431,7 @@
     .note-control { grid-column:1; }
     #toggle { grid-column:2; padding:0 14px; }
     .note-btn { width:46px; height:46px; }
+    .auto-note-btn { height:46px; padding:0 10px; }
     .note-label { min-width:74px; }
     #noteName { font-size:26px; }
     .statusbox { grid-template-columns:1fr; }
@@ -734,6 +753,7 @@
           <div id="noteFreq">440 Hz</div>
         </div>
         <button id="nextNote" class="note-btn" type="button" aria-label="Seuraava sävel">›</button>
+        <button id="autoNote" class="auto-note-btn" type="button" aria-pressed="false" aria-label="Tunnista soitettu sävel automaattisesti">AUTO</button>
       </div>
       <button id="toggle" type="button">Käynnistä</button>
     </div>
@@ -1178,14 +1198,19 @@
     ["C3",1047]
   ];
   let noteIndex = 9;
+  let autoMode = false;
+  let autoTargetHz = null;
 
   const noteName = document.getElementById("noteName");
   const noteFreq = document.getElementById("noteFreq");
   const targetNote = document.getElementById("targetNote");
   const targetHz = document.getElementById("targetHz");
+  const autoNote = document.getElementById("autoNote");
   const hzEl = document.getElementById("hz");
   const centValue = document.getElementById("centValue");
   const ledColumn = document.getElementById("ledColumn");
+  const lockInfoEl = document.getElementById("lockInfo");
+  let ledArmedForTone = false;
 
   const STEP_CENTS = 5;
   const MAX_CENTS = 50;
@@ -1193,10 +1218,61 @@
   const CENTER_INDEX = 10;
 
   function currentTargetHz() {
-    return notes[noteIndex][1];
+    return autoMode ? autoTargetHz : notes[noteIndex][1];
+  }
+
+  function nearestChromaticNote(hz) {
+    if (!Number.isFinite(hz) || hz <= 0) return null;
+
+    const midi = Math.round(69 + 12 * Math.log2(hz / 440));
+    const names = ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","H"];
+    const name = names[((midi % 12) + 12) % 12];
+    const octave = Math.floor(midi / 12) - 4; // Tässä mittarissa A 440 Hz = A1.
+    const target = Math.round(440 * Math.pow(2, (midi - 69) / 12));
+
+    return { name: `${name}${octave}`, hz: target };
+  }
+
+  function showAutoWaiting() {
+    noteName.textContent = "AUTO";
+    noteFreq.textContent = "soita sävel";
+    targetNote.textContent = "AUTO";
+    targetHz.textContent = "—";
+    autoTargetHz = null;
+    updateMeterFromReadout();
+  }
+
+  function setAutoTargetFromHz(hz) {
+    if (!autoMode) return;
+    const detected = nearestChromaticNote(hz);
+    if (!detected) return;
+
+    // Päivitä vain, jos lähin sävel todella vaihtui. Näin näyttö ei turhaan elä.
+    if (autoTargetHz === detected.hz && targetNote.textContent === detected.name) return;
+
+    autoTargetHz = detected.hz;
+    noteName.textContent = detected.name;
+    noteFreq.textContent = `${detected.hz} Hz`;
+    targetNote.textContent = detected.name;
+    targetHz.textContent = `${detected.hz} Hz`;
+    updateMeterFromReadout();
+  }
+
+  function setAutoMode(enabled) {
+    autoMode = enabled;
+    autoNote.classList.toggle("active", enabled);
+    autoNote.setAttribute("aria-pressed", String(enabled));
+
+    if (enabled) {
+      showAutoWaiting();
+    } else {
+      autoTargetHz = null;
+      updateNote();
+    }
   }
 
   function updateNote() {
+    if (autoMode) return;
     const [name, hz] = notes[noteIndex];
     noteName.textContent = name;
     noteFreq.textContent = `${hz} Hz`;
@@ -1256,6 +1332,15 @@
   }
 
   function updateMeterFromReadout() {
+    // Äänen alussa pitch-moottori ehtii saada muutaman raakasuunnan ennen
+    // ensimmäistä vakaata lukitusta. Estetään niiden hetkellinen LED-välähdys,
+    // mutta lukituksen synnyttyä LED-mittari toimii muuten täsmälleen kuten ennen.
+    if (!ledArmedForTone) {
+      centValue.textContent = "0";
+      clearSegments();
+      return;
+    }
+
     const value = Number(hzEl.textContent);
     if (!Number.isFinite(value)) {
       centValue.textContent = "0";
@@ -1276,17 +1361,49 @@
   }
 
   document.getElementById("prevNote").addEventListener("click", () => {
+    if (autoMode) setAutoMode(false);
     noteIndex = (noteIndex - 1 + notes.length) % notes.length;
     updateNote();
   });
 
   document.getElementById("nextNote").addEventListener("click", () => {
+    if (autoMode) setAutoMode(false);
     noteIndex = (noteIndex + 1) % notes.length;
     updateNote();
   });
 
+  autoNote.addEventListener("click", () => {
+    setAutoMode(!autoMode);
+  });
+
+  // Pitch-moottorin omaan lukituslogiikkaan ei kosketa. AUTO kuuntelee sen jo
+  // lähettämää raakaa pitch-tapahtumaa ja valitsee siitä lähimmän sävelen.
+  window.addEventListener("tunerrawpitch", (event) => {
+    if (!autoMode) return;
+    setAutoTargetFromHz(Number(event.detail?.hz));
+  });
+
   const observer = new MutationObserver(updateMeterFromReadout);
   observer.observe(hzEl, { childList: true, characterData: true, subtree: true });
+
+  const ledLockObserver = new MutationObserver(() => {
+    const text = lockInfoEl.textContent.trim();
+
+    if (text.startsWith("Lukitus")) {
+      ledArmedForTone = true;
+      updateMeterFromReadout();
+      return;
+    }
+
+    // Tyhjä lockInfo tarkoittaa 0 ms -vapautuksessa äänen päättymistä.
+    // Seuraava ääni aloittaa LEDit taas täysin pimeinä ennen vakaata lukitusta.
+    if (text === "") {
+      ledArmedForTone = false;
+      centValue.textContent = "0";
+      clearSegments();
+    }
+  });
+  ledLockObserver.observe(lockInfoEl, { childList: true, characterData: true, subtree: true });
 
   createSegments();
   setWorld(0);
@@ -1640,6 +1757,16 @@
   }
 
   function updateAnalog() {
+    // Äänen alun ensimmäiset raakahavainnot voivat hetkeksi olla epävakaita.
+    // Pidetään viisari keskellä siihen asti, että tämän äänen ensimmäinen
+    // alkuperäisen moottorin vakaa lukitus on syntynyt. Tämän jälkeen viisari
+    // toimii täsmälleen kuten ennen myös sävelenvaihtojen aikana.
+    if (rangeActive && !rangeSawLock) {
+      analogNeedle.style.transform = "translateX(-50%) rotate(0deg)";
+      analogCentReadout.textContent = "0";
+      return;
+    }
+
     const displayedHz = Number(hzEl.textContent);
     const hz = Number.isFinite(lastRawHz) ? lastRawHz : displayedHz;
     const targetHz = currentTargetHz();
@@ -1685,6 +1812,8 @@
       }
       rangeSawLock = true;
       rangeLockedNow = true;
+      // Ensimmäinen näkyvä viisarin liike tapahtuu vasta vakaasta lukituksesta.
+      updateAnalog();
       return;
     }
 
