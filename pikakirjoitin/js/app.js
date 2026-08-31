@@ -1327,8 +1327,10 @@
     return spelled || fallbackPitch;
   }
 
-  function startEntry(midi, pitch, duration) {
-    const dots = thumbState.dots || 0;
+  function startEntry(midi, pitch, duration, options) {
+    const dots = options && Number.isInteger(options.dots)
+      ? options.dots
+      : thumbState.dots || 0;
     const writtenPitch = keyAwareInputPitch(midi, pitch);
     const selected = selectedSingleNote();
     commitHistory(historySnapshot(selected ? "Nuotin muokkaus" : "Nuotin kirjoitus"));
@@ -1443,6 +1445,35 @@
     });
 
     return { id: entry.id, sound: entry.kind !== "rest" };
+  }
+
+  function startRestFromKeyboard(duration, dots) {
+    return startEntry(60, "C4", duration, { dots: Number(dots) || 0 });
+  }
+
+  function changeRestDots(id, dots, duration) {
+    const targetId = keyboardEditId || id;
+    const editingSelectedNote = Boolean(keyboardEditId);
+
+    if (!window.PikakirjoitinScoreModel.setDots(score, targetId, dots)) {
+      return;
+    }
+
+    const entry = window.PikakirjoitinScoreModel.getEntry(score, targetId);
+    updateStatus(entryLabel(entry, null, duration) + " · pisteellinen");
+
+    if (editingSelectedNote && selection) {
+      selection.retainSingle(targetId);
+    }
+
+    renderScore().then(function () {
+      if (editingSelectedNote && selection && keyboardEditId === targetId) {
+        selection.retainSingle(targetId);
+      }
+    }).catch(function (error) {
+      console.error(error);
+      updateStatus("Virhe: " + (error && error.message ? error.message : String(error)), "error");
+    });
   }
 
   function changeDuration(id, duration, midi, pitch) {
@@ -2372,6 +2403,10 @@
         const wasTie = Boolean(thumbState.tie);
         thumbState = state;
 
+        if (keyboard && typeof keyboard.setRestMode === "function") {
+          keyboard.setRestMode(Boolean(state.rest));
+        }
+
         let editModeChanged = false;
         const layoutActive = Boolean(state.layout);
         const barlinesActive = Boolean(state.barlines);
@@ -2443,6 +2478,11 @@
       thumb: document.getElementById("keyboardScrollThumb"),
       onStart: startEntry,
       onDuration: changeDuration,
+      onRestStart: startRestFromKeyboard,
+      onRestDots: changeRestDots,
+      onRestFinish: function (id, duration) {
+        finishEntry(id, duration, 60, "C4");
+      },
       onSoundStart: function (midi) {
         audio.noteOn(Number(midi) + (Number(settings.transpose) || 0));
       },

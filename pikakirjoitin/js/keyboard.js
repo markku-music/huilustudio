@@ -79,13 +79,20 @@
       this.onSoundStart = options.onSoundStart;
       this.onSoundStop = options.onSoundStop;
       this.onFinish = options.onFinish;
+      this.onRestStart = options.onRestStart;
+      this.onRestDots = options.onRestDots;
+      this.onRestFinish = options.onRestFinish;
 
       this.active = null;
+      this.restActive = null;
+      this.restMode = false;
+      this.restLayer = null;
       this.scrollPointerId = null;
       this.scrollGrabOffset = 0;
       this.rearming = false;
 
       this.buildKeys();
+      this.buildRestKeyboard();
       this.bindNoteGestures();
       this.bindScrollRail();
       document.addEventListener("pk-languagechange", () => this.updateLanguage());
@@ -117,6 +124,163 @@
           key.style.width = (whiteWidth * BLACK_WIDTH) + "%";
           this.piano.appendChild(key);
         }
+      }
+    }
+
+    buildRestKeyboard() {
+      const layer = document.createElement("div");
+      layer.className = "rest-keyboard";
+      layer.setAttribute("aria-label", "Taukokoskettimisto");
+      layer.hidden = true;
+
+      const rests = [
+        ["whole", "𝄻", "kokotauko"],
+        ["half", "𝄼", "puolitauko"],
+        ["quarter", "𝄽", "neljäsosatauko"],
+        ["eighth", "𝄾", "kahdeksasosatauko"],
+        ["sixteenth", "𝄿", "kuudestoistaosatauko"],
+        ["thirty-second", "𝅀", "kolmaskymmeneskahtaosatauko"]
+      ];
+
+      rests.forEach((item) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "rest-key";
+        button.dataset.duration = item[0];
+        button.setAttribute("aria-label", item[2] + ". Swaippaa ylös: pisteellinen.");
+
+        const figure = document.createElement("span");
+        figure.className = "rest-key-figure";
+        figure.setAttribute("aria-hidden", "true");
+
+        if (item[0] === "whole" || item[0] === "half") {
+          const staff = document.createElement("span");
+          staff.className = "rest-staff-snippet rest-staff-" + item[0];
+          staff.innerHTML = '<span class="rest-staff-line"></span><span class="rest-staff-block"></span>';
+          figure.appendChild(staff);
+        } else {
+          const symbol = document.createElement("span");
+          symbol.className = "rest-key-symbol";
+          symbol.textContent = item[1];
+          figure.appendChild(symbol);
+        }
+
+        button.appendChild(figure);
+        layer.appendChild(button);
+      });
+
+      layer.addEventListener("pointerdown", (event) => this.startRest(event));
+      layer.addEventListener("pointermove", (event) => this.moveRest(event));
+      layer.addEventListener("pointerup", (event) => this.finishRest(event));
+      layer.addEventListener("pointercancel", (event) => this.finishRest(event));
+      layer.addEventListener("contextmenu", (event) => event.preventDefault());
+
+      this.viewport.appendChild(layer);
+      this.restLayer = layer;
+    }
+
+    setRestMode(active) {
+      this.restMode = Boolean(active);
+      if (!this.restLayer) return;
+
+      if (this.restMode) {
+        this.restLayer.hidden = false;
+        this.piano.hidden = true;
+        if (this.panel) this.panel.classList.add("rest-mode");
+      } else if (!this.restActive) {
+        this.restLayer.hidden = true;
+        this.piano.hidden = false;
+        if (this.panel) this.panel.classList.remove("rest-mode");
+        requestAnimationFrame(() => this.syncThumb());
+      }
+    }
+
+    startRest(event) {
+      const key = event.target.closest(".rest-key");
+      if (!this.restMode || !key || this.restActive) return;
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const duration = key.dataset.duration;
+      const result = typeof this.onRestStart === "function"
+        ? this.onRestStart(duration, 0)
+        : null;
+      const restId = typeof result === "object"
+        ? result && result.id
+        : result;
+      if (!restId) return;
+
+      const threshold = clamp(this.viewport.clientHeight * 0.12, 24, 48);
+      this.restActive = {
+        pointerId: event.pointerId,
+        key: key,
+        restId: restId,
+        duration: duration,
+        startX: event.clientX,
+        startY: event.clientY,
+        threshold: threshold,
+        dotted: false,
+        locked: false
+      };
+
+      key.classList.add("active");
+      try {
+        this.restLayer.setPointerCapture(event.pointerId);
+      } catch (error) {}
+    }
+
+    moveRest(event) {
+      const active = this.restActive;
+      if (!active || event.pointerId !== active.pointerId || active.locked) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const dx = event.clientX - active.startX;
+      const dy = event.clientY - active.startY;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      const vertical = absY >= absX * SWIPE_DIRECTION_DOMINANCE;
+
+      if (!vertical || dy >= 0 || absY < active.threshold) return;
+
+      active.locked = true;
+      active.dotted = true;
+      active.key.classList.add("gesture-dotted");
+
+      if (typeof this.onRestDots === "function") {
+        this.onRestDots(active.restId, 1, active.duration);
+      }
+    }
+
+    finishRest(event) {
+      const active = this.restActive;
+      if (!active || event.pointerId !== active.pointerId) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      active.key.classList.remove("active", "gesture-dotted");
+
+      if (typeof this.onRestFinish === "function") {
+        this.onRestFinish(active.restId, active.duration);
+      }
+
+      try {
+        if (this.restLayer.hasPointerCapture(event.pointerId)) {
+          this.restLayer.releasePointerCapture(event.pointerId);
+        }
+      } catch (error) {}
+
+      this.restActive = null;
+
+      if (!this.restMode) {
+        this.restLayer.hidden = true;
+        this.piano.hidden = false;
+        if (this.panel) this.panel.classList.remove("rest-mode");
+        requestAnimationFrame(() => this.syncThumb());
       }
     }
 
@@ -320,6 +484,19 @@
         if (active.soundOn && typeof this.onSoundStop === "function") {
           this.onSoundStop();
         }
+      }
+
+      if (this.restActive) {
+        const activeRest = this.restActive;
+        if (activeRest.key) {
+          activeRest.key.classList.remove("active", "gesture-dotted");
+        }
+        try {
+          if (this.restLayer && this.restLayer.hasPointerCapture(activeRest.pointerId)) {
+            this.restLayer.releasePointerCapture(activeRest.pointerId);
+          }
+        } catch (error) {}
+        this.restActive = null;
       }
 
       if (this.scrollPointerId !== null) {

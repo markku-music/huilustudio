@@ -109,3 +109,25 @@ toimimasta projektin avaamisen jalkeen.
 - Kelluva nuottityökalupalkki, mukaan lukien palkitustyökalu, saa valinnan aina samasta selectedIds-joukosta.
 - Yksittäisen nuotin napautusvalinta ja kahden tapahtuman jälkeen aktivoituva swipe-lukitus säilyvät ennallaan.
 - Dorico-välistyskoe ja muu nuotinnuslogiikka on jätetty ennalleen.
+
+0.17.6.38 Taukokoskettimisto:
+- Peukalopakin Tauko-painikkeen pohjassa pitäminen vaihtaa pianokoskettimiston kuuden taukoarvon näppäimistöksi (1/1...1/32).
+- Taukonäppäimen napautus kirjoittaa tavallisen tauon.
+- Swaippi ylös samalla taukonäppäimellä tekee pisteellisen version samasta tauosta.
+- Pianokoskettimiston nykyiseen nuottielelogiikkaan ei muutettu mitään.
+
+0.17.6.39 Taukokoskettimiston rajaus:
+- Taukokoskettimiston absoluuttinen kerros ankkuroidaan nyt keyboard-viewportiin, eli täsmälleen pianokoskettimiston alueelle.
+- Taukonäppäimistö ei enää voi levitä nuottisivun päälle.
+- Taukojen napautus- ja ylös-swaippi-logiikka sekä pianokoskettimiston nuottieleet jätettiin ennalleen.
+
+
+0.17.6.40 Taukokoskettimisto 3 riviä:
+- Taukonäppäimissä näkyvät vain taukosymbolit, ei aika-arvotekstejä.
+- Alarivi: tavalliset tauot.
+- Keskirivi: pisteelliset tauot.
+- Ylärivi: kaksipisteelliset tauot.
+- Koko- ja puolitauossa on lyhyt viivaston viiva, jotta symbolit erottuvat varmasti.
+- Taukojen swipe-ele poistettu; pisteellisyys valitaan suoraan omasta näppäimestä.
+
+0.17.6.41: Taukokoskettimisto rauhoitettu kuuteen perustaukoon. Napautus kirjoittaa tavallisen tauon ja ylös-swaippi pisteellisen. Kaksipisteelliset poistettu taukokoskettimistosta.

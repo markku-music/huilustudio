@@ -1716,3 +1716,120 @@ body.pk-music-stand-mode .a4-paper {
 }
 
 /* 0.17.6.36 · Kappaleen tiedot voidaan avata uudelleen yläpalkin kynäpainikkeesta. */
+
+/* 0.17.6.41: Taukokoskettimisto on rauhallinen kuuden perustauon rivi.
+   Napautus = tavallinen tauko, ylös-swaippi = pisteellinen. */
+.rest-keyboard {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  background: #9ba3ad;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.rest-keyboard[hidden] {
+  display: none;
+}
+
+.rest-key {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: linear-gradient(#ffffff 82%, #e7e7e7);
+  color: #202832;
+  display: grid;
+  place-items: center;
+  padding: 6px 4px;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rest-key.active,
+.rest-key.gesture-dotted {
+  background: #62a7ff;
+}
+
+.rest-key.gesture-dotted {
+  box-shadow: inset 0 8px 0 rgba(255, 255, 255, .42);
+}
+
+.rest-key-figure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+.rest-key-symbol {
+  font-family: "Apple Symbols", "Noto Music", "Segoe UI Symbol", serif;
+  font-size: clamp(42px, 7.2vh, 78px);
+  line-height: .9;
+  pointer-events: none;
+}
+
+/* Koko- ja puolitauko piirretään itse, jotta lyhyt viivaston viiva näkyy
+   varmasti ja tauot erottaa yhdellä silmäyksellä fontista riippumatta. */
+.rest-staff-snippet {
+  position: relative;
+  width: clamp(42px, 6.2vw, 66px);
+  height: clamp(28px, 4.6vh, 42px);
+  flex: 0 0 auto;
+}
+
+.rest-staff-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: currentColor;
+}
+
+.rest-staff-block {
+  position: absolute;
+  left: 50%;
+  width: 42%;
+  height: 27%;
+  transform: translateX(-50%);
+  background: currentColor;
+}
+
+/* Kokotauko riippuu viivasta, puolitauko lepää viivan päällä. */
+.rest-staff-whole .rest-staff-block {
+  top: 50%;
+}
+
+.rest-staff-half .rest-staff-block {
+  bottom: 50%;
+}
+
+/* Taukomoodissa eleohjetekstiä ei tarvita, mutta alkuperäinen
+   koskettimiston alarivin korkeus säilytetään, jotta viewport ei muuta kokoa. */
+.keyboard-panel.rest-mode .gesture-guide span {
+  visibility: hidden;
+}
+
+.keyboard-panel.rest-mode .keyboard-scroll-rail {
+  pointer-events: none;
+  opacity: .62;
+}
+
+/* Taukokoskettimisto rajataan täsmälleen pianokoskettimiston viewport-alueelle. */
+.keyboard-panel.rest-mode .keyboard-viewport {
+  position: relative;
+}
+
+.keyboard-panel.rest-mode .rest-keyboard {
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+}
