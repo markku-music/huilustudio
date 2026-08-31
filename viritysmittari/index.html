@@ -665,10 +665,9 @@
   }
   body { overscroll-behavior:none; }
   .app {
-    width:100vw; height:100dvh; min-height:0;
+    width:100vw; height:100vh; height:100dvh; min-height:0;
     position:relative;
-    display:grid;
-    place-items:center;
+    display:block;
     overflow:hidden;
     background-image:none !important;
     background:#138ee8 !important;
@@ -676,10 +675,21 @@
   .app::before { display:none !important; }
 
   .cockpit-scene {
-    position:relative;
-    width:min(100vw, calc(100dvh * 4 / 3));
-    max-width:100vw;
-    max-height:100dvh;
+    /*
+      4:3-sisäinen näyttämö skaalataan COVER-periaatteella yhtenä kappaleena.
+      Näin taustakuva, mittarit ja painikkeet eivät koskaan irtoa toisistaan.
+      Leveillä ruuduilla ylimäärä rajautuu ylhäältä (taivaasta); kapeilla
+      ruuduilla sivuilta. Cockpit ankkuroidaan alareunaan, jotta kojelauta
+      säilyy mahdollisimman hyvin näkyvissä.
+    */
+    position:absolute;
+    left:50%;
+    bottom:0;
+    transform:translateX(-50%);
+    width:max(100vw, calc(100vh * 4 / 3));
+    width:max(100vw, calc(100dvh * 4 / 3));
+    max-width:none;
+    max-height:none;
     aspect-ratio:4 / 3;
     overflow:hidden;
     container-type:inline-size;
@@ -1087,8 +1097,7 @@
   .level { display:none !important; }
 
   @media (max-aspect-ratio: 1/1) {
-    /* Appi on tehty ensisijaisesti iPadin vaakatasoon. Pystyasennossa koko kojelauta näkyy silti. */
-    .cockpit-scene { width:100vw; max-height:none; }
+    /* Sama COVER-logiikka toimii myös pystyasennossa. Sivut saavat rajautua. */
   }
 </style>
 
@@ -1227,12 +1236,6 @@
       <div class="hidden-note-label" aria-hidden="true"><span id="noteName">A1</span><span id="noteFreq">440 Hz</span></div>
     </div>
 
-    <div class="statusbox cockpit-status">
-      <div id="status">Paina sinistä kaiutinpainiketta ja anna mikrofonilupa.</div>
-      <div id="lockInfo"></div>
-    </div>
-    <div class="level"><div id="levelBar"></div></div>
-
     <div class="hidden-world-ui" aria-hidden="true">
       <button id="worldButton" type="button" aria-expanded="false">Maailma: Karkkimaa</button>
       <section id="worldPicker" class="world-picker">
@@ -1247,6 +1250,13 @@
       </section>
     </div>
   </div>
+
+  <!-- Status pidetään viewport-tasolla, jotta COVER-rajaus ei koskaan leikkaa sitä pois. -->
+  <div class="statusbox cockpit-status">
+    <div id="status">Paina sinistä kaiutinpainiketta ja anna mikrofonilupa.</div>
+    <div id="lockInfo"></div>
+  </div>
+  <div class="level"><div id="levelBar"></div></div>
 
   <button id="devToggle" type="button" aria-pressed="false" aria-controls="devPanel" aria-label="Kehittäjätila">⚙</button>
   <aside id="devPanel" aria-label="Kehittäjätila">
