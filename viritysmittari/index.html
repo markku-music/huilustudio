@@ -1895,16 +1895,31 @@
     lightSegments(cents);
   }
 
-  document.getElementById("prevNote").addEventListener("click", () => {
+  function changeManualNote(delta) {
     if (autoMode) setAutoMode(false);
-    noteIndex = (noteIndex - 1 + notes.length) % notes.length;
+    noteIndex = (noteIndex + delta + notes.length) % notes.length;
+
+    // Sävelvalinta on uusi lähtötilanne, ei uusi pitch-havainto.
+    // Nollataan vanha Hz-lukema uuden tavoitesävelen kohdalle ennen näyttöjen
+    // päivittämistä, jotta +/−-painallus ei hetkeksi näytä edellisen sävelen
+    // poikkeamaa. Seuraava oikea pitch-havainto ottaa ohjauksen normaalisti.
+    const selectedHz = notes[noteIndex][1];
+    hzEl.textContent = String(selectedHz);
+    centValue.textContent = "0";
+    clearSegments();
     updateNote();
+
+    window.dispatchEvent(new CustomEvent("tunermanualtargetchange", {
+      detail: { hz: selectedHz }
+    }));
+  }
+
+  document.getElementById("prevNote").addEventListener("click", () => {
+    changeManualNote(-1);
   });
 
   document.getElementById("nextNote").addEventListener("click", () => {
-    if (autoMode) setAutoMode(false);
-    noteIndex = (noteIndex + 1) % notes.length;
-    updateNote();
+    changeManualNote(1);
   });
 
   autoNote.addEventListener("click", () => {
@@ -2381,6 +2396,26 @@
     updateAnalog();
   });
   hzObserver.observe(hzEl, { childList:true, characterData:true, subtree:true });
+
+  window.addEventListener("tunermanualtargetchange", (event) => {
+    const target = Number(event.detail?.hz);
+
+    // Manuaalinen +/−-vaihto katkaisee vain vanhan näyttötilan. Varsinaiseen
+    // pitch-moottoriin ei kosketa. Seuraava raakadata aloittaa uuden mittauksen.
+    rangeActive = false;
+    rangeSawLock = false;
+    rangeLockedNow = false;
+    cancelAnimationFrame(sampleRaf);
+    toneMinCents = null;
+    toneMaxCents = null;
+    resetInitialSettle();
+    resetExtremeCandidates();
+    clearResultRange();
+
+    lastRawHz = Number.isFinite(target) && target > 0 ? target : null;
+    analogNeedle.style.transform = "translateX(-50%) rotate(0deg)";
+    analogCentReadout.textContent = "0";
+  });
 
   const targetObserver = new MutationObserver(() => {
     clearResultRange();
