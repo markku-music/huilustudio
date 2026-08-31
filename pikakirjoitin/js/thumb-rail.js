@@ -64,10 +64,17 @@
 
       if (modifier === "dot2") return;
 
-      // Tie on kertakäyttöinen toggle: napautus virittää sen seuraavaa
-      // syötettyä tapahtumaa varten. Rivien muokkaus on tavallinen toggle.
-      // Muut peukalopakin työkalut ovat paina-ja-pidä-modifiereita.
-      if (modifier === "tie" || modifier === "layout" || modifier === "barlines") {
+      // Tie on kertakäyttöinen one-shot: sen valinta vain virittää tien
+      // seuraavaa syötettyä tapahtumaa varten. Se ei ole käyttäjän
+      // päälle/pois-toggle. startEntry() kuluttaa tilan heti seuraavan
+      // tapahtuman alkaessa. Rivien muokkaus on tavallinen toggle.
+      if (modifier === "tie") {
+        this.stateValue.tie = true;
+        this.updateStateAndButtons();
+        return;
+      }
+
+      if (modifier === "layout" || modifier === "barlines") {
         const next = !this.stateValue[modifier];
         this.stateValue[modifier] = next;
         if (next && modifier === "layout") this.stateValue.barlines = false;
@@ -168,7 +175,7 @@
 
       if (active.modifier === "dot1") {
         if (active.dotSelection === "tie") {
-          this.stateValue.tie = !Boolean(this.stateValue.tie);
+          this.stateValue.tie = true;
         }
         this.closeDotFlyout();
       }

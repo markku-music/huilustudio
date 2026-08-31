@@ -139,3 +139,5 @@ toimimasta projektin avaamisen jalkeen.
 - Taukojen SVG:t, taukoeleet ja muu koskettimiston logiikka ovat ennallaan.
 
 0.17.6.47: Pisteellisen nuotin painikkeen avautuvaan palettiin lisätty tie; erillinen tie-nappi poistettu. Kaksoispisteellinen säilyy samassa paletissa.
+
+0.17.6.48: Tie on one-shot/temporary: valinta virittää vain seuraavan syötettävän tapahtuman ja tila sammuu heti sen jälkeen.
