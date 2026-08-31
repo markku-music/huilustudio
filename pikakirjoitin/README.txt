@@ -134,3 +134,5 @@ toimimasta projektin avaamisen jalkeen.
 
 
 0.17.6.43: Taukomoodista poistuminen palauttaa pianokoskettimiston täsmälleen samaan vaakakohtaan, jossa se oli ennen taukonapin painamista.
+
+0.17.6.44: Taukomoodi ei enää piilota pianoa layoutista; taukokoskettimisto peittää vain viewportin, jotta koskettimiston vaakasijainti säilyy.

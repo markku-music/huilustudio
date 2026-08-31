@@ -87,10 +87,9 @@
       this.restActive = null;
       this.restMode = false;
       this.restLayer = null;
-      // 0.17.6.43: Kun piano piilotetaan taukomoodin ajaksi, WebKit voi
-      // nollata viewportin scrollLeft-arvon. Säilytetään nykyinen kohta
-      // ja palautetaan se heti pianon palatessa näkyviin.
-      this.restSavedScrollLeft = 0;
+      // 0.17.6.44: Taukomoodi on vain peittava kerros pianon paalla.
+      // Piano pysyy koko ajan layoutissa, jotta sen vaakasijainti ja
+      // viewportin vieritysalue eivät muutu taukonappia painettaessa.
       this.scrollPointerId = null;
       this.scrollGrabOffset = 0;
       this.rearming = false;
@@ -185,21 +184,15 @@
       if (!this.restLayer) return;
 
       if (this.restMode) {
-        // Tallenna vaakakohta ENNEN kuin piano piilotetaan. Piilotettu 250vw
-        // sisältö voi muuten saada selaimen clampaamaan scrollLeftin nollaan.
-        this.restSavedScrollLeft = this.viewport.scrollLeft;
+        // 0.17.6.44: Älä piilota pianoa. Taukokoskettimisto peittää vain
+        // näkyvän viewportin, jolloin 250vw pianon scroll-leveys ja nykyinen
+        // scrollLeft pysyvät koskemattomina koko taukomoodin ajan.
         this.restLayer.hidden = false;
-        this.piano.hidden = true;
         if (this.panel) this.panel.classList.add("rest-mode");
       } else if (!this.restActive) {
         this.restLayer.hidden = true;
-        this.piano.hidden = false;
         if (this.panel) this.panel.classList.remove("rest-mode");
-        requestAnimationFrame(() => {
-          const maxScroll = Math.max(0, this.piano.scrollWidth - this.viewport.clientWidth);
-          this.viewport.scrollLeft = clamp(this.restSavedScrollLeft, 0, maxScroll);
-          this.syncThumb();
-        });
+        this.syncThumb();
       }
     }
 
@@ -286,13 +279,8 @@
 
       if (!this.restMode) {
         this.restLayer.hidden = true;
-        this.piano.hidden = false;
         if (this.panel) this.panel.classList.remove("rest-mode");
-        requestAnimationFrame(() => {
-          const maxScroll = Math.max(0, this.piano.scrollWidth - this.viewport.clientWidth);
-          this.viewport.scrollLeft = clamp(this.restSavedScrollLeft, 0, maxScroll);
-          this.syncThumb();
-        });
+        this.syncThumb();
       }
     }
 
