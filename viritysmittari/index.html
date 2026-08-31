@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#c9f4df">
-<title>Viritin – Karkkipastelli</title>
+<meta name="theme-color" content="#172033">
+<title>Viritysmittari – LED pysty B</title>
 <style>
   :root {
     color-scheme: dark;
@@ -637,488 +637,6 @@
   }
   .led-column { z-index:3; }
 
-
-
-  /* KOKEILU: vaakasuora teal/orange-aikajakaumamittari.
-     Vanha LED- ja analoginäkymä jää näkymättömäksi moottorikerrokseksi,
-     jotta hyväksi havaittu asettumis-/lukituslogiikka säilyy ennallaan. */
-  .meter-center {
-    position:relative;
-    min-height:190px;
-  }
-  .pitch-heatmap {
-    width:min(920px, 94vw);
-    display:grid;
-    grid-template-rows:auto auto;
-    gap:12px;
-    cursor:pointer;
-    user-select:none;
-    -webkit-user-select:none;
-  }
-  .pitch-heatmap-track {
-    position:relative;
-    height:104px;
-    display:flex;
-    overflow:hidden;
-    border-radius:22px;
-    background:#184F52;
-    border:2px solid rgba(255,255,255,.64);
-    box-shadow:
-      inset 0 0 0 2px rgba(7,35,38,.25),
-      inset 0 -14px 24px rgba(3,31,33,.22),
-      0 12px 28px rgba(0,0,0,.22);
-  }
-  .pitch-heatmap-track::after {
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    background:linear-gradient(180deg, rgba(255,255,255,.13), transparent 35%, rgba(0,0,0,.10));
-  }
-  .pitch-heatmap-bins {
-    position:absolute;
-    inset:0;
-    background:transparent;
-  }
-  .pitch-heatmap-indicator {
-    position:absolute;
-    z-index:4;
-    top:5px;
-    bottom:5px;
-    width:3px;
-    left:50%;
-    opacity:0;
-    transform:translateX(-50%);
-    border-radius:999px;
-    background:rgba(248,251,252,.98);
-    box-shadow:0 0 0 1px rgba(8,28,30,.24), 0 0 9px rgba(255,255,255,.22);
-    pointer-events:none;
-    transition:left 90ms linear, opacity 80ms linear;
-  }
-  .pitch-heatmap-zero {
-    position:absolute;
-    z-index:3;
-    left:50%;
-    top:0;
-    bottom:0;
-    width:2px;
-    transform:translateX(-1px);
-    background:rgba(236,246,244,.88);
-    box-shadow:0 0 7px rgba(236,246,244,.25);
-    pointer-events:none;
-  }
-  .pitch-heatmap-tick {
-    position:absolute;
-    z-index:2;
-    top:0;
-    bottom:0;
-    width:1px;
-    background:rgba(238,246,245,.20);
-    pointer-events:none;
-  }
-  .pitch-heatmap-scale {
-    position:relative;
-    height:28px;
-    color:rgba(255,255,255,.88);
-    font-size:13px;
-    font-weight:650;
-    font-variant-numeric:tabular-nums;
-  }
-  .pitch-heatmap-scale span {
-    position:absolute;
-    top:0;
-    transform:translateX(-50%);
-  }
-  .pitch-heatmap-scale .edge-left { transform:none; }
-  .pitch-heatmap-scale .edge-right { transform:translateX(-100%); }
-  .pitch-heatmap-hint {
-    position:absolute;
-    z-index:4;
-    left:50%;
-    bottom:8px;
-    transform:translateX(-50%);
-    padding:3px 8px;
-    border-radius:999px;
-    background:rgba(8,32,34,.38);
-    color:rgba(255,255,255,.62);
-    font-size:11px;
-    letter-spacing:.02em;
-    pointer-events:none;
-    opacity:.82;
-  }
-
-  /* Moottorikerrokset pidetään renderöityvinä, mutta pois näkyvästä layoutista.
-     Analogiviisarin CSS-transition tarvitaan edelleen taustalla. */
-  .meter-center > .led-meter-wrap,
-  .meter-center > .analog-meter-wrap {
-    position:absolute !important;
-    left:-10000px !important;
-    top:0 !important;
-    opacity:0 !important;
-    pointer-events:none !important;
-  }
-
-  @media(max-width:760px) {
-    .meter-center { min-height:165px; }
-    .pitch-heatmap { width:min(94vw, 680px); }
-    .pitch-heatmap-track { height:88px; border-radius:18px; }
-  }
-
-
-
-  /* ============================================================
-     KARKKIPASTELLI / LASTEN ULKOASU
-     VAIN NÄKYVÄ UI. Mittaus-, lukitus-, live-viiva-, gradientti-
-     ja 100 ms huippumarginaalilogiikka ovat ennallaan.
-     ============================================================ */
-  :root {
-    color-scheme: light;
-    --kids-teal:#19b9ad;
-    --kids-deep-teal:#087e7a;
-    --kids-cream:#fffaf0;
-    --kids-mint:#d7f7e7;
-    --kids-mint-2:#bdeedb;
-    --kids-pink:#ff9fc1;
-    --kids-yellow:#ffd85a;
-    --kids-purple:#aa77e8;
-    --kids-ink:#236d70;
-  }
-
-  html, body {
-    min-height:100%;
-    background:#c9f4df;
-    color:var(--kids-ink);
-  }
-
-  .app {
-    min-height:100dvh;
-    background-position:center center;
-    background-size:cover;
-    background-repeat:no-repeat;
-  }
-  .app::before {
-    background:linear-gradient(rgba(255,255,255,.02), rgba(255,255,255,.04));
-  }
-
-  .topbar {
-    position:absolute;
-    z-index:20;
-    top:max(12px, env(safe-area-inset-top));
-    left:max(14px, env(safe-area-inset-left));
-    padding:0;
-  }
-  .glass {
-    min-height:44px;
-    padding:9px 15px;
-    border:3px solid rgba(255,255,255,.88);
-    border-radius:999px;
-    color:#167f7a;
-    background:rgba(255,250,232,.91);
-    box-shadow:0 5px 0 rgba(27,142,134,.16), 0 10px 24px rgba(24,125,120,.18);
-    backdrop-filter:blur(9px);
-    font-weight:800;
-    font-size:14px;
-  }
-
-  .world-picker {
-    top:68px;
-    left:max(14px, env(safe-area-inset-left));
-    background:rgba(255,250,239,.97);
-    border:4px solid rgba(255,255,255,.92);
-    border-radius:24px;
-    box-shadow:0 14px 34px rgba(29,130,123,.22);
-  }
-  .world {
-    border-radius:18px;
-    background:#dff7ed;
-  }
-  .world.active { border-color:#ff9fc1; }
-  .world span {
-    background:rgba(255,250,239,.9);
-    color:#277b78;
-  }
-
-  .stage {
-    position:absolute;
-    inset:0;
-    z-index:4;
-    width:100%;
-    margin:0;
-    padding:0;
-    display:block;
-  }
-
-  /* Todellinen mittari peittää taustakuvan piirretyn mittarin. */
-  .meter-card {
-    position:absolute;
-    z-index:6;
-    left:50%;
-    top:35.2%;
-    transform:translateX(-50%);
-    width:min(94vw, 1360px);
-    padding:10px;
-    border-radius:56px;
-    background:linear-gradient(180deg, rgba(248,255,241,.98), rgba(226,250,234,.98));
-    border:7px solid rgba(255,255,255,.95);
-    box-shadow:
-      0 8px 0 rgba(23,158,146,.17),
-      0 18px 35px rgba(14,116,110,.18),
-      inset 0 0 0 3px rgba(36,187,170,.20);
-  }
-
-  .meter-shell {
-    position:relative;
-    display:block;
-    min-height:0;
-    padding:12px 16px 18px;
-    border-radius:46px;
-    background:linear-gradient(180deg, #b9f1dc 0%, #dff9eb 100%);
-    border:3px solid rgba(60,190,171,.33);
-    box-shadow:
-      inset 0 8px 20px rgba(255,255,255,.55),
-      inset 0 -8px 18px rgba(54,166,151,.09);
-  }
-
-  .meter-center {
-    position:relative;
-    width:100%;
-    min-height:0;
-    display:block;
-  }
-
-  .pitch-heatmap {
-    width:100%;
-    margin:0;
-  }
-  .pitch-heatmap-track {
-    height:clamp(104px, 16vh, 166px);
-    border-radius:38px;
-    border:6px solid rgba(255,255,255,.94);
-    background:#184F52;
-    box-shadow:
-      inset 0 0 0 4px rgba(13,117,113,.32),
-      inset 0 10px 18px rgba(255,255,255,.11),
-      inset 0 -14px 22px rgba(0,72,72,.15),
-      0 7px 0 rgba(52,178,163,.20),
-      0 13px 25px rgba(22,132,124,.16);
-  }
-  .pitch-heatmap-track::after {
-    background:linear-gradient(180deg, rgba(255,255,255,.22), transparent 38%, rgba(1,71,74,.08));
-  }
-
-  .pitch-heatmap-indicator {
-    top:8px;
-    bottom:8px;
-    width:7px;
-    border-radius:999px;
-    background:#fffdf3;
-    box-shadow:
-      0 0 0 3px rgba(7,134,131,.74),
-      0 0 13px rgba(255,255,255,.75);
-  }
-  .pitch-heatmap-zero {
-    width:4px;
-    transform:translateX(-2px);
-    background:rgba(255,255,255,.96);
-    box-shadow:0 0 9px rgba(255,255,255,.48);
-  }
-  .pitch-heatmap-tick {
-    width:2px;
-    top:22%;
-    bottom:22%;
-    background:rgba(255,255,255,.35);
-    border-radius:999px;
-  }
-  .pitch-heatmap-hint { display:none; }
-
-  .pitch-heatmap-scale {
-    height:42px;
-    margin:4px 9px 0;
-    color:#158d87;
-    font-size:clamp(16px, 2.1vw, 28px);
-    font-weight:900;
-    text-shadow:0 2px 0 rgba(255,255,255,.72);
-  }
-  .pitch-heatmap-scale span { top:3px; }
-  .pitch-heatmap-scale span:nth-child(2),
-  .pitch-heatmap-scale span:nth-child(4) {
-    font-size:.72em;
-    opacity:.62;
-    top:7px;
-  }
-  .pitch-heatmap-scale span:nth-child(3) {
-    color:#f28c28;
-    transform:translateX(-50%) scale(1.12);
-  }
-
-  /* Nykyiset sivunäytöt muutetaan pieniksi karkkikupliksi mittarin päälle. */
-  .meter-shell > .side-readout {
-    position:absolute;
-    z-index:8;
-    top:-86px;
-    min-width:132px;
-    min-height:70px;
-    padding:10px 18px;
-    gap:2px;
-    border:4px solid rgba(255,255,255,.94);
-    border-radius:28px;
-    color:#237d79;
-    background:rgba(255,250,237,.94);
-    box-shadow:0 6px 0 rgba(27,150,140,.15), 0 12px 28px rgba(21,119,113,.14);
-    backdrop-filter:blur(8px);
-  }
-  .meter-shell > .side-readout:first-child { left:7%; }
-  .meter-shell > .side-readout:last-child { right:7%; }
-
-  #targetNote {
-    font-size:clamp(31px, 4vw, 50px);
-    color:#9d65dd;
-    text-shadow:0 2px 0 #fff;
-  }
-  #targetHz {
-    font-size:14px;
-    color:#168a84;
-    opacity:.78;
-  }
-  #hz {
-    font-size:clamp(30px, 4vw, 50px);
-    color:#ff7fa8;
-    text-shadow:0 2px 0 #fff;
-  }
-  .unit {
-    font-size:18px;
-    color:#168a84;
-    opacity:.7;
-  }
-  #centValue {
-    font-size:16px;
-    color:#168a84;
-  }
-
-  /* Alareunan oikeat säätimet kelluvat pehmeässä lelukonsolissa. */
-  .controls {
-    position:absolute;
-    z-index:9;
-    left:50%;
-    bottom:max(34px, calc(env(safe-area-inset-bottom) + 18px));
-    transform:translateX(-50%);
-    width:auto;
-    display:flex;
-    align-items:center;
-    gap:14px;
-    padding:10px 12px;
-    border-radius:28px;
-    border:4px solid rgba(255,255,255,.94);
-    background:rgba(255,249,233,.92);
-    box-shadow:0 7px 0 rgba(64,157,120,.14), 0 14px 30px rgba(33,117,96,.16);
-    backdrop-filter:blur(9px);
-  }
-  .note-control {
-    grid-column:auto;
-    padding:5px;
-    gap:5px;
-    border:0;
-    background:transparent;
-    backdrop-filter:none;
-  }
-  .note-btn {
-    width:50px;
-    height:50px;
-    border:3px solid rgba(255,255,255,.9);
-    border-radius:18px;
-    background:linear-gradient(#83e1cf, #38c7b2);
-    color:white;
-    box-shadow:0 4px 0 rgba(10,137,128,.24);
-    font-weight:900;
-  }
-  .note-label {
-    min-width:100px;
-    color:#257a77;
-  }
-  #noteName {
-    font-size:28px;
-    color:#9b63dc;
-    text-shadow:0 2px 0 #fff;
-  }
-  #noteFreq { color:#258682; opacity:.72; }
-
-  #toggle {
-    grid-column:auto;
-    justify-self:auto;
-    min-height:52px;
-    padding:0 22px;
-    border:3px solid rgba(255,255,255,.95);
-    border-radius:19px;
-    background:linear-gradient(#ffb8ce, #ff85aa);
-    color:#7a3452;
-    box-shadow:0 4px 0 rgba(191,80,119,.22);
-    font-weight:900;
-    backdrop-filter:none;
-  }
-
-  .statusbox {
-    position:absolute;
-    z-index:7;
-    left:50%;
-    bottom:max(108px, calc(env(safe-area-inset-bottom) + 92px));
-    transform:translateX(-50%);
-    width:auto;
-    max-width:min(72vw, 720px);
-    display:flex;
-    gap:10px;
-    padding:6px 13px;
-    border:3px solid rgba(255,255,255,.82);
-    border-radius:999px;
-    background:rgba(255,250,236,.82);
-    color:#317a72;
-    box-shadow:0 5px 16px rgba(38,121,102,.12);
-    backdrop-filter:blur(7px);
-  }
-  #status { color:#317a72; font-size:13px; font-weight:800; }
-  #lockInfo { color:#7f6fa2; font-size:12px; }
-
-  .level {
-    position:absolute;
-    z-index:9;
-    left:50%;
-    bottom:max(21px, calc(env(safe-area-inset-bottom) + 5px));
-    transform:translateX(-50%);
-    width:min(290px, 48vw);
-    height:5px;
-    background:rgba(22,150,137,.16);
-  }
-  #levelBar { background:#54cdb8; }
-
-  /* Taustalla tarvittavat moottorikerrokset pysyvät ennallaan piilossa. */
-  .meter-center > .led-meter-wrap,
-  .meter-center > .analog-meter-wrap {
-    left:-10000px !important;
-  }
-
-  @media (max-aspect-ratio: 1/1) {
-    .app { background-position:center top; }
-    .meter-card { top:34%; width:96vw; border-radius:38px; padding:7px; }
-    .meter-shell { border-radius:31px; padding:9px 10px 15px; }
-    .pitch-heatmap-track { height:112px; border-radius:28px; }
-    .meter-shell > .side-readout { top:-66px; min-height:54px; min-width:100px; padding:7px 11px; border-radius:22px; }
-    .meter-shell > .side-readout:first-child { left:3%; }
-    .meter-shell > .side-readout:last-child { right:3%; }
-    #targetNote, #hz { font-size:28px; }
-    .controls { bottom:max(24px, calc(env(safe-area-inset-bottom) + 12px)); }
-    .statusbox { display:none; }
-  }
-
-  @media (max-height: 720px) and (orientation: landscape) {
-    .meter-card { top:34%; }
-    .pitch-heatmap-track { height:100px; }
-    .meter-shell > .side-readout { top:-64px; min-height:52px; padding:6px 12px; }
-    #targetNote, #hz { font-size:30px; }
-    .pitch-heatmap-scale { height:31px; font-size:17px; }
-    .controls { bottom:13px; padding:7px 9px; }
-    .statusbox { bottom:82px; padding:4px 10px; }
-    .level { display:none; }
-  }
-
 </style>
 </head>
 <body>
@@ -1147,24 +665,6 @@
         </div>
 
         <div class="meter-center">
-          <div id="pitchHeatmap" class="pitch-heatmap" aria-label="Vaakasuuntainen virityksen aikajakauma, miinus 50 sentistä plus 50 senttiin" title="Klikkaa mittaria nollataksesi tuloksen">
-            <div class="pitch-heatmap-track">
-              <div id="pitchHeatBins" class="pitch-heatmap-bins" aria-hidden="true"></div>
-              <div id="pitchHeatIndicator" class="pitch-heatmap-indicator" aria-hidden="true"></div>
-              <div class="pitch-heatmap-tick" style="left:25%"></div>
-              <div class="pitch-heatmap-zero"></div>
-              <div class="pitch-heatmap-tick" style="left:75%"></div>
-              <div class="pitch-heatmap-hint">viiva = vire · orange = pisin viipymä</div>
-            </div>
-            <div class="pitch-heatmap-scale" aria-hidden="true">
-              <span class="edge-left" style="left:0%">−50</span>
-              <span style="left:25%">−25</span>
-              <span style="left:50%">0</span>
-              <span style="left:75%">+25</span>
-              <span class="edge-right" style="left:100%">+50</span>
-            </div>
-          </div>
-
           <div class="led-meter-wrap">
             <div class="scale left">
               <span style="top:0%;">+50</span>
@@ -1812,9 +1312,6 @@
   const hzEl = document.getElementById("hz");
   const targetHzEl = document.getElementById("targetHz");
   const lockInfoEl = document.getElementById("lockInfo");
-  const pitchHeatmap = document.getElementById("pitchHeatmap");
-  const pitchHeatBins = document.getElementById("pitchHeatBins");
-  const pitchHeatIndicator = document.getElementById("pitchHeatIndicator");
   let lastRawHz = null;
 
   // Yhden äänen aikana muistetaan VAIN viisarin pienin ja suurin RUUDULLA NÄKYNYT
@@ -1850,303 +1347,9 @@
   let maxCandidateStart = null;
   let maxCandidateValue = null;
 
-  // Uusi vaakamittari: 201 puolen centin lokeroa (-50 ... +50).
-  // Arvo on aika millisekunteina, jonka HYVÄKSYTTY, asettumisen jälkeinen
-  // näkyvä viisari on viettänyt kyseisessä lokerossa.
-  const HEAT_MIN_CENTS = -50;
-  const HEAT_MAX_CENTS = 50;
-  const HEAT_BIN_STEP_CENTS = 0.5;
-  const HEAT_BIN_COUNT = 201;
-  const HEAT_RENDER_INTERVAL_MS = 16;
-  const heatTimes = new Float64Array(HEAT_BIN_COUNT);
-  // Yhden huipun visualisointi. Mittausdata pysyy sellaisenaan, mutta näkyvä
-  // pinta pakotetaan unimodaaliseksi: yksi hallitseva huippu ja erikseen
-  // datasta johdetut vasen/oikea häntä.
-  const HEAT_MIN_SIGMA_CENTS = 0.38;
-  const HEAT_TAIL_GAIN = 2.15;
-  const HEAT_TAIL_CUTOFF = 0.008;
-  const HEAT_EDGE_FADE_CENTS = 2.0;
-  const HEAT_SMOOTH_SIGMA_BINS = 3.0;
-  const HEAT_STRENGTH_GAMMA = 0.9;
-  const HEAT_PEAK_INSET_CENTS = 2.0;
-  // Huippu perustuu yksittäisen 0,5 c lokeron omaan kumulatiiviseen aikaan.
-  // Live-näkymässä huipun vaihto vaatii lisäksi 100 ms selvän johtoaseman.
-  const HEAT_VISUAL_TAU_MS = 400;
-  const HEAT_VISUAL_EPS_CENTS = 0.01;
-  const HEAT_PEAK_SWITCH_MARGIN_MS = 100;
-  let lastHeatSampleTime = null;
-  let lastHeatRenderTime = 0;
-  let heatVisualTarget = null;
-  let heatVisualCurrent = null;
-  let heatVisualRaf = 0;
-  let heatVisualLastFrame = null;
-  let heatPeakCents = null;
-  let heatLivePeakIndex = -1;
-
   function currentTargetHz() {
     const value = Number.parseFloat(targetHzEl.textContent);
     return Number.isFinite(value) ? value : null;
-  }
-
-  function showPitchHeatIndicator(cents) {
-    if (!Number.isFinite(cents)) return;
-    const clipped = Math.max(HEAT_MIN_CENTS, Math.min(HEAT_MAX_CENTS, cents));
-    const pct = ((clipped - HEAT_MIN_CENTS) / (HEAT_MAX_CENTS - HEAT_MIN_CENTS)) * 100;
-    pitchHeatIndicator.style.left = `${pct.toFixed(4)}%`;
-    pitchHeatIndicator.style.opacity = "1";
-  }
-
-  function showPitchHeatIndicatorImmediate(cents) {
-    if (!Number.isFinite(cents)) return;
-    const clipped = Math.max(HEAT_MIN_CENTS, Math.min(HEAT_MAX_CENTS, cents));
-    const pct = ((clipped - HEAT_MIN_CENTS) / (HEAT_MAX_CENTS - HEAT_MIN_CENTS)) * 100;
-    const previousTransition = pitchHeatIndicator.style.transition;
-    pitchHeatIndicator.style.transition = "none";
-    pitchHeatIndicator.style.left = `${pct.toFixed(4)}%`;
-    pitchHeatIndicator.style.opacity = "1";
-    // Pakota lopputulos ruudulle heti, sitten palauta live-liikkeen CSS-transition.
-    void pitchHeatIndicator.offsetWidth;
-    pitchHeatIndicator.style.transition = previousTransition;
-  }
-
-  function hidePitchHeatIndicator() {
-    pitchHeatIndicator.style.opacity = "0";
-  }
-
-  function createHeatBins() {
-    // Näkyvä pinta piirretään yhtenä jatkuvana gradienttina.
-    // Varsinainen viipymisdata säilyy edelleen 0,5 centin lokeroissa.
-    pitchHeatBins.replaceChildren();
-    pitchHeatBins.style.left = "0%";
-    pitchHeatBins.style.right = "auto";
-    pitchHeatBins.style.width = "100%";
-    pitchHeatBins.style.background = "transparent";
-  }
-
-  function drawPitchHeatmapVisual(state) {
-    if (!state) {
-      pitchHeatBins.style.left = "0%";
-      pitchHeatBins.style.right = "auto";
-      pitchHeatBins.style.width = "100%";
-      pitchHeatBins.style.background = "transparent";
-      return;
-    }
-
-    const visitedMinEdge = state.minEdge;
-    const visitedMaxEdge = state.maxEdge;
-    const visitedWidthCents = Math.max(HEAT_BIN_STEP_CENTS / 2, visitedMaxEdge - visitedMinEdge);
-    const fullWidthCents = HEAT_MAX_CENTS - HEAT_MIN_CENTS;
-    const leftPct = ((visitedMinEdge - HEAT_MIN_CENTS) / fullWidthCents) * 100;
-    const widthPct = (visitedWidthCents / fullWidthCents) * 100;
-
-    pitchHeatBins.style.left = `${leftPct.toFixed(4)}%`;
-    pitchHeatBins.style.right = "auto";
-    pitchHeatBins.style.width = `${widthPct.toFixed(4)}%`;
-
-    const TEAL_RGB = [24, 79, 82];
-    const ORANGE_RGB = [242, 140, 40];
-
-    // Orangen huippu on täsmälleen sama kohta, jossa sama näkyvä viiva on
-    // viipynyt pisimpään. Sitä ei siirretä visuaalisesti pois todellisesta kohdasta.
-    const visiblePeakCents = Math.max(visitedMinEdge, Math.min(visitedMaxEdge, state.peakCents));
-    const peakX = Math.max(0, Math.min(100,
-      ((visiblePeakCents - visitedMinEdge) / visitedWidthCents) * 100
-    ));
-
-    const smooth01 = (t) => {
-      const x = Math.max(0, Math.min(1, t));
-      return x * x * x * (x * (x * 6 - 15) + 10);
-    };
-
-    const mixColor = (amount) => {
-      const a = Math.max(0, Math.min(1, amount));
-      const r = Math.round(TEAL_RGB[0] + (ORANGE_RGB[0] - TEAL_RGB[0]) * a);
-      const g = Math.round(TEAL_RGB[1] + (ORANGE_RGB[1] - TEAL_RGB[1]) * a);
-      const b = Math.round(TEAL_RGB[2] + (ORANGE_RGB[2] - TEAL_RGB[2]) * a);
-      return `rgb(${r}, ${g}, ${b})`;
-    };
-
-    const stops = [`${mixColor(0)} 0%`];
-    const VISUAL_STEPS = 120;
-    for (let step = 1; step < VISUAL_STEPS; step += 1) {
-      const x = (step / VISUAL_STEPS) * 100;
-      let amount;
-
-      if (x <= peakX) {
-        const denom = Math.max(0.0001, peakX);
-        amount = smooth01(x / denom);
-      } else {
-        const denom = Math.max(0.0001, 100 - peakX);
-        amount = smooth01((100 - x) / denom);
-      }
-
-      stops.push(`${mixColor(amount)} ${x.toFixed(3)}%`);
-    }
-
-    stops.push(`${mixColor(1)} ${peakX.toFixed(3)}%`);
-    stops.push(`${mixColor(0)} 100%`);
-    stops.sort((a, b) => parseFloat(a.match(/([0-9.]+)%$/)[1]) - parseFloat(b.match(/([0-9.]+)%$/)[1]));
-    pitchHeatBins.style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
-  }
-
-  function animatePitchHeatmap(now) {
-    heatVisualRaf = 0;
-
-    if (!heatVisualTarget) {
-      heatVisualCurrent = null;
-      heatVisualLastFrame = null;
-      drawPitchHeatmapVisual(null);
-      return;
-    }
-
-    if (!heatVisualCurrent) {
-      heatVisualCurrent = { ...heatVisualTarget };
-      heatVisualLastFrame = now;
-      drawPitchHeatmapVisual(heatVisualCurrent);
-      return;
-    }
-
-    const dt = heatVisualLastFrame === null ? 16 : Math.max(1, Math.min(50, now - heatVisualLastFrame));
-    heatVisualLastFrame = now;
-    const a = 1 - Math.exp(-dt / HEAT_VISUAL_TAU_MS);
-
-    heatVisualCurrent.minEdge += (heatVisualTarget.minEdge - heatVisualCurrent.minEdge) * a;
-    heatVisualCurrent.maxEdge += (heatVisualTarget.maxEdge - heatVisualCurrent.maxEdge) * a;
-    heatVisualCurrent.peakCents += (heatVisualTarget.peakCents - heatVisualCurrent.peakCents) * a;
-
-    drawPitchHeatmapVisual(heatVisualCurrent);
-
-    const maxError = Math.max(
-      Math.abs(heatVisualTarget.minEdge - heatVisualCurrent.minEdge),
-      Math.abs(heatVisualTarget.maxEdge - heatVisualCurrent.maxEdge),
-      Math.abs(heatVisualTarget.peakCents - heatVisualCurrent.peakCents)
-    );
-
-    if (maxError > HEAT_VISUAL_EPS_CENTS) {
-      heatVisualRaf = requestAnimationFrame(animatePitchHeatmap);
-    } else {
-      heatVisualCurrent = { ...heatVisualTarget };
-      drawPitchHeatmapVisual(heatVisualCurrent);
-      heatVisualLastFrame = null;
-    }
-  }
-
-  function requestPitchHeatmapAnimation() {
-    if (!heatVisualRaf) {
-      heatVisualRaf = requestAnimationFrame(animatePitchHeatmap);
-    }
-  }
-
-  function renderPitchHeatmap(finalizePeak = false) {
-    let totalTime = 0;
-    let peakIndex = -1;
-    let peakTime = -1;
-    let visitedMinIndex = -1;
-    let visitedMaxIndex = -1;
-
-    // Kaikki tulee samasta näkyvän viivan viipymädatasta.
-    // Raaka voittaja on se 0,5 c lokero, jonka OMA kumulatiivinen viipymäaika
-    // on suurin. Naapurilokeroiden aikaa ei summata.
-    for (let i = 0; i < HEAT_BIN_COUNT; i += 1) {
-      const value = heatTimes[i];
-      totalTime += value;
-
-      if (value > 0) {
-        if (visitedMinIndex < 0) visitedMinIndex = i;
-        visitedMaxIndex = i;
-      }
-
-      if (value > peakTime) {
-        peakTime = value;
-        peakIndex = i;
-      }
-    }
-
-    if (!(totalTime > 0) || peakIndex < 0 || visitedMinIndex < 0 || visitedMaxIndex < 0) {
-      heatPeakCents = null;
-      heatLivePeakIndex = -1;
-      heatVisualTarget = null;
-      if (heatVisualRaf) cancelAnimationFrame(heatVisualRaf);
-      heatVisualRaf = 0;
-      heatVisualCurrent = null;
-      heatVisualLastFrame = null;
-      drawPitchHeatmapVisual(null);
-      return;
-    }
-
-    // Live-vaiheessa pidä nykyinen orange-huippu paikallaan, kunnes jokin
-    // toinen lokero johtaa sitä vähintään 100 ms. Tämä ei muuta heatTimes-dataa,
-    // vaan vakauttaa vain näkyvän huipun valintaa. Äänen lopussa finalizePeak=true
-    // ohittaa marginaalin ja käyttää aina todellista pisimmän viipymän lokeroa.
-    if (finalizePeak || heatLivePeakIndex < 0 || !(heatTimes[heatLivePeakIndex] > 0)) {
-      heatLivePeakIndex = peakIndex;
-    } else if (peakIndex !== heatLivePeakIndex) {
-      const currentPeakTime = heatTimes[heatLivePeakIndex];
-      const challengerTime = heatTimes[peakIndex];
-      if (challengerTime > currentPeakTime + HEAT_PEAK_SWITCH_MARGIN_MS) {
-        heatLivePeakIndex = peakIndex;
-      }
-    }
-
-    const visiblePeakIndex = finalizePeak ? peakIndex : heatLivePeakIndex;
-    const halfBin = HEAT_BIN_STEP_CENTS / 2;
-    const visitedMinCenter = HEAT_MIN_CENTS + visitedMinIndex * HEAT_BIN_STEP_CENTS;
-    const visitedMaxCenter = HEAT_MIN_CENTS + visitedMaxIndex * HEAT_BIN_STEP_CENTS;
-    const visitedMinEdge = Math.max(HEAT_MIN_CENTS, visitedMinCenter - halfBin);
-    const visitedMaxEdge = Math.min(HEAT_MAX_CENTS, visitedMaxCenter + halfBin);
-    const peakCenterCents = HEAT_MIN_CENTS + visiblePeakIndex * HEAT_BIN_STEP_CENTS;
-    heatPeakCents = peakCenterCents;
-
-    // Mittausdata määrää reunat täsmälleen kuten ennen. Huipun ainoa uusi
-    // live-vakautus on yllä oleva 100 ms voittomarginaali.
-    heatVisualTarget = {
-      minEdge: visitedMinEdge,
-      maxEdge: visitedMaxEdge,
-      peakCents: peakCenterCents
-    };
-
-    requestPitchHeatmapAnimation();
-  }
-
-  function clearPitchHeatmap() {
-    heatTimes.fill(0);
-    lastHeatSampleTime = null;
-    lastHeatRenderTime = 0;
-    heatPeakCents = null;
-    heatLivePeakIndex = -1;
-    hidePitchHeatIndicator();
-    renderPitchHeatmap();
-  }
-
-  function heatBinIndex(cents) {
-    const clipped = Math.max(HEAT_MIN_CENTS, Math.min(HEAT_MAX_CENTS, cents));
-    return Math.max(0, Math.min(HEAT_BIN_COUNT - 1, Math.round((clipped - HEAT_MIN_CENTS) / HEAT_BIN_STEP_CENTS)));
-  }
-
-  function beginHeatSampling(cents, now) {
-    lastHeatSampleTime = now;
-    const index = heatBinIndex(cents);
-    // Lyhyt siemen tekee jo täysin vakaasta lyhyestä äänestä näkyvän viivan.
-    heatTimes[index] += 1;
-    renderPitchHeatmap();
-    lastHeatRenderTime = now;
-  }
-
-  function recordHeatSample(cents, now) {
-    if (!Number.isFinite(cents)) return;
-    if (lastHeatSampleTime === null) {
-      lastHeatSampleTime = now;
-      return;
-    }
-    // RAF voi selaimen taustalla pysähtyä pitkäksi aikaa. Älä kirjaa taukoa äänen viipymisajaksi.
-    const elapsed = Math.max(0, Math.min(50, now - lastHeatSampleTime));
-    lastHeatSampleTime = now;
-    heatTimes[heatBinIndex(cents)] += elapsed;
-
-    if (now - lastHeatRenderTime >= HEAT_RENDER_INTERVAL_MS) {
-      renderPitchHeatmap();
-      lastHeatRenderTime = now;
-    }
   }
 
   function clearResultRange() {
@@ -2183,23 +1386,6 @@
     return (angle / 60) * 50;
   }
 
-  function renderedPitchHeatIndicatorCents() {
-    const track = pitchHeatIndicator.parentElement;
-    if (!track) return null;
-
-    const trackRect = track.getBoundingClientRect();
-    const indicatorRect = pitchHeatIndicator.getBoundingClientRect();
-    const innerWidth = track.clientWidth;
-    if (!(innerWidth > 0)) return null;
-
-    // Luetaan nimenomaan viivan TÄMÄNHETKINEN ruudulla näkyvä paikka.
-    // Näin CSS:n 90 ms lineaarinen liike kuuluu myös gradientin mittausdataan.
-    const innerLeft = trackRect.left + track.clientLeft;
-    const indicatorCenterX = indicatorRect.left + indicatorRect.width / 2;
-    const ratio = Math.max(0, Math.min(1, (indicatorCenterX - innerLeft) / innerWidth));
-    return HEAT_MIN_CENTS + ratio * (HEAT_MAX_CENTS - HEAT_MIN_CENTS);
-  }
-
   function isVisuallySinglePosition(minCents, maxCents) {
     if (!Number.isFinite(minCents) || !Number.isFinite(maxCents)) return false;
     const height = analogDial.clientHeight || 210;
@@ -2229,18 +1415,12 @@
       settleStart = null;
       settleMinCents = null;
       settleMaxCents = null;
-      lastHeatSampleTime = null;
-      if (!rangeActive) hidePitchHeatIndicator();
       return;
     }
 
     const now = performance.now();
-    const cents = renderedPitchHeatIndicatorCents();
+    const cents = renderedNeedleCents();
     if (!Number.isFinite(cents)) return;
-
-    // Gradientin min/max ja viipymä tulevat nyt täsmälleen SAMASTA näkyvästä
-    // live-viivasta. Viivan raw YIN -> cents -> 90 ms CSS-liike on siis myös
-    // gradientin mittauksen todellinen liikerata.
 
     // Älä ota keskeltä varsinaiseen virekohtaan kulkevaa lähtösiirtymää mukaan.
     // Aloita min/max vasta, kun näkyvä viisari on pysynyt 50 ms sellaisessa
@@ -2269,18 +1449,12 @@
       toneMinCents = settledCents;
       toneMaxCents = settledCents;
       initialSettled = true;
-      // Viipymä alkaa täsmälleen siitä kohdasta, jossa sama näkyvä viiva on nyt.
-      beginHeatSampling(cents, now);
       settleStart = null;
       settleMinCents = null;
       settleMaxCents = null;
       resetExtremeCandidates();
       return;
     }
-
-    // Vaakajakauma käyttää täsmälleen samaa hyväksyttyä, asettunutta
-    // live-viivan paikkaa ja tallentaa siitä myös VIIPYMISAIKAA.
-    recordHeatSample(cents, now);
 
     // Uusi minimi hyväksytään vasta, jos viisari pysyy uuden ääripään
     // tuntumassa vähintään 50 ms. Jos se käy vain yhden ruudun kaukana ja
@@ -2342,7 +1516,6 @@
     resetInitialSettle();
     resetExtremeCandidates();
     clearResultRange();
-    clearPitchHeatmap();
     cancelAnimationFrame(sampleRaf);
     sampleVisibleNeedle();
   }
@@ -2441,15 +1614,6 @@
 
     rangeActive = false; // Nollaan palautumista ei kirjata alueeseen.
     rangeLockedNow = false;
-    lastHeatSampleTime = null;
-    // Äänen lopussa ohita live-vaiheen 100 ms marginaali ja käytä todellista voittajaa.
-    renderPitchHeatmap(true);
-    if (Number.isFinite(heatPeakCents)) {
-      // Äänen lopussa viiva hyppää heti pisimmän viipymän kohtaan.
-      showPitchHeatIndicatorImmediate(heatPeakCents);
-    } else {
-      hidePitchHeatIndicator();
-    }
     cancelAnimationFrame(sampleRaf);
     rangeSawLock = false;
     resetInitialSettle();
@@ -2501,18 +1665,10 @@
     const hz = Number(event.detail?.hz);
     if (!Number.isFinite(hz) || hz <= 0) return;
 
-    // Keruu alkaa ensimmäisestä samasta raakadatasta, joka saa analogiviisarin liikkeelle.
+    // Keruu alkaa ensimmäisestä samasta raakadatasta, joka saa viisarin liikkeelle.
     if (!rangeActive) beginNeedleRange();
     lastRawHz = hz;
     updateAnalog();
-
-    // Live-viiva seuraa nyt täsmälleen vertailuapin analogiviisarin periaatetta:
-    // raaka YIN-taajuus -> cents -> uusi tavoite, CSS tekee 90 ms lineaarisen liikkeen.
-    const targetHz = currentTargetHz();
-    if (Number.isFinite(targetHz) && targetHz > 0) {
-      const cents = 1200 * Math.log2(hz / targetHz);
-      showPitchHeatIndicator(cents);
-    }
   });
 
   const lockObserver = new MutationObserver(() => {
@@ -2545,7 +1701,6 @@
         rangeActive = false;
         toneMinCents = null;
         toneMaxCents = null;
-        clearPitchHeatmap();
         resetInitialSettle();
         resetExtremeCandidates();
       }
@@ -2561,7 +1716,6 @@
 
   const targetObserver = new MutationObserver(() => {
     clearResultRange();
-    clearPitchHeatmap();
     updateAnalog();
   });
   targetObserver.observe(targetHzEl, { childList:true, characterData:true, subtree:true });
@@ -2569,17 +1723,11 @@
   function resetResultRangeByClick(event) {
     event.stopPropagation();
     clearResultRange();
-    clearPitchHeatmap();
   }
 
-  // Uudessa konseptissa näkyvän vaakamittarin klikkaus nollaa tuloksen.
-  pitchHeatmap.addEventListener("click", resetResultRangeByClick);
-  // Myös taustamoottorien vanhat pinnat säilyttävät saman toiminnon.
+  // Koko mittarin näyttöalue resetoi edellisen tulosalueen.
   analogMeter.addEventListener("click", resetResultRangeByClick);
   ledFrame.addEventListener("click", resetResultRangeByClick);
-
-  createHeatBins();
-  renderPitchHeatmap();
 
   window.addEventListener("resize", () => {
     if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) drawResultRange();
