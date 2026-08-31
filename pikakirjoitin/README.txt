@@ -132,7 +132,8 @@ toimimasta projektin avaamisen jalkeen.
 
 0.17.6.41: Taukokoskettimisto rauhoitettu kuuteen perustaukoon. Napautus kirjoittaa tavallisen tauon ja ylös-swaippi pisteellisen. Kaksipisteelliset poistettu taukokoskettimistosta.
 
-
-0.17.6.43: Taukomoodista poistuminen palauttaa pianokoskettimiston täsmälleen samaan vaakakohtaan, jossa se oli ennen taukonapin painamista.
-
-0.17.6.44: Taukomoodi ei enää piilota pianoa layoutista; taukokoskettimisto peittää vain viewportin, jotta koskettimiston vaakasijainti säilyy.
+0.17.6.45
+- Lähtöpiste palautettu suoraan versioon 0.17.6.42.
+- Taukomoodi ei enää piilota pianoa eikä muuta sen vieritysleveyttä.
+- Taukokoskettimisto siirretään aktivoitaessa nykyisen scrollLeft-kohdan päälle.
+- Taukojen SVG:t, taukoeleet ja muu koskettimiston logiikka ovat ennallaan.

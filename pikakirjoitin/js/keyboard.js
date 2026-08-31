@@ -87,9 +87,6 @@
       this.restActive = null;
       this.restMode = false;
       this.restLayer = null;
-      // 0.17.6.44: Taukomoodi on vain peittava kerros pianon paalla.
-      // Piano pysyy koko ajan layoutissa, jotta sen vaakasijainti ja
-      // viewportin vieritysalue eivät muutu taukonappia painettaessa.
       this.scrollPointerId = null;
       this.scrollGrabOffset = 0;
       this.rearming = false;
@@ -184,11 +181,13 @@
       if (!this.restLayer) return;
 
       if (this.restMode) {
-        // 0.17.6.44: Älä piilota pianoa. Taukokoskettimisto peittää vain
-        // näkyvän viewportin, jolloin 250vw pianon scroll-leveys ja nykyinen
-        // scrollLeft pysyvät koskemattomina koko taukomoodin ajan.
-        this.restLayer.hidden = false;
+        // 0.17.6.45: Piano pidetään koko ajan layoutissa, jotta sen leveys ja
+        // nykyinen scrollLeft eivät muutu. Taukokoskettimisto on viewportin
+        // sisällä, joten siirretään se vierityksen verran oikealle: näin se
+        // peittää juuri tällä hetkellä näkyvän kosketinalueen.
         if (this.panel) this.panel.classList.add("rest-mode");
+        this.restLayer.style.transform = `translateX(${this.viewport.scrollLeft}px)`;
+        this.restLayer.hidden = false;
       } else if (!this.restActive) {
         this.restLayer.hidden = true;
         if (this.panel) this.panel.classList.remove("rest-mode");
