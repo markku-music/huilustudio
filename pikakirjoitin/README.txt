@@ -141,3 +141,5 @@ toimimasta projektin avaamisen jalkeen.
 0.17.6.47: Pisteellisen nuotin painikkeen avautuvaan palettiin lisätty tie; erillinen tie-nappi poistettu. Kaksoispisteellinen säilyy samassa paletissa.
 
 0.17.6.48: Tie on one-shot/temporary: valinta virittää vain seuraavan syötettävän tapahtuman ja tila sammuu heti sen jälkeen.
+
+0.17.6.49: Tie pistevalikossa on temporary-modifier: pidä tie valittuna, seuraava uusi nuotti sidotaan edelliseen ja tie kulutetaan heti. Vapautus ei viritä tietä uudelleen.

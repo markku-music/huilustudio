@@ -1390,12 +1390,16 @@
 
     if (selection && selectedIds().length) selection.clear();
 
-    // Sama kertakäyttöinen Tie-logiikka kuin Pikakirjoitin 2:ssa:
-    // Tie viritetään napauttamalla ja kulutetaan heti seuraavaan UUTEEN
-    // syötettyyn tapahtumaan riippumatta siitä, onnistuuko side.
+    // Tie on temporary-modifier: peukalo pitää tie-vaihtoehdon aktiivisena
+    // ja seuraava UUSI nuotti kuluttaa sen heti. Vapautus ei viritä sitä
+    // uudelleen eikä tie jää päälle seuraavia nuotteja varten.
     const tieWasArmed = Boolean(thumbState.tie);
-    if (tieWasArmed && thumbRail) {
-      thumbRail.setToggle("tie", false);
+    if (
+      tieWasArmed &&
+      thumbRail &&
+      typeof thumbRail.consumeTie === "function"
+    ) {
+      thumbRail.consumeTie();
     }
 
     const previousEntry =

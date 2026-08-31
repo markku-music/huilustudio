@@ -38,9 +38,26 @@
     }
 
     setToggle(name, value) {
-      if (!["tie", "layout", "barlines"].includes(name)) return;
+      if (!["layout", "barlines"].includes(name)) return;
       this.stateValue[name] = Boolean(value);
       this.updateStateAndButtons();
+    }
+
+    consumeTie() {
+      let changed = false;
+
+      for (const active of this.activePointers.values()) {
+        const isTieSelection =
+          active.modifier === "tie" ||
+          (active.modifier === "dot1" && active.dotSelection === "tie");
+
+        if (isTieSelection && !active.tieConsumed) {
+          active.tieConsumed = true;
+          changed = true;
+        }
+      }
+
+      if (changed) this.updateStateAndButtons();
     }
 
     bind() {
@@ -64,16 +81,9 @@
 
       if (modifier === "dot2") return;
 
-      // Tie on kertakäyttöinen one-shot: sen valinta vain virittää tien
-      // seuraavaa syötettyä tapahtumaa varten. Se ei ole käyttäjän
-      // päälle/pois-toggle. startEntry() kuluttaa tilan heti seuraavan
-      // tapahtuman alkaessa. Rivien muokkaus on tavallinen toggle.
-      if (modifier === "tie") {
-        this.stateValue.tie = true;
-        this.updateStateAndButtons();
-        return;
-      }
-
+      // Tie on temporary-modifier kuten muutkin paina-ja-pidä-toiminnot.
+      // Se on aktiivinen vain niin kauan kuin tie-vaihtoehtoa pidetään
+      // valittuna. Seuraava uusi nuotti kuluttaa tien heti.
       if (modifier === "layout" || modifier === "barlines") {
         const next = !this.stateValue[modifier];
         this.stateValue[modifier] = next;
@@ -92,7 +102,8 @@
         startY: event.clientY,
         startTop: rect.top,
         dragging: false,
-        dotSelection: modifier === "dot1" ? 1 : 0
+        dotSelection: modifier === "dot1" ? 1 : 0,
+        tieConsumed: false
       });
 
       if (modifier === "dot1") {
@@ -174,9 +185,6 @@
       }
 
       if (active.modifier === "dot1") {
-        if (active.dotSelection === "tie") {
-          this.stateValue.tie = true;
-        }
         this.closeDotFlyout();
       }
 
@@ -216,7 +224,7 @@
       let dots = 0;
       let slur = false;
       let tiePreview = false;
-      const tie = Boolean(this.stateValue.tie);
+      let tie = false;
       const layout = Boolean(this.stateValue.layout);
       const barlines = Boolean(this.stateValue.barlines);
 
@@ -228,9 +236,15 @@
         if (active.modifier === "dot1") {
           if (active.dotSelection === "tie") {
             tiePreview = true;
+            if (!active.tieConsumed) tie = true;
           } else {
             dots = Math.max(dots, Number(active.dotSelection) || 1);
           }
+        }
+
+        if (active.modifier === "tie") {
+          tiePreview = true;
+          if (!active.tieConsumed) tie = true;
         }
 
         if (active.modifier === "slur") {
