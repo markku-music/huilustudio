@@ -133,13 +133,15 @@
       layer.setAttribute("aria-label", "Taukokoskettimisto");
       layer.hidden = true;
 
+      // 0.17.6.42: Taukokoskettimiston symbolit ovat käyttäjän toimittamat
+      // alkuperäiset SVG-tiedostot. Niitä ei piirretä tai tulkita uudelleen.
       const rests = [
-        ["whole", "𝄻", "kokotauko"],
-        ["half", "𝄼", "puolitauko"],
-        ["quarter", "𝄽", "neljäsosatauko"],
-        ["eighth", "𝄾", "kahdeksasosatauko"],
-        ["sixteenth", "𝄿", "kuudestoistaosatauko"],
-        ["thirty-second", "𝅀", "kolmaskymmeneskahtaosatauko"]
+        ["whole", "assets/rest_1_1.svg", "kokotauko"],
+        ["half", "assets/rest_1_2.svg", "puolitauko"],
+        ["quarter", "assets/rest_1_4.svg", "neljäsosatauko"],
+        ["eighth", "assets/rest_1_8.svg", "kahdeksasosatauko"],
+        ["sixteenth", "assets/rest_1_16.svg", "kuudestoistaosatauko"],
+        ["thirty-second", "assets/rest_1_32.svg", "kolmaskymmeneskahtaosatauko"]
       ];
 
       rests.forEach((item) => {
@@ -153,17 +155,12 @@
         figure.className = "rest-key-figure";
         figure.setAttribute("aria-hidden", "true");
 
-        if (item[0] === "whole" || item[0] === "half") {
-          const staff = document.createElement("span");
-          staff.className = "rest-staff-snippet rest-staff-" + item[0];
-          staff.innerHTML = '<span class="rest-staff-line"></span><span class="rest-staff-block"></span>';
-          figure.appendChild(staff);
-        } else {
-          const symbol = document.createElement("span");
-          symbol.className = "rest-key-symbol";
-          symbol.textContent = item[1];
-          figure.appendChild(symbol);
-        }
+        const symbol = document.createElement("img");
+        symbol.className = "rest-key-symbol-image";
+        symbol.src = item[1];
+        symbol.alt = "";
+        symbol.draggable = false;
+        figure.appendChild(symbol);
 
         button.appendChild(figure);
         layer.appendChild(button);

@@ -1768,48 +1768,16 @@ body.pk-music-stand-mode .a4-paper {
   pointer-events: none;
 }
 
-.rest-key-symbol {
-  font-family: "Apple Symbols", "Noto Music", "Segoe UI Symbol", serif;
-  font-size: clamp(42px, 7.2vh, 78px);
-  line-height: .9;
+/* 0.17.6.42: Taukojen grafiikka tulee suoraan käyttäjän toimittamista SVG-tiedostoista. */
+.rest-key-symbol-image {
+  display: block;
+  height: clamp(54px, 8.6vh, 86px);
+  width: auto;
+  max-width: 72%;
+  max-height: 86%;
   pointer-events: none;
-}
-
-/* Koko- ja puolitauko piirretään itse, jotta lyhyt viivaston viiva näkyy
-   varmasti ja tauot erottaa yhdellä silmäyksellä fontista riippumatta. */
-.rest-staff-snippet {
-  position: relative;
-  width: clamp(42px, 6.2vw, 66px);
-  height: clamp(28px, 4.6vh, 42px);
-  flex: 0 0 auto;
-}
-
-.rest-staff-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  margin-top: -1px;
-  background: currentColor;
-}
-
-.rest-staff-block {
-  position: absolute;
-  left: 50%;
-  width: 42%;
-  height: 27%;
-  transform: translateX(-50%);
-  background: currentColor;
-}
-
-/* Kokotauko riippuu viivasta, puolitauko lepää viivan päällä. */
-.rest-staff-whole .rest-staff-block {
-  top: 50%;
-}
-
-.rest-staff-half .rest-staff-block {
-  bottom: 50%;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Taukomoodissa eleohjetekstiä ei tarvita, mutta alkuperäinen
