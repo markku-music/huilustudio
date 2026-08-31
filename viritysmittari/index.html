@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#172033">
-<title>Viritysmittari – LED pysty B</title>
+<meta name="theme-color" content="#c9f4df">
+<title>Viritin – Karkkipastelli</title>
 <style>
   :root {
     color-scheme: dark;
@@ -762,6 +762,361 @@
     .meter-center { min-height:165px; }
     .pitch-heatmap { width:min(94vw, 680px); }
     .pitch-heatmap-track { height:88px; border-radius:18px; }
+  }
+
+
+
+  /* ============================================================
+     KARKKIPASTELLI / LASTEN ULKOASU
+     VAIN NÄKYVÄ UI. Mittaus-, lukitus-, live-viiva-, gradientti-
+     ja 100 ms huippumarginaalilogiikka ovat ennallaan.
+     ============================================================ */
+  :root {
+    color-scheme: light;
+    --kids-teal:#19b9ad;
+    --kids-deep-teal:#087e7a;
+    --kids-cream:#fffaf0;
+    --kids-mint:#d7f7e7;
+    --kids-mint-2:#bdeedb;
+    --kids-pink:#ff9fc1;
+    --kids-yellow:#ffd85a;
+    --kids-purple:#aa77e8;
+    --kids-ink:#236d70;
+  }
+
+  html, body {
+    min-height:100%;
+    background:#c9f4df;
+    color:var(--kids-ink);
+  }
+
+  .app {
+    min-height:100dvh;
+    background-position:center center;
+    background-size:cover;
+    background-repeat:no-repeat;
+  }
+  .app::before {
+    background:linear-gradient(rgba(255,255,255,.02), rgba(255,255,255,.04));
+  }
+
+  .topbar {
+    position:absolute;
+    z-index:20;
+    top:max(12px, env(safe-area-inset-top));
+    left:max(14px, env(safe-area-inset-left));
+    padding:0;
+  }
+  .glass {
+    min-height:44px;
+    padding:9px 15px;
+    border:3px solid rgba(255,255,255,.88);
+    border-radius:999px;
+    color:#167f7a;
+    background:rgba(255,250,232,.91);
+    box-shadow:0 5px 0 rgba(27,142,134,.16), 0 10px 24px rgba(24,125,120,.18);
+    backdrop-filter:blur(9px);
+    font-weight:800;
+    font-size:14px;
+  }
+
+  .world-picker {
+    top:68px;
+    left:max(14px, env(safe-area-inset-left));
+    background:rgba(255,250,239,.97);
+    border:4px solid rgba(255,255,255,.92);
+    border-radius:24px;
+    box-shadow:0 14px 34px rgba(29,130,123,.22);
+  }
+  .world {
+    border-radius:18px;
+    background:#dff7ed;
+  }
+  .world.active { border-color:#ff9fc1; }
+  .world span {
+    background:rgba(255,250,239,.9);
+    color:#277b78;
+  }
+
+  .stage {
+    position:absolute;
+    inset:0;
+    z-index:4;
+    width:100%;
+    margin:0;
+    padding:0;
+    display:block;
+  }
+
+  /* Todellinen mittari peittää taustakuvan piirretyn mittarin. */
+  .meter-card {
+    position:absolute;
+    z-index:6;
+    left:50%;
+    top:35.2%;
+    transform:translateX(-50%);
+    width:min(94vw, 1360px);
+    padding:10px;
+    border-radius:56px;
+    background:linear-gradient(180deg, rgba(248,255,241,.98), rgba(226,250,234,.98));
+    border:7px solid rgba(255,255,255,.95);
+    box-shadow:
+      0 8px 0 rgba(23,158,146,.17),
+      0 18px 35px rgba(14,116,110,.18),
+      inset 0 0 0 3px rgba(36,187,170,.20);
+  }
+
+  .meter-shell {
+    position:relative;
+    display:block;
+    min-height:0;
+    padding:12px 16px 18px;
+    border-radius:46px;
+    background:linear-gradient(180deg, #b9f1dc 0%, #dff9eb 100%);
+    border:3px solid rgba(60,190,171,.33);
+    box-shadow:
+      inset 0 8px 20px rgba(255,255,255,.55),
+      inset 0 -8px 18px rgba(54,166,151,.09);
+  }
+
+  .meter-center {
+    position:relative;
+    width:100%;
+    min-height:0;
+    display:block;
+  }
+
+  .pitch-heatmap {
+    width:100%;
+    margin:0;
+  }
+  .pitch-heatmap-track {
+    height:clamp(104px, 16vh, 166px);
+    border-radius:38px;
+    border:6px solid rgba(255,255,255,.94);
+    background:#184F52;
+    box-shadow:
+      inset 0 0 0 4px rgba(13,117,113,.32),
+      inset 0 10px 18px rgba(255,255,255,.11),
+      inset 0 -14px 22px rgba(0,72,72,.15),
+      0 7px 0 rgba(52,178,163,.20),
+      0 13px 25px rgba(22,132,124,.16);
+  }
+  .pitch-heatmap-track::after {
+    background:linear-gradient(180deg, rgba(255,255,255,.22), transparent 38%, rgba(1,71,74,.08));
+  }
+
+  .pitch-heatmap-indicator {
+    top:8px;
+    bottom:8px;
+    width:7px;
+    border-radius:999px;
+    background:#fffdf3;
+    box-shadow:
+      0 0 0 3px rgba(7,134,131,.74),
+      0 0 13px rgba(255,255,255,.75);
+  }
+  .pitch-heatmap-zero {
+    width:4px;
+    transform:translateX(-2px);
+    background:rgba(255,255,255,.96);
+    box-shadow:0 0 9px rgba(255,255,255,.48);
+  }
+  .pitch-heatmap-tick {
+    width:2px;
+    top:22%;
+    bottom:22%;
+    background:rgba(255,255,255,.35);
+    border-radius:999px;
+  }
+  .pitch-heatmap-hint { display:none; }
+
+  .pitch-heatmap-scale {
+    height:42px;
+    margin:4px 9px 0;
+    color:#158d87;
+    font-size:clamp(16px, 2.1vw, 28px);
+    font-weight:900;
+    text-shadow:0 2px 0 rgba(255,255,255,.72);
+  }
+  .pitch-heatmap-scale span { top:3px; }
+  .pitch-heatmap-scale span:nth-child(2),
+  .pitch-heatmap-scale span:nth-child(4) {
+    font-size:.72em;
+    opacity:.62;
+    top:7px;
+  }
+  .pitch-heatmap-scale span:nth-child(3) {
+    color:#f28c28;
+    transform:translateX(-50%) scale(1.12);
+  }
+
+  /* Nykyiset sivunäytöt muutetaan pieniksi karkkikupliksi mittarin päälle. */
+  .meter-shell > .side-readout {
+    position:absolute;
+    z-index:8;
+    top:-86px;
+    min-width:132px;
+    min-height:70px;
+    padding:10px 18px;
+    gap:2px;
+    border:4px solid rgba(255,255,255,.94);
+    border-radius:28px;
+    color:#237d79;
+    background:rgba(255,250,237,.94);
+    box-shadow:0 6px 0 rgba(27,150,140,.15), 0 12px 28px rgba(21,119,113,.14);
+    backdrop-filter:blur(8px);
+  }
+  .meter-shell > .side-readout:first-child { left:7%; }
+  .meter-shell > .side-readout:last-child { right:7%; }
+
+  #targetNote {
+    font-size:clamp(31px, 4vw, 50px);
+    color:#9d65dd;
+    text-shadow:0 2px 0 #fff;
+  }
+  #targetHz {
+    font-size:14px;
+    color:#168a84;
+    opacity:.78;
+  }
+  #hz {
+    font-size:clamp(30px, 4vw, 50px);
+    color:#ff7fa8;
+    text-shadow:0 2px 0 #fff;
+  }
+  .unit {
+    font-size:18px;
+    color:#168a84;
+    opacity:.7;
+  }
+  #centValue {
+    font-size:16px;
+    color:#168a84;
+  }
+
+  /* Alareunan oikeat säätimet kelluvat pehmeässä lelukonsolissa. */
+  .controls {
+    position:absolute;
+    z-index:9;
+    left:50%;
+    bottom:max(34px, calc(env(safe-area-inset-bottom) + 18px));
+    transform:translateX(-50%);
+    width:auto;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:10px 12px;
+    border-radius:28px;
+    border:4px solid rgba(255,255,255,.94);
+    background:rgba(255,249,233,.92);
+    box-shadow:0 7px 0 rgba(64,157,120,.14), 0 14px 30px rgba(33,117,96,.16);
+    backdrop-filter:blur(9px);
+  }
+  .note-control {
+    grid-column:auto;
+    padding:5px;
+    gap:5px;
+    border:0;
+    background:transparent;
+    backdrop-filter:none;
+  }
+  .note-btn {
+    width:50px;
+    height:50px;
+    border:3px solid rgba(255,255,255,.9);
+    border-radius:18px;
+    background:linear-gradient(#83e1cf, #38c7b2);
+    color:white;
+    box-shadow:0 4px 0 rgba(10,137,128,.24);
+    font-weight:900;
+  }
+  .note-label {
+    min-width:100px;
+    color:#257a77;
+  }
+  #noteName {
+    font-size:28px;
+    color:#9b63dc;
+    text-shadow:0 2px 0 #fff;
+  }
+  #noteFreq { color:#258682; opacity:.72; }
+
+  #toggle {
+    grid-column:auto;
+    justify-self:auto;
+    min-height:52px;
+    padding:0 22px;
+    border:3px solid rgba(255,255,255,.95);
+    border-radius:19px;
+    background:linear-gradient(#ffb8ce, #ff85aa);
+    color:#7a3452;
+    box-shadow:0 4px 0 rgba(191,80,119,.22);
+    font-weight:900;
+    backdrop-filter:none;
+  }
+
+  .statusbox {
+    position:absolute;
+    z-index:7;
+    left:50%;
+    bottom:max(108px, calc(env(safe-area-inset-bottom) + 92px));
+    transform:translateX(-50%);
+    width:auto;
+    max-width:min(72vw, 720px);
+    display:flex;
+    gap:10px;
+    padding:6px 13px;
+    border:3px solid rgba(255,255,255,.82);
+    border-radius:999px;
+    background:rgba(255,250,236,.82);
+    color:#317a72;
+    box-shadow:0 5px 16px rgba(38,121,102,.12);
+    backdrop-filter:blur(7px);
+  }
+  #status { color:#317a72; font-size:13px; font-weight:800; }
+  #lockInfo { color:#7f6fa2; font-size:12px; }
+
+  .level {
+    position:absolute;
+    z-index:9;
+    left:50%;
+    bottom:max(21px, calc(env(safe-area-inset-bottom) + 5px));
+    transform:translateX(-50%);
+    width:min(290px, 48vw);
+    height:5px;
+    background:rgba(22,150,137,.16);
+  }
+  #levelBar { background:#54cdb8; }
+
+  /* Taustalla tarvittavat moottorikerrokset pysyvät ennallaan piilossa. */
+  .meter-center > .led-meter-wrap,
+  .meter-center > .analog-meter-wrap {
+    left:-10000px !important;
+  }
+
+  @media (max-aspect-ratio: 1/1) {
+    .app { background-position:center top; }
+    .meter-card { top:34%; width:96vw; border-radius:38px; padding:7px; }
+    .meter-shell { border-radius:31px; padding:9px 10px 15px; }
+    .pitch-heatmap-track { height:112px; border-radius:28px; }
+    .meter-shell > .side-readout { top:-66px; min-height:54px; min-width:100px; padding:7px 11px; border-radius:22px; }
+    .meter-shell > .side-readout:first-child { left:3%; }
+    .meter-shell > .side-readout:last-child { right:3%; }
+    #targetNote, #hz { font-size:28px; }
+    .controls { bottom:max(24px, calc(env(safe-area-inset-bottom) + 12px)); }
+    .statusbox { display:none; }
+  }
+
+  @media (max-height: 720px) and (orientation: landscape) {
+    .meter-card { top:34%; }
+    .pitch-heatmap-track { height:100px; }
+    .meter-shell > .side-readout { top:-64px; min-height:52px; padding:6px 12px; }
+    #targetNote, #hz { font-size:30px; }
+    .pitch-heatmap-scale { height:31px; font-size:17px; }
+    .controls { bottom:13px; padding:7px 9px; }
+    .statusbox { bottom:82px; padding:4px 10px; }
+    .level { display:none; }
   }
 
 </style>
