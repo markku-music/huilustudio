@@ -24,6 +24,7 @@
       this.dotWrap = this.rail.querySelector(".thumb-dot-wrap");
       this.dot1Button = this.rail.querySelector("#dot1Button");
       this.dot2Flyout = this.rail.querySelector("#dot2Flyout");
+      this.tieFlyout = this.rail.querySelector("#tieFlyout");
 
       this.restorePosition();
       this.bind();
@@ -109,9 +110,13 @@
       const dy = event.clientY - active.startY;
 
       if (active.modifier === "dot1") {
-        active.dotSelection = this.isInsideDot2(event.clientX, event.clientY)
-          ? 2
-          : 1;
+        if (this.isInsideFlyout(this.tieFlyout, event.clientX, event.clientY)) {
+          active.dotSelection = "tie";
+        } else if (this.isInsideFlyout(this.dot2Flyout, event.clientX, event.clientY)) {
+          active.dotSelection = 2;
+        } else {
+          active.dotSelection = 1;
+        }
 
         this.updateStateAndButtons();
         return;
@@ -162,16 +167,19 @@
       }
 
       if (active.modifier === "dot1") {
+        if (active.dotSelection === "tie") {
+          this.stateValue.tie = !Boolean(this.stateValue.tie);
+        }
         this.closeDotFlyout();
       }
 
       this.updateStateAndButtons();
     }
 
-    isInsideDot2(clientX, clientY) {
-      if (!this.dot2Flyout) return false;
+    isInsideFlyout(element, clientX, clientY) {
+      if (!element) return false;
 
-      const rect = this.dot2Flyout.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
 
       return (
         clientX >= rect.left - FLYOUT_SLOP &&
@@ -182,22 +190,25 @@
     }
 
     openDotFlyout() {
-      if (!this.dotWrap || !this.dot2Flyout) return;
+      if (!this.dotWrap || !this.dot2Flyout || !this.tieFlyout) return;
       this.dotWrap.classList.add("flyout-open");
       this.dot2Flyout.setAttribute("aria-hidden", "false");
+      this.tieFlyout.setAttribute("aria-hidden", "false");
     }
 
     closeDotFlyout() {
-      if (!this.dotWrap || !this.dot2Flyout) return;
-      this.dotWrap.classList.remove("flyout-open", "dot2-selected");
+      if (!this.dotWrap || !this.dot2Flyout || !this.tieFlyout) return;
+      this.dotWrap.classList.remove("flyout-open", "dot2-selected", "tie-selected");
       this.dot2Flyout.setAttribute("aria-hidden", "true");
       this.dot2Flyout.setAttribute("aria-pressed", "false");
+      this.tieFlyout.setAttribute("aria-hidden", "true");
     }
 
     updateStateAndButtons() {
       let rest = false;
       let dots = 0;
       let slur = false;
+      let tiePreview = false;
       const tie = Boolean(this.stateValue.tie);
       const layout = Boolean(this.stateValue.layout);
       const barlines = Boolean(this.stateValue.barlines);
@@ -208,7 +219,11 @@
         }
 
         if (active.modifier === "dot1") {
-          dots = Math.max(dots, active.dotSelection || 1);
+          if (active.dotSelection === "tie") {
+            tiePreview = true;
+          } else {
+            dots = Math.max(dots, Number(active.dotSelection) || 1);
+          }
         }
 
         if (active.modifier === "slur") {
@@ -257,9 +272,11 @@
         );
       }
 
-      if (this.dotWrap && this.dot2Flyout) {
+      if (this.dotWrap && this.dot2Flyout && this.tieFlyout) {
         const doubleSelected = dots === 2;
         this.dotWrap.classList.toggle("dot2-selected", doubleSelected);
+        this.dotWrap.classList.toggle("tie-selected", tiePreview);
+        this.dotWrap.classList.toggle("tie-armed", tie);
         this.dot2Flyout.setAttribute(
           "aria-pressed",
           doubleSelected ? "true" : "false"

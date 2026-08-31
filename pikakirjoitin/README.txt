@@ -137,3 +137,5 @@ toimimasta projektin avaamisen jalkeen.
 - Taukomoodi ei enää piilota pianoa eikä muuta sen vieritysleveyttä.
 - Taukokoskettimisto siirretään aktivoitaessa nykyisen scrollLeft-kohdan päälle.
 - Taukojen SVG:t, taukoeleet ja muu koskettimiston logiikka ovat ennallaan.
+
+0.17.6.47: Pisteellisen nuotin painikkeen avautuvaan palettiin lisätty tie; erillinen tie-nappi poistettu. Kaksoispisteellinen säilyy samassa paletissa.

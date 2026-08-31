@@ -316,7 +316,7 @@
       <div class="thumb-dot-wrap">
         <button class="thumb-modifier thumb-dot-button" id="dot1Button" type="button"
                 data-modifier="dot1"
-                aria-label="Pidä pohjassa: yksi piste. Liu'uta oikealle kahteen pisteeseen."
+                aria-label="Pidä pohjassa: yksi piste. Liu'uta oikealle kahteen pisteeseen tai tiehen."
                 aria-pressed="false">
           <img src="assets/1_4_dot.svg" alt="" aria-hidden="true" draggable="false">
         </button>
@@ -326,6 +326,14 @@
                 aria-label="Kaksi pistettä" aria-pressed="false" tabindex="-1"
                 aria-hidden="true">
           <img src="assets/1_4_double_dot.svg" alt="" aria-hidden="true" draggable="false">
+        </button>
+
+        <button class="thumb-modifier thumb-dot-flyout thumb-tie-flyout" id="tieFlyout"
+                type="button" data-modifier="tie"
+                aria-label="Tie / sidekaari: seuraava saman sävelen nuotti sidotaan edelliseen"
+                aria-pressed="false" tabindex="-1" aria-hidden="true"
+                title="Tie / sidekaari">
+          <img class="thumb-tie-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
         </button>
       </div>
 
@@ -338,15 +346,6 @@
               aria-label="Slur: kirjoittaessa kytke edelliseen, nuottia valitessa seuraavaan" aria-pressed="false">
         <img class="thumb-slur-icon" src="assets/slur.svg" alt="" aria-hidden="true" draggable="false">
       </button>
-
-      <button class="thumb-modifier thumb-tie-button" type="button"
-              data-modifier="tie"
-              aria-label="Tie / sidekaari: seuraava saman sävelen nuotti sidotaan edelliseen"
-              aria-pressed="false"
-              title="Tie / sidekaari">
-        <img class="thumb-tie-icon" src="assets/tie.svg" alt="" aria-hidden="true" draggable="false">
-      </button>
-
 
       <button class="thumb-modifier thumb-barline-toggle" id="barlineEditButton"
               type="button" data-modifier="barlines"
