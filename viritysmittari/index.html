@@ -1092,6 +1092,66 @@
   }
 </style>
 
+
+<style id="developer-mode-style">
+  #devToggle {
+    position:absolute; right:.8%; top:1%; z-index:80;
+    width:3.5cqw; height:3.5cqw; min-width:38px; min-height:38px;
+    border:.12cqw solid rgba(255,255,255,.65); border-radius:999px;
+    background:rgba(13,45,69,.78); color:#fff; font-size:1.45cqw; font-weight:900;
+    box-shadow:0 .18cqw .55cqw rgba(0,0,0,.22); cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #devToggle[aria-pressed="true"] { background:rgba(48,115,70,.92); }
+  #devPanel {
+    position:absolute; z-index:79; right:.8%; top:5.3%; bottom:1.2%;
+    width:min(390px,39%); padding:10px 10px 14px; box-sizing:border-box;
+    overflow:auto; overscroll-behavior:contain; display:none;
+    border:1px solid rgba(255,255,255,.28); border-radius:16px;
+    background:rgba(11,26,39,.94); color:#f7fbff;
+    box-shadow:0 10px 30px rgba(0,0,0,.32); backdrop-filter:blur(12px);
+    font:600 13px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    user-select:text; -webkit-user-select:text;
+  }
+  #devPanel.open { display:block; }
+  #devPanel * { box-sizing:border-box; }
+  #devPanel .dev-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  #devPanel h2 { margin:0; font-size:16px; }
+  #devPanel .dev-small { color:#b8c7d3; font-size:11px; font-weight:600; }
+  #devPanel details { border-top:1px solid rgba(255,255,255,.13); padding:7px 0 4px; }
+  #devPanel summary { cursor:pointer; font-weight:850; font-size:13px; padding:2px 0 6px; }
+  #devPanel .dev-row { display:grid; grid-template-columns:minmax(108px,1fr) minmax(92px,1.3fr) 62px 34px; gap:7px; align-items:center; margin:5px 0; }
+  #devPanel .dev-row.color-row { grid-template-columns:minmax(108px,1fr) minmax(92px,1fr) 34px; }
+  #devPanel label { min-width:0; }
+  #devPanel input[type="range"] { width:100%; min-width:0; accent-color:#70c9ff; }
+  #devPanel input[type="number"] { width:62px; padding:5px 4px; border-radius:7px; border:1px solid #607383; background:#102535; color:#fff; font-size:12px; }
+  #devPanel input[type="color"] { width:100%; height:30px; padding:2px; border-radius:7px; border:1px solid #607383; background:#102535; }
+  #devPanel .dev-actions { display:flex; flex-wrap:wrap; gap:6px; margin:7px 0; }
+  #devPanel button { min-height:34px; padding:6px 9px; border:1px solid rgba(255,255,255,.25); border-radius:9px; background:#17364d; color:#fff; font-weight:800; cursor:pointer; }
+  #devPanel button.primary { background:#246a47; }
+  #devPanel button.warn { background:#5a3d23; }
+  #devPanel .dev-reset-one {
+    width:34px; min-width:34px; height:30px; min-height:30px; padding:0;
+    display:inline-grid; place-items:center; border-radius:8px;
+    background:#263b4b; color:#dcecff; font-size:18px; line-height:1;
+  }
+  #devPanel .dev-reset-one:hover { background:#35536a; }
+  #devPanel .dev-reset-one:active { transform:translateY(1px); }
+  #devPanel .test-input-wrap { display:grid; grid-template-columns:minmax(0,1fr) 34px; gap:5px; align-items:center; }
+  #devPanel .test-input-wrap input { min-width:0; }
+  #devPanel .test-grid { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; align-items:end; }
+  #devPanel .test-grid label { display:grid; gap:3px; color:#c9d7df; font-size:11px; }
+  #devPanel .test-grid input { width:100%; padding:6px; border-radius:7px; border:1px solid #607383; background:#102535; color:#fff; }
+  #devPanel .import-label { display:inline-flex; align-items:center; min-height:34px; padding:6px 9px; border:1px solid rgba(255,255,255,.25); border-radius:9px; background:#17364d; color:#fff; font-weight:800; cursor:pointer; }
+  #devImport { display:none; }
+  #devMessage { min-height:16px; color:#9de2b7; font-size:11px; margin-top:4px; }
+  @media (max-width:720px) {
+    #devPanel { width:58%; right:.5%; }
+    #devPanel .dev-row { grid-template-columns:1fr 1fr 58px 34px; }
+    #devPanel .dev-row.color-row { grid-template-columns:1fr 1fr 34px; }
+  }
+</style>
+
 </head>
 <body>
 <main class="app" id="app">
@@ -1187,6 +1247,17 @@
       </section>
     </div>
   </div>
+
+  <button id="devToggle" type="button" aria-pressed="false" aria-controls="devPanel" aria-label="Kehittäjätila">⚙</button>
+  <aside id="devPanel" aria-label="Kehittäjätila">
+    <div class="dev-head"><div><h2>Kehittäjätila</h2><div class="dev-small">Säädöt näkyvät heti. JSON säilyttää kaikki arvot.</div></div><button id="devClose" type="button">×</button></div>
+    <div class="dev-actions"><button id="devExport" class="primary" type="button">Vie JSON</button><label class="import-label" for="devImport">Tuo JSON</label><input id="devImport" type="file" accept="application/json,.json"><button id="devReset" class="warn" type="button">Palauta oletukset</button></div>
+    <div id="devMessage" aria-live="polite"></div>
+    <details open><summary>Muistinäyttö · tärkein</summary>
+<div class="test-grid"><label>Testi min (c)<input id="devTestMin" type="number" value="-12" min="-50" max="50" step="1"></label><label>Testi max (c)<input id="devTestMax" type="number" value="8" min="-50" max="50" step="1"></label><button id="devTestRange" class="primary" type="button">Näytä</button></div>
+<div class="dev-actions"><button id="devClearRange" type="button">Tyhjennä testialue</button></div><div class="dev-row color-row"><label for="dev_memoryColor">Muistialueen väri</label><input id="dev_memoryColor" data-dev-key="memoryColor" data-dev-group="visual" type="color"></div><div class="dev-row"><label for="dev_memoryFillAlpha">Analogin täyttö</label><input id="dev_memoryFillAlpha" data-dev-key="memoryFillAlpha" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="memoryFillAlpha" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_memoryStrokeAlpha">Analogin reuna</label><input id="dev_memoryStrokeAlpha" data-dev-key="memoryStrokeAlpha" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="memoryStrokeAlpha" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_memoryStrokeWidth">Reunan paksuus</label><input id="dev_memoryStrokeWidth" data-dev-key="memoryStrokeWidth" data-dev-group="visual" type="range" min="0" max="12" step="0.1"><input data-dev-number="memoryStrokeWidth" type="number" min="0" max="12" step="0.1"></div><div class="dev-row"><label for="dev_memoryLineWidth">Yhden pisteen viiva</label><input id="dev_memoryLineWidth" data-dev-key="memoryLineWidth" data-dev-group="visual" type="range" min="0" max="14" step="0.1"><input data-dev-number="memoryLineWidth" type="number" min="0" max="14" step="0.1"></div><div class="dev-row"><label for="dev_ledMemoryFillAlpha">LED-muistin täyttö</label><input id="dev_ledMemoryFillAlpha" data-dev-key="ledMemoryFillAlpha" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="ledMemoryFillAlpha" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_ledMemoryStrokeAlpha">LED-muistin reuna</label><input id="dev_ledMemoryStrokeAlpha" data-dev-key="ledMemoryStrokeAlpha" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="ledMemoryStrokeAlpha" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_ledMemoryStrokeWidth">LED-reunan paksuus</label><input id="dev_ledMemoryStrokeWidth" data-dev-key="ledMemoryStrokeWidth" data-dev-group="visual" type="range" min="0" max="8" step="0.1"><input data-dev-number="ledMemoryStrokeWidth" type="number" min="0" max="8" step="0.1"></div><div class="dev-row"><label for="dev_ledMemoryGlow">LED-muistin hehku</label><input id="dev_ledMemoryGlow" data-dev-key="ledMemoryGlow" data-dev-group="visual" type="range" min="0" max="30" step="0.5"><input data-dev-number="ledMemoryGlow" type="number" min="0" max="30" step="0.5"></div><div class="dev-row"><label for="dev_outerRadiusRatio">Kaaren säde</label><input id="dev_outerRadiusRatio" data-dev-key="outerRadiusRatio" data-dev-group="memory" type="range" min="0.25" max="0.6" step="0.005"><input data-dev-number="outerRadiusRatio" type="number" min="0.25" max="0.6" step="0.005"></div><div class="dev-row"><label for="dev_bandThicknessRatio">Kaaren paksuus</label><input id="dev_bandThicknessRatio" data-dev-key="bandThicknessRatio" data-dev-group="memory" type="range" min="0.02" max="0.4" step="0.005"><input data-dev-number="bandThicknessRatio" type="number" min="0.02" max="0.4" step="0.005"></div><div class="dev-row"><label for="dev_initialSettleMs">Alun asettuminen ms</label><input id="dev_initialSettleMs" data-dev-key="initialSettleMs" data-dev-group="memory" type="range" min="0" max="500" step="5"><input data-dev-number="initialSettleMs" type="number" min="0" max="500" step="5"></div><div class="dev-row"><label for="dev_initialSettleSpanCents">Asettumisikkuna c</label><input id="dev_initialSettleSpanCents" data-dev-key="initialSettleSpanCents" data-dev-group="memory" type="range" min="0.05" max="5" step="0.05"><input data-dev-number="initialSettleSpanCents" type="number" min="0.05" max="5" step="0.05"></div><div class="dev-row"><label for="dev_extremeConfirmMs">Ääripään vahvistus ms</label><input id="dev_extremeConfirmMs" data-dev-key="extremeConfirmMs" data-dev-group="memory" type="range" min="0" max="500" step="5"><input data-dev-number="extremeConfirmMs" type="number" min="0" max="500" step="5"></div><div class="dev-row"><label for="dev_extremeStabilityCents">Ääripään vakaus c</label><input id="dev_extremeStabilityCents" data-dev-key="extremeStabilityCents" data-dev-group="memory" type="range" min="0" max="10" step="0.1"><input data-dev-number="extremeStabilityCents" type="number" min="0" max="10" step="0.1"></div><div class="dev-row"><label for="dev_singlePositionArcPx">Yksi piste raja px</label><input id="dev_singlePositionArcPx" data-dev-key="singlePositionArcPx" data-dev-group="memory" type="range" min="0" max="20" step="0.5"><input data-dev-number="singlePositionArcPx" type="number" min="0" max="20" step="0.5"></div></details><details><summary>Analogimittarin paikka ja koko</summary><div class="dev-row"><label for="dev_analogX">X %</label><input id="dev_analogX" data-dev-key="analogX" data-dev-group="visual" type="range" min="0" max="60" step="0.05"><input data-dev-number="analogX" type="number" min="0" max="60" step="0.05"></div><div class="dev-row"><label for="dev_analogY">Y %</label><input id="dev_analogY" data-dev-key="analogY" data-dev-group="visual" type="range" min="0" max="70" step="0.05"><input data-dev-number="analogY" type="number" min="0" max="70" step="0.05"></div><div class="dev-row"><label for="dev_analogW">Leveys %</label><input id="dev_analogW" data-dev-key="analogW" data-dev-group="visual" type="range" min="20" max="80" step="0.05"><input data-dev-number="analogW" type="number" min="20" max="80" step="0.05"></div><div class="dev-row"><label for="dev_analogH">Korkeus %</label><input id="dev_analogH" data-dev-key="analogH" data-dev-group="visual" type="range" min="10" max="50" step="0.05"><input data-dev-number="analogH" type="number" min="10" max="50" step="0.05"></div><div class="dev-row"><label for="dev_dialW">Asteikon leveys %</label><input id="dev_dialW" data-dev-key="dialW" data-dev-group="visual" type="range" min="40" max="100" step="0.2"><input data-dev-number="dialW" type="number" min="40" max="100" step="0.2"></div><div class="dev-row"><label for="dev_dialH">Asteikon korkeus %</label><input id="dev_dialH" data-dev-key="dialH" data-dev-group="visual" type="range" min="50" max="110" step="0.2"><input data-dev-number="dialH" type="number" min="50" max="110" step="0.2"></div><div class="dev-row"><label for="dev_dialBottom">Asteikko Y cqw</label><input id="dev_dialBottom" data-dev-key="dialBottom" data-dev-group="visual" type="range" min="-5" max="8" step="0.05"><input data-dev-number="dialBottom" type="number" min="-5" max="8" step="0.05"></div><div class="dev-row"><label for="dev_needleH">Viisarin pituus cqw</label><input id="dev_needleH" data-dev-key="needleH" data-dev-group="visual" type="range" min="4" max="20" step="0.05"><input data-dev-number="needleH" type="number" min="4" max="20" step="0.05"></div><div class="dev-row"><label for="dev_needleW">Viisarin leveys cqw</label><input id="dev_needleW" data-dev-key="needleW" data-dev-group="visual" type="range" min="0.1" max="1.5" step="0.01"><input data-dev-number="needleW" type="number" min="0.1" max="1.5" step="0.01"></div><div class="dev-row"><label for="dev_needleResponse">Viisarin liuku ms</label><input id="dev_needleResponse" data-dev-key="needleResponse" data-dev-group="visual" type="range" min="0" max="500" step="5"><input data-dev-number="needleResponse" type="number" min="0" max="500" step="5"></div><div class="dev-row"><label for="dev_pivotSize">Keskiön koko cqw</label><input id="dev_pivotSize" data-dev-key="pivotSize" data-dev-group="visual" type="range" min="0.5" max="5" step="0.05"><input data-dev-number="pivotSize" type="number" min="0.5" max="5" step="0.05"></div><div class="dev-row"><label for="dev_tickLength">Asteikkoviiva cqw</label><input id="dev_tickLength" data-dev-key="tickLength" data-dev-group="visual" type="range" min="5" max="20" step="0.05"><input data-dev-number="tickLength" type="number" min="5" max="20" step="0.05"></div><div class="dev-row"><label for="dev_scaleFont">Asteikkoteksti cqw</label><input id="dev_scaleFont" data-dev-key="scaleFont" data-dev-group="visual" type="range" min="0.5" max="2.5" step="0.02"><input data-dev-number="scaleFont" type="number" min="0.5" max="2.5" step="0.02"></div><div class="dev-row"><label for="dev_centFont">Cent-näyttö cqw</label><input id="dev_centFont" data-dev-key="centFont" data-dev-group="visual" type="range" min="0.5" max="2.5" step="0.02"><input data-dev-number="centFont" type="number" min="0.5" max="2.5" step="0.02"></div><div class="dev-row"><label for="dev_targetNoteFont">Sävelnimi cqw</label><input id="dev_targetNoteFont" data-dev-key="targetNoteFont" data-dev-group="visual" type="range" min="0.7" max="3" step="0.02"><input data-dev-number="targetNoteFont" type="number" min="0.7" max="3" step="0.02"></div><div class="dev-row"><label for="dev_targetHzFont">Tavoite-Hz cqw</label><input id="dev_targetHzFont" data-dev-key="targetHzFont" data-dev-group="visual" type="range" min="0.5" max="1.8" step="0.02"><input data-dev-number="targetHzFont" type="number" min="0.5" max="1.8" step="0.02"></div><div class="dev-row"><label for="dev_targetX">Sävelnäyttö X cqw</label><input id="dev_targetX" data-dev-key="targetX" data-dev-group="visual" type="range" min="-2" max="12" step="0.05"><input data-dev-number="targetX" type="number" min="-2" max="12" step="0.05"></div><div class="dev-row"><label for="dev_targetBottom">Sävelnäyttö alareuna cqw</label><input id="dev_targetBottom" data-dev-key="targetBottom" data-dev-group="visual" type="range" min="-2" max="8" step="0.05"><input data-dev-number="targetBottom" type="number" min="-2" max="8" step="0.05"></div></details><details><summary>LED-mittari</summary><div class="dev-row"><label for="dev_ledX">X %</label><input id="dev_ledX" data-dev-key="ledX" data-dev-group="visual" type="range" min="0" max="70" step="0.05"><input data-dev-number="ledX" type="number" min="0" max="70" step="0.05"></div><div class="dev-row"><label for="dev_ledY">Y %</label><input id="dev_ledY" data-dev-key="ledY" data-dev-group="visual" type="range" min="0" max="90" step="0.05"><input data-dev-number="ledY" type="number" min="0" max="90" step="0.05"></div><div class="dev-row"><label for="dev_ledW">Leveys %</label><input id="dev_ledW" data-dev-key="ledW" data-dev-group="visual" type="range" min="15" max="80" step="0.05"><input data-dev-number="ledW" type="number" min="15" max="80" step="0.05"></div><div class="dev-row"><label for="dev_ledH">Korkeus %</label><input id="dev_ledH" data-dev-key="ledH" data-dev-group="visual" type="range" min="1" max="12" step="0.05"><input data-dev-number="ledH" type="number" min="1" max="12" step="0.05"></div><div class="dev-row"><label for="dev_ledGap">LED-väli cqw</label><input id="dev_ledGap" data-dev-key="ledGap" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="ledGap" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_ledSegH">LED-korkeus cqw</label><input id="dev_ledSegH" data-dev-key="ledSegH" data-dev-group="visual" type="range" min="0.2" max="4" step="0.02"><input data-dev-number="ledSegH" type="number" min="0.2" max="4" step="0.02"></div><div class="dev-row"><label for="dev_ledOffOpacity">Sammuksissa opacity</label><input id="dev_ledOffOpacity" data-dev-key="ledOffOpacity" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="ledOffOpacity" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_ledCenterOpacity">Keskiviivan opacity</label><input id="dev_ledCenterOpacity" data-dev-key="ledCenterOpacity" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="ledCenterOpacity" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_ledOnGlow">Syttyneen hehku cqw</label><input id="dev_ledOnGlow" data-dev-key="ledOnGlow" data-dev-group="visual" type="range" min="0" max="2" step="0.02"><input data-dev-number="ledOnGlow" type="number" min="0" max="2" step="0.02"></div></details><details><summary>Hz-näyttö ja status</summary><div class="dev-row"><label for="dev_digitalX">Hz X %</label><input id="dev_digitalX" data-dev-key="digitalX" data-dev-group="visual" type="range" min="0" max="80" step="0.05"><input data-dev-number="digitalX" type="number" min="0" max="80" step="0.05"></div><div class="dev-row"><label for="dev_digitalY">Hz Y %</label><input id="dev_digitalY" data-dev-key="digitalY" data-dev-group="visual" type="range" min="0" max="90" step="0.05"><input data-dev-number="digitalY" type="number" min="0" max="90" step="0.05"></div><div class="dev-row"><label for="dev_digitalW">Hz leveys %</label><input id="dev_digitalW" data-dev-key="digitalW" data-dev-group="visual" type="range" min="5" max="40" step="0.05"><input data-dev-number="digitalW" type="number" min="5" max="40" step="0.05"></div><div class="dev-row"><label for="dev_digitalH">Hz korkeus %</label><input id="dev_digitalH" data-dev-key="digitalH" data-dev-group="visual" type="range" min="2" max="15" step="0.05"><input data-dev-number="digitalH" type="number" min="2" max="15" step="0.05"></div><div class="dev-row"><label for="dev_hzFont">Hz fontti cqw</label><input id="dev_hzFont" data-dev-key="hzFont" data-dev-group="visual" type="range" min="0.6" max="4" step="0.02"><input data-dev-number="hzFont" type="number" min="0.6" max="4" step="0.02"></div><div class="dev-row"><label for="dev_statusX">Status X %</label><input id="dev_statusX" data-dev-key="statusX" data-dev-group="visual" type="range" min="10" max="90" step="0.1"><input data-dev-number="statusX" type="number" min="10" max="90" step="0.1"></div><div class="dev-row"><label for="dev_statusY">Status Y %</label><input id="dev_statusY" data-dev-key="statusY" data-dev-group="visual" type="range" min="0" max="30" step="0.1"><input data-dev-number="statusY" type="number" min="0" max="30" step="0.1"></div><div class="dev-row"><label for="dev_statusFont">Status fontti cqw</label><input id="dev_statusFont" data-dev-key="statusFont" data-dev-group="visual" type="range" min="0.4" max="2" step="0.02"><input data-dev-number="statusFont" type="number" min="0.4" max="2" step="0.02"></div><div class="dev-row"><label for="dev_statusOpacity">Status tausta</label><input id="dev_statusOpacity" data-dev-key="statusOpacity" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="statusOpacity" type="number" min="0" max="1" step="0.01"></div></details><details><summary>Kojelauta ja painikkeet</summary><div class="dev-row"><label for="dev_cockpitOpacity">Kojelaudan opacity</label><input id="dev_cockpitOpacity" data-dev-key="cockpitOpacity" data-dev-group="visual" type="range" min="0" max="1" step="0.01"><input data-dev-number="cockpitOpacity" type="number" min="0" max="1" step="0.01"></div><div class="dev-row"><label for="dev_prevX">− X %</label><input id="dev_prevX" data-dev-key="prevX" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="prevX" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_prevY">− Y %</label><input id="dev_prevY" data-dev-key="prevY" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="prevY" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_prevSize">− koko %</label><input id="dev_prevSize" data-dev-key="prevSize" data-dev-group="visual" type="range" min="2" max="12" step="0.1"><input data-dev-number="prevSize" type="number" min="2" max="12" step="0.1"></div><div class="dev-row"><label for="dev_nextX">+ X %</label><input id="dev_nextX" data-dev-key="nextX" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="nextX" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_nextY">+ Y %</label><input id="dev_nextY" data-dev-key="nextY" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="nextY" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_nextSize">+ koko %</label><input id="dev_nextSize" data-dev-key="nextSize" data-dev-group="visual" type="range" min="2" max="12" step="0.1"><input data-dev-number="nextSize" type="number" min="2" max="12" step="0.1"></div><div class="dev-row"><label for="dev_startX">Start X %</label><input id="dev_startX" data-dev-key="startX" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="startX" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_startY">Start Y %</label><input id="dev_startY" data-dev-key="startY" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="startY" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_startSize">Start koko %</label><input id="dev_startSize" data-dev-key="startSize" data-dev-group="visual" type="range" min="2" max="12" step="0.1"><input data-dev-number="startSize" type="number" min="2" max="12" step="0.1"></div><div class="dev-row"><label for="dev_autoX">AUTO X %</label><input id="dev_autoX" data-dev-key="autoX" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="autoX" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_autoY">AUTO Y %</label><input id="dev_autoY" data-dev-key="autoY" data-dev-group="visual" type="range" min="0" max="100" step="0.1"><input data-dev-number="autoY" type="number" min="0" max="100" step="0.1"></div><div class="dev-row"><label for="dev_autoW">AUTO leveys %</label><input id="dev_autoW" data-dev-key="autoW" data-dev-group="visual" type="range" min="2" max="12" step="0.1"><input data-dev-number="autoW" type="number" min="2" max="12" step="0.1"></div><div class="dev-row"><label for="dev_autoH">AUTO korkeus %</label><input id="dev_autoH" data-dev-key="autoH" data-dev-group="visual" type="range" min="5" max="20" step="0.1"><input data-dev-number="autoH" type="number" min="5" max="20" step="0.1"></div></details><details><summary>Pitch-moottori · edistynyt</summary><div class="dev-small">Oletusarvot ovat nykyisen toimivan version arvot. Näitä ei tarvitse muuttaa ulkoasun säätämiseksi.</div><div class="dev-row"><label for="dev_minHz">Min Hz</label><input id="dev_minHz" data-dev-key="minHz" data-dev-group="pitch" type="range" min="20" max="500" step="1"><input data-dev-number="minHz" type="number" min="20" max="500" step="1"></div><div class="dev-row"><label for="dev_maxHz">Max Hz</label><input id="dev_maxHz" data-dev-key="maxHz" data-dev-group="pitch" type="range" min="500" max="6000" step="10"><input data-dev-number="maxHz" type="number" min="500" max="6000" step="10"></div><div class="dev-row"><label for="dev_rmsGate">RMS gate</label><input id="dev_rmsGate" data-dev-key="rmsGate" data-dev-group="pitch" type="range" min="1e-05" max="0.01" step="1e-05"><input data-dev-number="rmsGate" type="number" min="1e-05" max="0.01" step="1e-05"></div><div class="dev-row"><label for="dev_yinThreshold">YIN threshold</label><input id="dev_yinThreshold" data-dev-key="yinThreshold" data-dev-group="pitch" type="range" min="0.01" max="0.4" step="0.005"><input data-dev-number="yinThreshold" type="number" min="0.01" max="0.4" step="0.005"></div><div class="dev-row"><label for="dev_acquireWindow">Lukitusikkuna</label><input id="dev_acquireWindow" data-dev-key="acquireWindow" data-dev-group="pitch" type="range" min="2" max="15" step="1"><input data-dev-number="acquireWindow" type="number" min="2" max="15" step="1"></div><div class="dev-row"><label for="dev_acquireRequired">Vaaditut osumat</label><input id="dev_acquireRequired" data-dev-key="acquireRequired" data-dev-group="pitch" type="range" min="1" max="15" step="1"><input data-dev-number="acquireRequired" type="number" min="1" max="15" step="1"></div><div class="dev-row"><label for="dev_acquireTolerance">Alkulukitus ±Hz</label><input id="dev_acquireTolerance" data-dev-key="acquireTolerance" data-dev-group="pitch" type="range" min="0" max="15" step="0.5"><input data-dev-number="acquireTolerance" type="number" min="0" max="15" step="0.5"></div><div class="dev-row"><label for="dev_lockTolerance">Seuranta ±Hz</label><input id="dev_lockTolerance" data-dev-key="lockTolerance" data-dev-group="pitch" type="range" min="0" max="20" step="0.5"><input data-dev-number="lockTolerance" type="number" min="0" max="20" step="0.5"></div><div class="dev-row"><label for="dev_displaySize">Mediaani-ikkuna</label><input id="dev_displaySize" data-dev-key="displaySize" data-dev-group="pitch" type="range" min="1" max="20" step="1"><input data-dev-number="displaySize" type="number" min="1" max="20" step="1"></div><div class="dev-row"><label for="dev_switchWindow">Vaihtoikkuna</label><input id="dev_switchWindow" data-dev-key="switchWindow" data-dev-group="pitch" type="range" min="2" max="15" step="1"><input data-dev-number="switchWindow" type="number" min="2" max="15" step="1"></div><div class="dev-row"><label for="dev_switchRequired">Vaihdon osumat</label><input id="dev_switchRequired" data-dev-key="switchRequired" data-dev-group="pitch" type="range" min="1" max="15" step="1"><input data-dev-number="switchRequired" type="number" min="1" max="15" step="1"></div><div class="dev-row"><label for="dev_switchTolerance">Vaihto ±Hz</label><input id="dev_switchTolerance" data-dev-key="switchTolerance" data-dev-group="pitch" type="range" min="0" max="15" step="0.5"><input data-dev-number="switchTolerance" type="number" min="0" max="15" step="0.5"></div><div class="dev-row"><label for="dev_silenceReleaseMs">Hiljaisuuden vapautus ms</label><input id="dev_silenceReleaseMs" data-dev-key="silenceReleaseMs" data-dev-group="pitch" type="range" min="0" max="1000" step="5"><input data-dev-number="silenceReleaseMs" type="number" min="0" max="1000" step="5"></div></details>
+  </aside>
+
 </main>
 
 <script>
@@ -1204,26 +1275,26 @@
   let rafId = 0;
   let running = false;
 
-  const MIN_HZ = 45;
-  const MAX_HZ = 3000;
-  const RMS_GATE = 0.00025;
-  const YIN_THRESHOLD = 0.12;
+  let MIN_HZ = 45;
+  let MAX_HZ = 3000;
+  let RMS_GATE = 0.00025;
+  let YIN_THRESHOLD = 0.12;
 
   // Ensimmäinen lukitus
-  const ACQUIRE_WINDOW = 5;
-  const ACQUIRE_REQUIRED = 4;
-  const ACQUIRE_TOLERANCE = 2;
+  let ACQUIRE_WINDOW = 5;
+  let ACQUIRE_REQUIRED = 4;
+  let ACQUIRE_TOLERANCE = 2;
 
   // Nykyisen lukituksen seuranta
-  const LOCK_TOLERANCE = 4;
-  const DISPLAY_SIZE = 5;
+  let LOCK_TOLERANCE = 4;
+  let DISPLAY_SIZE = 5;
 
   // Uuden sävelen tunnistus lukituksen aikana
-  const SWITCH_WINDOW = 5;
-  const SWITCH_REQUIRED = 4;
-  const SWITCH_TOLERANCE = 2;
+  let SWITCH_WINDOW = 5;
+  let SWITCH_REQUIRED = 4;
+  let SWITCH_TOLERANCE = 2;
 
-  const SILENCE_RELEASE_MS = 0;
+  let SILENCE_RELEASE_MS = 0;
 
   const acquireBuffer = [];
   const displayBuffer = [];
@@ -1564,6 +1635,45 @@
     statusEl.textContent = "Mittari pysäytetty.";
   }
 
+
+
+  // Kehittäjätilan rajattu API: vain parametrien arvot muuttuvat,
+  // varsinainen pitch-/lukituslogiikka pysyy samana.
+  window.__pitchDev = {
+    get() {
+      return {
+        minHz:MIN_HZ, maxHz:MAX_HZ, rmsGate:RMS_GATE, yinThreshold:YIN_THRESHOLD,
+        acquireWindow:ACQUIRE_WINDOW, acquireRequired:ACQUIRE_REQUIRED, acquireTolerance:ACQUIRE_TOLERANCE,
+        lockTolerance:LOCK_TOLERANCE, displaySize:DISPLAY_SIZE,
+        switchWindow:SWITCH_WINDOW, switchRequired:SWITCH_REQUIRED, switchTolerance:SWITCH_TOLERANCE,
+        silenceReleaseMs:SILENCE_RELEASE_MS
+      };
+    },
+    set(cfg = {}) {
+      const num = (v, fallback, min, max) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+      };
+      MIN_HZ = num(cfg.minHz, MIN_HZ, 20, 1000);
+      MAX_HZ = num(cfg.maxHz, MAX_HZ, Math.max(100, MIN_HZ + 1), 10000);
+      RMS_GATE = num(cfg.rmsGate, RMS_GATE, 0.00001, 0.1);
+      YIN_THRESHOLD = num(cfg.yinThreshold, YIN_THRESHOLD, 0.01, 0.5);
+      ACQUIRE_WINDOW = Math.round(num(cfg.acquireWindow, ACQUIRE_WINDOW, 2, 20));
+      ACQUIRE_REQUIRED = Math.round(num(cfg.acquireRequired, ACQUIRE_REQUIRED, 1, ACQUIRE_WINDOW));
+      ACQUIRE_TOLERANCE = num(cfg.acquireTolerance, ACQUIRE_TOLERANCE, 0, 20);
+      LOCK_TOLERANCE = num(cfg.lockTolerance, LOCK_TOLERANCE, 0, 30);
+      DISPLAY_SIZE = Math.round(num(cfg.displaySize, DISPLAY_SIZE, 1, 30));
+      SWITCH_WINDOW = Math.round(num(cfg.switchWindow, SWITCH_WINDOW, 2, 20));
+      SWITCH_REQUIRED = Math.round(num(cfg.switchRequired, SWITCH_REQUIRED, 1, SWITCH_WINDOW));
+      SWITCH_TOLERANCE = num(cfg.switchTolerance, SWITCH_TOLERANCE, 0, 20);
+      SILENCE_RELEASE_MS = Math.round(num(cfg.silenceReleaseMs, SILENCE_RELEASE_MS, 0, 2000));
+      acquireBuffer.splice(0, Math.max(0, acquireBuffer.length - ACQUIRE_WINDOW));
+      displayBuffer.splice(0, Math.max(0, displayBuffer.length - DISPLAY_SIZE));
+      switchBuffer.splice(0, Math.max(0, switchBuffer.length - SWITCH_WINDOW));
+      return this.get();
+    }
+  };
+
   toggleBtn.addEventListener("click", async () => {
     if (running) await stop();
     else await start();
@@ -1869,8 +1979,8 @@
 
   // Lukituksen jälkeen tulosalue ei ala kellon perusteella, vaan vasta kun
   // näkyvä viisari on oikeasti asettunut lähtökohtaansa.
-  const INITIAL_SETTLE_MS = 50;
-  const INITIAL_SETTLE_SPAN_CENTS = 0.75;
+  let INITIAL_SETTLE_MS = 50;
+  let INITIAL_SETTLE_SPAN_CENTS = 0.75;
   let initialSettled = false;
   let settleStart = null;
   let settleMinCents = null;
@@ -1879,11 +1989,13 @@
   // Uusi ääripiste hyväksytään vasta, kun viisari on pysynyt nykyisen
   // vahvistetun alueen ulkopuolella vähintään tämän ajan. Näin yksittäinen
   // ruutu tai hyvin lyhyt nykäisy ei venytä pysyvää tulosaluetta.
-  const EXTREME_CONFIRM_MS = 50;
-  const EXTREME_STABILITY_CENTS = 1.5;
+  let EXTREME_CONFIRM_MS = 50;
+  let EXTREME_STABILITY_CENTS = 1.5;
   // Jos min/max-kaaren näkyvä pituus jää tämän alle, käyttäjä näkee
   // viisarin käytännössä yhtenä paikallaan olevana asentona. Näytä silloin viiva.
-  const SINGLE_POSITION_ARC_PX = 4;
+  let SINGLE_POSITION_ARC_PX = 4;
+  let MEMORY_OUTER_RADIUS_RATIO = 0.46;
+  let MEMORY_BAND_THICKNESS_RATIO = 0.11;
   let minCandidateStart = null;
   let minCandidateValue = null;
   let maxCandidateStart = null;
@@ -1930,8 +2042,9 @@
 
   function isVisuallySinglePosition(minCents, maxCents) {
     if (!Number.isFinite(minCents) || !Number.isFinite(maxCents)) return false;
+    const width = analogDial.clientWidth || 290;
     const height = analogDial.clientHeight || 210;
-    const radius = Math.min(width * 0.46, height - 24);
+    const radius = Math.min(width * MEMORY_OUTER_RADIUS_RATIO, height - 24);
     const deltaAngleDeg = (Math.abs(maxCents - minCents) / 50) * 60;
     const arcPx = radius * deltaAngleDeg * Math.PI / 180;
     return arcPx <= SINGLE_POSITION_ARC_PX;
@@ -2077,8 +2190,8 @@
 
     const cx = width / 2;
     const cy = height - 18;
-    const outerR = Math.min(width * 0.46, height - 24);
-    const innerR = Math.max(20, outerR - Math.max(20, height * 0.11));
+    const outerR = Math.min(width * MEMORY_OUTER_RADIUS_RATIO, height - 24);
+    const innerR = Math.max(20, outerR - Math.max(8, height * MEMORY_BAND_THICKNESS_RATIO));
     const minAngle = (Math.max(-50, Math.min(50, minCents)) / 50) * 60;
     const maxAngle = (Math.max(-50, Math.min(50, maxCents)) / 50) * 60;
 
@@ -2287,6 +2400,318 @@
   window.addEventListener("resize", () => {
     if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) drawResultRange();
   });
+
+  // Kehittäjätilan API muistialueelle. Oletusarvot ovat täsmälleen samat
+  // kuin ennen kehittäjätilaa.
+  window.__memoryDev = {
+    get() {
+      return {
+        initialSettleMs:INITIAL_SETTLE_MS,
+        initialSettleSpanCents:INITIAL_SETTLE_SPAN_CENTS,
+        extremeConfirmMs:EXTREME_CONFIRM_MS,
+        extremeStabilityCents:EXTREME_STABILITY_CENTS,
+        singlePositionArcPx:SINGLE_POSITION_ARC_PX,
+        outerRadiusRatio:MEMORY_OUTER_RADIUS_RATIO,
+        bandThicknessRatio:MEMORY_BAND_THICKNESS_RATIO
+      };
+    },
+    set(cfg = {}) {
+      const num = (v, fallback, min, max) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+      };
+      INITIAL_SETTLE_MS = num(cfg.initialSettleMs, INITIAL_SETTLE_MS, 0, 1000);
+      INITIAL_SETTLE_SPAN_CENTS = num(cfg.initialSettleSpanCents, INITIAL_SETTLE_SPAN_CENTS, 0.05, 10);
+      EXTREME_CONFIRM_MS = num(cfg.extremeConfirmMs, EXTREME_CONFIRM_MS, 0, 1000);
+      EXTREME_STABILITY_CENTS = num(cfg.extremeStabilityCents, EXTREME_STABILITY_CENTS, 0, 20);
+      SINGLE_POSITION_ARC_PX = num(cfg.singlePositionArcPx, SINGLE_POSITION_ARC_PX, 0, 30);
+      MEMORY_OUTER_RADIUS_RATIO = num(cfg.outerRadiusRatio, MEMORY_OUTER_RADIUS_RATIO, 0.25, 0.60);
+      MEMORY_BAND_THICKNESS_RATIO = num(cfg.bandThicknessRatio, MEMORY_BAND_THICKNESS_RATIO, 0.02, 0.40);
+      if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) requestAnimationFrame(drawResultRange);
+      return this.get();
+    },
+    test(minCents = -12, maxCents = 8) {
+      const a = Math.max(-50, Math.min(50, Number(minCents)));
+      const b = Math.max(-50, Math.min(50, Number(maxCents)));
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return;
+      resultMinCents = Math.min(a,b);
+      resultMaxCents = Math.max(a,b);
+      requestAnimationFrame(drawResultRange);
+    },
+    clear() { clearResultRange(); },
+    redraw() { if (Number.isFinite(resultMinCents) && Number.isFinite(resultMaxCents)) requestAnimationFrame(drawResultRange); }
+  };
+
+})();
+</script>
+
+
+<script id="developer-mode-script">
+(() => {
+  const toggle = document.getElementById('devToggle');
+  const panel = document.getElementById('devPanel');
+  const close = document.getElementById('devClose');
+  const msg = document.getElementById('devMessage');
+  const liveStyle = document.createElement('style');
+  liveStyle.id = 'devLiveOverrides';
+  document.head.appendChild(liveStyle);
+
+  const defaults = {
+    "visual": {
+        "cockpitOpacity": 1,
+        "analogX": 25.6,
+        "analogY": 37.25,
+        "analogW": 48.5,
+        "analogH": 23.9,
+        "dialW": 74.8,
+        "dialH": 95.8,
+        "dialBottom": 0.35,
+        "needleH": 13.4,
+        "needleW": 0.46,
+        "needleResponse": 90,
+        "pivotSize": 2.15,
+        "tickLength": 13.1,
+        "scaleFont": 0.92,
+        "centFont": 1.12,
+        "targetNoteFont": 1.82,
+        "targetHzFont": 0.92,
+        "targetX": 1.95,
+        "targetBottom": 1.75,
+        "ledX": 28.5,
+        "ledY": 65.2,
+        "ledW": 42.65,
+        "ledH": 4.35,
+        "ledGap": 0.27,
+        "ledSegH": 0.94,
+        "ledOffOpacity": 0.72,
+        "ledCenterOpacity": 0.56,
+        "ledOnGlow": 0.9,
+        "digitalX": 42.9,
+        "digitalY": 72.7,
+        "digitalW": 13.85,
+        "digitalH": 5.9,
+        "hzFont": 2.2,
+        "statusX": 50,
+        "statusY": 2,
+        "statusFont": 0.84,
+        "statusOpacity": 0.58,
+        "prevX": 3.9,
+        "prevY": 52.6,
+        "prevSize": 4.45,
+        "nextX": 4.9,
+        "nextY": 59,
+        "nextSize": 4.45,
+        "startX": 83.1,
+        "startY": 93.5,
+        "startSize": 2,
+        "autoX": 89.3,
+        "autoY": 74.8,
+        "autoW": 4.8,
+        "autoH": 13.3,
+        "memoryColor": "#5cc5ff",
+        "memoryFillAlpha": 0.26,
+        "memoryStrokeAlpha": 0.98,
+        "memoryStrokeWidth": 3.2,
+        "memoryLineWidth": 6,
+        "ledMemoryFillAlpha": 0.28,
+        "ledMemoryStrokeAlpha": 1,
+        "ledMemoryStrokeWidth": 2.2,
+        "ledMemoryGlow": 13
+    },
+    "memory": {
+        "initialSettleMs": 50,
+        "initialSettleSpanCents": 0.75,
+        "extremeConfirmMs": 50,
+        "extremeStabilityCents": 1.5,
+        "singlePositionArcPx": 4,
+        "outerRadiusRatio": 0.46,
+        "bandThicknessRatio": 0.11
+    },
+    "pitch": {
+        "minHz": 45,
+        "maxHz": 3000,
+        "rmsGate": 0.00025,
+        "yinThreshold": 0.12,
+        "acquireWindow": 5,
+        "acquireRequired": 4,
+        "acquireTolerance": 2,
+        "lockTolerance": 4,
+        "displaySize": 5,
+        "switchWindow": 5,
+        "switchRequired": 4,
+        "switchTolerance": 2,
+        "silenceReleaseMs": 0
+    }
+};
+  let settings = JSON.parse(JSON.stringify(defaults));
+
+  const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
+  function hexToRgb(hex) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex));
+    return m ? [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)] : [92,197,255];
+  }
+  function rgba(hex,a){ const [r,g,b]=hexToRgb(hex); return `rgba(${r},${g},${b},${clamp(Number(a)||0,0,1)})`; }
+
+  function visualCss(v) {
+    return `
+      .cockpit-overlay{opacity:${v.cockpitOpacity}!important}
+      .analog-slot{left:${v.analogX}%!important;top:${v.analogY}%!important;width:${v.analogW}%!important;height:${v.analogH}%!important}
+      .analog-dial{width:${v.dialW}%!important;height:${v.dialH}%!important;bottom:${v.dialBottom}cqw!important}
+      .analog-tick{height:${v.tickLength}cqw!important}
+      .analog-needle{height:${v.needleH}cqw!important;width:${v.needleW}cqw!important;transition:transform ${v.needleResponse}ms linear!important}
+      .analog-pivot{width:${v.pivotSize}cqw!important;height:${v.pivotSize}cqw!important}
+      .analog-scale-labels{font-size:${v.scaleFont}cqw!important}
+      .analog-scale-labels .zero{font-size:${v.scaleFont*1.16}cqw!important}
+      .analog-cent-readout{font-size:${v.centFont}cqw!important}
+      #targetNote{font-size:${v.targetNoteFont}cqw!important}
+      #targetHz{font-size:${v.targetHzFont}cqw!important}
+      .target-badge{left:${v.targetX}cqw!important;bottom:${v.targetBottom}cqw!important}
+      .led-slot{left:${v.ledX}%!important;top:${v.ledY}%!important;width:${v.ledW}%!important;height:${v.ledH}%!important}
+      .led-column{gap:${v.ledGap}cqw!important}
+      .led-seg{height:${v.ledSegH}cqw!important;opacity:${v.ledOffOpacity}!important}
+      .led-seg.on{opacity:1!important}
+      .led-seg.good.on{box-shadow:0 0 ${v.ledOnGlow}cqw rgba(95,232,120,.8),inset 0 0 .18cqw rgba(255,255,255,.55)!important}
+      .led-seg.warn.on{box-shadow:0 0 ${v.ledOnGlow}cqw rgba(255,212,81,.78),inset 0 0 .18cqw rgba(255,255,255,.5)!important}
+      .led-seg.bad.on{box-shadow:0 0 ${v.ledOnGlow}cqw rgba(255,101,93,.78),inset 0 0 .18cqw rgba(255,255,255,.5)!important}
+      .led-center-line{background:rgba(255,255,255,${v.ledCenterOpacity})!important}
+      .digital-slot{left:${v.digitalX}%!important;top:${v.digitalY}%!important;width:${v.digitalW}%!important;height:${v.digitalH}%!important}
+      #hz{font-size:${v.hzFont}cqw!important}
+      .cockpit-status{left:${v.statusX}%!important;top:${v.statusY}%!important;background:rgba(14,66,110,${v.statusOpacity})!important}
+      #status{font-size:${v.statusFont}cqw!important}
+      #prevNote{left:${v.prevX}%!important;top:${v.prevY}%!important;width:${v.prevSize}%!important;height:${v.prevSize*1.25}%!important}
+      #nextNote{left:${v.nextX}%!important;top:${v.nextY}%!important;width:${v.nextSize}%!important;height:${v.nextSize*1.25}%!important}
+      #toggle{left:${v.startX}%!important;top:${v.startY}%!important;width:${v.startSize}%!important;height:${v.startSize*1.37}%!important}
+      #autoNote{left:${v.autoX}%!important;top:${v.autoY}%!important;width:${v.autoW}%!important;height:${v.autoH}%!important}
+      .analog-range-sector{fill:${rgba(v.memoryColor,v.memoryFillAlpha)}!important;stroke:${rgba(v.memoryColor,v.memoryStrokeAlpha)}!important;stroke-width:${v.memoryStrokeWidth}!important;filter:drop-shadow(0 0 5px ${rgba(v.memoryColor,.62)})}
+      .analog-range-line{stroke:${rgba(v.memoryColor,v.memoryStrokeAlpha)}!important;stroke-width:${v.memoryLineWidth}!important;filter:drop-shadow(0 0 5px ${rgba(v.memoryColor,.72)})}
+      .led-result-band{background:${rgba(v.memoryColor,v.ledMemoryFillAlpha)}!important;border:${v.ledMemoryStrokeWidth}px solid ${rgba(v.memoryColor,v.ledMemoryStrokeAlpha)}!important;box-shadow:0 0 ${v.ledMemoryGlow}px ${rgba(v.memoryColor,.78)}!important}
+    `;
+  }
+
+  function apply() {
+    liveStyle.textContent = visualCss(settings.visual);
+    if (window.__memoryDev) window.__memoryDev.set(settings.memory);
+    if (window.__pitchDev) settings.pitch = {...settings.pitch, ...window.__pitchDev.set(settings.pitch)};
+    if (window.__memoryDev) window.__memoryDev.redraw();
+  }
+
+  function fieldFor(key) { return document.querySelector(`[data-dev-key="${CSS.escape(key)}"]`); }
+  function numberFor(key) { return document.querySelector(`[data-dev-number="${CSS.escape(key)}"]`); }
+  function syncControls() {
+    document.querySelectorAll('[data-dev-key]').forEach(el => {
+      const key=el.dataset.devKey, group=el.dataset.devGroup || 'visual';
+      const val=settings[group]?.[key];
+      if (val === undefined) return;
+      el.value=String(val);
+      const n=numberFor(key); if(n) n.value=String(val);
+    });
+  }
+
+  function resetOne(group,key) {
+    if (!(group in defaults) || !(key in defaults[group])) return;
+    settings[group][key]=defaults[group][key];
+    const f=fieldFor(key); if(f) f.value=String(settings[group][key]);
+    const n=numberFor(key); if(n) n.value=String(settings[group][key]);
+    apply();
+    const label=f?.closest('.dev-row')?.querySelector('label')?.textContent?.trim() || key;
+    msg.textContent=`${label} palautettu oletusarvoon.`;
+  }
+
+  function addIndividualResetButtons() {
+    document.querySelectorAll('#devPanel .dev-row').forEach(row => {
+      const control=row.querySelector('[data-dev-key]');
+      if(!control || row.querySelector('.dev-reset-one')) return;
+      const key=control.dataset.devKey, group=control.dataset.devGroup || 'visual';
+      const label=row.querySelector('label')?.textContent?.trim() || key;
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='dev-reset-one';
+      btn.textContent='↺';
+      btn.title=`Palauta: ${label}`;
+      btn.setAttribute('aria-label',`Palauta asetus ${label} oletusarvoon`);
+      btn.addEventListener('click',()=>resetOne(group,key));
+      row.appendChild(btn);
+    });
+
+    const testDefaults={devTestMin:-12, devTestMax:8};
+    for(const [id,value] of Object.entries(testDefaults)) {
+      const input=document.getElementById(id);
+      const label=input?.closest('label');
+      if(!input || !label || label.querySelector('.dev-reset-one')) continue;
+      const wrap=document.createElement('span');
+      wrap.className='test-input-wrap';
+      input.parentNode.insertBefore(wrap,input);
+      wrap.appendChild(input);
+      const btn=document.createElement('button');
+      btn.type='button'; btn.className='dev-reset-one'; btn.textContent='↺';
+      btn.title='Palauta testiarvo'; btn.setAttribute('aria-label','Palauta testiarvo oletusarvoon');
+      btn.addEventListener('click',()=>{ input.value=String(value); msg.textContent='Testiarvo palautettu oletusarvoon.'; });
+      wrap.appendChild(btn);
+    }
+  }
+
+  function updateSetting(el, raw) {
+    const key=el.dataset.devKey, group=el.dataset.devGroup || 'visual';
+    if (!settings[group] || !(key in settings[group])) return;
+    let val = el.type==='color' ? raw : Number(raw);
+    if (el.type!=='color') {
+      if (!Number.isFinite(val)) return;
+      const min=Number(el.min), max=Number(el.max);
+      if (Number.isFinite(min)) val=Math.max(min,val);
+      if (Number.isFinite(max)) val=Math.min(max,val);
+    }
+    settings[group][key]=val;
+    const f=fieldFor(key); if(f && f!==el) f.value=String(val);
+    const n=numberFor(key); if(n && n!==el) n.value=String(val);
+    apply();
+  }
+
+  document.querySelectorAll('[data-dev-key]').forEach(el => {
+    el.addEventListener(el.type==='color' ? 'input':'input', () => updateSetting(el,el.value));
+    const n=numberFor(el.dataset.devKey);
+    if(n) n.addEventListener('input',()=>updateSetting(el,n.value));
+  });
+
+  function setOpen(open){ panel.classList.toggle('open',open); toggle.setAttribute('aria-pressed',String(open)); }
+  toggle.addEventListener('click',()=>setOpen(!panel.classList.contains('open')));
+  close.addEventListener('click',()=>setOpen(false));
+
+  document.getElementById('devTestRange').addEventListener('click',()=>{
+    const a=Number(document.getElementById('devTestMin').value), b=Number(document.getElementById('devTestMax').value);
+    window.__memoryDev?.test(a,b); msg.textContent=`Testimuisti ${a}…${b} c`;
+  });
+  document.getElementById('devClearRange').addEventListener('click',()=>{ window.__memoryDev?.clear(); msg.textContent='Muistialue tyhjennetty.'; });
+
+  document.getElementById('devReset').addEventListener('click',()=>{
+    settings=JSON.parse(JSON.stringify(defaults)); syncControls(); apply(); msg.textContent='Oletusarvot palautettu.';
+  });
+
+  document.getElementById('devExport').addEventListener('click',()=>{
+    const payload={ format:'Hertsimittari-Lentokone-kehittaja', version:1, settings };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='hertsimittari_lentokone_asetukset.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000); msg.textContent='JSON viety.';
+  });
+
+  document.getElementById('devImport').addEventListener('change',async e=>{
+    const file=e.target.files?.[0]; if(!file) return;
+    try{
+      const parsed=JSON.parse(await file.text()); const incoming=parsed.settings || parsed;
+      for(const group of ['visual','memory','pitch']) if(incoming[group]) settings[group]={...settings[group],...incoming[group]};
+      syncControls(); apply(); msg.textContent='JSON tuotu onnistuneesti.';
+    }catch(err){ console.error(err); msg.textContent='JSON-tiedostoa ei voitu lukea.'; }
+    e.target.value='';
+  });
+
+  // D avaa/sulkee kehittäjätilan, kun kirjoituskenttä ei ole aktiivinen.
+  window.addEventListener('keydown',e=>{
+    const t=e.target; if(t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+    if(e.key.toLowerCase()==='d') setOpen(!panel.classList.contains('open'));
+  });
+
+  addIndividualResetButtons();
+  syncControls(); apply();
 })();
 </script>
 
