@@ -131,3 +131,6 @@ toimimasta projektin avaamisen jalkeen.
 - Taukojen swipe-ele poistettu; pisteellisyys valitaan suoraan omasta näppäimestä.
 
 0.17.6.41: Taukokoskettimisto rauhoitettu kuuteen perustaukoon. Napautus kirjoittaa tavallisen tauon ja ylös-swaippi pisteellisen. Kaksipisteelliset poistettu taukokoskettimistosta.
+
+
+0.17.6.43: Taukomoodista poistuminen palauttaa pianokoskettimiston täsmälleen samaan vaakakohtaan, jossa se oli ennen taukonapin painamista.

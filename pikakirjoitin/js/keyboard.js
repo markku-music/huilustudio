@@ -87,6 +87,10 @@
       this.restActive = null;
       this.restMode = false;
       this.restLayer = null;
+      // 0.17.6.43: Kun piano piilotetaan taukomoodin ajaksi, WebKit voi
+      // nollata viewportin scrollLeft-arvon. Säilytetään nykyinen kohta
+      // ja palautetaan se heti pianon palatessa näkyviin.
+      this.restSavedScrollLeft = 0;
       this.scrollPointerId = null;
       this.scrollGrabOffset = 0;
       this.rearming = false;
@@ -181,6 +185,9 @@
       if (!this.restLayer) return;
 
       if (this.restMode) {
+        // Tallenna vaakakohta ENNEN kuin piano piilotetaan. Piilotettu 250vw
+        // sisältö voi muuten saada selaimen clampaamaan scrollLeftin nollaan.
+        this.restSavedScrollLeft = this.viewport.scrollLeft;
         this.restLayer.hidden = false;
         this.piano.hidden = true;
         if (this.panel) this.panel.classList.add("rest-mode");
@@ -188,7 +195,11 @@
         this.restLayer.hidden = true;
         this.piano.hidden = false;
         if (this.panel) this.panel.classList.remove("rest-mode");
-        requestAnimationFrame(() => this.syncThumb());
+        requestAnimationFrame(() => {
+          const maxScroll = Math.max(0, this.piano.scrollWidth - this.viewport.clientWidth);
+          this.viewport.scrollLeft = clamp(this.restSavedScrollLeft, 0, maxScroll);
+          this.syncThumb();
+        });
       }
     }
 
@@ -277,7 +288,11 @@
         this.restLayer.hidden = true;
         this.piano.hidden = false;
         if (this.panel) this.panel.classList.remove("rest-mode");
-        requestAnimationFrame(() => this.syncThumb());
+        requestAnimationFrame(() => {
+          const maxScroll = Math.max(0, this.piano.scrollWidth - this.viewport.clientWidth);
+          this.viewport.scrollLeft = clamp(this.restSavedScrollLeft, 0, maxScroll);
+          this.syncThumb();
+        });
       }
     }
 
