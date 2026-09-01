@@ -192,9 +192,7 @@ async function deleteGroup(){
   try{
     const batch=writeBatch(db);for(const m of currentMembers)batch.delete(doc(db,'groups',selectedGroupId,'slots',m.slotId));batch.delete(doc(db,'groups',selectedGroupId));await batch.commit();
     selectedGroupId=null;groupPanel.classList.add('hidden');await loadGroups();
-  }catch(err){console.error(err);alert('Ryhmäpoisto epäonnistui.
-
-'+(err.message||String(err)))}
+  }catch(err){console.error(err);alert('Ryhmäpoisto epäonnistui.\n\n'+(err.message||String(err)))}
 }
 
 newGroupInput.addEventListener('input',()=>{const n=normalizeGroup(newGroupInput.value);if(newGroupInput.value!==n)newGroupInput.value=n;updateButtons()});
