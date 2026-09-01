@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, runTransaction, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+import { getFirestore, collection, doc, getDoc, runTransaction, updateDoc, deleteDoc, setDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
 const CODES=['LLH','LHL','LHH','HLL','HLH','HHL'];
@@ -22,6 +22,8 @@ const loginAnimals=$('loginAnimals'),createAnimals=$('createAnimals'),loginListe
 const nameInput=$('nameInput'),reserveBtn=$('reserveBtn'),releaseBtn=$('releaseBtn');
 const capturePanel=$('capturePanel'),captureHeading=$('captureHeading'),assignedWrap=$('assignedWrap'),assignedCode=$('assignedCode');
 const gate=$('gate'),gateIcon=$('gateIcon'),gateTitle=$('gateTitle'),gateSub=$('gateSub'),heard=$('heard'),captureMessage=$('captureMessage'),retryBtn=$('retryBtn'),resultPanel=$('resultPanel');
+const sharedModeBtn=$('sharedModeBtn'),ownModeBtn=$('ownModeBtn'),deviceModeHelp=$('deviceModeHelp');
+const homeCodePanel=$('homeCodePanel'),homeCodeWho=$('homeCodeWho'),homeCodeInput=$('homeCodeInput'),homeCodeBtn=$('homeCodeBtn'),homeCodeCancelBtn=$('homeCodeCancelBtn'),homeCodeMessage=$('homeCodeMessage');
 
 let app=null,auth=null,db=null,user=null,fbReady=false;
 let micEngine=null;
@@ -31,6 +33,9 @@ let captureMode=null; // login | verify
 let currentNotes=[];
 let captureLocked=false,interNoteLockUntil=0,lockNeedsSilence=false,postLockSilenceFrames=0;
 let reserved=null; // {groupId,animal,code,slotId,name,ref}
+let deviceMode=localStorage.getItem('huiluryhma_device_mode')==='own'?'own':'shared';
+let pendingApprovalRef=null,pendingApprovalUnsub=null;
+let pendingHomePlayer=null; // {groupId,slotId,animal,code,name}
 
 function firebaseConfigLooksReal(){
   return firebaseConfig?.apiKey && !String(firebaseConfig.apiKey).includes('PASTE_') && firebaseConfig?.projectId && !String(firebaseConfig.projectId).includes('PASTE_');
@@ -69,6 +74,36 @@ function animalById(id){return ANIMALS.find(a=>a.id===id)}
 function codeWords(code){return code.split('').map(x=>x==='L'?'matala':'korkea').join(' – ')}
 function escapeHtml(s){return String(s).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
 function shuffle(a){const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+
+function setDeviceMode(mode){
+  deviceMode=mode==='own'?'own':'shared';
+  localStorage.setItem('huiluryhma_device_mode',deviceMode);
+  sharedModeBtn.classList.toggle('selected',deviceMode==='shared');
+  ownModeBtn.classList.toggle('selected',deviceMode==='own');
+  deviceModeHelp.textContent=deviceMode==='shared'
+    ?'Yhteisellä tabletilla opettaja hyväksyy jokaisen kirjautumisen omalta laitteeltaan.'
+    :'Omalla tabletilla kotikoodi tarvitaan vain ensimmäisellä käyttökerralla tällä selaimella.';
+  hideHomeCodePanel();
+  cancelPendingApproval();
+}
+function normalizeHomeCode(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)}
+function formatHomeCode(v){const raw=normalizeHomeCode(v);return raw.length>4?raw.slice(0,4)+'-'+raw.slice(4):raw}
+async function sha256Hex(text){
+  const bytes=new TextEncoder().encode(String(text));
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function randomDeviceSecret(){
+  const bytes=new Uint8Array(24);crypto.getRandomValues(bytes);
+  return [...bytes].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function deviceStorageKey(group,slotId){return `huiluryhma_device_${group}_${slotId}`}
+function hideHomeCodePanel(){pendingHomePlayer=null;homeCodePanel.classList.add('hidden');homeCodeInput.value='';homeCodeMessage.textContent='';homeCodeMessage.classList.remove('bad');homeCodeBtn.disabled=true}
+async function cancelPendingApproval(removeRemote=true){
+  if(pendingApprovalUnsub){pendingApprovalUnsub();pendingApprovalUnsub=null}
+  const ref=pendingApprovalRef;pendingApprovalRef=null;
+  if(removeRemote&&ref&&db){try{await deleteDoc(ref)}catch{}}
+}
 
 function renderAnimalButtons(container,kind){
   container.innerHTML='';
@@ -181,7 +216,75 @@ async function releaseReservation(){
 }
 
 function startLoginCapture(){
-  hideResult();captureMode='login';assignedWrap.classList.add('hidden');captureHeading.textContent=`${animalById(selectedLoginAnimal).face} Soita kolmen sävelen koodisi`;captureMessage.textContent='';resetCapture();loginClearBtn.disabled=false;
+  cancelPendingApproval();hideHomeCodePanel();hideResult();captureMode='login';assignedWrap.classList.add('hidden');captureHeading.textContent=`${animalById(selectedLoginAnimal).face} Soita kolmen sävelen koodisi`;captureMessage.textContent='';resetCapture();loginClearBtn.disabled=false;
+}
+
+async function requestTeacherApproval(group,slotId,player){
+  await cancelPendingApproval();
+  const a=animalById(player.animal);
+  const ref=doc(collection(db,'loginRequests'));
+  await setDoc(ref,{
+    groupId:group,slotId,playerName:player.name,animal:player.animal,code:player.code,
+    requesterUid:user.uid,status:'pending',createdAt:serverTimestamp()
+  });
+  pendingApprovalRef=ref;
+  showResult(a.face,`${player.name}?`,'Odotetaan opettajan hyväksyntää…','waiting');
+  pendingApprovalUnsub=onSnapshot(ref,snap=>{
+    if(!snap.exists())return;
+    const data=snap.data();
+    if(data.status!=='approved'&&data.status!=='rejected')return;
+    if(pendingApprovalUnsub){pendingApprovalUnsub();pendingApprovalUnsub=null}
+    pendingApprovalRef=null;
+    if(data.status==='approved')showResult(a.face,`Hei ${player.name}!`,`Ryhmä ${group} · opettaja hyväksyi kirjautumisen`,'ok');
+    else showResult('🔐','Kirjautuminen hylättiin',`${player.name}: opettaja ei hyväksynyt kirjautumista.`,'bad');
+    setTimeout(()=>deleteDoc(ref).catch(()=>{}),1500);
+  },err=>{
+    console.error(err);showResult('❌','Hyväksyntäpyyntö katkesi',err.message||String(err),'bad');
+  });
+}
+
+async function isTrustedOwnDevice(group,slotId){
+  const secret=localStorage.getItem(deviceStorageKey(group,slotId));
+  if(!secret)return false;
+  try{
+    const deviceId=await sha256Hex(secret);
+    const snap=await getDoc(doc(db,'groups',group,'slots',slotId,'devices',deviceId));
+    if(snap.exists())return true;
+  }catch(err){console.error(err)}
+  localStorage.removeItem(deviceStorageKey(group,slotId));
+  return false;
+}
+
+function askHomeCode(group,slotId,player){
+  pendingHomePlayer={groupId:group,slotId,animal:player.animal,code:player.code,name:player.name};
+  const a=animalById(player.animal);
+  homeCodeWho.textContent=`${a.face} ${player.name} · ${group}. Anna opettajalta saamasi pysyvä kotikoodi.`;
+  homeCodePanel.classList.remove('hidden');
+  homeCodeInput.value='';homeCodeMessage.textContent='';homeCodeMessage.classList.remove('bad');homeCodeBtn.disabled=true;
+  homeCodeInput.focus();
+}
+
+async function activateOwnDevice(){
+  if(!pendingHomePlayer)return;
+  const raw=normalizeHomeCode(homeCodeInput.value);
+  if(raw.length!==8)return;
+  homeCodeBtn.disabled=true;homeCodeMessage.textContent='Tarkistetaan kotikoodia…';homeCodeMessage.classList.remove('bad');
+  const p=pendingHomePlayer;
+  try{
+    const homeCodeHash=await sha256Hex(raw);
+    const deviceSecret=randomDeviceSecret();
+    const deviceId=await sha256Hex(deviceSecret);
+    const ref=doc(db,'groups',p.groupId,'slots',p.slotId,'devices',deviceId);
+    await setDoc(ref,{homeCodeHash,createdByUid:user.uid,createdAt:serverTimestamp()});
+    localStorage.setItem(deviceStorageKey(p.groupId,p.slotId),deviceSecret);
+    const a=animalById(p.animal);
+    hideHomeCodePanel();
+    showResult(a.face,`Hei ${p.name}!`,`Ryhmä ${p.groupId} · tämä laite on nyt yhdistetty profiiliisi`,'ok');
+  }catch(err){
+    console.error(err);
+    homeCodeMessage.textContent='Kotikoodi ei täsmännyt tai laitetta ei voitu yhdistää.';homeCodeMessage.classList.add('bad');
+    homeCodeBtn.disabled=false;
+  }
 }
 
 async function finishCapturedCode(){
@@ -200,7 +303,12 @@ async function finishCapturedCode(){
     try{
       const snap=await getDoc(doc(db,'groups',g,'slots',slotId));
       if(!snap.exists()||snap.data().verified!==true){showResult('🔐','Tunnusta ei löytynyt',`${animalById(animal).name} + ${decoded.code} ei ole vahvistettu ryhmässä ${g}.`,'bad')}
-      else{const p=snap.data(),a=animalById(animal);showResult(a.face,`Hei ${p.name}!`,`Ryhmä ${g} · ${a.name} · ${decoded.code}`,'ok')}
+      else{
+        const p=snap.data();
+        if(deviceMode==='shared')await requestTeacherApproval(g,slotId,p);
+        else if(await isTrustedOwnDevice(g,slotId)){const a=animalById(animal);showResult(a.face,`Hei ${p.name}!`,`Ryhmä ${g} · oma laite tunnistettu`,'ok')}
+        else askHomeCode(g,slotId,p);
+      }
     }catch(err){console.error(err);showResult('❌','Firebase-haku epäonnistui',err.message||String(err),'bad')}
     captureMode=null;capturePanel.classList.add('hidden');loginClearBtn.disabled=true;
   }
@@ -211,7 +319,7 @@ function showResult(face,title,meta,kind=''){
 }
 function hideResult(){resultPanel.classList.add('hidden');resultPanel.innerHTML=''}
 function switchMode(mode){
-  screenMode=mode;loginTab.classList.toggle('active',mode==='login');createTab.classList.toggle('active',mode==='create');loginPanel.classList.toggle('hidden',mode!=='login');createPanel.classList.toggle('hidden',mode!=='create');captureMode=null;capturePanel.classList.add('hidden');hideResult();updateButtons();
+  screenMode=mode;loginTab.classList.toggle('active',mode==='login');createTab.classList.toggle('active',mode==='create');loginPanel.classList.toggle('hidden',mode!=='login');createPanel.classList.toggle('hidden',mode!=='create');captureMode=null;capturePanel.classList.add('hidden');cancelPendingApproval();hideHomeCodePanel();hideResult();updateButtons();
 }
 
 renderAnimalButtons(loginAnimals,'login');renderAnimalButtons(createAnimals,'create');
@@ -220,6 +328,9 @@ groupInput.addEventListener('input',()=>{groupId();hideResult();updateButtons()}
 micBtn.addEventListener('click',startMic);reserveBtn.addEventListener('click',reserveRandomCode);releaseBtn.addEventListener('click',releaseReservation);
 loginListenBtn.addEventListener('click',startLoginCapture);loginClearBtn.addEventListener('click',()=>{captureMode=null;capturePanel.classList.add('hidden');loginClearBtn.disabled=true});
 retryBtn.addEventListener('click',()=>{if(captureMode){resetCapture();if(captureMode==='verify'&&reserved)renderCode(assignedCode,reserved.code)}});
-window.addEventListener('pagehide',()=>{if(micEngine)micEngine.stop().catch(()=>{})});
+sharedModeBtn.addEventListener('click',()=>setDeviceMode('shared'));ownModeBtn.addEventListener('click',()=>setDeviceMode('own'));
+homeCodeInput.addEventListener('input',()=>{homeCodeInput.value=formatHomeCode(homeCodeInput.value);homeCodeBtn.disabled=normalizeHomeCode(homeCodeInput.value).length!==8;homeCodeMessage.textContent='';homeCodeMessage.classList.remove('bad')});
+homeCodeBtn.addEventListener('click',activateOwnDevice);homeCodeCancelBtn.addEventListener('click',hideHomeCodePanel);
+window.addEventListener('pagehide',()=>{if(micEngine)micEngine.stop().catch(()=>{});if(pendingApprovalUnsub)pendingApprovalUnsub()});
 
-initFirebase();updateButtons();
+setDeviceMode(deviceMode);initFirebase();updateButtons();

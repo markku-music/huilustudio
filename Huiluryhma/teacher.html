@@ -18,7 +18,7 @@ input,select{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:10px
 .groups{display:grid;gap:9px;margin-top:11px}.group-card{width:100%;background:#fff;color:#222;border:1px solid #d9d3c7;text-align:left;display:flex;justify-content:space-between;align-items:center}.group-card.active{outline:4px solid rgba(20,20,20,.14)}
 .members{display:grid;gap:9px;margin-top:11px}.member{background:#fff;border:1px solid #ddd7cc;border-radius:15px;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}.face{font-size:38px;line-height:1}.member-name{font-weight:900;font-size:18px}.meta{color:#666;font-size:13px;margin-top:2px}.actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.actions button{min-height:38px;padding:8px 11px;font-size:13px}
 .form-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.login-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}.code-preview{font-weight:850;letter-spacing:.08em}.empty{padding:18px;text-align:center;color:#777}
-.notice{background:#fff8df;border:1px solid #ead693;border-radius:14px;padding:11px 13px;margin-top:12px;font-size:13px;line-height:1.45}
+.notice{background:#fff8df;border:1px solid #ead693;border-radius:14px;padding:11px 13px;margin-top:12px;font-size:13px;line-height:1.45}.requests{display:grid;gap:9px;margin-top:11px}.request-card{background:#fff;border:1px solid #d9d3c7;border-radius:15px;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}.request-card .face{font-size:42px}.request-card .who{font-size:20px;font-weight:900}.request-card .actions{display:flex;gap:8px}.approve{background:#256f3a}.request-count{font-size:13px;font-weight:800;background:#e9e5dc;border-radius:999px;padding:5px 9px}.home-state{font-weight:750}
 @media(max-width:700px){main{padding:14px}.form-grid,.login-grid{grid-template-columns:1fr}.member{grid-template-columns:auto 1fr}.actions{grid-column:1/-1;justify-content:flex-start}}
 </style>
 </head>
@@ -51,6 +51,17 @@ input,select{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:10px
   </section>
 
   <div id="teacherApp" class="hidden">
+    <section class="panel">
+      <div class="row between">
+        <div>
+          <div class="status">Kirjautumispyynnöt</div>
+          <div class="small">Yhteistä tablettia käyttävä oppilas odottaa tässä hyväksyntää.</div>
+        </div>
+        <span id="requestCount" class="request-count">0</span>
+      </div>
+      <div id="loginRequests" class="requests"><div class="empty">Ei odottavia kirjautumisia.</div></div>
+    </section>
+
     <section class="panel">
       <div class="row between">
         <div class="status">Ryhmäni</div>

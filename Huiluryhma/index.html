@@ -21,6 +21,7 @@ input{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:11px 13px;f
 .heard{display:flex;justify-content:center;gap:9px;min-height:52px;align-items:center;margin:8px 0}.heard-note{background:#fff;border:1px solid #ddd7cc;border-radius:12px;padding:7px 10px;min-width:80px;text-align:center;font-size:12px;color:#666}.heard-note b{display:block;color:#222;font-size:17px}
 .message{text-align:center;font-weight:800;font-size:18px;min-height:48px;display:grid;place-items:center}.profile{text-align:center;padding:15px}.profile .face{font-size:72px;line-height:1}.profile .who{font-size:34px;font-weight:900}.profile .meta{color:#666;margin-top:4px}
 .meter{height:12px;background:#e5e5e5;border-radius:999px;overflow:hidden;margin-top:10px}.meter>div{height:100%;width:0;background:#555;transition:width .05s linear}.setup{border-color:#e2b7b7;background:#fff6f6}
+.device-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.device-mode{background:#e9e5dc;color:#222}.device-mode.selected{background:#222;color:#fff;outline:4px solid rgba(20,20,20,.12)}.home-code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}.home-code-row input{text-transform:uppercase;letter-spacing:.12em;font-weight:800}.waiting{color:#7b5b00}
 @media(max-width:650px){main{padding:14px}.animals{grid-template-columns:repeat(3,minmax(0,1fr))}.tone{width:62px;height:62px}.code-wrap{gap:15px}}
 </style>
 </head>
@@ -51,6 +52,15 @@ input{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:11px 13px;f
     <input id="groupInput" class="grow" maxlength="16" placeholder="Esim. HUILU7" autocomplete="off" autocapitalize="characters">
   </div>
   <div class="small">Sama eläin + sama sävelkoodi voi olla käytössä toisessa ryhmässä. Ryhmän sisällä yhdistelmä varataan vain yhdelle pelaajalle.</div>
+</section>
+
+<section class="panel">
+  <div class="status">Tämä laite</div>
+  <div class="device-modes">
+    <button id="sharedModeBtn" class="device-mode" type="button">Yhteinen tabletti</button>
+    <button id="ownModeBtn" class="device-mode" type="button">Oma tabletti</button>
+  </div>
+  <div id="deviceModeHelp" class="small" style="margin-top:9px"></div>
 </section>
 
 <div class="tabs">
@@ -91,6 +101,22 @@ input{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:11px 13px;f
   <div id="heard" class="heard"></div>
   <div id="captureMessage" class="message"></div>
   <div class="row"><button id="retryBtn" class="secondary">Aloita koodi uudelleen</button></div>
+</section>
+
+<section id="homeCodePanel" class="panel hidden">
+  <div class="status">Ensimmäinen kerta tällä omalla laitteella</div>
+  <div id="homeCodeWho" class="small" style="margin-top:5px"></div>
+  <div class="home-code-row" style="margin-top:11px">
+    <div>
+      <label for="homeCodeInput">Kotikoodi</label>
+      <input id="homeCodeInput" maxlength="9" placeholder="ABCD-EFGH" autocomplete="off" autocapitalize="characters">
+    </div>
+    <button id="homeCodeBtn" disabled>Ota laite käyttöön</button>
+  </div>
+  <div class="row" style="margin-top:9px">
+    <button id="homeCodeCancelBtn" class="secondary">Peruuta</button>
+    <span id="homeCodeMessage" class="small"></span>
+  </div>
 </section>
 
 <section id="resultPanel" class="panel hidden profile"></section>

@@ -18,33 +18,64 @@ service cloud.firestore {
         && request.resource.data.code in ['LLH','LHL','LHH','HLL','HLH','HHL'];
     }
 
-    // Opettajaluettelo on palvelimen käyttöoikeuslista.
-    // Opettaja voi lukea vain oman teachers/{uid}-merkintänsä.
-    // Selain ei voi luoda, muuttaa tai poistaa opettajamerkintöjä.
+    function validLoginRequest() {
+      let groupId = request.resource.data.groupId;
+      let slotId = request.resource.data.slotId;
+      let player = get(/databases/$(database)/documents/groups/$(groupId)/slots/$(slotId));
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId','slotId','playerName','animal','code','requesterUid','status','createdAt'
+        ])
+        && request.resource.data.requesterUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && player.data.verified == true
+        && request.resource.data.playerName == player.data.name
+        && request.resource.data.animal == player.data.animal
+        && request.resource.data.code == player.data.code;
+    }
+
+    function validDeviceRegistration(groupId, slotId) {
+      let homePath = /databases/$(database)/documents/groups/$(groupId)/homeCodes/$(slotId);
+      return signedIn()
+        && exists(homePath)
+        && request.resource.data.keys().hasOnly(['homeCodeHash','createdByUid','createdAt'])
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.homeCodeHash == get(homePath).data.hash;
+    }
+
     match /teachers/{teacherId} {
       allow get: if signedIn() && request.auth.uid == teacherId;
       allow list, create, update, delete: if false;
     }
 
-    match /groups/{groupId} {
-      // Pelaajasovellus tarvitsee yksittäisen ryhmän luvun profiilin luonnissa.
-      allow get: if signedIn();
-
-      // Koko ryhmälistan saa nähdä vain opettaja.
+    // Yhteisen tabletin kirjautumispyyntö. Oppilas saa luoda ja seurata
+    // vain omaa pyyntöään; opettaja saa listata ja hyväksyä/hylätä.
+    match /loginRequests/{requestId} {
+      allow create: if validLoginRequest();
+      allow get: if isTeacher() || (signedIn() && resource.data.requesterUid == request.auth.uid);
       allow list: if isTeacher();
+      allow update: if isTeacher()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','decidedAt','decidedBy'])
+        && request.resource.data.status in ['approved','rejected']
+        && request.resource.data.decidedBy == request.auth.uid;
+      allow delete: if isTeacher() || (signedIn() && resource.data.requesterUid == request.auth.uid);
+    }
 
-      // Pelaaja saa luoda uuden ryhmän vain omalla UID:llään.
-      // Opettaja saa luoda ryhmiä hallintanäkymästä.
+    match /groups/{groupId} {
+      allow get: if signedIn();
+      allow list: if isTeacher();
       allow create: if isTeacher()
         || (signedIn() && request.resource.data.createdBy == request.auth.uid);
-
       allow update, delete: if isTeacher();
 
-      match /slots/{slotId} {
-        // Pelaajan kirjautuminen tekee yhden tarkan document get -haun.
-        allow get: if signedIn();
+      // Pysyvä kotikoodi säilyy vain opettajan luettavana. Oppilassovellus
+      // lähettää koodista SHA-256-tiivisteen laitteen rekisteröinnin yhteydessä.
+      match /homeCodes/{slotId} {
+        allow read, create, update, delete: if isTeacher();
+      }
 
-        // Jäsenlistan selaus kuuluu vain opettajalle.
+      match /slots/{slotId} {
+        allow get: if signedIn();
         allow list: if isTeacher();
 
         allow create: if validSlot() && (
@@ -56,8 +87,6 @@ service cloud.firestore {
           )
         );
 
-        // Opettaja saa muokata kaikkia profiileja.
-        // Pelaaja saa vain vahvistaa itse juuri luomansa profiilin.
         allow update: if isTeacher()
           || (
             signedIn()
@@ -66,14 +95,24 @@ service cloud.firestore {
             && request.resource.data.verified == true
           );
 
-        // Opettaja saa poistaa profiileja. Pelaaja saa vapauttaa vain
-        // oman vielä vahvistamattoman varauksensa.
         allow delete: if isTeacher()
           || (
             signedIn()
             && resource.data.ownerUid == request.auth.uid
             && resource.data.verified == false
           );
+
+        // Oma laite saa rekisteröityä vain, jos annettu kotikoodin tiiviste
+        // vastaa opettajan suojatussa homeCodes-dokumentissa olevaa tiivistettä.
+        // Laitedokumentin ID on satunnaisen laitesalaisuuden SHA-256, joten sitä
+        // ei voi käytännössä arvata. Listaus kuuluu vain opettajalle.
+        match /devices/{deviceId} {
+          allow get: if isTeacher() || signedIn();
+          allow list: if isTeacher();
+          allow create: if validDeviceRegistration(groupId, slotId);
+          allow update: if false;
+          allow delete: if isTeacher();
+        }
       }
     }
   }
