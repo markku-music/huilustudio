@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
-import { getFirestore, collection, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where, runTransaction, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
+import { getFirestore, collection, doc, getDoc, getDocs, updateDoc, deleteDoc, runTransaction, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
 const CODES=['LLH','LHL','LHH','HLL','HLH','HHL'];
@@ -12,19 +12,22 @@ const ANIMALS=[
   {id:'panda',face:'🐼',name:'Panda'}
 ];
 const $=id=>document.getElementById(id);
-const firebaseStatus=$('firebaseStatus'),teacherStatus=$('teacherStatus'),refreshBtn=$('refreshBtn');
-const newGroupInput=$('newGroupInput'),createGroupBtn=$('createGroupBtn'),groupsEl=$('groups');
+const firebaseStatus=$('firebaseStatus'),teacherStatus=$('teacherStatus');
+const loginPanel=$('loginPanel'),teacherApp=$('teacherApp'),teacherEmail=$('teacherEmail'),teacherPassword=$('teacherPassword'),loginBtn=$('loginBtn'),logoutBtn=$('logoutBtn'),authMessage=$('authMessage');
+const refreshBtn=$('refreshBtn'),newGroupInput=$('newGroupInput'),createGroupBtn=$('createGroupBtn'),groupsEl=$('groups');
 const groupPanel=$('groupPanel'),groupTitle=$('groupTitle'),groupMeta=$('groupMeta'),deleteGroupBtn=$('deleteGroupBtn'),membersEl=$('members');
 const editorTitle=$('editorTitle'),playerName=$('playerName'),playerAnimal=$('playerAnimal'),playerCode=$('playerCode'),savePlayerBtn=$('savePlayerBtn'),cancelEditBtn=$('cancelEditBtn'),editorMessage=$('editorMessage');
 
 let app=null,auth=null,db=null,user=null,fbReady=false;
 let groups=[],selectedGroupId=null,currentMembers=[],editing=null;
+let authMessageLocked=false;
 
 function normalizeGroup(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,16)}
 function animalById(id){return ANIMALS.find(a=>a.id===id)||{face:'❔',name:id}}
 function escapeHtml(s){return String(s).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
 function codeWords(code){return String(code||'').split('').map(x=>x==='L'?'matala':'korkea').join(' – ')}
 function shuffle(a){const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+function setAuthMessage(text,bad=false){authMessage.textContent=text||'';authMessage.classList.toggle('bad',bad)}
 
 function fillSelects(){
   playerAnimal.innerHTML=ANIMALS.map(a=>`<option value="${a.id}">${a.face} ${a.name}</option>`).join('');
@@ -34,23 +37,52 @@ function updateButtons(){
   createGroupBtn.disabled=!(fbReady&&normalizeGroup(newGroupInput.value));
   savePlayerBtn.disabled=!(fbReady&&selectedGroupId&&playerName.value.trim());
 }
-
+function showLoggedOut(){
+  user=null;fbReady=false;teacherApp.classList.add('hidden');loginPanel.classList.remove('hidden');logoutBtn.classList.add('hidden');groupPanel.classList.add('hidden');selectedGroupId=null;groups=[];currentMembers=[];updateButtons();
+  firebaseStatus.textContent='Firebase: valmis';firebaseStatus.classList.add('ok');
+  teacherStatus.textContent='Kirjaudu opettajatunnuksella.';
+  if(!authMessageLocked)setAuthMessage('');
+  authMessageLocked=false;
+}
+async function authorize(current){
+  try{
+    const teacherSnap=await getDoc(doc(db,'teachers',current.uid));
+    if(!teacherSnap.exists()){
+      authMessageLocked=true;setAuthMessage('Tällä tunnuksella ei ole opettajan oikeuksia.',true);await signOut(auth);return;
+    }
+    user=current;fbReady=true;loginPanel.classList.add('hidden');teacherApp.classList.remove('hidden');logoutBtn.classList.remove('hidden');
+    firebaseStatus.textContent='Firebase: valmis';firebaseStatus.classList.add('ok');
+    teacherStatus.textContent=`Opettaja: ${current.email||current.uid}`;
+    setAuthMessage('');updateButtons();await loadGroups();
+  }catch(err){
+    console.error(err);authMessageLocked=true;setAuthMessage('Opettajan oikeuksien tarkistus epäonnistui: '+(err.message||String(err)),true);await signOut(auth);
+  }
+}
 async function initFirebase(){
   try{
     app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);
-    const cred=await signInAnonymously(auth);user=cred.user;fbReady=true;
     firebaseStatus.textContent='Firebase: valmis';firebaseStatus.classList.add('ok');
-    teacherStatus.textContent=`Opettajan prototyyppi · selain-ID ${user.uid.slice(0,8)}…`;
-    updateButtons();await loadGroups();
+    onAuthStateChanged(auth,async current=>{
+      if(!current){showLoggedOut();return}
+      if(current.isAnonymous){await signOut(auth);return}
+      await authorize(current);
+    });
   }catch(err){console.error(err);firebaseStatus.textContent='Firebase: yhteys epäonnistui';firebaseStatus.classList.add('bad');teacherStatus.textContent=err.message||String(err)}
+}
+async function loginTeacher(){
+  const email=teacherEmail.value.trim(),password=teacherPassword.value;
+  if(!email||!password){setAuthMessage('Anna sähköposti ja salasana.',true);return}
+  loginBtn.disabled=true;setAuthMessage('Kirjaudutaan…');
+  try{await signInWithEmailAndPassword(auth,email,password);teacherPassword.value=''}
+  catch(err){console.error(err);setAuthMessage('Kirjautuminen epäonnistui. Tarkista sähköposti ja salasana.',true)}
+  finally{loginBtn.disabled=false}
 }
 
 async function loadGroups(){
   if(!fbReady)return;
   groupsEl.innerHTML='<div class="empty">Ladataan ryhmiä…</div>';
   try{
-    const q=query(collection(db,'groups'),where('createdBy','==',user.uid));
-    const snap=await getDocs(q);
+    const snap=await getDocs(collection(db,'groups'));
     groups=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.id.localeCompare(b.id,'fi'));
     renderGroups();
     if(selectedGroupId&&!groups.some(g=>g.id===selectedGroupId)){selectedGroupId=null;groupPanel.classList.add('hidden')}
@@ -73,11 +105,8 @@ async function createGroup(){
     const ref=doc(db,'groups',id);
     await runTransaction(db,async tx=>{
       const snap=await tx.get(ref);
-      if(snap.exists()){
-        if(snap.data().createdBy!==user.uid)throw new Error('Tämä ryhmätunnus on jo käytössä.');
-        return;
-      }
-      tx.set(ref,{createdAt:serverTimestamp(),createdBy:user.uid});
+      if(snap.exists())throw new Error('Tämä ryhmätunnus on jo käytössä.');
+      tx.set(ref,{createdAt:serverTimestamp(),createdBy:user.uid,createdByTeacher:true});
     });
     newGroupInput.value='';await loadGroups();await selectGroup(id);
   }catch(err){console.error(err);alert(err.message||String(err))}finally{updateButtons()}
@@ -94,18 +123,15 @@ async function loadMembers(){
   }catch(err){console.error(err);membersEl.innerHTML=`<div class="empty bad">Jäsenten lataus epäonnistui: ${escapeHtml(err.message||String(err))}</div>`}
 }
 function renderMembers(){
-  const editableCount=currentMembers.filter(m=>m.data.ownerUid===user.uid).length;
-  groupMeta.textContent=`${currentMembers.length} pelaajaa · ${editableCount} muokattavissa tällä selaimella`;
-  deleteGroupBtn.disabled=currentMembers.some(m=>m.data.ownerUid!==user.uid);
-  deleteGroupBtn.title=deleteGroupBtn.disabled?'Ryhmässä on toisella laitteella luotuja profiileja.':'';
+  groupMeta.textContent=`${currentMembers.length} pelaajaa`;
+  deleteGroupBtn.disabled=false;deleteGroupBtn.title='';
   if(!currentMembers.length){membersEl.innerHTML='<div class="empty">Ryhmässä ei vielä ole pelaajia.</div>';return}
   membersEl.innerHTML='';
   for(const m of currentMembers){
-    const a=animalById(m.data.animal),canEdit=m.data.ownerUid===user.uid;
+    const a=animalById(m.data.animal);
     const row=document.createElement('div');row.className='member';
-    row.innerHTML=`<div class="face">${a.face}</div><div><div class="member-name">${escapeHtml(m.data.name||'Nimetön')}</div><div class="meta">${escapeHtml(a.name)} · <span class="code-preview">${escapeHtml(m.data.code||'')}</span> · ${escapeHtml(codeWords(m.data.code))}${m.data.verified===true?'':' · ei vahvistettu'}${canEdit?'':' · 🔒 toisella laitteella luotu'}</div></div><div class="actions"><button class="secondary edit">Muokkaa</button><button class="danger del">Poista</button></div>`;
-    const edit=row.querySelector('.edit'),del=row.querySelector('.del');edit.disabled=!canEdit;del.disabled=!canEdit;
-    edit.addEventListener('click',()=>startEdit(m));del.addEventListener('click',()=>deletePlayer(m));membersEl.appendChild(row);
+    row.innerHTML=`<div class="face">${a.face}</div><div><div class="member-name">${escapeHtml(m.data.name||'Nimetön')}</div><div class="meta">${escapeHtml(a.name)} · <span class="code-preview">${escapeHtml(m.data.code||'')}</span> · ${escapeHtml(codeWords(m.data.code))}${m.data.verified===true?'':' · ei vahvistettu'}</div></div><div class="actions"><button class="secondary edit">Muokkaa</button><button class="danger del">Poista</button></div>`;
+    row.querySelector('.edit').addEventListener('click',()=>startEdit(m));row.querySelector('.del').addEventListener('click',()=>deletePlayer(m));membersEl.appendChild(row);
   }
 }
 function resetEditor(){
@@ -142,7 +168,6 @@ async function savePlayer(){
     if(!editing){
       const code=await findFreeCode(animal,requested);await createVerifiedSlot(name,animal,code);
     }else{
-      if(editing.data.ownerUid!==user.uid)throw new Error('Tätä profiilia ei voi muokata tällä selaimella.');
       const oldSlotId=editing.slotId,code=await findFreeCode(animal,requested,oldSlotId),newSlotId=`${animal}_${code}`;
       if(newSlotId===oldSlotId){
         await updateDoc(doc(db,'groups',selectedGroupId,'slots',oldSlotId),{name,animal,code,verified:true,updatedAt:serverTimestamp()});
@@ -157,21 +182,22 @@ async function savePlayer(){
   finally{updateButtons()}
 }
 async function deletePlayer(m){
-  if(m.data.ownerUid!==user.uid)return;
   if(!confirm(`Poistetaanko pelaaja ${m.data.name}?`))return;
   try{await deleteDoc(doc(db,'groups',selectedGroupId,'slots',m.slotId));if(editing?.slotId===m.slotId)resetEditor();await loadMembers()}
   catch(err){console.error(err);alert(err.message||String(err))}
 }
 async function deleteGroup(){
   if(!selectedGroupId)return;
-  if(currentMembers.some(m=>m.data.ownerUid!==user.uid)){alert('Ryhmässä on toisella laitteella luotuja profiileja, joten tätä ryhmää ei poisteta tässä versiossa.');return}
   if(!confirm(`Poistetaanko ryhmä ${selectedGroupId} ja sen ${currentMembers.length} pelaajaa?`))return;
   try{
     const batch=writeBatch(db);for(const m of currentMembers)batch.delete(doc(db,'groups',selectedGroupId,'slots',m.slotId));batch.delete(doc(db,'groups',selectedGroupId));await batch.commit();
     selectedGroupId=null;groupPanel.classList.add('hidden');await loadGroups();
-  }catch(err){console.error(err);alert('Ryhmäpoisto epäonnistui. Julkaise tämän version mukana oleva firestore.rules ja yritä uudelleen.\n\n'+(err.message||String(err)))}
+  }catch(err){console.error(err);alert('Ryhmäpoisto epäonnistui.
+
+'+(err.message||String(err)))}
 }
 
 newGroupInput.addEventListener('input',()=>{const n=normalizeGroup(newGroupInput.value);if(newGroupInput.value!==n)newGroupInput.value=n;updateButtons()});
 createGroupBtn.addEventListener('click',createGroup);refreshBtn.addEventListener('click',loadGroups);savePlayerBtn.addEventListener('click',savePlayer);cancelEditBtn.addEventListener('click',resetEditor);deleteGroupBtn.addEventListener('click',deleteGroup);playerName.addEventListener('input',updateButtons);
+loginBtn.addEventListener('click',loginTeacher);teacherPassword.addEventListener('keydown',e=>{if(e.key==='Enter')loginTeacher()});logoutBtn.addEventListener('click',()=>signOut(auth));
 fillSelects();resetEditor();initFirebase();

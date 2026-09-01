@@ -1,47 +1,28 @@
-HUILURYHMÄ – FIREBASE + ELÄIN + 3 SÄVELEN KOODI – V1
-=====================================================
+HUILURYHMÄ – V1.3 SUOJATTU OPETTAJANÄKYMÄ
+===========================================
 
-IDEA
-- Ryhmän sisällä tunnus = eläin + kolmen sävelen suhteellinen koodi.
-- Kuusi mahdollista koodia / eläin: LLH, LHL, LHH, HLL, HLH, HHL.
-- Absoluuttisia sävelkorkeuksia ei tallenneta eikä lähetetä verkkoon.
-- Sävelkojun microphone-engine.js tunnistaa sävelen paikallisesti tabletissa.
-- Firestorelle lähetetään vain ryhmä, eläin ja abstrakti L/H-koodi.
+Mitä muuttui V1.2.1:stä
+- Pelaajan index.html, app.js ja microphone-engine.js ovat ennallaan.
+- teacher.html käyttää nyt Firebase Email/Password -kirjautumista.
+- teacher.js ei kirjaudu enää anonyymisti.
+- Opettajan oikeus tarkistetaan Firestore-dokumentista teachers/{UID}.
+- Opettaja näkee kaikki ryhmät ja voi hallita kaikkia niiden pelaajia.
+- Firestore Rules estää anonyymiä käyttäjää listaamasta ryhmiä tai jäseniä.
+- Pelaajan eläin + 3 sävelen kirjautuminen toimii edelleen yksittäisellä document get -haulla.
 
 FIREBASE-KÄYTTÖÖNOTTO
-1. Luo Firebase-projekti: https://console.firebase.google.com/
-2. Lisää Web App (</>), kopioi firebaseConfig ja liitä se firebase-config.js-tiedostoon.
-3. Firestore Database → Create database.
-4. Authentication → Sign-in method → ota Anonymous käyttöön.
-5. Firestore → Rules → kopioi tämän paketin firestore.rules ja Publish.
-6. Vie nämä tiedostot HTTPS-palvelimelle, esimerkiksi GitHub Pagesiin.
+1. Authentication -> Sign-in method -> Email/Password -> Enable.
+2. Authentication -> Users -> Add user. Luo opettajalle sähköposti + salasana.
+3. Kopioi luodun käyttäjän UID.
+4. Firestore Database -> Data -> luo kokoelma "teachers".
+5. Luo dokumentti, jonka Document ID on täsmälleen opettajan UID.
+   Dokumenttiin voi lisätä esimerkiksi kentän role = "teacher". Kenttää ei käytetä oikeuden tarkistukseen; dokumentin olemassaolo riittää.
+6. Firestore Database -> Rules -> korvaa säännöt tämän paketin firestore.rules-tiedostolla ja Publish.
+7. Vie teacher.html ja teacher.js GitHubiin Huiluryhma-kansioon. Voit viedä myös firestore.rules-version talteen repoon.
 
-FIRESTORE-RAKENNE
-/groups/{RYHMA}/slots/{ELAIN}_{KOODI}
-  name: "Aino"
-  animal: "fox"
-  code: "LHL"
-  verified: true/false
-  ownerUid: "..."
-  createdAt: server timestamp
-  verifiedAt: server timestamp
-
-Uniikkius
-- Dokumentin tunnus on esimerkiksi fox_LHL.
-- Firestore-transaktio tarkistaa kaikki kuusi eläimen koodipaikkaa ja varaa vain vapaan.
-- Kaksi tablettia eivät voi onnistuneesti varata samaa eläin+koodi-yhdistelmää samaan ryhmään.
-
-HUOM.
-- Tämä on prototyyppi. Käytä lapsille mieluiten etunimeä tai lempinimeä.
-- Tuotantoversiossa käyttöoikeuksia kannattaa vielä tiukentaa opettajan/ryhmän hallintamallilla.
-
-OPETTAJANÄKYMÄ V1.2
--------------------
-- teacher.html = ryhmien ja pelaajien hallinta.
-- teacher.js = opettajanäkymän Firebase-logiikka.
-- Nykyiseen app.js- tai microphone-engine.js-logiikkaan ei ole tehty muutoksia.
-- index.html:ään lisättiin vain pieni Opettaja-linkki.
-- Opettajanäkymä käyttää tässä ensimmäisessä versiossa selaimen Anonymous Auth -UID:tä.
-  Siksi se voi muokata/poistaa vain samalla UID:llä luotuja pelaajia.
-- Mukana oleva firestore.rules sallii ryhmän poistamisen vain sen luoneelle UID:lle.
-  Julkaise uusi sääntötiedosto Firebase Consolen Rules-välilehdellä, jos haluat käyttää ryhmän poistamista.
+TURVALLISUUS
+- Salasanaa ei ole eikä pidä olla JavaScript-tiedostoissa.
+- teachers-kokoelmaa ei voi muuttaa selaimesta Firestore Rulesien läpi.
+- Oppilaat käyttävät edelleen Anonymous Authenticationia.
+- Anonyymi käyttäjä ei voi tehdä collection-listauksia ryhmistä tai pelaajista.
+- Pelaajan kirjautumistunnus on tarkoituksella kevyt (ryhmä + eläin + 3 sävelen koodi), joten Firestoreen kannattaa tallentaa vain ei-arkaluonteista oppilasdataa, esimerkiksi etunimi/lempinimi ja pelituloksia.

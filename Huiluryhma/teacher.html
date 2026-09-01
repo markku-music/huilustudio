@@ -17,9 +17,9 @@ button.secondary,.button-link.secondary{background:#e9e5dc;color:#222}button.dan
 input,select{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:10px 12px;font-size:17px;background:#fff;color:#222}label{display:block;font-weight:750;margin:0 0 6px}
 .groups{display:grid;gap:9px;margin-top:11px}.group-card{width:100%;background:#fff;color:#222;border:1px solid #d9d3c7;text-align:left;display:flex;justify-content:space-between;align-items:center}.group-card.active{outline:4px solid rgba(20,20,20,.14)}
 .members{display:grid;gap:9px;margin-top:11px}.member{background:#fff;border:1px solid #ddd7cc;border-radius:15px;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}.face{font-size:38px;line-height:1}.member-name{font-weight:900;font-size:18px}.meta{color:#666;font-size:13px;margin-top:2px}.actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.actions button{min-height:38px;padding:8px 11px;font-size:13px}
-.form-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.code-preview{font-weight:850;letter-spacing:.08em}.empty{padding:18px;text-align:center;color:#777}
+.form-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.login-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}.code-preview{font-weight:850;letter-spacing:.08em}.empty{padding:18px;text-align:center;color:#777}
 .notice{background:#fff8df;border:1px solid #ead693;border-radius:14px;padding:11px 13px;margin-top:12px;font-size:13px;line-height:1.45}
-@media(max-width:700px){main{padding:14px}.form-grid{grid-template-columns:1fr}.member{grid-template-columns:auto 1fr}.actions{grid-column:1/-1;justify-content:flex-start}}
+@media(max-width:700px){main{padding:14px}.form-grid,.login-grid{grid-template-columns:1fr}.member{grid-template-columns:auto 1fr}.actions{grid-column:1/-1;justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -27,55 +27,68 @@ input,select{width:100%;border:1px solid #cec8bb;border-radius:13px;padding:10px
   <div class="row between">
     <div>
       <h1>🎼 Opettajan näkymä</h1>
-      <p class="sub">Ryhmät ja niiden pelaajat samasta Firestoresta.</p>
+      <p class="sub">Ryhmien ja pelaajien hallinta.</p>
     </div>
-    <a class="button-link secondary" href="./index.html">← Pelaajanäkymään</a>
+    <div class="row">
+      <button id="logoutBtn" class="secondary hidden">Kirjaudu ulos</button>
+      <a class="button-link secondary" href="./index.html">← Pelaajanäkymään</a>
+    </div>
   </div>
 
   <section class="panel">
-    <div id="firebaseStatus" class="status">Firebase: yhdistetään…</div>
-    <div id="teacherStatus" class="small">Ensimmäinen versio käyttää tämän selaimen anonyymiä Firebase-tunnusta.</div>
+    <div id="firebaseStatus" class="status">Firebase: alustetaan…</div>
+    <div id="teacherStatus" class="small">Opettajanäkymä vaatii opettajatunnuksen.</div>
   </section>
 
-  <section class="panel">
-    <div class="row between">
-      <div class="status">Ryhmäni</div>
-      <button id="refreshBtn" class="secondary">Päivitä</button>
+  <section id="loginPanel" class="panel">
+    <div class="status">Opettajan kirjautuminen</div>
+    <div class="login-grid" style="margin-top:11px">
+      <div><label for="teacherEmail">Sähköposti</label><input id="teacherEmail" type="email" autocomplete="username" placeholder="opettaja@example.com"></div>
+      <div><label for="teacherPassword">Salasana</label><input id="teacherPassword" type="password" autocomplete="current-password" placeholder="Salasana"></div>
+      <button id="loginBtn">Kirjaudu</button>
     </div>
-    <div class="row" style="margin-top:11px">
-      <input id="newGroupInput" class="grow" maxlength="16" placeholder="Uusi ryhmä, esim. HUILU7" autocomplete="off" autocapitalize="characters">
-      <button id="createGroupBtn" disabled>Luo ryhmä</button>
-    </div>
-    <div id="groups" class="groups"></div>
+    <div id="authMessage" class="small" style="margin-top:9px"></div>
   </section>
 
-  <section id="groupPanel" class="panel hidden">
-    <div class="row between">
-      <div>
-        <div id="groupTitle" class="status">Ryhmä</div>
-        <div id="groupMeta" class="small"></div>
-      </div>
-      <button id="deleteGroupBtn" class="danger">Poista ryhmä</button>
-    </div>
-
-    <div id="members" class="members"></div>
-
-    <div class="panel" style="margin-top:14px;background:#fff">
-      <div id="editorTitle" class="status">Lisää pelaaja</div>
-      <div class="form-grid" style="margin-top:10px">
-        <div><label for="playerName">Nimi</label><input id="playerName" maxlength="40" placeholder="Nimi tai lempinimi"></div>
-        <div><label for="playerAnimal">Eläin</label><select id="playerAnimal"></select></div>
-        <div><label for="playerCode">Sävelkoodi</label><select id="playerCode"></select></div>
+  <div id="teacherApp" class="hidden">
+    <section class="panel">
+      <div class="row between">
+        <div class="status">Ryhmäni</div>
+        <button id="refreshBtn" class="secondary">Päivitä</button>
       </div>
       <div class="row" style="margin-top:11px">
-        <button id="savePlayerBtn">Lisää pelaaja</button>
-        <button id="cancelEditBtn" class="secondary hidden">Peruuta muokkaus</button>
-        <span id="editorMessage" class="small"></span>
+        <input id="newGroupInput" class="grow" maxlength="16" placeholder="Uusi ryhmä, esim. HUILU7" autocomplete="off" autocapitalize="characters">
+        <button id="createGroupBtn" disabled>Luo ryhmä</button>
       </div>
-    </div>
+      <div id="groups" class="groups"></div>
+    </section>
 
-    <div class="notice"><b>Ensimmäisen version rajaus:</b> tällä sivulla voi muokata ja poistaa varmasti vain profiileja, jotka on luotu samalla selaimen Firebase-tunnuksella. Eri laitteella luotu jäsen näkyy, mutta sen muokkaus lukitaan. Varsinainen opettajatunnus lisätään seuraavassa vaiheessa.</div>
-  </section>
+    <section id="groupPanel" class="panel hidden">
+      <div class="row between">
+        <div>
+          <div id="groupTitle" class="status">Ryhmä</div>
+          <div id="groupMeta" class="small"></div>
+        </div>
+        <button id="deleteGroupBtn" class="danger">Poista ryhmä</button>
+      </div>
+
+      <div id="members" class="members"></div>
+
+      <div class="panel" style="margin-top:14px;background:#fff">
+        <div id="editorTitle" class="status">Lisää pelaaja</div>
+        <div class="form-grid" style="margin-top:10px">
+          <div><label for="playerName">Nimi</label><input id="playerName" maxlength="40" placeholder="Nimi tai lempinimi"></div>
+          <div><label for="playerAnimal">Eläin</label><select id="playerAnimal"></select></div>
+          <div><label for="playerCode">Sävelkoodi</label><select id="playerCode"></select></div>
+        </div>
+        <div class="row" style="margin-top:11px">
+          <button id="savePlayerBtn">Lisää pelaaja</button>
+          <button id="cancelEditBtn" class="secondary hidden">Peruuta muokkaus</button>
+          <span id="editorMessage" class="small"></span>
+        </div>
+      </div>
+    </section>
+  </div>
 </main>
 <script type="module" src="teacher.js"></script>
 </body>
