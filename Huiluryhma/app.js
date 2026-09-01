@@ -13,7 +13,7 @@ const ANIMALS=[
 ];
 const INTER_NOTE_LOCK_MS=2000;
 const POST_LOCK_SILENCE_FRAMES=3;
-const MIN_CODE_GAP_CENTS=90;
+const SAME_LEVEL_TOLERANCE_CENTS=49;
 
 const $=id=>document.getElementById(id);
 const setupPanel=$('setupPanel'),firebaseStatus=$('firebaseStatus'),micStatus=$('micStatus'),micBtn=$('micBtn'),levelBar=$('levelBar');
@@ -29,7 +29,7 @@ let app=null,auth=null,db=null,user=null,fbReady=false;
 let micEngine=null;
 let screenMode='login';
 let selectedLoginAnimal=null,selectedCreateAnimal=null;
-let captureMode=null; // login | verify
+let captureMode=null; // login | practice
 let currentNotes=[];
 let captureLocked=false,interNoteLockUntil=0,lockNeedsSilence=false,postLockSilenceFrames=0;
 let reserved=null; // {groupId,animal,code,slotId,name,ref}
@@ -129,14 +129,31 @@ function renderHeard(){
 
 function decodeRelativeCode(notes){
   if(notes.length!==3)return {ok:false,reason:'Tarvitaan kolme säveltä.'};
-  const logs=notes.map(n=>Math.log2(n.hz));
-  const sorted=logs.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
-  const gap1=sorted[1].v-sorted[0].v,gap2=sorted[2].v-sorted[1].v;
-  const split=gap1>=gap2?1:2;
-  const cents=Math.max(gap1,gap2)*1200;
-  if(cents<MIN_CODE_GAP_CENTS)return {ok:false,reason:'Matala ja korkea olivat liian lähellä toisiaan.',cents};
-  const code=['H','H','H'];for(let k=0;k<split;k++)code[sorted[k].i]='L';
-  return {ok:true,code:code.join(''),cents};
+  const referenceHz=Number(notes[0]?.hz);
+  if(!Number.isFinite(referenceHz)||referenceHz<=0)return {ok:false,reason:'Ensimmäistä säveltä ei voitu käyttää vertailusävelenä.'};
+
+  const centsFromReference=notes.slice(1).map(n=>1200*Math.log2(Number(n.hz)/referenceHz));
+  if(centsFromReference.some(c=>!Number.isFinite(c)))return {ok:false,reason:'Sävelkorkeutta ei voitu verrata luotettavasti.'};
+
+  const relation=c=>Math.abs(c)<=SAME_LEVEL_TOLERANCE_CENTS+0.001?'S':(c>SAME_LEVEL_TOLERANCE_CENTS?'H':'L');
+  const second=relation(centsFromReference[0]);
+  const third=relation(centsFromReference[1]);
+
+  // Ensimmäinen ääni on koko kolmen äänen jakson ankkuri.
+  // S = sama korkeustaso (±49 c), H = ankkuria korkeampi, L = ankkuria matalampi.
+  const codeByRelations={
+    'S,H':'LLH',
+    'H,S':'LHL',
+    'H,H':'LHH',
+    'L,L':'HLL',
+    'L,S':'HLH',
+    'S,L':'HHL'
+  };
+  const code=codeByRelations[`${second},${third}`];
+  if(code)return {ok:true,code,centsFromReference,referenceHz};
+
+  if(second==='S'&&third==='S')return {ok:false,reason:`Kaikki kolme säveltä olivat ±${SAME_LEVEL_TOLERANCE_CENTS} centin sisällä samasta korkeustasosta.`,centsFromReference,referenceHz};
+  return {ok:false,reason:'Toinen ja kolmas sävel olivat ensimmäisen sävelen eri puolilla. Soita vain kaksi selvästi erottuvaa korkeustasoa.',centsFromReference,referenceHz};
 }
 
 function resetCapture(){
@@ -182,7 +199,7 @@ function microphoneOutput(output){
   if(!captureMode||captureLocked||now<interNoteLockUntil||lockNeedsSilence)return;
   if(output.status!=='signal'||!output.active||!Number.isFinite(output.frequency))return;
   currentNotes.push({hz:output.frequency,confidence:Number(output.confidence)||0});renderHeard();
-  if(currentNotes.length<3){startLock();captureMessage.textContent='Hyvä. Odota lukon avautumista.';if(captureMode==='verify'&&reserved)renderCode(assignedCode,reserved.code,currentNotes.length)}
+  if(currentNotes.length<3){startLock();captureMessage.textContent='Hyvä. Odota lukon avautumista.';if(captureMode==='practice'&&reserved)renderCode(assignedCode,reserved.code,currentNotes.length)}
   else{captureLocked=true;interNoteLockUntil=0;lockNeedsSilence=false;updateGate();finishCapturedCode()}
 }
 
@@ -198,15 +215,15 @@ async function reserveRandomCode(){
       if(!free.length)throw new Error('Tämän eläimen kaikki kuusi koodia ovat jo käytössä tässä ryhmässä.');
       const item=free[Math.floor(Math.random()*free.length)];
       if(!groupSnap.exists())tx.set(groupRef,{createdAt:serverTimestamp(),createdBy:user.uid});
-      tx.set(item.ref,{name,animal,code:item.code,verified:false,ownerUid:user.uid,createdAt:serverTimestamp()});
+      tx.set(item.ref,{name,animal,code:item.code,verified:true,verifiedAt:serverTimestamp(),ownerUid:user.uid,createdAt:serverTimestamp()});
       return {code:item.code,slotId:`${animal}_${item.code}`};
     });
     reserved={groupId:g,animal,code:picked.code,slotId:picked.slotId,name,ref:doc(db,'groups',g,'slots',picked.slotId)};
     releaseBtn.classList.remove('hidden');
-    assignedWrap.classList.remove('hidden');renderCode(assignedCode,reserved.code);captureHeading.textContent=`${animalById(animal).face} ${name}: soita arvottu koodi`;
-    captureMessage.textContent=codeWords(reserved.code);captureMode='verify';resetCapture();
+    assignedWrap.classList.remove('hidden');renderCode(assignedCode,reserved.code);captureHeading.textContent=`${animalById(animal).face} ${name}: kokeile halutessasi sävelkoodiasi`;
+    captureMessage.textContent=`Oma koodisi on ${codeWords(reserved.code)}. Kokeilu ei muuta koodia.`;captureMode='practice';resetCapture();
   }catch(err){console.error(err);showResult('❌','Koodia ei voitu varata',err.message||String(err),'bad')}
-  finally{reserveBtn.textContent='Arvo vapaa sävelkoodi';updateButtons()}
+  finally{reserveBtn.textContent='Luo pelaaja ja sävelkoodi';updateButtons()}
 }
 
 async function releaseReservation(){
@@ -291,11 +308,14 @@ async function finishCapturedCode(){
   const decoded=decodeRelativeCode(currentNotes);
   if(!decoded.ok){captureMessage.textContent=decoded.reason+' Yritä uudelleen.';setTimeout(resetCapture,1200);return}
   captureMessage.textContent=`Kuulin koodin ${decoded.code}.`;
-  if(captureMode==='verify'){
+  if(captureMode==='practice'){
     if(!reserved)return;
-    if(decoded.code!==reserved.code){captureMessage.textContent=`Kuulin ${decoded.code}, mutta arvottu koodi on ${reserved.code}. Yritä uudelleen.`;setTimeout(()=>{resetCapture();renderCode(assignedCode,reserved.code)},1500);return}
-    try{await updateDoc(reserved.ref,{verified:true,verifiedAt:serverTimestamp()});const a=animalById(reserved.animal);showResult(a.face,`${reserved.name} on valmis!`,`Ryhmä ${reserved.groupId} · ${a.name} · ${reserved.code}`,'ok');captureMode=null;capturePanel.classList.add('hidden');releaseBtn.classList.add('hidden');reserved=null;updateButtons()}
-    catch(err){console.error(err);showResult('❌','Profiilia ei voitu vahvistaa',err.message||String(err),'bad')}
+    if(decoded.code===reserved.code){
+      captureMessage.textContent=`Hienoa! Kuulin oman koodisi ${decoded.code}. Koodi pysyy samana.`;
+    }else{
+      captureMessage.textContent=`Kuulin ${decoded.code}. Oma koodisi on edelleen ${reserved.code}. Voit kokeilla uudelleen.`;
+    }
+    setTimeout(()=>{if(captureMode==='practice'&&reserved){resetCapture();renderCode(assignedCode,reserved.code)}},1800);
     return;
   }
   if(captureMode==='login'){
@@ -327,7 +347,7 @@ loginTab.addEventListener('click',()=>switchMode('login'));createTab.addEventLis
 groupInput.addEventListener('input',()=>{groupId();hideResult();updateButtons()});nameInput.addEventListener('input',updateButtons);
 micBtn.addEventListener('click',startMic);reserveBtn.addEventListener('click',reserveRandomCode);releaseBtn.addEventListener('click',releaseReservation);
 loginListenBtn.addEventListener('click',startLoginCapture);loginClearBtn.addEventListener('click',()=>{captureMode=null;capturePanel.classList.add('hidden');loginClearBtn.disabled=true});
-retryBtn.addEventListener('click',()=>{if(captureMode){resetCapture();if(captureMode==='verify'&&reserved)renderCode(assignedCode,reserved.code)}});
+retryBtn.addEventListener('click',()=>{if(captureMode){resetCapture();if(captureMode==='practice'&&reserved)renderCode(assignedCode,reserved.code)}});
 sharedModeBtn.addEventListener('click',()=>setDeviceMode('shared'));ownModeBtn.addEventListener('click',()=>setDeviceMode('own'));
 homeCodeInput.addEventListener('input',()=>{homeCodeInput.value=formatHomeCode(homeCodeInput.value);homeCodeBtn.disabled=normalizeHomeCode(homeCodeInput.value).length!==8;homeCodeMessage.textContent='';homeCodeMessage.classList.remove('bad')});
 homeCodeBtn.addEventListener('click',activateOwnDevice);homeCodeCancelBtn.addEventListener('click',hideHomeCodePanel);
