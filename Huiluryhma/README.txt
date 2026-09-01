@@ -34,3 +34,14 @@ Uniikkius
 HUOM.
 - Tämä on prototyyppi. Käytä lapsille mieluiten etunimeä tai lempinimeä.
 - Tuotantoversiossa käyttöoikeuksia kannattaa vielä tiukentaa opettajan/ryhmän hallintamallilla.
+
+OPETTAJANÄKYMÄ V1.2
+-------------------
+- teacher.html = ryhmien ja pelaajien hallinta.
+- teacher.js = opettajanäkymän Firebase-logiikka.
+- Nykyiseen app.js- tai microphone-engine.js-logiikkaan ei ole tehty muutoksia.
+- index.html:ään lisättiin vain pieni Opettaja-linkki.
+- Opettajanäkymä käyttää tässä ensimmäisessä versiossa selaimen Anonymous Auth -UID:tä.
+  Siksi se voi muokata/poistaa vain samalla UID:llä luotuja pelaajia.
+- Mukana oleva firestore.rules sallii ryhmän poistamisen vain sen luoneelle UID:lle.
+  Julkaise uusi sääntötiedosto Firebase Consolen Rules-välilehdellä, jos haluat käyttää ryhmän poistamista.
