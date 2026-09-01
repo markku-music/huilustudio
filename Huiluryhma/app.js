@@ -13,10 +13,13 @@ const ANIMALS=[
 ];
 const INTER_NOTE_LOCK_MS=2000;
 const POST_LOCK_SILENCE_FRAMES=3;
-const MIN_CODE_GAP_CENTS=90;
+const SAME_LEVEL_TOLERANCE_CENTS=49;
+const DEFAULT_VOLUME_THRESHOLD_DB=-45;
+const METER_MIN_DB=-80, METER_MAX_DB=-10;
 
 const $=id=>document.getElementById(id);
 const setupPanel=$('setupPanel'),firebaseStatus=$('firebaseStatus'),micStatus=$('micStatus'),micBtn=$('micBtn'),levelBar=$('levelBar');
+const volumeThreshold=$('volumeThreshold'),thresholdValue=$('thresholdValue'),thresholdMarker=$('thresholdMarker');
 const groupInput=$('groupInput'),loginTab=$('loginTab'),createTab=$('createTab'),loginPanel=$('loginPanel'),createPanel=$('createPanel');
 const loginAnimals=$('loginAnimals'),createAnimals=$('createAnimals'),loginListenBtn=$('loginListenBtn'),loginClearBtn=$('loginClearBtn');
 const nameInput=$('nameInput'),reserveBtn=$('reserveBtn'),releaseBtn=$('releaseBtn');
@@ -27,15 +30,32 @@ const homeCodePanel=$('homeCodePanel'),homeCodeWho=$('homeCodeWho'),homeCodeInpu
 
 let app=null,auth=null,db=null,user=null,fbReady=false;
 let micEngine=null;
+let volumeThresholdDb=loadVolumeThreshold();
 let screenMode='login';
 let selectedLoginAnimal=null,selectedCreateAnimal=null;
-let captureMode=null; // login | verify
+let captureMode=null; // login | practice
 let currentNotes=[];
 let captureLocked=false,interNoteLockUntil=0,lockNeedsSilence=false,postLockSilenceFrames=0;
 let reserved=null; // {groupId,animal,code,slotId,name,ref}
 let deviceMode=localStorage.getItem('huiluryhma_device_mode')==='own'?'own':'shared';
 let pendingApprovalRef=null,pendingApprovalUnsub=null;
 let pendingHomePlayer=null; // {groupId,slotId,animal,code,name}
+
+
+function clamp(v,min,max){return Math.min(max,Math.max(min,v))}
+function dbToMeterPercent(db){return clamp((Number(db)-METER_MIN_DB)/(METER_MAX_DB-METER_MIN_DB)*100,0,100)}
+function loadVolumeThreshold(){
+  const stored=Number(localStorage.getItem('huiluryhma_volume_threshold_db'));
+  return Number.isFinite(stored)?clamp(stored,-70,-25):DEFAULT_VOLUME_THRESHOLD_DB;
+}
+function applyVolumeThreshold(){
+  volumeThresholdDb=clamp(Number(volumeThreshold.value),-70,-25);
+  volumeThreshold.value=String(volumeThresholdDb);
+  thresholdValue.textContent=`${volumeThresholdDb<0?'−':''}${Math.abs(volumeThresholdDb)} dB`;
+  thresholdMarker.style.left=dbToMeterPercent(volumeThresholdDb)+'%';
+  localStorage.setItem('huiluryhma_volume_threshold_db',String(volumeThresholdDb));
+  if(micEngine)micEngine.updateSettings({sensitivity:Math.abs(volumeThresholdDb)});
+}
 
 function firebaseConfigLooksReal(){
   return firebaseConfig?.apiKey && !String(firebaseConfig.apiKey).includes('PASTE_') && firebaseConfig?.projectId && !String(firebaseConfig.projectId).includes('PASTE_');
@@ -127,16 +147,52 @@ function renderHeard(){
   heard.innerHTML='';currentNotes.forEach((n,i)=>{const d=document.createElement('div');d.className='heard-note';d.innerHTML=`${i+1}. ääni<b>${Math.round(n.hz)} Hz</b>`;heard.appendChild(d)});
 }
 
+function centsBetween(highHz,lowHz){
+  const hi=Number(highHz),lo=Number(lowHz);
+  if(!Number.isFinite(hi)||!Number.isFinite(lo)||hi<=0||lo<=0)return NaN;
+  return 1200*Math.log2(hi/lo);
+}
+
+function matchesTargetCode(notes,code){
+  if(notes.length!==3||!CODES.includes(code))return {ok:false,reason:'Tarvitaan kolme säveltä ja kelvollinen koodi.'};
+  const hz=notes.map(n=>Number(n?.hz));
+  if(hz.some(v=>!Number.isFinite(v)||v<=0))return {ok:false,reason:'Sävelkorkeutta ei voitu verrata luotettavasti.'};
+
+  // Verrataan vain eri tasoiksi määrättyjä pareja. Saman kirjaimen sävelten
+  // ei tarvitse olla keskenään samalla korkeudella.
+  const margins=[];
+  for(let i=0;i<3;i++)for(let j=i+1;j<3;j++){
+    if(code[i]===code[j])continue;
+    const highIndex=code[i]==='H'?i:j;
+    const lowIndex=code[i]==='L'?i:j;
+    margins.push(centsBetween(hz[highIndex],hz[lowIndex]));
+  }
+  const minGap=Math.min(...margins);
+  return minGap>=SAME_LEVEL_TOLERANCE_CENTS
+    ?{ok:true,code,minGap}
+    :{ok:false,code,minGap,reason:`Korkean ja matalan väli jäi alle ${SAME_LEVEL_TOLERANCE_CENTS} centin.`};
+}
+
 function decodeRelativeCode(notes){
   if(notes.length!==3)return {ok:false,reason:'Tarvitaan kolme säveltä.'};
-  const logs=notes.map(n=>Math.log2(n.hz));
+  const logs=notes.map(n=>Math.log2(Number(n?.hz)));
+  if(logs.some(v=>!Number.isFinite(v)))return {ok:false,reason:'Sävelkorkeutta ei voitu verrata luotettavasti.'};
+
+  // Kirjautumisessa tavoitekoodia ei vielä tiedetä. Ryhmitellään siksi kolme
+  // ääntä kahdeksi korkeustasoksi suurimman välin kohdalta. Tämä ei vertaa
+  // kolmatta ääntä edelliseen saman kirjaimen ääneen eikä vaadi niitä samoiksi.
   const sorted=logs.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
-  const gap1=sorted[1].v-sorted[0].v,gap2=sorted[2].v-sorted[1].v;
+  const gap1=(sorted[1].v-sorted[0].v)*1200;
+  const gap2=(sorted[2].v-sorted[1].v)*1200;
+  const biggest=Math.max(gap1,gap2);
+  if(biggest<SAME_LEVEL_TOLERANCE_CENTS)return {ok:false,reason:`Matala ja korkea jäivät alle ${SAME_LEVEL_TOLERANCE_CENTS} centin päähän toisistaan.`,cents:biggest};
+
   const split=gap1>=gap2?1:2;
-  const cents=Math.max(gap1,gap2)*1200;
-  if(cents<MIN_CODE_GAP_CENTS)return {ok:false,reason:'Matala ja korkea olivat liian lähellä toisiaan.',cents};
-  const code=['H','H','H'];for(let k=0;k<split;k++)code[sorted[k].i]='L';
-  return {ok:true,code:code.join(''),cents};
+  const result=['H','H','H'];
+  for(let k=0;k<split;k++)result[sorted[k].i]='L';
+  const code=result.join('');
+  if(!CODES.includes(code))return {ok:false,reason:'Kolmen sävelen korkeussuhdetta ei voitu tulkita.',cents:biggest};
+  return {ok:true,code,cents:biggest,gaps:[gap1,gap2]};
 }
 
 function resetCapture(){
@@ -164,7 +220,7 @@ function ensureMicrophoneEngine(){
   if(micEngine)return micEngine;
   const M=window.NuottikompassiMicrophoneEngine;
   if(!M)throw new Error('Sävelkojun mikrofonimoottoria ei voitu ladata.');
-  micEngine=new M.MicrophoneEngine({...M.DEFAULTS,referenceEnabled:false,liveReferenceEnabled:false,reactionSpeed:5},microphoneOutput);
+  micEngine=new M.MicrophoneEngine({...M.DEFAULTS,referenceEnabled:false,liveReferenceEnabled:false,reactionSpeed:5,sensitivity:Math.abs(volumeThresholdDb)},microphoneOutput);
   return micEngine;
 }
 async function startMic(){
@@ -173,7 +229,7 @@ async function startMic(){
 }
 
 function microphoneOutput(output){
-  const dbv=Number(output.db);if(Number.isFinite(dbv))levelBar.style.width=Math.max(0,Math.min(100,(dbv+80)/70*100))+'%';
+  const dbv=Number(output.db);if(Number.isFinite(dbv))levelBar.style.width=dbToMeterPercent(dbv)+'%';
   if(output.status==='error'){micStatus.textContent=output.error||'Mikrofonivirhe';return}
   const now=performance.now();
   const silent=output.active===false&&(output.status==='waiting'||output.status==='holding');
@@ -182,7 +238,7 @@ function microphoneOutput(output){
   if(!captureMode||captureLocked||now<interNoteLockUntil||lockNeedsSilence)return;
   if(output.status!=='signal'||!output.active||!Number.isFinite(output.frequency))return;
   currentNotes.push({hz:output.frequency,confidence:Number(output.confidence)||0});renderHeard();
-  if(currentNotes.length<3){startLock();captureMessage.textContent='Hyvä. Odota lukon avautumista.';if(captureMode==='verify'&&reserved)renderCode(assignedCode,reserved.code,currentNotes.length)}
+  if(currentNotes.length<3){startLock();captureMessage.textContent='Hyvä. Odota lukon avautumista.';if(captureMode==='practice'&&reserved)renderCode(assignedCode,reserved.code,currentNotes.length)}
   else{captureLocked=true;interNoteLockUntil=0;lockNeedsSilence=false;updateGate();finishCapturedCode()}
 }
 
@@ -198,15 +254,15 @@ async function reserveRandomCode(){
       if(!free.length)throw new Error('Tämän eläimen kaikki kuusi koodia ovat jo käytössä tässä ryhmässä.');
       const item=free[Math.floor(Math.random()*free.length)];
       if(!groupSnap.exists())tx.set(groupRef,{createdAt:serverTimestamp(),createdBy:user.uid});
-      tx.set(item.ref,{name,animal,code:item.code,verified:false,ownerUid:user.uid,createdAt:serverTimestamp()});
+      tx.set(item.ref,{name,animal,code:item.code,verified:true,verifiedAt:serverTimestamp(),ownerUid:user.uid,createdAt:serverTimestamp()});
       return {code:item.code,slotId:`${animal}_${item.code}`};
     });
     reserved={groupId:g,animal,code:picked.code,slotId:picked.slotId,name,ref:doc(db,'groups',g,'slots',picked.slotId)};
     releaseBtn.classList.remove('hidden');
-    assignedWrap.classList.remove('hidden');renderCode(assignedCode,reserved.code);captureHeading.textContent=`${animalById(animal).face} ${name}: soita arvottu koodi`;
-    captureMessage.textContent=codeWords(reserved.code);captureMode='verify';resetCapture();
+    assignedWrap.classList.remove('hidden');renderCode(assignedCode,reserved.code);captureHeading.textContent=`${animalById(animal).face} ${name}: kokeile halutessasi sävelkoodiasi`;
+    captureMessage.textContent=`Oma koodisi on ${codeWords(reserved.code)}. Kokeilu ei muuta koodia.`;captureMode='practice';resetCapture();
   }catch(err){console.error(err);showResult('❌','Koodia ei voitu varata',err.message||String(err),'bad')}
-  finally{reserveBtn.textContent='Arvo vapaa sävelkoodi';updateButtons()}
+  finally{reserveBtn.textContent='Luo pelaaja ja sävelkoodi';updateButtons()}
 }
 
 async function releaseReservation(){
@@ -288,16 +344,21 @@ async function activateOwnDevice(){
 }
 
 async function finishCapturedCode(){
+  if(captureMode==='practice'){
+    if(!reserved)return;
+    const target=matchesTargetCode(currentNotes,reserved.code);
+    if(target.ok){
+      captureMessage.textContent=`Hienoa! Soitit oman koodisi ${reserved.code}. Koodi pysyy samana.`;
+    }else{
+      captureMessage.textContent=`Ei aivan vielä. ${target.reason} Oma koodisi on edelleen ${reserved.code}.`;
+    }
+    setTimeout(()=>{if(captureMode==='practice'&&reserved){resetCapture();renderCode(assignedCode,reserved.code)}},1800);
+    return;
+  }
+
   const decoded=decodeRelativeCode(currentNotes);
   if(!decoded.ok){captureMessage.textContent=decoded.reason+' Yritä uudelleen.';setTimeout(resetCapture,1200);return}
   captureMessage.textContent=`Kuulin koodin ${decoded.code}.`;
-  if(captureMode==='verify'){
-    if(!reserved)return;
-    if(decoded.code!==reserved.code){captureMessage.textContent=`Kuulin ${decoded.code}, mutta arvottu koodi on ${reserved.code}. Yritä uudelleen.`;setTimeout(()=>{resetCapture();renderCode(assignedCode,reserved.code)},1500);return}
-    try{await updateDoc(reserved.ref,{verified:true,verifiedAt:serverTimestamp()});const a=animalById(reserved.animal);showResult(a.face,`${reserved.name} on valmis!`,`Ryhmä ${reserved.groupId} · ${a.name} · ${reserved.code}`,'ok');captureMode=null;capturePanel.classList.add('hidden');releaseBtn.classList.add('hidden');reserved=null;updateButtons()}
-    catch(err){console.error(err);showResult('❌','Profiilia ei voitu vahvistaa',err.message||String(err),'bad')}
-    return;
-  }
   if(captureMode==='login'){
     const g=groupId(),animal=selectedLoginAnimal,slotId=`${animal}_${decoded.code}`;
     try{
@@ -325,12 +386,14 @@ function switchMode(mode){
 renderAnimalButtons(loginAnimals,'login');renderAnimalButtons(createAnimals,'create');
 loginTab.addEventListener('click',()=>switchMode('login'));createTab.addEventListener('click',()=>switchMode('create'));
 groupInput.addEventListener('input',()=>{groupId();hideResult();updateButtons()});nameInput.addEventListener('input',updateButtons);
-micBtn.addEventListener('click',startMic);reserveBtn.addEventListener('click',reserveRandomCode);releaseBtn.addEventListener('click',releaseReservation);
+micBtn.addEventListener('click',startMic);volumeThreshold.addEventListener('input',applyVolumeThreshold);reserveBtn.addEventListener('click',reserveRandomCode);releaseBtn.addEventListener('click',releaseReservation);
 loginListenBtn.addEventListener('click',startLoginCapture);loginClearBtn.addEventListener('click',()=>{captureMode=null;capturePanel.classList.add('hidden');loginClearBtn.disabled=true});
-retryBtn.addEventListener('click',()=>{if(captureMode){resetCapture();if(captureMode==='verify'&&reserved)renderCode(assignedCode,reserved.code)}});
+retryBtn.addEventListener('click',()=>{if(captureMode){resetCapture();if(captureMode==='practice'&&reserved)renderCode(assignedCode,reserved.code)}});
 sharedModeBtn.addEventListener('click',()=>setDeviceMode('shared'));ownModeBtn.addEventListener('click',()=>setDeviceMode('own'));
 homeCodeInput.addEventListener('input',()=>{homeCodeInput.value=formatHomeCode(homeCodeInput.value);homeCodeBtn.disabled=normalizeHomeCode(homeCodeInput.value).length!==8;homeCodeMessage.textContent='';homeCodeMessage.classList.remove('bad')});
 homeCodeBtn.addEventListener('click',activateOwnDevice);homeCodeCancelBtn.addEventListener('click',hideHomeCodePanel);
+volumeThreshold.value=String(volumeThresholdDb);applyVolumeThreshold();
+
 window.addEventListener('pagehide',()=>{if(micEngine)micEngine.stop().catch(()=>{});if(pendingApprovalUnsub)pendingApprovalUnsub()});
 
 setDeviceMode(deviceMode);initFirebase();updateButtons();
