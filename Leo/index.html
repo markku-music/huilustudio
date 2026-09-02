@@ -848,8 +848,8 @@ body{
         <label class="setting"><span>Pilvien määrä</span><input id="cloudCount" type="range" min="1" max="12" step="1" value="12"><strong id="cloudCountVal">12</strong></label>
         <label class="setting"><span>Myrskypilvien brightness</span><input id="stormDeckBrightness" type="range" min="50" max="150" step="1" value="100"><strong id="stormDeckBrightnessVal">100 %</strong></label>
         <label class="setting"><span>Myrskypilvien contrast</span><input id="stormDeckContrast" type="range" min="50" max="150" step="1" value="104"><strong id="stormDeckContrastVal">104 %</strong></label>
-        <label class="setting"><span>Äänikynnys</span><input id="dbThreshold" type="range" min="-70" max="-20" step="1" value="-50"><strong id="dbVal">−50 dB</strong></label>
-        <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="0" max="1000" step="20" value="40"><strong id="minDurationVal">40 ms</strong></label>
+        <label class="setting"><span>Äänikynnys</span><input id="dbThreshold" type="range" min="-70" max="-20" step="1" value="-70"><strong id="dbVal">−70 dB</strong></label>
+        <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="0" max="1000" step="20" value="0"><strong id="minDurationVal">0 ms</strong></label>
         <label class="setting"><span>Hyväksymisraja</span><input id="accept" type="range" min="50" max="95" step="1" value="50"><strong id="acceptVal">50 %</strong></label>
         <label class="setting"><span>Erotteluraja</span><input id="margin" type="range" min="0" max="30" step="1" value="7"><strong id="marginVal">7 %</strong></label>
         <div class="row" style="margin-top:14px"><button id="exportSettingsJson" type="button">Vie asetukset JSON</button></div>
@@ -915,8 +915,8 @@ const SAVED_DEFAULT_SETTINGS={
   cloudCount:12,
   stormDeckBrightness:100,
   stormDeckContrast:104,
-  dbThreshold:-50,
-  minDuration:40,
+  dbThreshold:-70,
+  minDuration:0,
   accept:50,
   margin:7
 };
