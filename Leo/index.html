@@ -822,7 +822,7 @@ body{
         <label class="setting"><span>Myrskypilvien brightness</span><input id="stormDeckBrightness" type="range" min="50" max="150" step="1" value="100"><strong id="stormDeckBrightnessVal">100 %</strong></label>
         <label class="setting"><span>Myrskypilvien contrast</span><input id="stormDeckContrast" type="range" min="50" max="150" step="1" value="104"><strong id="stormDeckContrastVal">104 %</strong></label>
         <label class="setting"><span>Äänikynnys</span><input id="dbThreshold" type="range" min="-70" max="-20" step="1" value="-50"><strong id="dbVal">−50 dB</strong></label>
-        <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="40" max="1000" step="20" value="40"><strong id="minDurationVal">40 ms</strong></label>
+        <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="0" max="1000" step="20" value="40"><strong id="minDurationVal">40 ms</strong></label>
         <label class="setting"><span>Hyväksymisraja</span><input id="accept" type="range" min="50" max="95" step="1" value="50"><strong id="acceptVal">50 %</strong></label>
         <label class="setting"><span>Erotteluraja</span><input id="margin" type="range" min="0" max="30" step="1" value="7"><strong id="marginVal">7 %</strong></label>
         <div class="row" style="margin-top:14px"><button id="exportSettingsJson" type="button">Vie asetukset JSON</button></div>
@@ -1066,7 +1066,7 @@ const PLANE_SNAP_DIST=.18;  // %-points
 const PLANE_SNAP_VY=2.2;    // %-points / s
 const PLANE_MAX_PITCH=2.0;  // degrees
 
-const FRAME_MS=55, END_SILENCE_FRAMES=5, HARMONICS=8;
+const FRAME_MS=16, END_SILENCE_FRAMES=17, HARMONICS=8;
 
 dbThreshold.addEventListener('input',()=>{
   $('#dbVal').textContent=dbThreshold.value.replace('-','−')+' dB';
