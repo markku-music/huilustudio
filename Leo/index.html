@@ -1,0 +1,2156 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Leo Lentäjä</title>
+<style>
+:root {
+  --bg:#101318; --panel:#191f28; --line:#303a48; --text:#f4f7fa; --muted:#9aa8b7;
+  --low:#63c8ff; --high:#ffb966; --bad:#ff7e8c; --ok:#73d69d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit}
+.wrap{max-width:980px;margin:auto;padding:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}
+h1{font-size:25px;margin:0 0 8px;text-align:center}
+.lead{color:var(--muted);text-align:center;margin:0 0 22px;line-height:1.45}
+.row{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+button{border:1px solid var(--line);background:#26303c;color:var(--text);padding:14px 20px;border-radius:13px;min-height:50px;cursor:pointer}
+button.primary{background:#2b6789}
+button:disabled{opacity:.45;cursor:not-allowed}
+.status{text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
+.livebox{margin-top:18px;background:#11161d;border:1px solid var(--line);border-radius:16px;padding:16px}
+.liveTitle{font-size:13px;color:var(--muted);margin-bottom:12px}
+.liveGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.liveMetric{background:#171e26;border-radius:10px;padding:10px;min-width:0}
+.liveMetric span{display:block;color:var(--muted);font-size:11px}
+.liveMetric strong{display:block;font-size:20px;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.liveInterpret{margin-top:12px;text-align:center;padding:12px;border-radius:12px;background:#171e26}
+.liveInterpret span{display:block;color:var(--muted);font-size:11px}
+.liveInterpret strong{display:block;font-size:30px;margin-top:3px}
+.liveInterpret strong.low{color:var(--low)} .liveInterpret strong.high{color:var(--high)} .liveInterpret strong.no{color:var(--bad)}
+.liveCompare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.liveScore{font-size:12px;color:var(--muted)}
+.liveScoreHead{display:flex;justify-content:space-between;gap:8px}
+.liveBar{height:8px;border-radius:8px;background:#28313c;overflow:hidden;margin-top:5px}
+.liveBar i{display:block;height:100%;width:0}
+.liveBar .lowFill{background:var(--low)} .liveBar .highFill{background:var(--high)}
+.levelTrack{position:relative;height:8px;background:#28313c;border-radius:8px;overflow:hidden;margin-top:8px}
+.levelTrack i{display:block;height:100%;width:0;background:var(--ok)}
+.levelThreshold{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.8}
+.listen{width:100%;font-size:20px;font-weight:700;margin-top:18px}
+.resultbox{margin-top:22px;text-align:center;background:#11161d;border:1px solid var(--line);border-radius:16px;padding:28px 16px}
+.label{font-size:13px;color:var(--muted)}
+.result{font-size:56px;font-weight:850;letter-spacing:.03em;min-height:72px;margin-top:8px}
+.result.low{color:var(--low)} .result.high{color:var(--high)} .result.no{color:var(--bad)}
+.conf{font-size:14px;color:var(--muted);min-height:22px}
+.indicator{height:10px;border-radius:8px;background:#252d37;overflow:hidden;margin:16px auto 0;max-width:380px}
+.indicator i{display:block;height:100%;width:0;background:var(--ok)}
+details{border-top:1px solid var(--line);margin-top:22px;padding-top:14px}
+summary{cursor:pointer;color:var(--muted);font-size:13px}
+.setting{display:grid;grid-template-columns:160px 1fr 75px;gap:10px;align-items:center;margin-top:14px;font-size:13px}
+.setting input{width:100%}
+.thresholds{display:grid;gap:10px;margin-top:18px;text-align:left}
+.thresholdRow{background:#151b22;border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.thresholdHead{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted)}
+.thresholdHead strong{color:var(--text);font-variant-numeric:tabular-nums}
+.thresholdTrack{position:relative;height:10px;background:#28313c;border-radius:8px;overflow:hidden;margin-top:8px}
+.thresholdTrack i{display:block;height:100%;width:0;background:var(--ok)}
+.thresholdMark{position:absolute;top:0;bottom:0;width:2px;background:#f4f7fa;opacity:.85}
+.thresholdState{font-size:12px;margin-top:6px;color:var(--muted)}
+.thresholdState.pass{color:var(--ok)}
+.thresholdState.fail{color:var(--bad)}
+.debug{margin-top:14px;font-size:12px;color:var(--muted);line-height:1.5}
+
+.gamePanel{padding:14px}
+.gameTop{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.gameTop .gameStats{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{background:#11161d;border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:13px;color:var(--muted)}
+.badge strong{color:var(--text);font-variant-numeric:tabular-nums}
+#gameStart{font-weight:750}
+.gameStage{position:relative;overflow:hidden;width:100%;aspect-ratio:16/8.2;min-height:300px;border:1px solid #354454;border-radius:16px;background:url('sky_realistic.webp') center/cover no-repeat;user-select:none}
+.gameStage:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.015) 0%,rgba(255,255,255,0) 55%,rgba(255,255,255,.035) 100%);pointer-events:none}
+.skyCloud{position:absolute;background-repeat:no-repeat;background-size:contain;background-position:center;will-change:transform;pointer-events:none}
+.skyCloud:before,.skyCloud:after{content:none;display:none}
+.skyCloud.c1{width:430px;height:196px;top:5%;left:112%;background-image:url('cloud_realistic_1.webp');animation:cloudDriftA 150s linear infinite;animation-delay:-10s;opacity:.95}
+.skyCloud.c2{width:300px;height:136px;top:18%;left:120%;background-image:url('cloud_realistic_2.webp');animation:cloudDriftB 132s linear infinite;animation-delay:-28s;opacity:.86}
+.skyCloud.c3{width:485px;height:226px;top:34%;left:128%;background-image:url('cloud_realistic_3.webp');animation:cloudDriftC 180s linear infinite;animation-delay:-52s;opacity:.85}
+.skyCloud.c4{width:270px;height:124px;top:57%;left:116%;background-image:url('cloud_realistic_2.webp');animation:cloudDriftB 132s linear infinite;animation-delay:-66s;opacity:.76}
+.skyCloud.c5{width:235px;height:108px;top:10%;left:124%;background-image:url('cloud_realistic_2.webp');animation:cloudDriftA 150s linear infinite;animation-delay:-82s;opacity:.80}
+.skyCloud.c6{width:355px;height:164px;top:49%;left:132%;background-image:url('cloud_realistic_1.webp');animation:cloudDriftC 180s linear infinite;animation-delay:-104s;opacity:.83}
+.skyCloud.c7{width:210px;height:96px;top:72%;left:114%;background-image:url('cloud_realistic_2.webp');animation:cloudDriftB 132s linear infinite;animation-delay:-102s;opacity:.70}
+.skyCloud.c8{width:320px;height:146px;top:25%;left:126%;background-image:url('cloud_realistic_1.webp');animation:cloudDriftA 150s linear infinite;animation-delay:-122s;opacity:.79}
+.skyCloud.c9{width:390px;height:178px;top:14%;left:118%;background-image:url('cloud_realistic_3.webp');animation:cloudDriftC 180s linear infinite;animation-delay:-136s;opacity:.80}
+.skyCloud.c10{width:255px;height:116px;top:42%;left:122%;background-image:url('cloud_realistic_2.webp');animation:cloudDriftB 132s linear infinite;animation-delay:-8s;opacity:.74}
+.skyCloud.c11{width:340px;height:156px;top:62%;left:130%;background-image:url('cloud_realistic_1.webp');animation:cloudDriftA 150s linear infinite;animation-delay:-48s;opacity:.76}
+.skyCloud.c12{width:225px;height:102px;top:29%;left:116%;background-image:url('cloud_realistic_2.webp');animation:cloudDriftB 132s linear infinite;animation-delay:-84s;opacity:.68}
+@keyframes cloudDriftA{from{transform:translateX(0)}to{transform:translateX(-215vw)}}
+@keyframes cloudDriftB{from{transform:translateX(0)}to{transform:translateX(-225vw)}}
+@keyframes cloudDriftC{from{transform:translateX(0)}to{transform:translateX(-235vw)}}
+.road{position:absolute;left:0;right:0;top:0;bottom:0;background:transparent;overflow:hidden}
+.road:before,.road:after{content:none;display:none}
+.roadEdge{display:none}
+.laneLabel{position:absolute;left:14px;color:rgba(34,58,87,.55);font-weight:800;font-size:12px;letter-spacing:.12em}.laneLabel.upper{top:30%}.laneLabel.lower{top:62%}
+.car{position:absolute;z-index:5;left:10%;width:168px;height:auto;aspect-ratio:1774/887;top:38%;transform:translateY(-50%);filter:drop-shadow(0 8px 5px rgba(0,0,0,.24));will-change:top}
+.planeMotion{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
+.planeAttitude{position:absolute;inset:0;transform-origin:48% 52%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
+.planeSprite{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;transform:translateZ(0)}
+.planePropMount{position:absolute;right:-12px;top:50%;width:36px;height:72px;transform:translateY(-50%);pointer-events:none}
+.planePropSvg{display:block;width:100%;height:100%;transform-origin:50% 50%;animation:propSpin .105s linear infinite;opacity:.98;filter:drop-shadow(0 0 1.5px rgba(25,37,48,.34))}
+@keyframes propSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.obstacle{position:absolute;z-index:4;width:54px;height:84px;left:100%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center}
+.balloonSprite{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 5px 5px rgba(0,0,0,.18));transform-origin:center center}
+.obstacle.pop .balloonSprite{animation:balloonPop .20s ease-out forwards}
+.obstacle.pop:before,.obstacle.pop:after{content:"";position:absolute;left:50%;top:44%;width:8px;height:8px;border-radius:50%;background:#ff596f;box-shadow:-18px -12px 0 #ffd45f,17px -11px 0 #67c7ff,-13px 15px 0 #9be06a,16px 15px 0 #c07cff;animation:popBits .28s ease-out forwards;pointer-events:none}
+.obstacle.pop:after{transform:rotate(45deg)}
+.confettiPiece{position:absolute;left:50%;top:44%;width:7px;height:10px;border-radius:1.5px;background:var(--bg,#ffd45f);transform:translate(-50%,-50%) rotate(0deg) scale(.35);opacity:0;pointer-events:none;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.obstacle.pop .confettiPiece{animation:confettiBurst .48s cubic-bezier(.12,.78,.18,1) forwards}
+@keyframes balloonPop{0%{transform:scale(1);opacity:1}38%{transform:scale(1.26);opacity:1}100%{transform:scale(.14);opacity:0}}
+@keyframes popBits{0%{transform:translate(-50%,-50%) scale(.35);opacity:1}100%{transform:translate(-50%,-50%) scale(3.0);opacity:0}}
+@keyframes confettiBurst{
+  0%{opacity:0;transform:translate(-50%,-50%) rotate(0deg) scale(.35)}
+  10%{opacity:1}
+  100%{opacity:0;transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(1)}
+}
+.gameOverlay{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:rgba(10,18,28,.48);text-align:center;padding:20px}
+.gameOverlay.hidden{display:none}
+.gameCard{background:rgba(17,22,29,.94);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:18px 22px;max-width:430px}
+.gameCard h2{margin:0 0 7px;font-size:26px}.gameCard p{margin:4px 0;color:#c8d4df;line-height:1.45}
+.splashScreen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(13,18,24,.12)}
+.splashFrame{position:relative;height:100%;max-height:100%;aspect-ratio:1672/941;max-width:100%}
+.splashImage{display:block;height:100%;width:auto;max-width:100%;object-fit:contain;border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.splashHotspot{position:absolute;left:50%;top:89.2%;transform:translate(-50%,-50%);width:28%;height:10.5%;background:transparent;border:none;border-radius:999px;cursor:pointer}
+.splashHotspot:focus-visible{outline:4px solid rgba(255,255,255,.95);outline-offset:2px}
+.splashScore{position:absolute;left:50%;top:8.5%;transform:translateX(-50%);padding:8px 16px;border-radius:999px;background:rgba(17,22,29,.82);color:#fff;font-weight:800;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.commandFlash{position:absolute;z-index:8;top:13px;left:50%;transform:translateX(-50%);padding:8px 15px;border-radius:999px;background:rgba(15,21,29,.88);font-size:18px;font-weight:850;opacity:0;transition:opacity .1s ease}
+.commandFlash.show{opacity:1}.commandFlash.high{color:var(--high)}.commandFlash.low{color:var(--low)}
+.gameHint{text-align:center;color:var(--muted);font-size:13px;margin-top:9px}
+.techDetails{margin-top:14px}
+.techDetails > summary{font-size:14px}
+.gameStage.hit{animation:hitflash .3s ease}
+@keyframes hitflash{0%,100%{filter:none}50%{filter:brightness(1.45) saturate(.7)}}
+
+@media(max-width:560px){.setting{grid-template-columns:1fr}.result{font-size:44px}.liveGrid{grid-template-columns:1fr 1fr}.liveMetric:last-child{grid-column:1/-1}.gameStage{min-height:250px}.car{width:138px;height:52px}.gameTop{justify-content:center}.gameTop .gameStats{justify-content:center}}
+
+/* ===== Leo Lentäjä: fullscreen shell ===== */
+html,body{
+  width:100%;
+  height:100%;
+  min-height:100%;
+  margin:0;
+  overflow:hidden;
+  background:#7ecbff;
+  overscroll-behavior:none;
+  touch-action:manipulation;
+}
+body{
+  position:fixed;
+  inset:0;
+}
+.wrap{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  max-width:none;
+  margin:0;
+  padding:0;
+}
+.panel.gamePanel{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  overflow:hidden;
+}
+.gamePanel>h1,
+.gamePanel>.lead,
+.gameTop,
+#micStatus,
+.gameHint{
+  display:none !important;
+}
+.gameStage{
+  position:absolute;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  min-height:0;
+  aspect-ratio:auto;
+  margin:0;
+  border:0;
+  border-radius:0;
+}
+.car{
+  width:clamp(170px,21vmin,340px);
+  height:auto;
+  aspect-ratio:1774/887;
+  transform:translateY(-50%) scale(var(--plane-scale,1));
+  transform-origin:left center;
+}
+.obstacle{
+  min-width:0;
+  min-height:0;
+  transform:translate(-50%,-50%) scale(var(--balloon-scale,1));
+  transform-origin:center center;
+}
+.gameOverlay{
+  position:absolute;
+  inset:0;
+  padding:0;
+  border-radius:0;
+  background:transparent;
+}
+.splashScreen{
+  position:absolute;
+  inset:0;
+  padding:0;
+  overflow:hidden;
+  background:#7ecbff;
+}
+.splashFrame{
+  position:relative;
+  width:min(calc(100vw - 32px), calc((100dvh - 32px) * 1672 / 941));
+  height:auto;
+  aspect-ratio:1672/941;
+  max-width:none;
+  max-height:calc(100dvh - 32px);
+  flex:0 0 auto;
+}
+.splashImage{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:none;
+  object-fit:contain;
+  border-radius:16px;
+  box-shadow:0 10px 28px rgba(0,0,0,.16);
+}
+.splashHotspot{
+  left:50%;
+  top:89.2%;
+  width:29%;
+  height:11.5%;
+  min-height:0;
+  padding:0;
+}
+.splashScore{
+  display:none !important;
+}
+
+/* Only visible game UI: tiny settings gear. */
+.settingsGear{
+  position:fixed;
+  z-index:30;
+  top:max(10px,env(safe-area-inset-top));
+  right:max(10px,env(safe-area-inset-right));
+  width:42px;
+  height:42px;
+  min-height:0;
+  padding:0;
+  border:1px solid rgba(255,255,255,.52);
+  border-radius:50%;
+  background:rgba(20,28,38,.48);
+  color:#fff;
+  font-size:24px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.settingsGear:active{
+  transform:scale(.94);
+}
+
+/* Dim manual route-test buttons. They are intentionally almost ghosted. */
+.routeTestButton{
+  position:fixed;
+  z-index:25;
+  right:max(8px,env(safe-area-inset-right));
+  width:38px;
+  height:38px;
+  min-height:0;
+  padding:6px;
+  display:none;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:50%;
+  background:rgba(20,28,38,.10);
+  color:rgba(255,255,255,.72);
+  opacity:var(--fingerprint-opacity,.24);
+  box-shadow:none;
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+.routeTestButton.visible{
+  display:grid;
+}
+.routeTestButton svg{
+  width:100%;
+  height:100%;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.65;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.routeTestButton:active{
+  opacity:.62;
+  transform:scale(.92);
+}
+.routeTestHigh{
+  top:38%;
+  transform:translateY(-50%);
+}
+.routeTestLow{
+  top:70%;
+  transform:translateY(-50%);
+}
+.routeTestHigh:active,
+.routeTestLow:active{
+  transform:translateY(-50%) scale(.92);
+}
+
+/* Existing settings are reused as a compact gear drawer. */
+.techDetails{
+  display:none;
+}
+.techDetails.settingsOpen{
+  display:block;
+  position:fixed;
+  z-index:29;
+  top:max(62px,calc(env(safe-area-inset-top) + 54px));
+  right:max(10px,env(safe-area-inset-right));
+  width:min(390px,calc(100vw - 20px));
+  max-height:calc(100dvh - 76px - env(safe-area-inset-bottom));
+  overflow:auto;
+  margin:0;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.20);
+  border-radius:16px;
+  background:rgba(15,21,29,.94);
+  box-shadow:0 12px 32px rgba(0,0,0,.32);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.techDetails.settingsOpen>summary,
+.techDetails.settingsOpen>.livebox,
+.techDetails.settingsOpen>.listen,
+.techDetails.settingsOpen>.resultbox{
+  display:none !important;
+}
+.techDetails.settingsOpen>details{
+  display:block;
+  border:0;
+  margin:0;
+  padding:0;
+}
+.techDetails.settingsOpen>details>summary{
+  display:none;
+}
+.techDetails.settingsOpen .setting{
+  grid-template-columns:135px 1fr 68px;
+  gap:8px;
+  margin-top:10px;
+}
+.techDetails.settingsOpen .row{
+  justify-content:flex-start !important;
+}
+.techDetails.settingsOpen button{
+  min-height:40px;
+  padding:8px 11px;
+  font-size:13px;
+}
+.techDetails.settingsOpen .debug{
+  display:none;
+}
+
+
+
+/* ===== Sunny landscape parallax ===== */
+.groundLayer{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity .8s ease;
+}
+.groundFar{
+  z-index:1;
+  height:29%;
+}
+.groundNear{
+  z-index:2;
+  height:21%;
+  bottom:-1%;
+}
+.groundTrack{
+  display:flex;
+  width:200%;
+  height:100%;
+  will-change:transform;
+}
+.groundTile{
+  position:relative;
+  flex:0 0 50%;
+  height:100%;
+  background-repeat:no-repeat;
+  background-position:center bottom;
+  background-size:cover;
+  overflow:hidden;
+}
+.groundFar .groundTile{
+  background-image:url('landscape_far.webp');
+}
+.groundNear .groundTile{
+  background-image:url('landscape_near.webp');
+}
+.groundFarTrack{
+  animation:groundFarDrift 92s linear infinite;
+}
+.groundNearTrack{
+  animation:groundNearDrift 44s linear infinite;
+}
+.weather-storm .groundLayer{
+  opacity:0;
+}
+@keyframes groundFarDrift{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(-50%,0,0)}
+}
+@keyframes groundNearDrift{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(-50%,0,0)}
+}
+
+
+/* ===== Storm sea underlay ===== */
+.stormSeaLayer{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:29%;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:0;
+  z-index:1;
+  transition:opacity .85s ease;
+}
+.stormSeaTrack{
+  display:flex;
+  width:200%;
+  height:100%;
+  will-change:transform;
+  animation:stormSeaDrift 68s linear infinite;
+}
+.stormSeaTile{
+  flex:0 0 50%;
+  height:100%;
+  background:url('storm_sea.webp') center bottom / cover no-repeat;
+  filter:saturate(.92) contrast(1.03);
+}
+.weather-storm .stormSeaLayer{
+  opacity:1;
+}
+.weather-clear .stormSeaLayer{
+  opacity:0;
+}
+@keyframes stormSeaDrift{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(-50%,0,0)}
+}
+
+/* ===== Weather modes ===== */
+.weatherDesaturate,
+.weatherTint,
+.weatherCloudDeck,
+.weatherRain,
+.weatherSnow,
+.weatherLightning{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.weatherDesaturate{
+  z-index:1;
+  opacity:0;
+  background:#8d949b;
+  mix-blend-mode:saturation;
+  transition:opacity .9s ease;
+}
+.weatherTint{
+  z-index:2;
+  opacity:0;
+  background:rgba(31,48,67,.0);
+  transition:opacity .8s ease,background .8s ease;
+}
+.skyCloud{z-index:3;transition:filter .8s ease,opacity .18s ease}
+.skyCloud.cloudCountHidden,
+.skyCloud.cloudOverlapHidden{
+  opacity:0 !important;
+  visibility:hidden;
+}
+.weatherCloudDeck{
+  z-index:4;
+  top:0;
+  left:0;
+  right:0;
+  bottom:auto;
+  height:30%;
+  opacity:0;
+  background:
+    linear-gradient(180deg, rgba(18,22,30,.22) 0%, rgba(18,22,30,.12) 42%, rgba(18,22,30,0) 100%),
+    url('storm_cloud_deck_realistic.webp') center top / cover no-repeat;
+  filter:brightness(var(--storm-deck-brightness,1)) saturate(.88) contrast(var(--storm-deck-contrast,1.04));
+  transform:translate3d(0,0,0) scale(1.025);
+  transition:opacity .9s ease, filter .9s ease;
+  animation:stormDeckDrift 42s linear infinite;
+  will-change:transform,opacity;
+}
+.weatherRain{
+  z-index:6;
+  inset:0;
+  opacity:0;
+  overflow:hidden;
+  transition:opacity .65s ease;
+}
+.weatherSnow{
+  z-index:6;
+  inset:0;
+  opacity:0;
+  overflow:hidden;
+  transition:opacity .65s ease;
+}
+.snowFlake{
+  position:absolute;
+  top:-12vh;
+  width:var(--flake-size,10px);
+  height:var(--flake-size,10px);
+  border-radius:50%;
+  background:rgba(255,255,255,var(--flake-opacity,.9));
+  box-shadow:0 0 6px rgba(255,255,255,.24);
+  animation:snowFlakeFall var(--flake-duration,8s) linear infinite;
+  animation-delay:var(--flake-delay,0s);
+  will-change:transform;
+}
+
+.rainDrop{
+  position:absolute;
+  left:var(--rain-x,50%);
+  top:var(--rain-y,-12vh);
+  width:var(--drop-width,.8px);
+  height:var(--drop-length,20px);
+  border-radius:999px;
+  opacity:0;
+  background:linear-gradient(to bottom,
+    rgba(255,255,255,0) 0%,
+    rgba(232,245,255,calc(var(--drop-opacity,.5) * .75)) 16%,
+    rgba(255,255,255,var(--drop-opacity,.5)) 54%,
+    rgba(205,232,248,calc(var(--drop-opacity,.5) * .92)) 100%);
+  box-shadow:
+    0 0 .8px rgba(255,255,255,.92),
+    0 0 4px rgba(180,220,255,.34);
+  filter:blur(var(--drop-blur,0px)) contrast(1.08) brightness(1.08);
+  transform-origin:50% 50%;
+  animation:rainDropFall var(--drop-duration,.65s) linear forwards;
+  animation-delay:var(--drop-delay,0s);
+  will-change:transform,opacity;
+  pointer-events:none;
+}
+.weatherLightning{
+  z-index:7;
+  opacity:0;
+  background:rgba(245,250,255,.95);
+  mix-blend-mode:screen;
+  will-change:opacity;
+}
+.weather-storm .weatherDesaturate{
+  opacity:.72;
+}
+.weather-storm .weatherTint{
+  opacity:1;
+  background:rgba(34,39,46,.28);
+}
+.weather-storm .weatherCloudDeck{
+  opacity:1;
+}
+.weather-storm .weatherRain{
+  opacity:.96;
+}
+.weather-snow .weatherDesaturate{
+  opacity:0;
+}
+.weather-snow .weatherTint{
+  opacity:0;
+}
+.weather-snow .weatherSnow{
+  opacity:.55;
+}
+.weather-snow .groundFar .groundTile{
+  background-image:url('landscape_far_snow.webp');
+  filter:none;
+}
+.weather-snow .groundNear{
+  height:28%;
+}
+.weather-snow .groundNear .groundTile{
+  background-image:url('landscape_near_snow.webp');
+  filter:none;
+}
+.weather-snow .groundTile::after{
+  content:none;
+}
+.weather-storm .skyCloud{
+  opacity:0;
+}
+@keyframes rainDropFall{
+  0%{opacity:0;transform:translate3d(0,0,0) rotate(var(--drop-angle,12deg))}
+  8%{opacity:var(--drop-opacity,.5)}
+  88%{opacity:var(--drop-opacity,.5)}
+  100%{opacity:0;transform:translate3d(var(--rain-dx,-12vw),var(--rain-dy,135vh),0) rotate(var(--drop-angle,12deg))}
+}
+@keyframes snowFlakeFall{
+  from{transform:translate3d(0,-12vh,0)}
+  to{transform:translate3d(-5vw,125vh,0)}
+}
+
+@keyframes stormDeckDrift{
+  0%{transform:translate3d(0,0,0) scale(1.025)}
+  25%{transform:translate3d(-0.8%,.25%,0) scale(1.03)}
+  50%{transform:translate3d(-1.6%,.45%,0) scale(1.035)}
+  75%{transform:translate3d(-0.9%,.3%,0) scale(1.03)}
+  100%{transform:translate3d(0,0,0) scale(1.025)}
+}
+.car{
+  transform:
+    translateY(-50%)
+    translate(var(--turb-x,0px),var(--turb-y,0px))
+    rotate(var(--turb-rot,0deg))
+    scale(var(--plane-scale,1));
+}
+.techDetails.settingsOpen .setting select{
+  width:100%;
+  min-width:0;
+  padding:7px 8px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#26303c;
+  color:var(--text);
+  font:inherit;
+}
+
+@media (max-width:560px){
+  .gameStage{
+    min-height:0;
+  }
+  .car{
+    width:clamp(150px,38vw,220px);
+    height:auto;
+    aspect-ratio:1774/887;
+  }
+  .techDetails.settingsOpen .setting{
+    grid-template-columns:1fr;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="panel gamePanel">
+    <h1>Äänilentokone</h1>
+    <p class="lead">Korkea ääni vie lentokoneen yläreitille. Matala ääni vie alareitille. Puhko ilmapalloja!</p>
+
+    <div class="gameTop">
+      <div class="row" style="justify-content:flex-start">
+        <button id="mic" class="primary">Käynnistä mikrofoni</button>
+        <button id="gameStart" disabled>Aloita peli</button>
+      </div>
+      <div class="gameStats">
+        <span class="badge">Pisteet <strong id="gameScore">0</strong></span>
+        <span class="badge">Reitti <strong id="laneName">YLÄ</strong></span>
+      </div>
+    </div>
+    <div id="micStatus" class="status" style="margin:0 0 10px">Mikrofoni ei käytössä</div>
+
+    <div id="gameStage" class="gameStage weather-clear">
+      <div class="stormSeaLayer" aria-hidden="true">
+        <div class="stormSeaTrack">
+          <div class="stormSeaTile"></div><div class="stormSeaTile"></div>
+        </div>
+      </div>
+      <div class="groundLayer groundFar" aria-hidden="true">
+        <div class="groundTrack groundFarTrack">
+          <div class="groundTile"></div><div class="groundTile"></div>
+        </div>
+      </div>
+      <div class="groundLayer groundNear" aria-hidden="true">
+        <div class="groundTrack groundNearTrack">
+          <div class="groundTile"></div><div class="groundTile"></div>
+        </div>
+      </div>
+      <div id="weatherDesaturate" class="weatherDesaturate"></div>
+      <div id="weatherTint" class="weatherTint"></div>
+      <div id="weatherCloudDeck" class="weatherCloudDeck"></div>
+      <div id="weatherRain" class="weatherRain"></div>
+      <div id="weatherSnow" class="weatherSnow"></div>
+      <div id="weatherLightning" class="weatherLightning"></div>
+      <div class="skyCloud c1"></div>
+      <div class="skyCloud c2"></div>
+      <div class="skyCloud c3"></div>
+      <div class="skyCloud c4"></div>
+      <div class="skyCloud c5"></div>
+      <div class="skyCloud c6"></div>
+      <div class="skyCloud c7"></div>
+      <div class="skyCloud c8"></div>
+      <div class="skyCloud c9"></div>
+      <div class="skyCloud c10"></div>
+      <div class="skyCloud c11"></div>
+      <div class="skyCloud c12"></div>
+      <div id="road" class="road">
+        <div class="roadEdge top"></div><div class="roadEdge bottom"></div>
+      </div>
+      <div id="car" class="car" aria-label="Lentokone">
+        <div id="planeMotion" class="planeMotion">
+          <div id="planeAttitude" class="planeAttitude">
+            <img class="planeSprite" src="plane_sunny.webp" alt="">
+            <div id="planePropMount" class="planePropMount"><img class="planePropSvg" src="propeller.svg" alt=""></div>
+          </div>
+        </div>
+      </div>
+      <div id="commandFlash" class="commandFlash"></div>
+      <div id="gameOverlay" class="gameOverlay">
+        <div class="splashScreen">
+          <div class="splashFrame">
+            <img class="splashImage" src="leo_lentaja_splash.webp" alt="Leo Lentäjä">
+            <button id="splashStart" class="splashHotspot" type="button" aria-label="Aloita"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="settingsGear" class="settingsGear" type="button" aria-label="Asetukset">⚙</button>
+    <button id="testHigh" class="routeTestButton routeTestHigh" type="button" aria-label="Testaa yläreitti"><svg viewBox="0 0 32 32" aria-hidden="true">
+<path d="M16 4.5c-5.3 0-9.6 4.1-9.6 9.2 0 2.1.7 3.9 1.4 5.5"/>
+<path d="M16 8.1c-3.3 0-6 2.5-6 5.7 0 4.6-1 7.8-2.5 10.3"/>
+<path d="M16 11.3c-1.5 0-2.8 1.2-2.8 2.7 0 6.1-1.2 10.5-3.5 13.2"/>
+<path d="M16 14.1c0 7.1-1 11-2.7 13.4"/>
+<path d="M19.3 14.1c0 6.2-.7 10.4-2 13.4"/>
+<path d="M22.2 14c0 5.3-.5 9.3-1.5 12.3"/>
+<path d="M25.6 18.9c.3-1.5.4-3.2.4-5.1 0-5.1-4.4-9.3-10-9.3"/>
+</svg></button>
+    <button id="testLow" class="routeTestButton routeTestLow" type="button" aria-label="Testaa alareitti"><svg viewBox="0 0 32 32" aria-hidden="true">
+<path d="M16 4.5c-5.3 0-9.6 4.1-9.6 9.2 0 2.1.7 3.9 1.4 5.5"/>
+<path d="M16 8.1c-3.3 0-6 2.5-6 5.7 0 4.6-1 7.8-2.5 10.3"/>
+<path d="M16 11.3c-1.5 0-2.8 1.2-2.8 2.7 0 6.1-1.2 10.5-3.5 13.2"/>
+<path d="M16 14.1c0 7.1-1 11-2.7 13.4"/>
+<path d="M19.3 14.1c0 6.2-.7 10.4-2 13.4"/>
+<path d="M22.2 14c0 5.3-.5 9.3-1.5 12.3"/>
+<path d="M25.6 18.9c.3-1.5.4-3.2.4-5.1 0-5.1-4.4-9.3-10-9.3"/>
+</svg></button>
+    <div class="gameHint">Lentokone lentää itse. Sinä päätät vain korkeuden suukappaleen äänellä.</div>
+
+    <details class="techDetails">
+      <summary>Tunnistimen reaaliaikainen näyttö ja asetukset</summary>
+
+      <div class="livebox">
+        <div class="liveTitle">Mitä appi kuulee juuri nyt</div>
+        <div class="liveGrid">
+          <div class="liveMetric"><span>Äänenvoimakkuus</span><strong id="liveDb">– dB</strong><div class="levelTrack"><i id="liveLevelBar"></i><b id="liveLevelMark" class="levelThreshold"></b></div></div>
+          <div class="liveMetric"><span>Perustaajuus</span><strong id="liveHz">– Hz</strong></div>
+          <div class="liveMetric"><span>Kuuleeko äänen?</span><strong id="liveHeard">EI</strong></div>
+        </div>
+        <div class="liveCompare">
+          <div class="liveScore"><div class="liveScoreHead"><span>Matala</span><strong id="liveLow">–</strong></div><div class="liveBar"><i id="liveLowBar" class="lowFill"></i></div></div>
+          <div class="liveScore"><div class="liveScoreHead"><span>Korkea</span><strong id="liveHigh">–</strong></div><div class="liveBar"><i id="liveHighBar" class="highFill"></i></div></div>
+        </div>
+        <div class="liveInterpret"><span>Hetkellinen tulkinta</span><strong id="liveInterpretation">–</strong></div>
+      </div>
+
+      <button id="listen" class="listen" disabled style="display:none">Kuuntele seuraava ääni</button>
+
+      <div class="resultbox">
+        <div class="label">Viimeisin hyväksytty ääni</div>
+        <div id="result" class="result">–</div>
+        <div id="confidence" class="conf">Odottaa ääntä.</div>
+        <div class="indicator"><i id="confBar"></i></div>
+        <div class="thresholds">
+          <div class="thresholdRow"><div class="thresholdHead"><span>Äänen pituus</span><strong id="durationValue">–</strong></div><div class="thresholdTrack"><i id="durationBar"></i><span id="durationMark" class="thresholdMark"></span></div><div id="durationState" class="thresholdState">Minimiraja –</div></div>
+          <div class="thresholdRow"><div class="thresholdHead"><span>Paras vastaavuus</span><strong id="bestValue">–</strong></div><div class="thresholdTrack"><i id="bestBar"></i><span id="acceptMark" class="thresholdMark"></span></div><div id="acceptState" class="thresholdState">Hyväksymisraja –</div></div>
+          <div class="thresholdRow"><div class="thresholdHead"><span>Matala / korkea -ero</span><strong id="gapValue">–</strong></div><div class="thresholdTrack"><i id="gapBar"></i><span id="marginMark" class="thresholdMark"></span></div><div id="marginState" class="thresholdState">Erotteluraja –</div></div>
+        </div>
+      </div>
+
+      <details open>
+        <summary>Testiasetukset</summary>        <label class="setting"><span>Sää</span><select id="weatherMode"><option value="clear">Aurinkoinen</option><option value="storm">Ukkonen</option><option value="snow" selected>Luminen</option></select><strong id="weatherModeVal">Luminen</strong></label>
+        <label class="setting"><span>Ukkosheilunnan määrä</span><input id="stormShakeAmount" type="range" min="0" max="500" step="1" value="100"><strong id="stormShakeAmountVal">100 %</strong></label>
+        <label class="setting"><span>Ukkosheilunnan nopeus</span><input id="stormShakeSpeed" type="range" min="25" max="250" step="1" value="100"><strong id="stormShakeSpeedVal">100 %</strong></label>
+        <label class="setting"><span>Lumisade</span><input id="snowAmount" type="range" min="0" max="100" step="1" value="100"><strong id="snowAmountVal">100 %</strong></label>
+        <label class="setting"><span>Lentokoneääni</span><input id="engineVolume" type="range" min="0" max="100" step="1" value="31"><strong id="engineVolumeVal">31 %</strong></label>
+        <label class="setting"><span>Ukkosen voimakkuus</span><input id="thunderVolume" type="range" min="0" max="100" step="1" value="38"><strong id="thunderVolumeVal">38 %</strong></label>
+        <label class="setting"><span>Talvimaiseman ääni</span><input id="winterAmbienceVolume" type="range" min="0" max="100" step="1" value="35"><strong id="winterAmbienceVolumeVal">35 %</strong></label>
+        <label class="setting"><span>Poksahdusääni</span><input id="popVolume" type="range" min="0" max="100" step="1" value="13"><strong id="popVolumeVal">13 %</strong></label>
+        <label class="setting"><span>Sormenjälkien näkyvyys</span><input id="fingerprintOpacity" type="range" min="0" max="100" step="1" value="100"><strong id="fingerprintOpacityVal">100 %</strong></label>
+        <label class="setting"><span>Lentokoneen koko</span><input id="planeSize" type="range" min="50" max="200" step="1" value="148"><strong id="planeSizeVal">148 %</strong></label>
+        <label class="setting"><span>Ilmapallojen koko</span><input id="balloonSize" type="range" min="50" max="150" step="1" value="150"><strong id="balloonSizeVal">150 %</strong></label>
+        <label class="setting"><span>Kesäpilvien alaraja</span><input id="cloudLowerLimit" type="range" min="42" max="70" step="1" value="58"><strong id="cloudLowerLimitVal">58 %</strong></label>
+        <label class="setting"><span>Pilvien määrä</span><input id="cloudCount" type="range" min="1" max="12" step="1" value="12"><strong id="cloudCountVal">12</strong></label>
+        <label class="setting"><span>Myrskypilvien brightness</span><input id="stormDeckBrightness" type="range" min="50" max="150" step="1" value="100"><strong id="stormDeckBrightnessVal">100 %</strong></label>
+        <label class="setting"><span>Myrskypilvien contrast</span><input id="stormDeckContrast" type="range" min="50" max="150" step="1" value="104"><strong id="stormDeckContrastVal">104 %</strong></label>
+        <label class="setting"><span>Äänikynnys</span><input id="dbThreshold" type="range" min="-70" max="-20" step="1" value="-50"><strong id="dbVal">−50 dB</strong></label>
+        <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="40" max="1000" step="20" value="40"><strong id="minDurationVal">40 ms</strong></label>
+        <label class="setting"><span>Hyväksymisraja</span><input id="accept" type="range" min="50" max="95" step="1" value="50"><strong id="acceptVal">50 %</strong></label>
+        <label class="setting"><span>Erotteluraja</span><input id="margin" type="range" min="0" max="30" step="1" value="7"><strong id="marginVal">7 %</strong></label>
+        <div class="row" style="margin-top:14px"><button id="exportSettingsJson" type="button">Vie asetukset JSON</button></div>
+        <div id="debug" class="debug"></div>
+      </details>
+    </details>
+  </section>
+</div>
+<audio id="airplaneAudio" preload="auto" loop playsinline src="airplane_loop.mp3"></audio>
+<audio id="popAudio" preload="auto" src="balloon_pop.mp3"></audio>
+<audio id="thunderAudio" preload="auto" playsinline src="thunder_clap.mp3"></audio>
+<audio id="thunderAudioAlt" preload="auto" playsinline src="thunder_ambience.mp3"></audio>
+<audio id="winterAmbienceAudio" preload="auto" loop playsinline src="winter_ambience.mp3"></audio>
+<script>
+(() => {
+'use strict';
+
+const REFS = {"version": "1.0", "thresholdDb": -44, "low": {"f0": 430.20803833421076, "fingerprint": [0.09391629137887444, 0.701957182318073, 0.07941402810746946, 0.04534061240603828, 0.04522878208440739, 0.020297069138826587, 0.013846034566310759]}, "high": {"f0": 837.8248546223447, "fingerprint": [0.6783152252542366, 0.17302815688574255, 0.05004085182535056, 0.038840760907468776, 0.023742261188500674, 0.02629115993507365, 0.009741584003627188]}};
+const $=s=>document.querySelector(s);
+
+const micBtn=$('#mic'), listenBtn=$('#listen'), micStatus=$('#micStatus');
+const resultEl=$('#result'), confidenceEl=$('#confidence'), confBar=$('#confBar');
+const dbThreshold=$('#dbThreshold'), minDuration=$('#minDuration'), accept=$('#accept'), margin=$('#margin');
+const engineVolumeEl=$('#engineVolume'), thunderVolumeEl=$('#thunderVolume'), winterAmbienceVolumeEl=$('#winterAmbienceVolume'), popVolumeEl=$('#popVolume'), fingerprintOpacityEl=$('#fingerprintOpacity');
+const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLimitEl=$('#cloudLowerLimit'), cloudCountEl=$('#cloudCount'), stormDeckBrightnessEl=$('#stormDeckBrightness'), stormDeckContrastEl=$('#stormDeckContrast'), weatherModeEl=$('#weatherMode'), stormShakeAmountEl=$('#stormShakeAmount'), stormShakeSpeedEl=$('#stormShakeSpeed'), snowAmountEl=$('#snowAmount');
+const exportSettingsJsonEl=$('#exportSettingsJson');
+const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeMotionEl=$('#planeMotion'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), commandFlash=$('#commandFlash'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
+const weatherTintEl=$('#weatherTint'), weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
+const planeSpriteEl=document.querySelector('.planeSprite');
+const PLANE_ASSETS={clear:'plane_sunny.webp',storm:'plane_storm.webp',snow:'plane_snow.webp'};
+
+let ctx=null, analyser=null, stream=null, timer=null;
+let timeData=null, freqData=null;
+let armed=false, inSound=false, silenceFrames=0, frames=[];
+let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
+let liveCommandLatched=false, liveSoundStart=0;
+let gameRunning=false, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, commandFlashTimer=0, lastSpawnLane=null, sameLaneRun=0;
+const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
+
+// Weather is a separate gameplay layer. Clear mode leaves the original game untouched.
+// The visible airplane sprite also changes with the selected weather.
+let currentWeather='clear';
+let snowAmount=100;
+let stormShakeAmount=100, stormShakeSpeed=100;
+let weatherGustX=0, weatherGustY=0, weatherGustRot=0, nextWeatherGustAt=0, nextLightningAt=0;
+let stormRainTimer=0;
+let airX=0, airY=0, airRot=0, airTargetX=0, airTargetY=0, airTargetRot=0, nextAirTargetAt=0;
+
+// Original clear-weather cloud top positions.
+const CLEAR_CLOUD_TOPS=[5,18,34,57,10,49,72,25,14,42,62,29];
+const CLEAR_CLOUD_TOP_MIN=5;
+const CLEAR_CLOUD_TOP_MAX=72;
+
+// When fewer than 12 clouds are requested, this order keeps the selected
+// clouds spread across the existing animation phases and vertical distribution.
+const CLEAR_CLOUD_COUNT_ORDER=[0,6,3,9,1,7,4,10,2,8,5,11];
+
+let clearCloudLimit=58;
+let clearCloudCount=12;
+
+
+function applyClearCloudLowerLimit(limitPct){
+  clearCloudLimit=Math.max(42,Math.min(70,+limitPct||58));
+
+  const clouds=[...document.querySelectorAll('.skyCloud')];
+  const stageRect=gameStage.getBoundingClientRect();
+  const stageH=Math.max(1,stageRect.height);
+
+  // This slider controls the REAL lower edge of the clouds.
+  // Preserve the original vertical ordering, but map cloud bottoms into
+  // an upper-sky band whose lowest permitted edge is clearCloudLimit.
+  const targetTopBand=12;
+  const targetBottomMin=26;
+  const baseRange=CLEAR_CLOUD_TOP_MAX-CLEAR_CLOUD_TOP_MIN;
+
+  clouds.forEach((cloud,i)=>{
+    const baseTop=CLEAR_CLOUD_TOPS[i] ?? CLEAR_CLOUD_TOP_MIN;
+    const normalized=(baseTop-CLEAR_CLOUD_TOP_MIN)/baseRange;
+    const cloudHeightPct=(cloud.getBoundingClientRect().height/stageH)*100;
+
+    const targetBottom=targetBottomMin + normalized*(clearCloudLimit-targetBottomMin);
+    let targetTop=targetBottom-cloudHeightPct;
+
+    // Large clouds may extend slightly above the viewport rather than
+    // breaking the requested lower boundary.
+    targetTop=Math.max(-cloudHeightPct*.28,Math.min(targetTop,targetTopBand+normalized*(clearCloudLimit-targetTopBand)));
+    cloud.style.top=targetTop.toFixed(2)+'%';
+  });
+
+  $('#cloudLowerLimitVal').textContent=Math.round(clearCloudLimit)+' %';
+  updateClearCloudVisibility();
+}
+
+function applyClearCloudCount(count){
+  clearCloudCount=Math.max(1,Math.min(12,Math.round(+count||12)));
+  $('#cloudCountVal').textContent=String(clearCloudCount);
+  updateClearCloudVisibility();
+}
+
+function applyStormDeckImageTuning(){
+  const brightness=Math.max(.5,Math.min(1.5,(+stormDeckBrightnessEl.value||100)/100));
+  const contrast=Math.max(.5,Math.min(1.5,(+stormDeckContrastEl.value||104)/100));
+  document.documentElement.style.setProperty('--storm-deck-brightness',brightness);
+  document.documentElement.style.setProperty('--storm-deck-contrast',contrast);
+  $('#stormDeckBrightnessVal').textContent=Math.round(brightness*100)+' %';
+  $('#stormDeckContrastVal').textContent=Math.round(contrast*100)+' %';
+}
+
+function rectsOverlapWithPadding(a,b,pad=12){
+  return !(
+    a.right+pad<=b.left ||
+    b.right+pad<=a.left ||
+    a.bottom+pad<=b.top ||
+    b.bottom+pad<=a.top
+  );
+}
+
+function updateClearCloudVisibility(){
+  const clouds=[...document.querySelectorAll('.skyCloud')];
+
+  const enabled=new Set(CLEAR_CLOUD_COUNT_ORDER.slice(0,clearCloudCount));
+  clouds.forEach((cloud,i)=>{
+    cloud.classList.toggle('cloudCountHidden',!enabled.has(i));
+    cloud.classList.remove('cloudOverlapHidden');
+  });
+
+  // Clear and snow use exactly the same cloud visibility/overlap logic.
+  // Storm hides these fair-weather clouds entirely.
+  if(currentWeather==='storm')return;
+
+  const stage=gameStage.getBoundingClientRect();
+  const accepted=[];
+
+  // Prefer the user's selected count order. If two visible clouds would
+  // overlap on screen, the later one is temporarily hidden until clear.
+  for(const index of CLEAR_CLOUD_COUNT_ORDER){
+    if(!enabled.has(index))continue;
+    const cloud=clouds[index];
+    if(!cloud)continue;
+
+    const r=cloud.getBoundingClientRect();
+    const onScreen=(
+      r.right>stage.left &&
+      r.left<stage.right &&
+      r.bottom>stage.top &&
+      r.top<stage.bottom
+    );
+
+    if(!onScreen)continue;
+
+    const overlaps=accepted.some(other=>rectsOverlapWithPadding(r,other,14));
+    cloud.classList.toggle('cloudOverlapHidden',overlaps);
+
+    if(!overlaps)accepted.push(r);
+  }
+}
+
+// Cloud spacing runs independently from the airplane, balloons and gameplay.
+// It only ever inspects .skyCloud elements.
+let clearCloudMonitorRaf=0;
+let clearCloudMonitorLast=0;
+
+function runClearCloudMonitor(t=0){
+  if(t-clearCloudMonitorLast>=180){
+    clearCloudMonitorLast=t;
+    updateClearCloudVisibility();
+  }
+  clearCloudMonitorRaf=requestAnimationFrame(runClearCloudMonitor);
+}
+
+
+// Compact external airplane engine loop.
+let engineShouldPlay=false;
+let engineVolume=.31, thunderVolume=.38, winterAmbienceVolume=.35, popVolume=.13;
+let nextThunderUsesAlt=false;
+
+// Vertical flight physics. y grows downward because CSS top grows downward.
+let planeY=38, planeTargetY=38, planeVy=0, planePitch=0;
+const PLANE_ACCEL=300;      // %-points / s²
+const PLANE_MAX_VY=80;      // %-points / s
+const PLANE_SNAP_DIST=.18;  // %-points
+const PLANE_SNAP_VY=2.2;    // %-points / s
+const PLANE_MAX_PITCH=2.0;  // degrees
+
+const FRAME_MS=55, END_SILENCE_FRAMES=5, HARMONICS=8;
+
+dbThreshold.addEventListener('input',()=>{
+  $('#dbVal').textContent=dbThreshold.value.replace('-','−')+' dB';
+  const thresholdPct=Math.max(0,Math.min(100,(+dbThreshold.value+70)/50*100));
+  $('#liveLevelMark').style.left=thresholdPct+'%';
+});
+minDuration.addEventListener('input',()=>{$('#minDurationVal').textContent=minDuration.value+' ms'; updateThresholdMarkers();});
+accept.addEventListener('input',()=>{$('#acceptVal').textContent=accept.value+' %'; updateThresholdMarkers();});
+margin.addEventListener('input',()=>{$('#marginVal').textContent=margin.value+' %'; updateThresholdMarkers();});
+
+engineVolumeEl.addEventListener('input',()=>{
+  engineVolume=Math.max(0,Math.min(1,+engineVolumeEl.value/100));
+  $('#engineVolumeVal').textContent=Math.round(engineVolume*100)+' %';
+  airplaneAudio.volume=engineVolume;
+});
+thunderVolumeEl.addEventListener('input',()=>{
+  thunderVolume=Math.max(0,Math.min(1,+thunderVolumeEl.value/100));
+  $('#thunderVolumeVal').textContent=Math.round(thunderVolume*100)+' %';
+});
+winterAmbienceVolumeEl.addEventListener('input',()=>{
+  winterAmbienceVolume=Math.max(0,Math.min(1,+winterAmbienceVolumeEl.value/100));
+  $('#winterAmbienceVolumeVal').textContent=Math.round(winterAmbienceVolume*100)+' %';
+  if(winterAmbienceAudio)winterAmbienceAudio.volume=winterAmbienceVolume;
+});
+popVolumeEl.addEventListener('input',()=>{
+  popVolume=Math.max(0,Math.min(1,+popVolumeEl.value/100));
+  $('#popVolumeVal').textContent=Math.round(popVolume*100)+' %';
+});
+fingerprintOpacityEl.addEventListener('input',()=>{
+  const opacity=Math.max(0,Math.min(1,+fingerprintOpacityEl.value/100));
+  $('#fingerprintOpacityVal').textContent=Math.round(opacity*100)+' %';
+  document.documentElement.style.setProperty('--fingerprint-opacity',opacity);
+});
+planeSizeEl.addEventListener('input',()=>{
+  const scale=Math.max(.5,Math.min(2.0,+planeSizeEl.value/100));
+  $('#planeSizeVal').textContent=Math.round(scale*100)+' %';
+  document.documentElement.style.setProperty('--plane-scale',scale);
+});
+balloonSizeEl.addEventListener('input',()=>{
+  const scale=Math.max(.5,Math.min(1.5,+balloonSizeEl.value/100));
+  $('#balloonSizeVal').textContent=Math.round(scale*100)+' %';
+  document.documentElement.style.setProperty('--balloon-scale',scale);
+});
+cloudLowerLimitEl.addEventListener('input',()=>{
+  applyClearCloudLowerLimit(cloudLowerLimitEl.value);
+});
+cloudCountEl.addEventListener('input',()=>{
+  applyClearCloudCount(cloudCountEl.value);
+});
+stormDeckBrightnessEl.addEventListener('input',()=>{
+  applyStormDeckImageTuning();
+});
+stormDeckContrastEl.addEventListener('input',()=>{
+  applyStormDeckImageTuning();
+});
+weatherModeEl.addEventListener('change',()=>{
+  applyWeatherMode(weatherModeEl.value);
+});
+stormShakeAmountEl.addEventListener('input',()=>{
+  stormShakeAmount=Math.max(0,Math.min(500,+stormShakeAmountEl.value||0));
+  $('#stormShakeAmountVal').textContent=Math.round(stormShakeAmount)+' %';
+});
+stormShakeSpeedEl.addEventListener('input',()=>{
+  stormShakeSpeed=Math.max(25,Math.min(250,+stormShakeSpeedEl.value||100));
+  $('#stormShakeSpeedVal').textContent=Math.round(stormShakeSpeed)+' %';
+  nextAirTargetAt=0;
+  nextWeatherGustAt=0;
+});
+snowAmountEl.addEventListener('input',()=>{
+  snowAmount=Math.max(0,Math.min(100,+snowAmountEl.value||0));
+  $('#snowAmountVal').textContent=Math.round(snowAmount)+' %';
+  if(currentWeather==='snow')buildSnowWeather();
+});
+
+function exportSettingsJson(){
+  const payload={
+    app:'Leo Lentäjä',
+    format:'leo-settings-1',
+    exportedAt:new Date().toISOString(),
+    settings:{
+      weather:weatherModeEl.value,
+      stormShakeAmount:+stormShakeAmountEl.value,
+      stormShakeSpeed:+stormShakeSpeedEl.value,
+      snowAmount:+snowAmountEl.value,
+      engineVolume:+engineVolumeEl.value,
+      thunderVolume:+thunderVolumeEl.value,
+      winterAmbienceVolume:+winterAmbienceVolumeEl.value,
+      popVolume:+popVolumeEl.value,
+      fingerprintOpacity:+fingerprintOpacityEl.value,
+      planeSize:+planeSizeEl.value,
+      balloonSize:+balloonSizeEl.value,
+      cloudLowerLimit:+cloudLowerLimitEl.value,
+      cloudCount:+cloudCountEl.value,
+      stormDeckBrightness:+stormDeckBrightnessEl.value,
+      stormDeckContrast:+stormDeckContrastEl.value,
+      dbThreshold:+dbThreshold.value,
+      minDuration:+minDuration.value,
+      accept:+accept.value,
+      margin:+margin.value
+    }
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const day=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download='leo_lentaja_asetukset_'+day+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+if(exportSettingsJsonEl)exportSettingsJsonEl.addEventListener('click',exportSettingsJson);
+
+function updateThresholdMarkers(){
+  const durPct=Math.max(0,Math.min(100,(+minDuration.value/1000)*100));
+  $('#durationMark').style.left=durPct+'%';
+  $('#acceptMark').style.left=Math.max(0,Math.min(100,+accept.value))+'%';
+  $('#marginMark').style.left=Math.max(0,Math.min(100,(+margin.value/30)*100))+'%';
+  $('#durationState').textContent='Minimiraja '+minDuration.value+' ms';
+  $('#acceptState').textContent='Hyväksymisraja '+accept.value+' %';
+  $('#marginState').textContent='Erotteluraja '+margin.value+' %-yks.';
+}
+
+function setThresholdDisplay(durationMs,best,gap){
+  const durPct=Math.max(0,Math.min(100,(durationMs/1000)*100));
+  const bestPct=Math.max(0,Math.min(100,best));
+  const gapPct=Math.max(0,Math.min(100,(gap/30)*100));
+
+  $('#durationValue').textContent=Math.round(durationMs)+' ms';
+  $('#bestValue').textContent=Math.round(best)+' %';
+  $('#gapValue').textContent=gap.toFixed(1)+' %-yks.';
+
+  $('#durationBar').style.width=durPct+'%';
+  $('#bestBar').style.width=bestPct+'%';
+  $('#gapBar').style.width=gapPct+'%';
+
+  const durPass=durationMs>=+minDuration.value;
+  const bestPass=best>=+accept.value;
+  const gapPass=gap>=+margin.value;
+
+  $('#durationState').className='thresholdState '+(durPass?'pass':'fail');
+  $('#acceptState').className='thresholdState '+(bestPass?'pass':'fail');
+  $('#marginState').className='thresholdState '+(gapPass?'pass':'fail');
+
+  $('#durationState').textContent=(durPass?'✓ ':'✕ ')+'Minimiraja '+minDuration.value+' ms';
+  $('#acceptState').textContent=(bestPass?'✓ ':'✕ ')+'Hyväksymisraja '+accept.value+' %';
+  $('#marginState').textContent=(gapPass?'✓ ':'✕ ')+'Erotteluraja '+margin.value+' %-yks.';
+}
+
+function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
+function median(a){
+  if(!a.length)return 0;
+  const b=[...a].sort((x,y)=>x-y),m=b.length>>1;
+  return b.length%2?b[m]:(b[m-1]+b[m])/2;
+}
+function rmsDb(buf){
+  let s=0; for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}
+  const rms=Math.sqrt(s/buf.length)||1e-12;
+  return {rms,db:20*Math.log10(rms)};
+}
+function yin(buf,sr){
+  const n=Math.min(buf.length,4096),minF=75,maxF=1300;
+  const minTau=Math.max(2,Math.floor(sr/maxF));
+  const maxTau=Math.min(Math.floor(sr/minF),Math.floor(n/2));
+  const d=new Float32Array(maxTau+1),cmnd=new Float32Array(maxTau+1);
+  for(let tau=1;tau<=maxTau;tau++){
+    let sum=0;
+    for(let i=0;i<n-tau;i++){const x=buf[i]-buf[i+tau];sum+=x*x}
+    d[tau]=sum;
+  }
+  cmnd[0]=1;let run=0;
+  for(let tau=1;tau<=maxTau;tau++){run+=d[tau];cmnd[tau]=d[tau]*tau/(run||1)}
+  let tau=-1;
+  for(let t=minTau;t<=maxTau;t++){
+    if(cmnd[t]<0.13){while(t+1<=maxTau&&cmnd[t+1]<cmnd[t])t++;tau=t;break}
+  }
+  if(tau<0)return null;
+  const x0=Math.max(minTau,tau-1),x2=Math.min(maxTau,tau+1);
+  const s0=cmnd[x0],s1=cmnd[tau],s2=cmnd[x2],den=2*s1-s2-s0;
+  const better=den?tau+(s2-s0)/(2*den):tau;
+  const f=sr/better;
+  return (f>=minF&&f<=maxF)?f:null;
+}
+function harmonicVector(f0){
+  if(!f0)return null;
+  const ny=ctx.sampleRate/2,binHz=ny/freqData.length,amps=[];
+  for(let h=1;h<=HARMONICS;h++){
+    const target=f0*h;
+    if(target>=ny){amps.push(0);continue}
+    const idx=Math.round(target/binHz);
+    const radius=Math.max(1,Math.round(12/binHz));
+    let best=-Infinity;
+    for(let j=Math.max(1,idx-radius);j<=Math.min(freqData.length-1,idx+radius);j++){
+      if(freqData[j]>best)best=freqData[j];
+    }
+    amps.push(Math.pow(10,best/20));
+  }
+  const vals=amps.slice(1,8);
+  const total=vals.reduce((s,x)=>s+x,0);
+  if(total<=0)return null;
+  return vals.map(x=>x/total);
+}
+function avgVec(vectors){
+  const out=new Array(7).fill(0);
+  if(!vectors.length)return out;
+  vectors.forEach(v=>v.forEach((x,i)=>out[i]+=x));
+  return out.map(x=>x/vectors.length);
+}
+function makeTake(list){
+  const valid=list.filter(f=>f.f0&&f.fp);
+  if(valid.length<4)return null;
+  const duration=list.length?list[list.length-1].t-list[0].t:0;
+  return {f0:median(valid.map(f=>f.f0)),fp:avgVec(valid.map(f=>f.fp)),duration};
+}
+function centsDiff(a,b){return 1200*Math.log2(a/b)}
+function fpDistance(a,b){
+  let s=0;
+  for(let i=0;i<a.length;i++){
+    const da=20*Math.log10(a[i]+1e-5), db=20*Math.log10(b[i]+1e-5);
+    const d=(da-db)/16;
+    s+=d*d;
+  }
+  return Math.sqrt(s/a.length);
+}
+function similarity(take,ref){
+  const cents=Math.abs(centsDiff(take.f0,ref.f0));
+  const pitchPenalty=Math.min(3,cents/110);
+  const spectralPenalty=fpDistance(take.fp,ref.fingerprint);
+  const combined=Math.sqrt(0.42*pitchPenalty*pitchPenalty + 0.58*spectralPenalty*spectralPenalty);
+  return Math.max(0,Math.min(100,100*Math.exp(-0.82*combined)));
+}
+
+function updateLiveLevel(db){
+  $('#liveDb').textContent=Number.isFinite(db)?db.toFixed(1)+' dB':'– dB';
+  // scale -70..-20 dB to 0..100 %
+  const pct=Math.max(0,Math.min(100,(db+70)/50*100));
+  $('#liveLevelBar').style.width=pct+'%';
+  const thresholdPct=Math.max(0,Math.min(100,(+dbThreshold.value+70)/50*100));
+  $('#liveLevelMark').style.left=thresholdPct+'%';
+}
+
+function resetLiveInterpretation(){
+  $('#liveHz').textContent='– Hz';
+  $('#liveHeard').textContent='EI';
+  $('#liveLow').textContent='–';
+  $('#liveHigh').textContent='–';
+  $('#liveLowBar').style.width='0';
+  $('#liveHighBar').style.width='0';
+  const e=$('#liveInterpretation');
+  e.textContent='–'; e.className='';
+  liveLowHistory=[]; liveHighHistory=[]; liveF0History=[];
+}
+
+function pushLimited(arr,val,max=6){
+  arr.push(val);
+  if(arr.length>max) arr.shift();
+}
+
+function updateLiveInterpretation(f0,fp,loud){
+  $('#liveHeard').textContent=loud?'KYLLÄ':'EI';
+
+  if(!loud || !f0 || !fp){
+    if(!loud){
+      $('#liveHz').textContent='– Hz';
+      $('#liveLow').textContent='–';
+      $('#liveHigh').textContent='–';
+      $('#liveLowBar').style.width='0';
+      $('#liveHighBar').style.width='0';
+      const e=$('#liveInterpretation');
+      e.textContent='–'; e.className='';
+      liveLowHistory=[]; liveHighHistory=[]; liveF0History=[];
+    }
+    return;
+  }
+
+  pushLimited(liveF0History,f0);
+  const smoothF0=median(liveF0History);
+  const take={f0:smoothF0,fp:fp};
+  const low=similarity(take,REFS.low);
+  const high=similarity(take,REFS.high);
+
+  pushLimited(liveLowHistory,low);
+  pushLimited(liveHighHistory,high);
+  const lowS=mean(liveLowHistory);
+  const highS=mean(liveHighHistory);
+  const best=Math.max(lowS,highS);
+  const gap=Math.abs(lowS-highS);
+
+  $('#liveHz').textContent=smoothF0.toFixed(1)+' Hz';
+  $('#liveLow').textContent=Math.round(lowS)+' %';
+  $('#liveHigh').textContent=Math.round(highS)+' %';
+  $('#liveLowBar').style.width=Math.max(0,Math.min(100,lowS))+'%';
+  $('#liveHighBar').style.width=Math.max(0,Math.min(100,highS))+'%';
+
+  const e=$('#liveInterpretation');
+  e.className='';
+  let name='EPÄVARMA';
+  if(best<+accept.value || gap<+margin.value){
+    e.textContent='EPÄVARMA';
+    e.classList.add('no');
+  }else if(lowS>highS){
+    name='MATALA';
+    e.textContent=name;
+    e.classList.add('low');
+  }else{
+    name='KORKEA';
+    e.textContent=name;
+    e.classList.add('high');
+  }
+  return {name,best,gap,low:lowS,high:highS};
+}
+
+
+function weatherLabel(mode){
+  return mode==='storm' ? 'Ukkonen' : mode==='snow' ? 'Luminen' : 'Aurinkoinen';
+}
+
+function applyPlaneSpriteForWeather(){
+  if(!planeSpriteEl)return;
+  planeSpriteEl.src=PLANE_ASSETS[currentWeather]||PLANE_ASSETS.clear;
+}
+
+function spawnStormRainDrop(initial=false){
+  if(!weatherRainEl || currentWeather!=='storm')return;
+  const drop=document.createElement('i');
+  drop.className='rainDrop';
+
+  const near=Math.random()<.42;
+  const x=-10+Math.random()*122;
+  const y=-22+Math.random()*42;
+  const length=near ? 22+Math.random()*20 : 8+Math.random()*14;
+  const width=near ? .72+Math.random()*.48 : .34+Math.random()*.30;
+  const opacity=near ? .62+Math.random()*.25 : .30+Math.random()*.24;
+  const duration=near ? .28+Math.random()*.22 : .42+Math.random()*.34;
+  const dx=-(10+Math.random()*17);
+  const dy=132+Math.random()*42;
+  const angle=9+Math.random()*9;
+  const blur=near ? Math.random()*.10 : .04+Math.random()*.18;
+
+  drop.style.setProperty('--rain-x',x.toFixed(2)+'%');
+  drop.style.setProperty('--rain-y',y.toFixed(2)+'vh');
+  drop.style.setProperty('--drop-length',length.toFixed(1)+'px');
+  drop.style.setProperty('--drop-width',width.toFixed(2)+'px');
+  drop.style.setProperty('--drop-opacity',opacity.toFixed(2));
+  drop.style.setProperty('--drop-duration',duration.toFixed(3)+'s');
+  drop.style.setProperty('--rain-dx',dx.toFixed(2)+'vw');
+  drop.style.setProperty('--rain-dy',dy.toFixed(2)+'vh');
+  drop.style.setProperty('--drop-angle',angle.toFixed(2)+'deg');
+  drop.style.setProperty('--drop-blur',blur.toFixed(2)+'px');
+  if(initial)drop.style.setProperty('--drop-delay',(-Math.random()*duration*.85).toFixed(3)+'s');
+  drop.addEventListener('animationend',()=>drop.remove(),{once:true});
+  weatherRainEl.appendChild(drop);
+}
+
+function scheduleStormRain(){
+  clearTimeout(stormRainTimer);
+  if(currentWeather!=='storm')return;
+  const burst=2+Math.floor(Math.random()*4);
+  for(let i=0;i<burst;i++)spawnStormRainDrop(false);
+  stormRainTimer=setTimeout(scheduleStormRain,12+Math.random()*34);
+}
+
+function buildStormRain(){
+  if(!weatherRainEl)return;
+  clearTimeout(stormRainTimer);
+  weatherRainEl.innerHTML='';
+  for(let i=0;i<72;i++)spawnStormRainDrop(true);
+  stormRainTimer=setTimeout(scheduleStormRain,15+Math.random()*25);
+}
+
+function stopStormRain(){
+  clearTimeout(stormRainTimer);
+  stormRainTimer=0;
+  if(weatherRainEl)weatherRainEl.innerHTML='';
+}
+
+function buildSnowWeather(){
+  if(!weatherSnowEl)return;
+  weatherSnowEl.innerHTML='';
+  // Slider controls snowfall density only; cloud logic and weather remain unchanged.
+  const flakeCount=Math.round(snowAmount*.8);
+  for(let i=0;i<flakeCount;i++){
+    const flake=document.createElement('i');
+    flake.className='snowFlake';
+    const size=2+Math.random()*3.8;
+    flake.style.left=(Math.random()*108-4).toFixed(1)+'%';
+    flake.style.setProperty('--flake-size',size.toFixed(1)+'px');
+    flake.style.setProperty('--flake-duration',(6.5+Math.random()*5.5).toFixed(2)+'s');
+    flake.style.setProperty('--flake-delay',(-Math.random()*8).toFixed(2)+'s');
+    flake.style.setProperty('--flake-opacity',(.34+Math.random()*.40).toFixed(2));
+    weatherSnowEl.appendChild(flake);
+  }
+}
+
+function resetWeatherMotion(){
+  weatherGustX=0;
+  weatherGustY=0;
+  weatherGustRot=0;
+  nextWeatherGustAt=0;
+  nextLightningAt=0;
+  airX=0; airY=0; airRot=0;
+  airTargetX=0; airTargetY=0; airTargetRot=0;
+  nextAirTargetAt=0;
+  document.documentElement.style.setProperty('--turb-x','0px');
+  document.documentElement.style.setProperty('--turb-y','0px');
+  document.documentElement.style.setProperty('--turb-rot','0deg');
+  if(weatherLightningEl)weatherLightningEl.style.opacity='0';
+}
+
+function applyWeatherMode(mode){
+  currentWeather=(mode==='storm'||mode==='snow')?mode:'clear';
+  weatherModeEl.value=currentWeather;
+  $('#weatherModeVal').textContent=weatherLabel(currentWeather);
+  gameStage.classList.remove('weather-clear','weather-rain','weather-storm','weather-snow');
+  gameStage.classList.add('weather-'+currentWeather);
+  applyPlaneSpriteForWeather();
+  resetWeatherMotion();
+  updateClearCloudVisibility();
+  if(currentWeather==='storm'){
+    buildStormRain();
+    if(weatherSnowEl)weatherSnowEl.innerHTML='';
+    const now=performance.now();
+    nextWeatherGustAt=now+3500+Math.random()*6000;
+    nextLightningAt=now+2500+Math.random()*6500;
+  }else if(currentWeather==='snow'){
+    stopStormRain();
+    buildSnowWeather();
+  }else{
+    stopStormRain();
+    if(weatherSnowEl)weatherSnowEl.innerHTML='';
+  }
+}
+
+function triggerLightning(){
+  if(currentWeather!=='storm' || !gameRunning || !weatherLightningEl)return;
+  playThunderSound();
+  weatherLightningEl.style.opacity='1';
+  setTimeout(()=>{
+    if(currentWeather==='storm'&&gameRunning)weatherLightningEl.style.opacity='.08';
+  },70);
+  setTimeout(()=>{
+    if(currentWeather==='storm'&&gameRunning)weatherLightningEl.style.opacity='.78';
+  },145);
+  setTimeout(()=>{
+    weatherLightningEl.style.opacity='0';
+  },230);
+}
+
+function randomRange(min,max){
+  return min+Math.random()*(max-min);
+}
+
+function updateWeatherMotion(t,dt){
+  // Procedural air movement: no repeating keyframe or sine loop.
+  // The plane continuously follows softly changing random air targets.
+  const storm=currentWeather==='storm';
+  const snow=currentWeather==='snow';
+
+  // Turbulence may move the plane only vertically. No left-right drift.
+  // Storm amount and speed are user-adjustable; 100 % preserves the previous feel.
+  const stormAmountFactor=stormShakeAmount/100;
+  const stormSpeedFactor=stormShakeSpeed/100;
+  const ampX=0;
+  const ampY=storm?4.6*stormAmountFactor:(snow?1.45:1.05);
+  const ampRot=storm?0:(snow?.22:.16);
+  const targetMinMs=storm?180/stormSpeedFactor:(snow?650:760);
+  const targetMaxMs=storm?720/stormSpeedFactor:(snow?1600:1850);
+  const follow=storm?4.0*stormSpeedFactor:(snow?2.15:1.85);
+
+  if(!nextAirTargetAt || t>=nextAirTargetAt){
+    airTargetX=randomRange(-ampX,ampX);
+    airTargetY=randomRange(-ampY,ampY);
+    airTargetRot=storm?0:randomRange(-ampRot,ampRot);
+    nextAirTargetAt=t+randomRange(targetMinMs,targetMaxMs);
+  }
+
+  if(storm){
+    if(!nextWeatherGustAt)nextWeatherGustAt=t+randomRange(1800,4800)/stormSpeedFactor;
+    if(t>=nextWeatherGustAt){
+      weatherGustX=0;
+      weatherGustY=randomRange(-8.5,8.5)*stormAmountFactor;
+      weatherGustRot=0;
+      nextWeatherGustAt=t+randomRange(2600,7600)/stormSpeedFactor;
+    }
+    const gustDecay=Math.exp(-dt*1.35*stormSpeedFactor);
+    weatherGustX*=gustDecay;
+    weatherGustY*=gustDecay;
+    weatherGustRot*=gustDecay;
+  }else{
+    const gustDecay=Math.exp(-dt*4.5);
+    weatherGustX*=gustDecay;
+    weatherGustY*=gustDecay;
+    weatherGustRot*=gustDecay;
+  }
+
+  const targetX=airTargetX+weatherGustX;
+  const targetY=airTargetY+weatherGustY;
+  const targetRot=storm?0:(airTargetRot+weatherGustRot);
+  const k=1-Math.exp(-dt*follow);
+  airX+=(targetX-airX)*k;
+  airY+=(targetY-airY)*k;
+  airRot=storm?0:(airRot+(targetRot-airRot)*k);
+
+  document.documentElement.style.setProperty('--turb-x','0px');
+  document.documentElement.style.setProperty('--turb-y',airY.toFixed(2)+'px');
+  document.documentElement.style.setProperty('--turb-rot',storm?'0deg':airRot.toFixed(2)+'deg');
+
+  if(storm){
+    if(!nextLightningAt)nextLightningAt=t+randomRange(3000,9000);
+    if(t>=nextLightningAt){
+      triggerLightning();
+      nextLightningAt=t+randomRange(6500,19000);
+    }
+  }
+}
+
+function laneTop(lane){ return lane==='upper' ? 38 : 70; }
+
+function updatePlanePhysics(dt){
+  const dist=planeTargetY-planeY;
+
+  // Arrived: settle exactly on the requested flight level.
+  if(Math.abs(dist)<=PLANE_SNAP_DIST && Math.abs(planeVy)<=PLANE_SNAP_VY){
+    planeY=planeTargetY;
+    planeVy=0;
+  }else{
+    const dir=Math.sign(dist) || 0;
+    const movingToward=dir!==0 && Math.sign(planeVy)===dir;
+    const stopDist=(planeVy*planeVy)/(2*PLANE_ACCEL);
+
+    let ay=0;
+
+    if(dir===0){
+      // No positional error left: bleed remaining vertical speed.
+      ay=planeVy===0 ? 0 : -Math.sign(planeVy)*PLANE_ACCEL;
+    }else if(!movingToward && Math.abs(planeVy)>.05){
+      // If a new command reverses direction, first arrest the old motion.
+      ay=dir*PLANE_ACCEL;
+    }else if(movingToward && stopDist>=Math.abs(dist)){
+      // Brake early enough to arrive without overshooting.
+      ay=-Math.sign(planeVy)*PLANE_ACCEL;
+    }else{
+      // Accelerate toward the requested altitude.
+      ay=dir*PLANE_ACCEL;
+    }
+
+    planeVy+=ay*dt;
+    planeVy=Math.max(-PLANE_MAX_VY,Math.min(PLANE_MAX_VY,planeVy));
+
+    const previousDist=dist;
+    planeY+=planeVy*dt;
+    const newDist=planeTargetY-planeY;
+
+    // Numerical safety: if one integration step crosses the target while
+    // already braking, settle instead of oscillating around it.
+    if(previousDist!==0 && Math.sign(previousDist)!==Math.sign(newDist) &&
+       Math.abs(planeVy)<PLANE_MAX_VY*.55){
+      planeY=planeTargetY;
+      planeVy=0;
+    }
+  }
+
+  carEl.style.top=planeY+'%';
+
+  // Pitch comes from actual vertical velocity, not from a canned animation.
+  if(currentWeather==='storm'){
+    // Storm shake is strictly vertical: never tilt the airplane.
+    planePitch=0;
+    planeAttitudeEl.style.transform='rotate(0deg)';
+  }else{
+    const desiredPitch=(planeVy/PLANE_MAX_VY)*PLANE_MAX_PITCH;
+    const pitchFollow=1-Math.exp(-dt*11);
+    planePitch+=(desiredPitch-planePitch)*pitchFollow;
+    if(Math.abs(planeVy)<.15 && Math.abs(planeTargetY-planeY)<.25){
+      planePitch*=Math.exp(-dt*12);
+    }
+    planeAttitudeEl.style.transform='rotate('+planePitch.toFixed(3)+'deg)';
+  }
+}
+
+function setGameLane(lane,source='audio'){
+  gameLane=lane;
+  planeTargetY=laneTop(lane);
+  $('#laneName').textContent=lane==='upper'?'YLÄ':'ALA';
+
+  // On reset or outside an active game, place the plane directly.
+  if(source==='reset' || !gameRunning){
+    planeY=planeTargetY;
+    planeVy=0;
+    planePitch=0;
+    carEl.style.top=planeY+'%';
+    planeAttitudeEl.style.transform='rotate(0deg)';
+  }
+
+  if(source==='audio'){
+    const high=lane==='upper';
+    commandFlash.textContent='';
+    commandFlash.className='commandFlash';
+  }
+}
+function updateGameHud(){ $('#gameScore').textContent=gameScore; }
+function clearObstacles(){ obstacles.forEach(o=>o.el.remove()); obstacles=[]; }
+function spawnObstacle(){
+  if(!gameRunning)return;
+
+  let lane;
+  if(lastSpawnLane===null){
+    lane=Math.random()<0.5?'upper':'lower';
+  }else if(sameLaneRun>=2){
+    // Never allow more than two balloons in a row on the same level.
+    lane=lastSpawnLane==='upper'?'lower':'upper';
+  }else{
+    // Usually switch level, but still allow occasional repeats.
+    const switchLevel=Math.random()<0.68;
+    lane=switchLevel?(lastSpawnLane==='upper'?'lower':'upper'):lastSpawnLane;
+  }
+
+  if(lane===lastSpawnLane) sameLaneRun++;
+  else sameLaneRun=1;
+  lastSpawnLane=lane;
+
+  const el=document.createElement('div');
+  el.className='obstacle';
+  el.style.top=(lane==='upper'?38:70)+'%';
+
+  // Realistic balloon sprite with small size variation.
+  const asset=BALLOON_ASSETS[Math.floor(Math.random()*BALLOON_ASSETS.length)];
+  const visualScale=Math.max(.92,Math.min(1.45,Math.min(window.innerWidth,window.innerHeight)/720));
+  const w=(48+Math.round(Math.random()*14))*visualScale;
+  const h=(76+Math.round(Math.random()*16))*visualScale;
+  el.style.width=w.toFixed(1)+'px';
+  el.style.height=h.toFixed(1)+'px';
+  el.innerHTML='<img class="balloonSprite" src="'+asset+'" alt="Ilmapallo">';
+  gameStage.appendChild(el);
+
+  const driftChance=currentWeather==='storm'?.34:0;
+  const willDrift=Math.random()<driftChance;
+  const driftAtX=willDrift?(66+Math.random()*24):null;
+  const driftDuration=.82+Math.random()*.48;
+
+  obstacles.push({
+    el,lane,x:106,hit:false,
+    willDrift,driftAtX,driftDuration,drifted:false
+  });
+}
+function rectHit(o){
+  if(!planePropMountEl || !o.el)return false;
+  const p=planePropMountEl.getBoundingClientRect();
+  const b=o.el.getBoundingClientRect();
+
+  // Require a real overlap with the spinning propeller area.
+  // Slight inset keeps a near-miss from counting as a pop.
+  const insetX=p.width*0.16;
+  const insetY=p.height*0.10;
+  const left=p.left+insetX;
+  const right=p.right-insetX;
+  const top=p.top+insetY;
+  const bottom=p.bottom-insetY;
+
+  return b.right>left && b.left<right && b.bottom>top && b.top<bottom;
+}
+function startAirplaneSoundFromUserGesture(){
+  engineShouldPlay=true;
+  airplaneAudio.loop=true;
+  airplaneAudio.volume=engineVolume;
+  if(airplaneAudio.paused){
+    airplaneAudio.play().catch(()=>{});
+  }
+}
+
+function updateWinterAmbiencePlayback(){
+  if(!winterAmbienceAudio)return;
+  winterAmbienceAudio.loop=true;
+  winterAmbienceAudio.volume=winterAmbienceVolume;
+  const shouldPlay=gameRunning && currentWeather==='snow';
+  if(shouldPlay){
+    if(winterAmbienceAudio.paused){
+      winterAmbienceAudio.play().catch(()=>{});
+    }
+  }else if(!winterAmbienceAudio.paused){
+    winterAmbienceAudio.pause();
+    winterAmbienceAudio.currentTime=0;
+  }
+}
+
+function unlockWinterAmbienceAudio(){
+  if(!winterAmbienceAudio || winterAmbienceAudio.dataset.unlocked==='1')return;
+  const oldMuted=winterAmbienceAudio.muted;
+  winterAmbienceAudio.muted=true;
+  const p=winterAmbienceAudio.play();
+  if(p && typeof p.then==='function'){
+    p.then(()=>{
+      winterAmbienceAudio.pause();
+      winterAmbienceAudio.currentTime=0;
+      winterAmbienceAudio.muted=oldMuted;
+      winterAmbienceAudio.dataset.unlocked='1';
+    }).catch(()=>{
+      winterAmbienceAudio.muted=oldMuted;
+    });
+  }
+}
+
+function bindSplashStartButton(){
+  const splashStartBtn=document.getElementById('splashStart');
+  if(!splashStartBtn)return;
+  splashStartBtn.addEventListener('click',async()=>{
+    if(ctx){
+      if(!gameRunning){
+        startAirplaneSoundFromUserGesture();
+        unlockPopAudio();
+        unlockThunderAudio();
+        unlockWinterAmbienceAudio();
+        startGame();
+      }
+      return;
+    }
+    micStatus.textContent='Avataan mikrofonia…';
+    startAirplaneSoundFromUserGesture();
+    unlockPopAudio();
+    unlockThunderAudio();
+    unlockWinterAmbienceAudio();
+    const ok=await startMic(true);
+    if(!ok)stopAirplaneSound();
+  });
+}
+
+function renderSplashOverlay(scoreText=''){
+  const highTest=document.getElementById('testHigh');
+  const lowTest=document.getElementById('testLow');
+  if(highTest)highTest.classList.remove('visible');
+  if(lowTest)lowTest.classList.remove('visible');
+  gameOverlay.classList.remove('hidden');
+  const scoreHtml=scoreText?'<div class="splashScore">'+scoreText+'</div>':'';
+  gameOverlay.innerHTML=
+    '<div class="splashScreen">'+
+      '<div class="splashFrame">'+
+        scoreHtml+
+        '<img class="splashImage" src="leo_lentaja_splash.webp" alt="Leo Lentäjä">'+
+        '<button id="splashStart" class="splashHotspot" type="button" aria-label="Aloita"></button>'+
+      '</div>'+
+    '</div>';
+  bindSplashStartButton();
+}
+
+function stopAirplaneSound(){
+  engineShouldPlay=false;
+  airplaneAudio.pause();
+  airplaneAudio.currentTime=0;
+  if(winterAmbienceAudio){
+    winterAmbienceAudio.pause();
+    winterAmbienceAudio.currentTime=0;
+  }
+}
+function playPopSound(){
+  // Clone allows another balloon to pop before the previous sound has finished.
+  const s=popAudio.cloneNode(true);
+  s.volume=popVolume;
+  s.play().catch(()=>{});
+}
+function playThunderSound(){
+  // Alternate the two thunder recordings on successive lightning flashes.
+  // Clone so a new flash can sound even if the previous thunder tail is still playing.
+  const source=nextThunderUsesAlt ? thunderAudioAlt : thunderAudio;
+  nextThunderUsesAlt=!nextThunderUsesAlt;
+  const s=source.cloneNode(true);
+  s.volume=thunderVolume;
+  s.play().catch(()=>{});
+}
+function unlockOneThunderAudio(audioEl){
+  if(!audioEl || audioEl.dataset.unlocked==='1')return;
+  const oldMuted=audioEl.muted;
+  audioEl.muted=true;
+  const p=audioEl.play();
+  if(p && typeof p.then==='function'){
+    p.then(()=>{
+      audioEl.pause();
+      audioEl.currentTime=0;
+      audioEl.muted=oldMuted;
+      audioEl.dataset.unlocked='1';
+    }).catch(()=>{
+      audioEl.muted=oldMuted;
+    });
+  }
+}
+function unlockThunderAudio(){
+  // Prime both alternating thunder sounds from the same user gesture for iPad/Safari.
+  unlockOneThunderAudio(thunderAudio);
+  unlockOneThunderAudio(thunderAudioAlt);
+}
+function unlockPopAudio(){
+  // iPad/Safari: prime only the one-shot pop sound.
+  if(popAudio.dataset.unlocked==='1')return;
+  const oldMuted=popAudio.muted;
+  popAudio.muted=true;
+  const p=popAudio.play();
+  if(p && typeof p.then==='function'){
+    p.then(()=>{
+      popAudio.pause();
+      popAudio.currentTime=0;
+      popAudio.muted=oldMuted;
+      popAudio.dataset.unlocked='1';
+    }).catch(()=>{
+      popAudio.muted=oldMuted;
+    });
+  }
+}
+function addConfettiBurst(el){
+  const colors=['#ff5d6c','#ffd44d','#5bc8ff','#99e567','#c07cff','#ff9bc6','#ffffff'];
+  for(let i=0;i<14;i++){
+    const piece=document.createElement('span');
+    piece.className='confettiPiece';
+    const angle=(Math.PI*2*i/14)+((Math.random()-.5)*0.42);
+    const dist=18+Math.random()*28;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist - 4 - Math.random()*8;
+    const rot=(Math.random()*520-260).toFixed(0)+'deg';
+    piece.style.setProperty('--tx', tx.toFixed(1)+'px');
+    piece.style.setProperty('--ty', ty.toFixed(1)+'px');
+    piece.style.setProperty('--rot', rot);
+    piece.style.setProperty('--bg', colors[Math.floor(Math.random()*colors.length)]);
+    if(Math.random()<0.35){
+      piece.style.borderRadius='50%';
+      piece.style.width='6px';
+      piece.style.height='6px';
+    }
+    el.appendChild(piece);
+  }
+}
+
+function popBalloon(o){
+  playPopSound();
+  addConfettiBurst(o.el);
+  o.el.classList.add('pop');
+  setTimeout(()=>o.el.remove(),520);
+}
+function gameLoop(t){
+  if(!gameRunning)return;
+  if(!lastGameT)lastGameT=t;
+  const dt=Math.min(.05,(t-lastGameT)/1000); lastGameT=t;
+  updatePlanePhysics(dt);
+  updateWeatherMotion(t,dt);
+
+  spawnClock+=dt;
+  if(spawnClock>1.95){ spawnClock=0; spawnObstacle(); }
+  const speed=24;
+  for(let i=obstacles.length-1;i>=0;i--){
+    const o=obstacles[i]; o.x-=speed*dt; o.el.style.left=o.x+'%';
+
+    // Weather may make a balloon slowly float to the other route,
+    // but never once it has entered the left/near-airplane part of the screen.
+    if(o.willDrift && !o.drifted && o.x<=o.driftAtX && o.x>60){
+      o.drifted=true;
+      o.lane=o.lane==='upper'?'lower':'upper';
+      o.el.style.transition='top '+o.driftDuration.toFixed(2)+'s cubic-bezier(.42,0,.22,1)';
+      o.el.style.top=laneTop(o.lane)+'%';
+    }
+
+    if(!o.hit && rectHit(o)){
+      o.hit=true;
+      gameScore++;
+      updateGameHud();
+      popBalloon(o);
+      obstacles.splice(i,1);
+      continue;
+    }
+    if(o.x<-7){
+      o.el.remove();
+      obstacles.splice(i,1);
+    }
+  }
+  gameRaf=requestAnimationFrame(gameLoop);
+}
+function startGame(){
+  if(!ctx)return;
+  nextThunderUsesAlt=false;
+  const highTest=document.getElementById('testHigh');
+  const lowTest=document.getElementById('testLow');
+  if(highTest)highTest.classList.add('visible');
+  if(lowTest)lowTest.classList.add('visible');
+  clearObstacles(); gameScore=0; spawnClock=0; lastGameT=0; lastSpawnLane=null; sameLaneRun=0; updateGameHud();
+  resetWeatherMotion();
+  const weatherNow=performance.now();
+  if(currentWeather==='storm'){
+    buildStormRain();
+    nextWeatherGustAt=weatherNow+3500+Math.random()*6000;
+    nextLightningAt=weatherNow+2500+Math.random()*6500;
+  }
+  planeY=laneTop('upper'); planeTargetY=planeY; planeVy=0; planePitch=0;
+  setGameLane('upper','reset');
+  gameRunning=true; armed=true; inSound=false; silenceFrames=0; frames=[];
+  roadEl.classList.add('running');
+  gameOverlay.classList.add('hidden'); gameStart.textContent='Aloita alusta';
+  updateWinterAmbiencePlayback();
+  cancelAnimationFrame(gameRaf); gameRaf=requestAnimationFrame(gameLoop);
+}
+function handleGameRecognition(name){
+  if(!gameRunning)return;
+  if(name==='KORKEA')setGameLane('upper','audio');
+  else if(name==='MATALA')setGameLane('lower','audio');
+}
+
+function setResult(name,best,low,high){
+  resultEl.className='result';
+  if(name==='MATALA')resultEl.classList.add('low');
+  else if(name==='KORKEA')resultEl.classList.add('high');
+  else if(name==='EI TUNNISTETTU')resultEl.classList.add('no');
+  resultEl.textContent=name;
+  confidenceEl.textContent=`Matala ${Math.round(low)} % · Korkea ${Math.round(high)} %`;
+  confBar.style.width=Math.max(0,Math.min(100,best))+'%';
+}
+function recognizeTake(take){
+  const low=similarity(take,REFS.low);
+  const high=similarity(take,REFS.high);
+  const best=Math.max(low,high);
+  const gap=Math.abs(low-high);
+  const minAccept=+accept.value;
+  const minGap=+margin.value;
+  setThresholdDisplay(take.duration,best,gap);
+
+  let recognized='EI TUNNISTETTU';
+  if(take.duration<+minDuration.value || best<minAccept || gap<minGap){
+    recognized='EI TUNNISTETTU';
+  } else if(low>high){
+    recognized='MATALA';
+  } else {
+    recognized='KORKEA';
+  }
+  setResult(recognized,best,low,high);
+  handleGameRecognition(recognized);
+
+  $('#debug').textContent=
+    `Mitattu f0 ${take.f0.toFixed(1)} Hz · referenssit ${REFS.low.f0.toFixed(1)} / ${REFS.high.f0.toFixed(1)} Hz · ero ${gap.toFixed(1)} %-yks.`;
+}
+function finishCapture(){
+  armed=false;inSound=false;silenceFrames=0;
+  listenBtn.classList.remove('active');
+  listenBtn.textContent='Kuuntele seuraava ääni';
+
+  const take=makeTake(frames);frames=[];
+  if(!take){
+    resultEl.textContent='–';
+    resultEl.className='result';
+    confidenceEl.textContent='Ääntä ei saatu mitattua luotettavasti.';
+    confBar.style.width='0';
+    if(gameRunning){ armed=true; inSound=false; silenceFrames=0; frames=[]; }
+    return;
+  }
+  recognizeTake(take);
+  if(gameRunning){
+    armed=true; inSound=false; silenceFrames=0; frames=[];
+  }
+}
+function processFrame(){
+  analyser.getFloatTimeDomainData(timeData);
+  analyser.getFloatFrequencyData(freqData);
+  const level=rmsDb(timeData);
+  const loud=level.db>+dbThreshold.value;
+  let f0=null,fp=null;
+
+  if(loud){
+    f0=yin(timeData,ctx.sampleRate);
+    if(f0)fp=harmonicVector(f0);
+  }
+
+  updateLiveLevel(level.db);
+  const live=updateLiveInterpretation(f0,fp,loud);
+
+  if(!armed)return;
+
+  if(loud&&f0&&fp){
+    if(!inSound){
+      inSound=true;
+      frames=[];
+      liveSoundStart=performance.now();
+      liveCommandLatched=false;
+    }
+    silenceFrames=0;
+    const now=performance.now();
+    frames.push({t:now,f0,fp});
+
+    // GAME: trigger as soon as the current blow has reached the minimum
+    // duration and the real-time L/H interpretation clears both thresholds.
+    // Do not wait for note-off / trailing silence.
+    const liveDuration=(now-liveSoundStart)+FRAME_MS;
+    if(gameRunning && !liveCommandLatched && liveDuration>=+minDuration.value && live && live.name!=='EPÄVARMA'){
+      liveCommandLatched=true;
+      setThresholdDisplay(liveDuration,live.best,live.gap);
+      setResult(live.name,live.best,live.low,live.high);
+      handleGameRecognition(live.name);
+    }
+  } else if(inSound){
+    silenceFrames++;
+    if(silenceFrames>=END_SILENCE_FRAMES){
+      const duration=frames.length?frames[frames.length-1].t-frames[0].t:0;
+      const alreadyTriggered=gameRunning && liveCommandLatched;
+
+      // If the lane already changed from the real-time recognition, the blow
+      // is accepted as a game command even when it was so short that only one
+      // analysis frame was captured.
+      if(alreadyTriggered){
+        const take=makeTake(frames);
+        frames=[];
+        inSound=false;
+        silenceFrames=0;
+        if(take){
+          const low=similarity(take,REFS.low);
+          const high=similarity(take,REFS.high);
+          const best=Math.max(low,high);
+          const gap=Math.abs(low-high);
+          setThresholdDisplay(Math.max(take.duration,+minDuration.value),best,gap);
+        }
+        liveCommandLatched=false;
+        if(gameRunning){armed=true;}
+      }else if(duration>=+minDuration.value){
+        finishCapture();
+      }else{
+        setThresholdDisplay(duration,0,0);
+        inSound=false;silenceFrames=0;frames=[];
+        liveCommandLatched=false;
+        confidenceEl.textContent='Ääni oli liian lyhyt. Minimi on '+minDuration.value+' ms.';
+      }
+    }
+  }
+}
+
+listenBtn.addEventListener('click',()=>{
+  armed=true;inSound=false;silenceFrames=0;frames=[];
+  resultEl.textContent='…';
+  resultEl.className='result';
+  confidenceEl.textContent='Kuuntelen…';
+  confBar.style.width='0';
+  $('#durationValue').textContent='–';
+  $('#bestValue').textContent='–';
+  $('#gapValue').textContent='–';
+  $('#durationBar').style.width='0';
+  $('#bestBar').style.width='0';
+  $('#gapBar').style.width='0';
+  updateThresholdMarkers();
+  listenBtn.textContent='Kuuntelen…';
+});
+
+updateThresholdMarkers();
+resetLiveInterpretation();
+updateLiveLevel(-100);
+setGameLane('upper','reset'); updateGameHud();
+applyClearCloudCount(cloudCountEl.value);
+applyClearCloudLowerLimit(cloudLowerLimitEl.value);
+applyStormDeckImageTuning();
+snowAmount=Math.max(0,Math.min(100,+snowAmountEl.value||100));
+$('#snowAmountVal').textContent=Math.round(snowAmount)+' %';
+applyPlaneSpriteForWeather();
+applyWeatherMode('snow');
+runClearCloudMonitor();
+
+window.addEventListener('resize',()=>{
+  applyClearCloudLowerLimit(clearCloudLimit);
+});
+gameStart.style.display='none';
+micBtn.style.display='none';
+
+const settingsGear=$('#settingsGear');
+const settingsPanel=$('.techDetails');
+const settingsInner=settingsPanel ? settingsPanel.querySelector('details') : null;
+if(settingsInner)settingsInner.open=true;
+if(settingsGear && settingsPanel){
+  settingsPanel.open=false;
+  settingsGear.setAttribute('aria-expanded','false');
+  settingsGear.addEventListener('click',(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const opening=!settingsPanel.classList.contains('settingsOpen');
+    settingsPanel.open=opening;
+    settingsPanel.classList.toggle('settingsOpen',opening);
+    settingsGear.setAttribute('aria-expanded',opening?'true':'false');
+  });
+}
+
+bindSplashStartButton();
+gameStart.addEventListener('click',()=>{
+  startAirplaneSoundFromUserGesture();
+  unlockPopAudio();
+  unlockThunderAudio();
+  unlockWinterAmbienceAudio();
+  startGame();
+});
+$('#testHigh').addEventListener('click',()=>setGameLane('upper','audio'));
+$('#testLow').addEventListener('click',()=>setGameLane('lower','audio'));
+
+async function stopMic(){
+  if(!ctx)return;
+  clearInterval(timer);
+  timer=null;
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  await ctx.close();
+  ctx=null; analyser=null; stream=null;
+  micBtn.textContent='Käynnistä mikrofoni';
+  micBtn.style.display='none';
+  micStatus.textContent='Mikrofoni ei käytössä';
+  listenBtn.disabled=true; gameStart.disabled=true;
+  gameRunning=false; armed=false; liveCommandLatched=false;
+  cancelAnimationFrame(gameRaf);
+  clearObstacles();
+  stopAirplaneSound();
+  stopStormRain();
+  renderSplashOverlay();
+  resetLiveInterpretation();
+  updateLiveLevel(-100);
+}
+
+async function startMic(autoStart=false){
+  if(ctx)return true;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
+    });
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    await ctx.resume();
+    const src=ctx.createMediaStreamSource(stream);
+    analyser=ctx.createAnalyser();
+    analyser.fftSize=8192;
+    analyser.smoothingTimeConstant=.08;
+    analyser.minDecibels=-110;
+    analyser.maxDecibels=-10;
+    src.connect(analyser);
+
+    timeData=new Float32Array(analyser.fftSize);
+    freqData=new Float32Array(analyser.frequencyBinCount);
+    timer=setInterval(processFrame,FRAME_MS);
+
+    micBtn.textContent='Pysäytä mikrofoni';
+    micBtn.style.display='none';
+    micStatus.textContent='Mikrofoni aktiivinen';
+    listenBtn.disabled=false; gameStart.disabled=false;
+    const thresholdPct=Math.max(0,Math.min(100,(+dbThreshold.value+70)/50*100));
+    $('#liveLevelMark').style.left=thresholdPct+'%';
+    if(autoStart)startGame();
+    return true;
+  }catch(e){
+    micStatus.textContent='Mikrofonia ei saatu käyttöön: '+e.message;
+    return false;
+  }
+}
+
+micBtn.addEventListener('click',async()=>{
+  if(ctx){
+    await stopMic();
+  }else{
+    const ok=await startMic(false);
+    if(!ok)stopAirplaneSound();
+  }
+});
+})();
+</script>
+</body>
+</html>
