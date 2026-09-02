@@ -913,6 +913,7 @@ function applySavedDefaultsOnLoad(){
 
 let ctx=null, analyser=null, stream=null, timer=null;
 let popAudioBuffer=null, popAudioBufferPromise=null;
+let thunderAudioBuffers=[null,null], thunderAudioBuffersPromise=null;
 let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
@@ -1847,8 +1848,11 @@ function bindSplashStartButton(){
       if(ctx.state!=='running'){
         await ctx.resume();
       }
-      // Start decoding the pop sound while the microphone is being opened.
+      // Start decoding the short effects while the microphone is being opened.
+      // Keeping thunder in the same already-running Web Audio context avoids
+      // intermittent HTMLAudio playback restrictions on iPad/Safari.
       preparePopAudioBuffer();
+      prepareThunderAudioBuffers();
     }catch(err){
       console.warn('Web Audio -kontekstin avaus epäonnistui:',err);
     }
@@ -1945,14 +1949,62 @@ function playPopSound(){
   s.volume=popVolume;
   s.play().catch(()=>{});
 }
+async function prepareThunderAudioBuffers(){
+  if(!ctx)return null;
+  if(thunderAudioBuffers[0] && thunderAudioBuffers[1])return thunderAudioBuffers;
+  if(thunderAudioBuffersPromise)return thunderAudioBuffersPromise;
+
+  thunderAudioBuffersPromise=(async()=>{
+    try{
+      const files=['thunder_clap.mp3','thunder_ambience.mp3'];
+      const decoded=await Promise.all(files.map(async file=>{
+        const response=await fetch(file,{cache:'force-cache'});
+        if(!response.ok)throw new Error(file+' ('+response.status+')');
+        const bytes=await response.arrayBuffer();
+        return await ctx.decodeAudioData(bytes.slice(0));
+      }));
+      thunderAudioBuffers=decoded;
+      return thunderAudioBuffers;
+    }catch(err){
+      console.warn('Ukkosäänten Web Audio -valmistelu epäonnistui:',err);
+      return null;
+    }finally{
+      thunderAudioBuffersPromise=null;
+    }
+  })();
+  return thunderAudioBuffersPromise;
+}
+
 function playThunderSound(){
   // Alternate the two thunder recordings on successive lightning flashes.
-  // Clone so a new flash can sound even if the previous thunder tail is still playing.
-  const source=nextThunderUsesAlt ? thunderAudioAlt : thunderAudio;
+  // Use decoded Web Audio buffers on iPad/Safari so every lightning flash
+  // can start its thunder reliably without needing a new user gesture.
+  const index=nextThunderUsesAlt ? 1 : 0;
   nextThunderUsesAlt=!nextThunderUsesAlt;
-  const s=source.cloneNode(true);
-  s.volume=thunderVolume;
-  s.play().catch(()=>{});
+
+  if(ctx && ctx.state==='running' && thunderAudioBuffers[index]){
+    try{
+      const source=ctx.createBufferSource();
+      const gain=ctx.createGain();
+      source.buffer=thunderAudioBuffers[index];
+      gain.gain.value=thunderVolume;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+      return;
+    }catch(err){
+      console.warn('Web Audio -ukkonen epäonnistui, käytetään varajärjestelmää:',err);
+    }
+  }
+
+  // Fallback uses the already-unlocked original HTMLAudio element instead of
+  // creating a fresh clone, which is less reliable on iOS.
+  const fallback=index===1 ? thunderAudioAlt : thunderAudio;
+  if(fallback){
+    try{fallback.currentTime=0}catch(_){}
+    fallback.volume=thunderVolume;
+    fallback.play().catch(()=>{});
+  }
 }
 function unlockOneThunderAudio(audioEl){
   if(!audioEl || audioEl.dataset.unlocked==='1')return;
@@ -2292,6 +2344,8 @@ async function stopMic(){
   ctx=null; analyser=null; stream=null;
   popAudioBuffer=null;
   popAudioBufferPromise=null;
+  thunderAudioBuffers=[null,null];
+  thunderAudioBuffersPromise=null;
   micBtn.textContent='Käynnistä mikrofoni';
   micBtn.style.display='none';
   micStatus.textContent='Mikrofoni ei käytössä';
@@ -2322,7 +2376,7 @@ async function startMic(autoStart=false){
     stream=await navigator.mediaDevices.getUserMedia({
       audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
     });
-    await preparePopAudioBuffer();
+    await Promise.all([preparePopAudioBuffer(),prepareThunderAudioBuffers()]);
     const src=ctx.createMediaStreamSource(stream);
     analyser=ctx.createAnalyser();
     analyser.fftSize=8192;
