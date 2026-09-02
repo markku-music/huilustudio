@@ -844,6 +844,48 @@ const weatherTintEl=$('#weatherTint'), weatherRainEl=$('#weatherRain'), weatherS
 const planeSpriteEl=document.querySelector('.planeSprite');
 const PLANE_ASSETS={clear:'plane_sunny.webp',storm:'plane_storm.webp',snow:'plane_snow.webp'};
 
+// Defaults copied from leo_lentaja_asetukset_2026-09-02.json.
+// These values are applied programmatically on startup so the game does not
+// depend on the user touching a slider before a setting becomes active.
+const SAVED_DEFAULT_SETTINGS={
+  weather:'snow',
+  stormShakeAmount:100,
+  stormShakeSpeed:100,
+  snowAmount:100,
+  engineVolume:31,
+  thunderVolume:38,
+  popVolume:13,
+  fingerprintOpacity:100,
+  planeSize:148,
+  balloonSize:150,
+  cloudLowerLimit:58,
+  cloudCount:12,
+  stormDeckBrightness:100,
+  stormDeckContrast:104,
+  dbThreshold:-50,
+  minDuration:40,
+  accept:50,
+  margin:7
+};
+
+function applySavedDefaultsOnLoad(){
+  for(const [key,value] of Object.entries(SAVED_DEFAULT_SETTINGS)){
+    const id=key==='weather' ? 'weatherMode' : key;
+    const control=document.getElementById(id);
+    if(control)control.value=String(value);
+  }
+
+  // Apply every derived state through the same handlers used by the sliders.
+  // Weather is applied last because it depends on snow/cloud settings already
+  // being active when the selected landscape is built.
+  for(const key of Object.keys(SAVED_DEFAULT_SETTINGS)){
+    if(key==='weather')continue;
+    const control=document.getElementById(key);
+    if(control)control.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  weatherModeEl.dispatchEvent(new Event('change',{bubbles:true}));
+}
+
 let ctx=null, analyser=null, stream=null, timer=null;
 let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
@@ -2048,16 +2090,15 @@ updateThresholdMarkers();
 resetLiveInterpretation();
 updateLiveLevel(-100);
 setGameLane('upper','reset'); updateGameHud();
-// Apply the saved/default size values immediately on load, not only after touching the sliders.
-applyPlaneSize();
-applyBalloonSize();
-applyClearCloudCount(cloudCountEl.value);
-applyClearCloudLowerLimit(cloudLowerLimitEl.value);
-applyStormDeckImageTuning();
-snowAmount=Math.max(0,Math.min(100,+snowAmountEl.value||100));
-$('#snowAmountVal').textContent=Math.round(snowAmount)+' %';
-applyPlaneSpriteForWeather();
-applyWeatherMode('snow');
+
+// Apply every setting from the exported JSON immediately at startup.
+applySavedDefaultsOnLoad();
+
+// This setting was added after that JSON was exported, so keep its current
+// UI default active as well without changing the saved JSON-derived values.
+if(winterAmbienceVolumeEl){
+  winterAmbienceVolumeEl.dispatchEvent(new Event('input',{bubbles:true}));
+}
 runClearCloudMonitor();
 
 window.addEventListener('resize',()=>{
