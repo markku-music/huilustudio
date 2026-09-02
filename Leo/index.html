@@ -124,6 +124,14 @@ summary{cursor:pointer;color:var(--muted);font-size:13px}
 .splashHotspot{position:absolute;left:50%;top:89.2%;transform:translate(-50%,-50%);width:28%;height:10.5%;background:transparent;border:none;border-radius:999px;cursor:pointer}
 .splashHotspot:focus-visible{outline:4px solid rgba(255,255,255,.95);outline-offset:2px}
 .splashScore{position:absolute;left:50%;top:8.5%;transform:translateX(-50%);padding:8px 16px;border-radius:999px;background:rgba(17,22,29,.82);color:#fff;font-weight:800;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.loadingScreen{position:absolute;inset:0;display:grid;place-items:center;background:#7ecbff;padding:24px;z-index:20}
+.loadingCard{width:min(430px,calc(100vw - 48px));padding:24px 26px;border-radius:18px;background:rgba(17,22,29,.90);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 34px rgba(0,0,0,.22);color:#fff;text-align:center}
+.loadingTitle{font-size:22px;font-weight:750;margin-bottom:14px}
+.loadingTrack{height:14px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.22)}
+.loadingFill{display:block;width:0%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#c7edff,#ffffff);transition:width .16s ease-out}
+.loadingText{margin-top:10px;font-size:14px;color:rgba(255,255,255,.82);font-variant-numeric:tabular-nums}
+.loadingRetry{display:none;margin:16px auto 0;min-height:42px;padding:9px 16px}
+.loadingRetry.visible{display:block}
 .commandFlash{position:absolute;z-index:8;top:13px;left:50%;transform:translateX(-50%);padding:8px 15px;border-radius:999px;background:rgba(15,21,29,.88);font-size:18px;font-weight:850;opacity:0;transition:opacity .1s ease}
 .commandFlash.show{opacity:1}.commandFlash.high{color:var(--high)}.commandFlash.low{color:var(--low)}
 .gameHint{text-align:center;color:var(--muted);font-size:13px;margin-top:9px}
@@ -735,10 +743,12 @@ body{
       </div>
       <div id="commandFlash" class="commandFlash"></div>
       <div id="gameOverlay" class="gameOverlay">
-        <div class="splashScreen">
-          <div class="splashFrame">
-            <img class="splashImage" src="leo_lentaja_splash.webp" alt="Leo Lentäjä">
-            <button id="splashStart" class="splashHotspot" type="button" aria-label="Aloita"></button>
+        <div class="loadingScreen" id="loadingScreen">
+          <div class="loadingCard">
+            <div class="loadingTitle">Ladataan peliä</div>
+            <div class="loadingTrack" aria-label="Latauksen edistyminen"><i id="loadingFill" class="loadingFill"></i></div>
+            <div id="loadingText" class="loadingText">0 %</div>
+            <button id="loadingRetry" class="loadingRetry" type="button">Yritä uudelleen</button>
           </div>
         </div>
       </div>
@@ -843,6 +853,21 @@ const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), c
 const weatherTintEl=$('#weatherTint'), weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
 const planeSpriteEl=document.querySelector('.planeSprite');
 const PLANE_ASSETS={clear:'plane_sunny.webp',storm:'plane_storm.webp',snow:'plane_snow.webp'};
+
+const GAME_ASSETS=[
+  'sky_realistic.webp',
+  'cloud_realistic_1.webp','cloud_realistic_2.webp','cloud_realistic_3.webp',
+  'landscape_far.webp','landscape_near.webp',
+  'landscape_far_snow.webp','landscape_near_snow.webp',
+  'storm_cloud_deck_realistic.webp','storm_sea.webp',
+  'balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp',
+  'plane_sunny.webp','plane_storm.webp','plane_snow.webp',
+  'leo_lentaja_splash.webp','propeller.svg',
+  'airplane_loop.mp3','balloon_pop.mp3','thunder_clap.mp3','thunder_ambience.mp3','winter_ambience.mp3',
+  'ylasavel_referenssit_LH.json'
+];
+let gameAssetsReady=false;
+let gameAssetsLoading=false;
 
 // Defaults copied from leo_lentaja_asetukset_2026-09-02.json.
 // These values are applied programmatically on startup so the game does not
@@ -1747,6 +1772,65 @@ function unlockWinterAmbienceAudio(){
   }
 }
 
+function showLoadingProgress(done,total,label=''){
+  const fill=document.getElementById('loadingFill');
+  const text=document.getElementById('loadingText');
+  const pct=total>0?Math.round((done/total)*100):0;
+  if(fill)fill.style.width=pct+'%';
+  if(text)text.textContent=label || (pct+' %');
+}
+
+function renderLoadingOverlay(){
+  gameOverlay.classList.remove('hidden');
+  gameOverlay.innerHTML=
+    '<div class="loadingScreen" id="loadingScreen">'+
+      '<div class="loadingCard">'+
+        '<div class="loadingTitle">Ladataan peliä</div>'+
+        '<div class="loadingTrack" aria-label="Latauksen edistyminen"><i id="loadingFill" class="loadingFill"></i></div>'+
+        '<div id="loadingText" class="loadingText">0 %</div>'+
+        '<button id="loadingRetry" class="loadingRetry" type="button">Yritä uudelleen</button>'+
+      '</div>'+
+    '</div>';
+}
+
+async function preloadGameAsset(url){
+  const response=await fetch(url,{cache:'force-cache'});
+  if(!response.ok)throw new Error(url+' ('+response.status+')');
+  await response.arrayBuffer();
+}
+
+async function preloadGameAssets(){
+  if(gameAssetsReady||gameAssetsLoading)return;
+  gameAssetsLoading=true;
+  renderLoadingOverlay();
+  const total=GAME_ASSETS.length;
+  let done=0;
+  showLoadingProgress(0,total);
+
+  try{
+    await Promise.all(GAME_ASSETS.map(async asset=>{
+      await preloadGameAsset(asset);
+      done++;
+      showLoadingProgress(done,total);
+    }));
+    gameAssetsReady=true;
+    gameAssetsLoading=false;
+    showLoadingProgress(total,total,'100 %');
+    await new Promise(resolve=>setTimeout(resolve,180));
+    renderSplashOverlay();
+  }catch(err){
+    gameAssetsLoading=false;
+    const text=document.getElementById('loadingText');
+    if(text)text.textContent='Lataus epäonnistui';
+    const retry=document.getElementById('loadingRetry');
+    if(retry){
+      retry.classList.add('visible');
+      retry.onclick=()=>preloadGameAssets();
+    }
+    console.error('Pelin tiedostojen lataus epäonnistui:',err);
+  }
+}
+
 function bindSplashStartButton(){
   const splashStartBtn=document.getElementById('splashStart');
   if(!splashStartBtn)return;
@@ -1918,7 +2002,7 @@ function gameLoop(t){
   gameRaf=requestAnimationFrame(gameLoop);
 }
 function startGame(){
-  if(!ctx)return;
+  if(!ctx || !gameAssetsReady)return;
   nextThunderUsesAlt=false;
   const highTest=document.getElementById('testHigh');
   const lowTest=document.getElementById('testLow');
@@ -2124,7 +2208,7 @@ if(settingsGear && settingsPanel){
   });
 }
 
-bindSplashStartButton();
+preloadGameAssets();
 gameStart.addEventListener('click',()=>{
   startAirplaneSoundFromUserGesture();
   unlockPopAudio();
