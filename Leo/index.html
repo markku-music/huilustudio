@@ -280,6 +280,32 @@ body{
 .settingsGear:active{
   transform:scale(.94);
 }
+.pauseButton{
+  position:fixed;
+  z-index:30;
+  top:max(10px,env(safe-area-inset-top));
+  right:max(62px,calc(env(safe-area-inset-right) + 62px));
+  width:42px;
+  height:42px;
+  min-height:0;
+  padding:0;
+  border:1px solid rgba(255,255,255,.52);
+  border-radius:50%;
+  background:rgba(20,28,38,.48);
+  color:#fff;
+  font-size:19px;
+  line-height:1;
+  display:none;
+  place-items:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.pauseButton.visible{display:grid}
+.pauseButton:active{transform:scale(.94)}
+.gameStage.paused *{
+  animation-play-state:paused !important;
+}
 
 /* Dim manual route-test buttons. They are intentionally almost ghosted. */
 .routeTestButton{
@@ -753,6 +779,7 @@ body{
         </div>
       </div>
     </div>
+    <button id="pauseButton" class="pauseButton" type="button" aria-label="Tauko">⏸</button>
     <button id="settingsGear" class="settingsGear" type="button" aria-label="Asetukset">⚙</button>
     <button id="testHigh" class="routeTestButton routeTestHigh" type="button" aria-label="Testaa yläreitti"><svg viewBox="0 0 32 32" aria-hidden="true">
 <path d="M16 4.5c-5.3 0-9.6 4.1-9.6 9.2 0 2.1.7 3.9 1.4 5.5"/>
@@ -849,6 +876,7 @@ const dbThreshold=$('#dbThreshold'), minDuration=$('#minDuration'), accept=$('#a
 const engineVolumeEl=$('#engineVolume'), thunderVolumeEl=$('#thunderVolume'), winterAmbienceVolumeEl=$('#winterAmbienceVolume'), popVolumeEl=$('#popVolume'), fingerprintOpacityEl=$('#fingerprintOpacity');
 const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLimitEl=$('#cloudLowerLimit'), cloudCountEl=$('#cloudCount'), stormDeckBrightnessEl=$('#stormDeckBrightness'), stormDeckContrastEl=$('#stormDeckContrast'), weatherModeEl=$('#weatherMode'), stormShakeAmountEl=$('#stormShakeAmount'), stormShakeSpeedEl=$('#stormShakeSpeed'), snowAmountEl=$('#snowAmount');
 const exportSettingsJsonEl=$('#exportSettingsJson');
+const pauseButtonEl=$('#pauseButton');
 const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeMotionEl=$('#planeMotion'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), commandFlash=$('#commandFlash'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
 const weatherTintEl=$('#weatherTint'), weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
 const planeSpriteEl=document.querySelector('.planeSprite');
@@ -918,7 +946,7 @@ let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
 let liveCommandLatched=false, liveSoundStart=0;
-let gameRunning=false, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, commandFlashTimer=0, lastSpawnLane=null, sameLaneRun=0;
+let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, commandFlashTimer=0, lastSpawnLane=null, sameLaneRun=0;
 const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
 
 // Weather is a separate gameplay layer. Clear mode leaves the original game untouched.
@@ -1506,7 +1534,7 @@ function applyWeatherMode(mode){
 }
 
 function triggerLightning(){
-  if(currentWeather!=='storm' || !gameRunning || !weatherLightningEl)return;
+  if(currentWeather!=='storm' || !gameRunning || gamePaused || !weatherLightningEl)return;
   playThunderSound();
   weatherLightningEl.style.opacity='1';
   setTimeout(()=>{
@@ -1746,7 +1774,7 @@ function updateWinterAmbiencePlayback(){
   if(!winterAmbienceAudio)return;
   winterAmbienceAudio.loop=true;
   winterAmbienceAudio.volume=winterAmbienceVolume;
-  const shouldPlay=gameRunning && currentWeather==='snow';
+  const shouldPlay=gameRunning && !gamePaused && currentWeather==='snow';
   if(shouldPlay){
     if(winterAmbienceAudio.paused){
       winterAmbienceAudio.play().catch(()=>{});
@@ -2074,7 +2102,7 @@ function popBalloon(o){
   setTimeout(()=>o.el.remove(),520);
 }
 function gameLoop(t){
-  if(!gameRunning)return;
+  if(!gameRunning || gamePaused)return;
   if(!lastGameT)lastGameT=t;
   const dt=Math.min(.05,(t-lastGameT)/1000); lastGameT=t;
   updatePlanePhysics(dt);
@@ -2113,6 +2141,14 @@ function gameLoop(t){
 function startGame(){
   if(!ctx || !gameAssetsReady)return;
   nextThunderUsesAlt=false;
+  gamePaused=false;
+  pauseStartedAt=0;
+  gameStage.classList.remove('paused');
+  if(pauseButtonEl){
+    pauseButtonEl.classList.add('visible');
+    pauseButtonEl.textContent='⏸';
+    pauseButtonEl.setAttribute('aria-label','Tauko');
+  }
   const highTest=document.getElementById('testHigh');
   const lowTest=document.getElementById('testLow');
   if(highTest)highTest.classList.add('visible');
@@ -2133,8 +2169,66 @@ function startGame(){
   updateWinterAmbiencePlayback();
   cancelAnimationFrame(gameRaf); gameRaf=requestAnimationFrame(gameLoop);
 }
+function pauseGame(){
+  if(!gameRunning || gamePaused)return;
+  gamePaused=true;
+  pauseStartedAt=performance.now();
+  cancelAnimationFrame(gameRaf);
+  gameRaf=0;
+  armed=false;
+  inSound=false;
+  silenceFrames=0;
+  frames=[];
+  liveCommandLatched=false;
+  gameStage.classList.add('paused');
+  clearTimeout(stormRainTimer);
+  stormRainTimer=0;
+  if(weatherLightningEl)weatherLightningEl.style.opacity='0';
+  if(airplaneAudio && !airplaneAudio.paused)airplaneAudio.pause();
+  if(winterAmbienceAudio && !winterAmbienceAudio.paused)winterAmbienceAudio.pause();
+  if(pauseButtonEl){
+    pauseButtonEl.textContent='▶';
+    pauseButtonEl.setAttribute('aria-label','Jatka');
+  }
+}
+
+function resumeGame(){
+  if(!gameRunning || !gamePaused)return;
+  const now=performance.now();
+  const pausedFor=pauseStartedAt ? Math.max(0,now-pauseStartedAt) : 0;
+  if(nextAirTargetAt)nextAirTargetAt+=pausedFor;
+  if(nextWeatherGustAt)nextWeatherGustAt+=pausedFor;
+  if(nextLightningAt)nextLightningAt+=pausedFor;
+  gamePaused=false;
+  pauseStartedAt=0;
+  gameStage.classList.remove('paused');
+  armed=true;
+  inSound=false;
+  silenceFrames=0;
+  frames=[];
+  liveCommandLatched=false;
+  lastGameT=0;
+  if(currentWeather==='storm')stormRainTimer=setTimeout(scheduleStormRain,20);
+  if(engineShouldPlay && airplaneAudio && airplaneAudio.paused){
+    airplaneAudio.volume=engineVolume;
+    airplaneAudio.play().catch(()=>{});
+  }
+  updateWinterAmbiencePlayback();
+  if(pauseButtonEl){
+    pauseButtonEl.textContent='⏸';
+    pauseButtonEl.setAttribute('aria-label','Tauko');
+  }
+  cancelAnimationFrame(gameRaf);
+  gameRaf=requestAnimationFrame(gameLoop);
+}
+
+function togglePause(){
+  if(gamePaused)resumeGame();
+  else pauseGame();
+}
+
 function handleGameRecognition(name){
-  if(!gameRunning)return;
+  if(!gameRunning || gamePaused)return;
   if(name==='KORKEA')setGameLane('upper','audio');
   else if(name==='MATALA')setGameLane('lower','audio');
 }
@@ -2191,6 +2285,7 @@ function finishCapture(){
   }
 }
 function processFrame(){
+  if(gamePaused)return;
   analyser.getFloatTimeDomainData(timeData);
   analyser.getFloatFrequencyData(freqData);
   const level=rmsDb(timeData);
@@ -2301,6 +2396,13 @@ gameStart.style.display='none';
 micBtn.style.display='none';
 
 const settingsGear=$('#settingsGear');
+if(pauseButtonEl){
+  pauseButtonEl.addEventListener('click',(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    togglePause();
+  });
+}
 const settingsPanel=$('.techDetails');
 const settingsInner=settingsPanel ? settingsPanel.querySelector('details') : null;
 if(settingsInner)settingsInner.open=true;
@@ -2350,7 +2452,13 @@ async function stopMic(){
   micBtn.style.display='none';
   micStatus.textContent='Mikrofoni ei käytössä';
   listenBtn.disabled=true; gameStart.disabled=true;
-  gameRunning=false; armed=false; liveCommandLatched=false;
+  gameRunning=false; gamePaused=false; pauseStartedAt=0; armed=false; liveCommandLatched=false;
+  gameStage.classList.remove('paused');
+  if(pauseButtonEl){
+    pauseButtonEl.classList.remove('visible');
+    pauseButtonEl.textContent='⏸';
+    pauseButtonEl.setAttribute('aria-label','Tauko');
+  }
   cancelAnimationFrame(gameRaf);
   clearObstacles();
   stopAirplaneSound();
