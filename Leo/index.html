@@ -1031,16 +1031,18 @@ fingerprintOpacityEl.addEventListener('input',()=>{
   $('#fingerprintOpacityVal').textContent=Math.round(opacity*100)+' %';
   document.documentElement.style.setProperty('--fingerprint-opacity',opacity);
 });
-planeSizeEl.addEventListener('input',()=>{
+function applyPlaneSize(){
   const scale=Math.max(.5,Math.min(2.0,+planeSizeEl.value/100));
   $('#planeSizeVal').textContent=Math.round(scale*100)+' %';
   document.documentElement.style.setProperty('--plane-scale',scale);
-});
-balloonSizeEl.addEventListener('input',()=>{
+}
+function applyBalloonSize(){
   const scale=Math.max(.5,Math.min(1.5,+balloonSizeEl.value/100));
   $('#balloonSizeVal').textContent=Math.round(scale*100)+' %';
   document.documentElement.style.setProperty('--balloon-scale',scale);
-});
+}
+planeSizeEl.addEventListener('input',applyPlaneSize);
+balloonSizeEl.addEventListener('input',applyBalloonSize);
 cloudLowerLimitEl.addEventListener('input',()=>{
   applyClearCloudLowerLimit(cloudLowerLimitEl.value);
 });
@@ -1430,6 +1432,8 @@ function applyWeatherMode(mode){
     stopStormRain();
     if(weatherSnowEl)weatherSnowEl.innerHTML='';
   }
+  // Winter ambience is strictly tied to the snow/winter landscape.
+  updateWinterAmbiencePlayback();
 }
 
 function triggerLightning(){
@@ -2044,6 +2048,9 @@ updateThresholdMarkers();
 resetLiveInterpretation();
 updateLiveLevel(-100);
 setGameLane('upper','reset'); updateGameHud();
+// Apply the saved/default size values immediately on load, not only after touching the sliders.
+applyPlaneSize();
+applyBalloonSize();
 applyClearCloudCount(cloudCountEl.value);
 applyClearCloudLowerLimit(cloudLowerLimitEl.value);
 applyStormDeckImageTuning();
