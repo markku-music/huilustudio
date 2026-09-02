@@ -912,6 +912,7 @@ function applySavedDefaultsOnLoad(){
 }
 
 let ctx=null, analyser=null, stream=null, timer=null;
+let popAudioBuffer=null, popAudioBufferPromise=null;
 let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
@@ -1835,21 +1836,34 @@ function bindSplashStartButton(){
   const splashStartBtn=document.getElementById('splashStart');
   if(!splashStartBtn)return;
   splashStartBtn.addEventListener('click',async()=>{
-    if(ctx){
-      if(!gameRunning){
-        startAirplaneSoundFromUserGesture();
-        unlockPopAudio();
-        unlockThunderAudio();
-        unlockWinterAmbienceAudio();
-        startGame();
+    // IMPORTANT for iPad/Safari: create/resume Web Audio immediately inside
+    // the user's tap. Previously the AudioContext was created only after the
+    // asynchronous microphone permission request, so iOS could leave it
+    // suspended until a later gesture such as moving a slider.
+    try{
+      if(!ctx || ctx.state==='closed'){
+        ctx=new (window.AudioContext||window.webkitAudioContext)();
       }
-      return;
+      if(ctx.state!=='running'){
+        await ctx.resume();
+      }
+      // Start decoding the pop sound while the microphone is being opened.
+      preparePopAudioBuffer();
+    }catch(err){
+      console.warn('Web Audio -kontekstin avaus epäonnistui:',err);
     }
-    micStatus.textContent='Avataan mikrofonia…';
+
     startAirplaneSoundFromUserGesture();
     unlockPopAudio();
     unlockThunderAudio();
     unlockWinterAmbienceAudio();
+
+    if(stream && analyser){
+      if(!gameRunning)startGame();
+      return;
+    }
+
+    micStatus.textContent='Avataan mikrofonia…';
     const ok=await startMic(true);
     if(!ok)stopAirplaneSound();
   });
@@ -1882,8 +1896,51 @@ function stopAirplaneSound(){
     winterAmbienceAudio.currentTime=0;
   }
 }
+async function preparePopAudioBuffer(){
+  if(!ctx)return null;
+  if(popAudioBuffer)return popAudioBuffer;
+  if(popAudioBufferPromise)return popAudioBufferPromise;
+
+  popAudioBufferPromise=(async()=>{
+    try{
+      // balloon_pop.mp3 was already fetched by the loading screen, so this
+      // normally comes straight from the browser cache. Decode it into the
+      // active Web Audio context once, then reuse the buffer for every pop.
+      const response=await fetch('balloon_pop.mp3',{cache:'force-cache'});
+      if(!response.ok)throw new Error('balloon_pop.mp3 ('+response.status+')');
+      const bytes=await response.arrayBuffer();
+      const decoded=await ctx.decodeAudioData(bytes.slice(0));
+      popAudioBuffer=decoded;
+      return decoded;
+    }catch(err){
+      console.warn('Poksahdusäänen Web Audio -valmistelu epäonnistui:',err);
+      return null;
+    }finally{
+      popAudioBufferPromise=null;
+    }
+  })();
+  return popAudioBufferPromise;
+}
+
 function playPopSound(){
-  // Clone allows another balloon to pop before the previous sound has finished.
+  // iPad/Safari is more reliable with short overlapping one-shot sounds via
+  // Web Audio than by creating a fresh HTMLAudioElement clone for each hit.
+  if(ctx && ctx.state==='running' && popAudioBuffer){
+    try{
+      const source=ctx.createBufferSource();
+      const gain=ctx.createGain();
+      source.buffer=popAudioBuffer;
+      gain.gain.value=popVolume;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+      return;
+    }catch(err){
+      console.warn('Web Audio -poksahdus epäonnistui, käytetään varajärjestelmää:',err);
+    }
+  }
+
+  // Fallback for browsers/rare startup cases where the decoded buffer is not ready.
   const s=popAudio.cloneNode(true);
   s.volume=popVolume;
   s.play().catch(()=>{});
@@ -2209,7 +2266,14 @@ if(settingsGear && settingsPanel){
 }
 
 preloadGameAssets();
-gameStart.addEventListener('click',()=>{
+gameStart.addEventListener('click',async()=>{
+  try{
+    if(!ctx || ctx.state==='closed')ctx=new (window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state!=='running')await ctx.resume();
+    await preparePopAudioBuffer();
+  }catch(err){
+    console.warn('Web Audio -kontekstin avaus epäonnistui:',err);
+  }
   startAirplaneSoundFromUserGesture();
   unlockPopAudio();
   unlockThunderAudio();
@@ -2226,6 +2290,8 @@ async function stopMic(){
   if(stream)stream.getTracks().forEach(t=>t.stop());
   await ctx.close();
   ctx=null; analyser=null; stream=null;
+  popAudioBuffer=null;
+  popAudioBufferPromise=null;
   micBtn.textContent='Käynnistä mikrofoni';
   micBtn.style.display='none';
   micStatus.textContent='Mikrofoni ei käytössä';
@@ -2241,13 +2307,22 @@ async function stopMic(){
 }
 
 async function startMic(autoStart=false){
-  if(ctx)return true;
+  if(stream && analyser){
+    if(autoStart && !gameRunning)startGame();
+    return true;
+  }
   try{
+    // Reuse the AudioContext created by the start-button tap. This keeps
+    // short Web Audio effects unlocked on iPad from the very first balloon.
+    if(!ctx || ctx.state==='closed'){
+      ctx=new (window.AudioContext||window.webkitAudioContext)();
+    }
+    if(ctx.state!=='running')await ctx.resume();
+
     stream=await navigator.mediaDevices.getUserMedia({
       audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
     });
-    ctx=new (window.AudioContext||window.webkitAudioContext)();
-    await ctx.resume();
+    await preparePopAudioBuffer();
     const src=ctx.createMediaStreamSource(stream);
     analyser=ctx.createAnalyser();
     analyser.fftSize=8192;
