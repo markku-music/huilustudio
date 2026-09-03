@@ -700,7 +700,7 @@ body{
   }
 }
 
-/* ===== Lentäjän lupakirjatesti 3.75: WebP-kortti, vapaa korkea/matala ===== */
+/* ===== Lentäjän lupakirjatesti 3.77: rajattu WebP-kortti, vapaa korkea/matala ===== */
 .licenseScreen{
   position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:10px;padding:12px;
@@ -708,14 +708,11 @@ body{
 }
 .licenseVisual{
   position:relative;
-  width:min(calc(100vw - 24px),calc((100dvh - 118px) * 4 / 3),1120px);
-  aspect-ratio:4/3;flex:0 1 auto;
+  width:min(calc(100vw - 24px),calc((100dvh - 118px) * 1.2625),1060px);
+  aspect-ratio:1371/945;flex:0 1 auto;
 }
 .licenseImage{
   display:block;width:100%;height:100%;object-fit:contain;
-  /* 3.76: piilotetaan vain WebP-kuvaan leivottu vaalea alusta ja sen varjo.
-     Itse lupakirjakortti ja sen sisäinen kehys säilyvät muuttumattomina. */
-  clip-path:inset(6.4% 2.5% 7.7% 2.5% round 4.2%);
   border-radius:0;box-shadow:none;
 }
 .licenseCheck{
@@ -728,7 +725,7 @@ body{
 }
 .licenseCheck.done{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .licenseStatusText{
-  position:absolute;left:34.1%;top:82.45%;width:54.9%;height:6.1%;
+  position:absolute;left:33.243%;top:87.450%;width:57.983%;height:7.010%;
   display:flex;align-items:center;justify-content:center;text-align:center;
   color:#123b76;font-size:clamp(11px,1.5vw,22px);font-weight:850;
   letter-spacing:.012em;line-height:1.08;white-space:nowrap;pointer-events:none;
@@ -751,7 +748,7 @@ body{
 .licenseComplete.visible{display:inline-block}
 @media(max-width:680px){
   .licenseScreen{gap:7px;padding:8px}
-  .licenseVisual{width:min(calc(100vw - 16px),calc((100dvh - 142px) * 4 / 3))}
+  .licenseVisual{width:min(calc(100vw - 16px),calc((100dvh - 142px) * 1.2625),1060px)}
   .licenseStatusText{font-size:clamp(9px,1.8vw,14px)}
   .licenseControls{gap:6px}.licensePrompt,.licenseFeedback{min-width:0;width:100%}
   .licenseActions button{min-width:150px;min-height:40px;padding:7px 12px;font-size:13px}
@@ -1963,7 +1960,7 @@ function bindSplashStartButton(){
 }
 
 function licenseChecksHtml(idPrefix,rowTop){
-  const xs=[40.05,50.78,61.45,72.06,82.65];
+  const xs=[39.528,50.860,62.130,73.335,84.520];
   let html='';
   for(let i=0;i<5;i++){
     html+='<span class="licenseCheck" id="'+idPrefix+i+'" aria-hidden="true" style="left:'+xs[i]+'%;top:'+rowTop+'%">✓</span>';
@@ -2016,8 +2013,8 @@ function renderLicenseOverlay(){
     '<div class="licenseScreen">'+
       '<div class="licenseVisual">'+
         '<img class="licenseImage" src="lentolupakirja.webp" alt="Leo Air Academy -lentolupakirja">'+
-        licenseChecksHtml('licenseH',45.25)+
-        licenseChecksHtml('licenseL',65.95)+
+        licenseChecksHtml('licenseH',44.70)+
+        licenseChecksHtml('licenseL',68.489)+
         '<div id="licenseStatusText" class="licenseStatusText">KORKEA ÄÄNI 0/5  •  MATALA ÄÄNI 0/5</div>'+
       '</div>'+
       '<div class="licenseControls">'+
