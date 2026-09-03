@@ -1,21 +1,15 @@
-LEO LENTÄJÄ – 3.71 CLEAN + OPTIMIZED
+LEO LENTÄJÄ – 3.72 LENTOLUPAKIRJA
 
-Tämä versio perustuu 3.70-versioon. Pelin toimivaa tunnistus-, lento-, sää-, ääni- ja pelilogiikkaa ei ole tarkoituksellisesti muutettu.
+Pohja: 3.71 Clean + Optimized.
 
-Siivous ja optimointi:
-- poistettu käyttämättömät vanhat PNG-lentokoneet, plane_realistic.webp ja test_storm.html
-- poistettu käyttämättömät JavaScript-viittaukset ja vanha commandFlash-elementti
-- poistettu käytöstä jäänyt vaakasuuntainen turbulenssitila; koneen sääliike on edelleen vain pystysuuntainen
-- staattiset pilvielementit välimuistitetaan kerran DOM-haun sijaan
-- 16 ms analyysipolun live-näytön DOM-viittaukset välimuistitetaan
-- YIN-tunnistuksen työbufferit käytetään uudelleen, jolloin jokaisella analyysikierroksella ei luoda uusia Float32Array-taulukoita
-- usein käytetty documentElement.style on välimuistissa
-- poistettu käyttämätön weather-rain-luokkaviittaus
+Lisätty lentäjän lupakirjatesti ennen varsinaista peliä:
+- 5 hyväksyttyä korkeaa ääntä
+- 5 hyväksyttyä matalaa ääntä
+- jokainen hyväksytty puhallus lisää yhden ruksin
+- yksi yhtäjaksoinen puhallus voi lisätä enintään yhden ruksin
+- väärä / epävarma ääni ei vähennä tulosta eikä lisää ruksia
+- ensin suoritetaan korkeat äänet, sitten matalat
+- 10/10 jälkeen näkyy “LENTOLUPAKIRJA SUORITETTU” ja Lentoon-painike
+- testi voidaan ohittaa painikkeella “Minulla on jo lupakirja”
 
-Nykyiset oletukset säilyvät, mukaan lukien:
-- äänikynnys -70 dB
-- minimipituus 0 ms
-- analyysiväli 16 ms
-- JSON-oletusasetusten lataaminen käynnistyksessä
-- Pause
-- iPad/Web Audio -poksahdukset ja ukkoset
+Tunnistus käyttää samaa reaaliaikaista korkea/matala-tunnistusta ja samoja hyväksymisrajoja kuin 3.71. Varsinaisen lentopelin toimivaa lentokone-, sää-, pallo-, ääni- ja törmäyslogiikkaa ei ole muutettu.

@@ -700,6 +700,39 @@ body{
   }
 }
 
+/* ===== Lentäjän lupakirjatesti ===== */
+.licenseScreen{
+  position:absolute;inset:0;z-index:40;display:grid;place-items:center;padding:24px;
+  background:linear-gradient(180deg,rgba(91,166,220,.97),rgba(171,220,246,.97));
+}
+.licenseCard{
+  width:min(680px,calc(100vw - 40px));padding:28px 30px 26px;border-radius:24px;
+  background:rgba(17,28,40,.94);border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 18px 48px rgba(0,0,0,.22);color:#fff;text-align:center;
+}
+.licenseEyebrow{font-size:13px;letter-spacing:.16em;font-weight:800;color:#b9dff6;margin-bottom:8px}
+.licenseCard h2{margin:0;font-size:clamp(28px,4.3vw,46px);line-height:1.05}
+.licensePrompt{margin:12px 0 22px;color:#dcebf5;font-size:clamp(17px,2.2vw,22px);font-weight:650}
+.licenseRows{display:grid;gap:14px;text-align:left}
+.licenseRow{padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.12)}
+.licenseRow.active{border-color:rgba(255,255,255,.48);background:rgba(255,255,255,.12)}
+.licenseRowHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:11px;font-size:14px;font-weight:800;letter-spacing:.04em}
+.licenseRowHead span:last-child{font-variant-numeric:tabular-nums;color:#c9d9e5}
+.licenseChecks{display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:10px}
+.licenseCheck{height:52px;display:grid;place-items:center;border-radius:12px;border:2px solid rgba(255,255,255,.22);background:rgba(4,13,22,.24);font-size:30px;font-weight:900;color:transparent}
+.licenseCheck.done{color:#fff;background:rgba(74,174,117,.72);border-color:rgba(190,255,215,.88)}
+.licenseFeedback{min-height:28px;margin:18px 0 4px;color:#d9e7f0;font-size:16px;font-weight:650}
+.licenseFeedback.good{color:#a9f0c5}.licenseFeedback.retry{color:#ffd7a8}
+.licenseActions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+.licenseActions button{min-width:210px;border-color:rgba(255,255,255,.28)}
+.licenseActions .licensePrimary{background:#2b6789;border-color:rgba(255,255,255,.42);font-weight:800}
+.licenseComplete{display:none;margin:18px 0 0;font-size:21px;font-weight:850;color:#a9f0c5}
+.licenseComplete.visible{display:block}
+@media(max-width:560px){
+  .licenseScreen{padding:14px}.licenseCard{width:calc(100vw - 22px);padding:22px 16px 20px;border-radius:18px}
+  .licenseChecks{gap:6px}.licenseCheck{height:46px;font-size:27px}.licenseActions button{width:100%;min-width:0}
+}
+
 </style>
 </head>
 <body>
@@ -951,6 +984,7 @@ let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
 let liveCommandLatched=false, liveSoundStart=0;
 let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, lastSpawnLane=null, sameLaneRun=0;
+let licenseTestActive=false, licenseHighCount=0, licenseLowCount=0;
 const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
 
 // Weather is a separate gameplay layer. Clear mode leaves the original game untouched.
@@ -1880,20 +1914,162 @@ function bindSplashStartButton(){
       console.warn('Web Audio -kontekstin avaus epäonnistui:',err);
     }
 
+    // Briefly unlock game audio inside the user gesture, then keep the
+    // licence test quiet so the microphone only hears the player.
     startAirplaneSoundFromUserGesture();
     unlockPopAudio();
     unlockThunderAudio();
     unlockWinterAmbienceAudio();
 
     if(stream && analyser){
-      if(!gameRunning)startGame();
+      stopAirplaneSound();
+      startLicenseTest();
       return;
     }
 
     micStatus.textContent='Avataan mikrofonia…';
-    const ok=await startMic(true);
-    if(!ok)stopAirplaneSound();
+    const ok=await startMic(false);
+    if(ok){
+      stopAirplaneSound();
+      startLicenseTest();
+    }else{
+      stopAirplaneSound();
+    }
   });
+}
+
+function licenseChecksHtml(idPrefix){
+  let html='';
+  for(let i=0;i<5;i++)html+='<span class="licenseCheck" id="'+idPrefix+i+'" aria-hidden="true">✓</span>';
+  return html;
+}
+
+function updateLicenseScreen(message='',tone=''){
+  const highRow=document.getElementById('licenseHighRow');
+  const lowRow=document.getElementById('licenseLowRow');
+  const prompt=document.getElementById('licensePrompt');
+  const feedback=document.getElementById('licenseFeedback');
+  const highCount=document.getElementById('licenseHighCount');
+  const lowCount=document.getElementById('licenseLowCount');
+  if(!highRow || !lowRow)return;
+
+  for(let i=0;i<5;i++){
+    const h=document.getElementById('licenseH'+i);
+    const l=document.getElementById('licenseL'+i);
+    if(h)h.classList.toggle('done',i<licenseHighCount);
+    if(l)l.classList.toggle('done',i<licenseLowCount);
+  }
+  if(highCount)highCount.textContent=licenseHighCount+' / 5';
+  if(lowCount)lowCount.textContent=licenseLowCount+' / 5';
+
+  const highDone=licenseHighCount>=5;
+  const allDone=highDone && licenseLowCount>=5;
+  highRow.classList.toggle('active',!highDone && !allDone);
+  lowRow.classList.toggle('active',highDone && !allDone);
+
+  if(prompt){
+    prompt.textContent=allDone ? 'Lupakirjatesti on suoritettu.' :
+      (!highDone ? 'Soita korkea ääni 5 kertaa.' : 'Soita matala ääni 5 kertaa.');
+  }
+  if(feedback){
+    feedback.textContent=message || (!highDone ? 'Odotetaan korkeaa ääntä.' : (allDone ? '' : 'Odotetaan matalaa ääntä.'));
+    feedback.className='licenseFeedback'+(tone?' '+tone:'');
+  }
+
+  const complete=document.getElementById('licenseComplete');
+  const fly=document.getElementById('licenseFly');
+  const skip=document.getElementById('licenseSkip');
+  if(complete)complete.classList.toggle('visible',allDone);
+  if(fly)fly.style.display=allDone?'inline-block':'none';
+  if(skip)skip.style.display=allDone?'none':'inline-block';
+}
+
+function launchGameFromLicense(){
+  licenseTestActive=false;
+  armed=false; inSound=false; silenceFrames=0; frames=[]; liveCommandLatched=false;
+  startAirplaneSoundFromUserGesture();
+  startGame();
+}
+
+function bindLicenseButtons(){
+  const skip=document.getElementById('licenseSkip');
+  const fly=document.getElementById('licenseFly');
+  if(skip)skip.addEventListener('click',launchGameFromLicense);
+  if(fly)fly.addEventListener('click',launchGameFromLicense);
+}
+
+function renderLicenseOverlay(){
+  gameOverlay.classList.remove('hidden');
+  gameOverlay.innerHTML=
+    '<div class="licenseScreen">'+
+      '<div class="licenseCard">'+
+        '<div class="licenseEyebrow">LEO LENTOKOULU</div>'+
+        '<h2>Lentäjän lupakirja</h2>'+
+        '<div id="licensePrompt" class="licensePrompt">Soita korkea ääni 5 kertaa.</div>'+
+        '<div class="licenseRows">'+
+          '<div id="licenseHighRow" class="licenseRow active">'+
+            '<div class="licenseRowHead"><span>KORKEA ÄÄNI</span><span id="licenseHighCount">0 / 5</span></div>'+
+            '<div class="licenseChecks">'+licenseChecksHtml('licenseH')+'</div>'+
+          '</div>'+
+          '<div id="licenseLowRow" class="licenseRow">'+
+            '<div class="licenseRowHead"><span>MATALA ÄÄNI</span><span id="licenseLowCount">0 / 5</span></div>'+
+            '<div class="licenseChecks">'+licenseChecksHtml('licenseL')+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div id="licenseFeedback" class="licenseFeedback" aria-live="polite">Odotetaan korkeaa ääntä.</div>'+
+        '<div id="licenseComplete" class="licenseComplete">✓ LENTOLUPAKIRJA SUORITETTU</div>'+
+        '<div class="licenseActions">'+
+          '<button id="licenseSkip" type="button">Minulla on jo lupakirja</button>'+
+          '<button id="licenseFly" class="licensePrimary" type="button" style="display:none">Lentoon</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  bindLicenseButtons();
+  updateLicenseScreen();
+}
+
+function startLicenseTest(){
+  if(!ctx || !stream || !analyser)return;
+  gameRunning=false;
+  gamePaused=false;
+  licenseHighCount=0;
+  licenseLowCount=0;
+  licenseTestActive=true;
+  armed=true;
+  inSound=false;
+  silenceFrames=0;
+  frames=[];
+  liveCommandLatched=false;
+  renderLicenseOverlay();
+}
+
+function handleLicenseRecognition(name){
+  if(!licenseTestActive)return false;
+  if(name!=='KORKEA' && name!=='MATALA'){
+    updateLicenseScreen('Kokeile uudelleen.','retry');
+    return true;
+  }
+
+  const expected=licenseHighCount<5?'KORKEA':'MATALA';
+  if(name!==expected){
+    updateLicenseScreen(expected==='KORKEA'?'Tarvitaan vielä korkea ääni.':'Tarvitaan nyt matala ääni.','retry');
+    return true;
+  }
+
+  if(expected==='KORKEA')licenseHighCount=Math.min(5,licenseHighCount+1);
+  else licenseLowCount=Math.min(5,licenseLowCount+1);
+
+  const allDone=licenseHighCount>=5 && licenseLowCount>=5;
+  if(allDone){
+    licenseTestActive=false;
+    armed=false;
+    updateLicenseScreen('Kaikki 10 onnistunutta ääntä tunnistettu.','good');
+  }else if(licenseHighCount===5 && licenseLowCount===0){
+    updateLicenseScreen('Korkeat äänet valmiit. Seuraavaksi matalat.','good');
+  }else{
+    updateLicenseScreen('Hyvä! Ruksi lisätty.','good');
+  }
+  return true;
 }
 
 function renderSplashOverlay(scoreText=''){
@@ -2223,6 +2399,10 @@ function togglePause(){
 }
 
 function handleGameRecognition(name){
+  if(licenseTestActive){
+    handleLicenseRecognition(name);
+    return;
+  }
   if(!gameRunning || gamePaused)return;
   if(name==='KORKEA')setGameLane('upper','audio');
   else if(name==='MATALA')setGameLane('lower','audio');
@@ -2271,11 +2451,11 @@ function finishCapture(){
     resultEl.className='result';
     confidenceEl.textContent='Ääntä ei saatu mitattua luotettavasti.';
     confBar.style.width='0';
-    if(gameRunning){ armed=true; inSound=false; silenceFrames=0; frames=[]; }
+    if(gameRunning || licenseTestActive){ armed=true; inSound=false; silenceFrames=0; frames=[]; }
     return;
   }
   recognizeTake(take);
-  if(gameRunning){
+  if(gameRunning || licenseTestActive){
     armed=true; inSound=false; silenceFrames=0; frames=[];
   }
 }
@@ -2312,7 +2492,7 @@ function processFrame(){
     // duration and the real-time L/H interpretation clears both thresholds.
     // Do not wait for note-off / trailing silence.
     const liveDuration=(now-liveSoundStart)+FRAME_MS;
-    if(gameRunning && !liveCommandLatched && liveDuration>=+minDuration.value && live && live.name!=='EPÄVARMA'){
+    if((gameRunning || licenseTestActive) && !liveCommandLatched && liveDuration>=+minDuration.value && live && live.name!=='EPÄVARMA'){
       liveCommandLatched=true;
       setThresholdDisplay(liveDuration,live.best,live.gap);
       setResult(live.name,live.best,live.low,live.high);
@@ -2322,7 +2502,7 @@ function processFrame(){
     silenceFrames++;
     if(silenceFrames>=END_SILENCE_FRAMES){
       const duration=frames.length?frames[frames.length-1].t-frames[0].t:0;
-      const alreadyTriggered=gameRunning && liveCommandLatched;
+      const alreadyTriggered=(gameRunning || licenseTestActive) && liveCommandLatched;
 
       // If the lane already changed from the real-time recognition, the blow
       // is accepted as a game command even when it was so short that only one
@@ -2340,7 +2520,7 @@ function processFrame(){
           setThresholdDisplay(Math.max(take.duration,+minDuration.value),best,gap);
         }
         liveCommandLatched=false;
-        if(gameRunning){armed=true;}
+        if(gameRunning || licenseTestActive){armed=true;}
       }else if(duration>=+minDuration.value){
         finishCapture();
       }else{
@@ -2447,7 +2627,7 @@ async function stopMic(){
   micBtn.style.display='none';
   micStatus.textContent='Mikrofoni ei käytössä';
   listenBtn.disabled=true; gameStart.disabled=true;
-  gameRunning=false; gamePaused=false; pauseStartedAt=0; armed=false; liveCommandLatched=false;
+  gameRunning=false; gamePaused=false; pauseStartedAt=0; licenseTestActive=false; armed=false; liveCommandLatched=false;
   gameStage.classList.remove('paused');
   if(pauseButtonEl){
     pauseButtonEl.classList.remove('visible');
