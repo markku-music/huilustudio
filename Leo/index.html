@@ -256,7 +256,7 @@ body{
 /* Only visible game UI: tiny settings gear. */
 .settingsGear{
   position:fixed;
-  z-index:30;
+  z-index:62;
   top:max(10px,env(safe-area-inset-top));
   right:max(10px,env(safe-area-inset-right));
   width:42px;
@@ -361,7 +361,7 @@ body{
 .techDetails.settingsOpen{
   display:block;
   position:fixed;
-  z-index:29;
+  z-index:61;
   top:max(62px,calc(env(safe-area-inset-top) + 54px));
   right:max(10px,env(safe-area-inset-right));
   width:min(390px,calc(100vw - 20px));
@@ -717,6 +717,8 @@ body{
 }
 .licenseCheck{
   position:absolute;width:7.2%;aspect-ratio:1;display:grid;place-items:center;
+  left:calc(var(--license-base-left) + var(--license-check-x,0%));
+  top:calc(var(--license-base-top) + var(--license-check-y,0%));
   transform:translate(-50%,-50%) scale(.68);opacity:0;
   color:#15803d;font-size:clamp(27px,4.6vw,60px);font-weight:1000;line-height:1;
   text-shadow:0 2px 0 rgba(255,255,255,.92),0 0 8px rgba(255,255,255,.75);
@@ -725,7 +727,10 @@ body{
 }
 .licenseCheck.done{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .licenseStatusText{
-  position:absolute;left:33.243%;top:87.450%;width:57.983%;height:7.010%;
+  position:absolute;
+  left:calc(33.243% + var(--license-field-x,0%));
+  top:calc(87.450% + var(--license-field-y,0%));
+  width:57.983%;height:7.010%;
   display:flex;align-items:center;justify-content:center;text-align:center;
   color:#123b76;font-size:clamp(11px,1.5vw,22px);font-weight:850;
   letter-spacing:.028em;line-height:1.08;white-space:nowrap;pointer-events:none;
@@ -902,6 +907,10 @@ body{
         <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="0" max="1000" step="20" value="0"><strong id="minDurationVal">0 ms</strong></label>
         <label class="setting"><span>Hyväksymisraja</span><input id="accept" type="range" min="50" max="95" step="1" value="50"><strong id="acceptVal">50 %</strong></label>
         <label class="setting"><span>Erotteluraja</span><input id="margin" type="range" min="0" max="30" step="1" value="7"><strong id="marginVal">7 %</strong></label>
+        <label class="setting"><span>Lupakirjan ruksit X</span><input id="licenseCheckX" type="range" min="-10" max="10" step="0.1" value="0"><strong id="licenseCheckXVal">0.0 %</strong></label>
+        <label class="setting"><span>Lupakirjan ruksit Y</span><input id="licenseCheckY" type="range" min="-10" max="10" step="0.1" value="0"><strong id="licenseCheckYVal">0.0 %</strong></label>
+        <label class="setting"><span>Lupakirjan teksti X</span><input id="licenseFieldX" type="range" min="-10" max="10" step="0.1" value="0"><strong id="licenseFieldXVal">0.0 %</strong></label>
+        <label class="setting"><span>Lupakirjan teksti Y</span><input id="licenseFieldY" type="range" min="-10" max="10" step="0.1" value="0"><strong id="licenseFieldYVal">0.0 %</strong></label>
         <div class="row" style="margin-top:14px"><button id="exportSettingsJson" type="button">Vie asetukset JSON</button></div>
         <div id="debug" class="debug"></div>
       </details>
@@ -925,6 +934,7 @@ const resultEl=$('#result'), confidenceEl=$('#confidence'), confBar=$('#confBar'
 const dbThreshold=$('#dbThreshold'), minDuration=$('#minDuration'), accept=$('#accept'), margin=$('#margin');
 const engineVolumeEl=$('#engineVolume'), thunderVolumeEl=$('#thunderVolume'), winterAmbienceVolumeEl=$('#winterAmbienceVolume'), popVolumeEl=$('#popVolume'), fingerprintOpacityEl=$('#fingerprintOpacity');
 const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLimitEl=$('#cloudLowerLimit'), cloudCountEl=$('#cloudCount'), stormDeckBrightnessEl=$('#stormDeckBrightness'), stormDeckContrastEl=$('#stormDeckContrast'), weatherModeEl=$('#weatherMode'), stormShakeAmountEl=$('#stormShakeAmount'), stormShakeSpeedEl=$('#stormShakeSpeed'), snowAmountEl=$('#snowAmount');
+const licenseCheckXEl=$('#licenseCheckX'), licenseCheckYEl=$('#licenseCheckY'), licenseFieldXEl=$('#licenseFieldX'), licenseFieldYEl=$('#licenseFieldY');
 const exportSettingsJsonEl=$('#exportSettingsJson');
 const pauseButtonEl=$('#pauseButton');
 const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
@@ -975,7 +985,11 @@ const SAVED_DEFAULT_SETTINGS={
   dbThreshold:-70,
   minDuration:0,
   accept:50,
-  margin:7
+  margin:7,
+  licenseCheckX:0,
+  licenseCheckY:0,
+  licenseFieldX:0,
+  licenseFieldY:0
 };
 
 function applySavedDefaultsOnLoad(){
@@ -1229,6 +1243,29 @@ snowAmountEl.addEventListener('input',()=>{
   if(currentWeather==='snow')buildSnowWeather();
 });
 
+function formatLicenseOffset(value){
+  const n=Math.max(-10,Math.min(10,Number(value)||0));
+  return (n>0?'+':'')+n.toFixed(1)+' %';
+}
+function applyLicenseLayoutOffsets(){
+  const checkX=Math.max(-10,Math.min(10,+licenseCheckXEl.value||0));
+  const checkY=Math.max(-10,Math.min(10,+licenseCheckYEl.value||0));
+  const fieldX=Math.max(-10,Math.min(10,+licenseFieldXEl.value||0));
+  const fieldY=Math.max(-10,Math.min(10,+licenseFieldYEl.value||0));
+  document.documentElement.style.setProperty('--license-check-x',checkX+'%');
+  document.documentElement.style.setProperty('--license-check-y',checkY+'%');
+  document.documentElement.style.setProperty('--license-field-x',fieldX+'%');
+  document.documentElement.style.setProperty('--license-field-y',fieldY+'%');
+  $('#licenseCheckXVal').textContent=formatLicenseOffset(checkX);
+  $('#licenseCheckYVal').textContent=formatLicenseOffset(checkY);
+  $('#licenseFieldXVal').textContent=formatLicenseOffset(fieldX);
+  $('#licenseFieldYVal').textContent=formatLicenseOffset(fieldY);
+}
+licenseCheckXEl.addEventListener('input',applyLicenseLayoutOffsets);
+licenseCheckYEl.addEventListener('input',applyLicenseLayoutOffsets);
+licenseFieldXEl.addEventListener('input',applyLicenseLayoutOffsets);
+licenseFieldYEl.addEventListener('input',applyLicenseLayoutOffsets);
+
 function exportSettingsJson(){
   const payload={
     app:'Leo Lentäjä',
@@ -1253,7 +1290,11 @@ function exportSettingsJson(){
       dbThreshold:+dbThreshold.value,
       minDuration:+minDuration.value,
       accept:+accept.value,
-      margin:+margin.value
+      margin:+margin.value,
+      licenseCheckX:+licenseCheckXEl.value,
+      licenseCheckY:+licenseCheckYEl.value,
+      licenseFieldX:+licenseFieldXEl.value,
+      licenseFieldY:+licenseFieldYEl.value
     }
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
@@ -1962,7 +2003,7 @@ function licenseChecksHtml(idPrefix,rowTop){
   const xs=[39.528,50.860,62.130,73.335,84.520];
   let html='';
   for(let i=0;i<5;i++){
-    html+='<span class="licenseCheck" id="'+idPrefix+i+'" aria-hidden="true" style="left:'+xs[i]+'%;top:'+rowTop+'%">✓</span>';
+    html+='<span class="licenseCheck" id="'+idPrefix+i+'" aria-hidden="true" style="--license-base-left:'+xs[i]+'%;--license-base-top:'+rowTop+'%">✓</span>';
   }
   return html;
 }
