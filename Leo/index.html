@@ -700,37 +700,58 @@ body{
   }
 }
 
-/* ===== Lentäjän lupakirjatesti ===== */
+/* ===== Lentäjän lupakirjatesti 3.73: WebP-kortti + dynaamiset ruksit ===== */
 .licenseScreen{
-  position:absolute;inset:0;z-index:40;display:grid;place-items:center;padding:24px;
-  background:linear-gradient(180deg,rgba(91,166,220,.97),rgba(171,220,246,.97));
+  position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;padding:12px;
+  background:linear-gradient(180deg,#8fcff4 0%,#dceffc 100%);overflow:hidden;
 }
-.licenseCard{
-  width:min(680px,calc(100vw - 40px));padding:28px 30px 26px;border-radius:24px;
-  background:rgba(17,28,40,.94);border:1px solid rgba(255,255,255,.28);
-  box-shadow:0 18px 48px rgba(0,0,0,.22);color:#fff;text-align:center;
+.licenseVisual{
+  position:relative;
+  width:min(calc(100vw - 24px),calc((100dvh - 118px) * 4 / 3),1120px);
+  aspect-ratio:4/3;flex:0 1 auto;
 }
-.licenseEyebrow{font-size:13px;letter-spacing:.16em;font-weight:800;color:#b9dff6;margin-bottom:8px}
-.licenseCard h2{margin:0;font-size:clamp(28px,4.3vw,46px);line-height:1.05}
-.licensePrompt{margin:12px 0 22px;color:#dcebf5;font-size:clamp(17px,2.2vw,22px);font-weight:650}
-.licenseRows{display:grid;gap:14px;text-align:left}
-.licenseRow{padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.12)}
-.licenseRow.active{border-color:rgba(255,255,255,.48);background:rgba(255,255,255,.12)}
-.licenseRowHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:11px;font-size:14px;font-weight:800;letter-spacing:.04em}
-.licenseRowHead span:last-child{font-variant-numeric:tabular-nums;color:#c9d9e5}
-.licenseChecks{display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:10px}
-.licenseCheck{height:52px;display:grid;place-items:center;border-radius:12px;border:2px solid rgba(255,255,255,.22);background:rgba(4,13,22,.24);font-size:30px;font-weight:900;color:transparent}
-.licenseCheck.done{color:#fff;background:rgba(74,174,117,.72);border-color:rgba(190,255,215,.88)}
-.licenseFeedback{min-height:28px;margin:18px 0 4px;color:#d9e7f0;font-size:16px;font-weight:650}
-.licenseFeedback.good{color:#a9f0c5}.licenseFeedback.retry{color:#ffd7a8}
-.licenseActions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:18px}
-.licenseActions button{min-width:210px;border-color:rgba(255,255,255,.28)}
-.licenseActions .licensePrimary{background:#2b6789;border-color:rgba(255,255,255,.42);font-weight:800}
-.licenseComplete{display:none;margin:18px 0 0;font-size:21px;font-weight:850;color:#a9f0c5}
-.licenseComplete.visible{display:block}
-@media(max-width:560px){
-  .licenseScreen{padding:14px}.licenseCard{width:calc(100vw - 22px);padding:22px 16px 20px;border-radius:18px}
-  .licenseChecks{gap:6px}.licenseCheck{height:46px;font-size:27px}.licenseActions button{width:100%;min-width:0}
+.licenseImage{
+  display:block;width:100%;height:100%;object-fit:contain;
+  border-radius:4.2%;box-shadow:0 14px 34px rgba(28,62,91,.20);
+}
+.licenseCheck{
+  position:absolute;width:7.2%;aspect-ratio:1;display:grid;place-items:center;
+  transform:translate(-50%,-50%) scale(.68);opacity:0;
+  color:#15803d;font-size:clamp(27px,4.6vw,60px);font-weight:1000;line-height:1;
+  text-shadow:0 2px 0 rgba(255,255,255,.92),0 0 8px rgba(255,255,255,.75);
+  transition:opacity .18s ease,transform .22s cubic-bezier(.2,.9,.3,1.25);
+  pointer-events:none;
+}
+.licenseCheck.done{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.licenseStatusText{
+  position:absolute;left:34.1%;top:82.45%;width:54.9%;height:6.1%;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  color:#123b76;font-size:clamp(11px,1.5vw,22px);font-weight:850;
+  letter-spacing:.012em;line-height:1.08;white-space:nowrap;pointer-events:none;
+}
+.licenseStatusText.complete{color:#16733a;letter-spacing:.06em}
+.licenseControls{
+  width:min(calc(100vw - 24px),900px);display:flex;align-items:center;
+  justify-content:center;gap:10px;flex-wrap:wrap;color:#123b76;text-align:center;
+}
+.licensePrompt{min-width:220px;font-size:clamp(14px,1.8vw,19px);font-weight:800}
+.licenseFeedback{min-width:180px;font-size:14px;font-weight:700;color:#315b7c}
+.licenseFeedback.good{color:#16733a}.licenseFeedback.retry{color:#8a5b1f}
+.licenseActions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+.licenseActions button{
+  min-width:185px;min-height:44px;padding:9px 16px;border:1px solid rgba(18,59,118,.25);
+  background:rgba(255,255,255,.82);color:#123b76;box-shadow:0 4px 12px rgba(25,62,95,.10);
+}
+.licenseActions .licensePrimary{background:#245e93;color:#fff;border-color:#245e93;font-weight:800}
+.licenseComplete{display:none;font-size:15px;font-weight:900;color:#16733a}
+.licenseComplete.visible{display:inline-block}
+@media(max-width:680px){
+  .licenseScreen{gap:7px;padding:8px}
+  .licenseVisual{width:min(calc(100vw - 16px),calc((100dvh - 142px) * 4 / 3))}
+  .licenseStatusText{font-size:clamp(9px,1.8vw,14px)}
+  .licenseControls{gap:6px}.licensePrompt,.licenseFeedback{min-width:0;width:100%}
+  .licenseActions button{min-width:150px;min-height:40px;padding:7px 12px;font-size:13px}
 }
 
 </style>
@@ -1938,41 +1959,40 @@ function bindSplashStartButton(){
   });
 }
 
-function licenseChecksHtml(idPrefix){
+function licenseChecksHtml(idPrefix,rowTop){
+  const xs=[40.05,50.78,61.45,72.06,82.65];
   let html='';
-  for(let i=0;i<5;i++)html+='<span class="licenseCheck" id="'+idPrefix+i+'" aria-hidden="true">✓</span>';
+  for(let i=0;i<5;i++){
+    html+='<span class="licenseCheck" id="'+idPrefix+i+'" aria-hidden="true" style="left:'+xs[i]+'%;top:'+rowTop+'%">✓</span>';
+  }
   return html;
 }
 
 function updateLicenseScreen(message='',tone=''){
-  const highRow=document.getElementById('licenseHighRow');
-  const lowRow=document.getElementById('licenseLowRow');
-  const prompt=document.getElementById('licensePrompt');
-  const feedback=document.getElementById('licenseFeedback');
-  const highCount=document.getElementById('licenseHighCount');
-  const lowCount=document.getElementById('licenseLowCount');
-  if(!highRow || !lowRow)return;
-
   for(let i=0;i<5;i++){
     const h=document.getElementById('licenseH'+i);
     const l=document.getElementById('licenseL'+i);
     if(h)h.classList.toggle('done',i<licenseHighCount);
     if(l)l.classList.toggle('done',i<licenseLowCount);
   }
-  if(highCount)highCount.textContent=licenseHighCount+' / 5';
-  if(lowCount)lowCount.textContent=licenseLowCount+' / 5';
 
   const highDone=licenseHighCount>=5;
   const allDone=highDone && licenseLowCount>=5;
-  highRow.classList.toggle('active',!highDone && !allDone);
-  lowRow.classList.toggle('active',highDone && !allDone);
+  const prompt=document.getElementById('licensePrompt');
+  const feedback=document.getElementById('licenseFeedback');
+  const status=document.getElementById('licenseStatusText');
 
   if(prompt){
-    prompt.textContent=allDone ? 'Lupakirjatesti on suoritettu.' :
-      (!highDone ? 'Soita korkea ääni 5 kertaa.' : 'Soita matala ääni 5 kertaa.');
+    prompt.textContent=allDone ? 'Lentolupakirja suoritettu.' :
+      (!highDone ? 'Soita korkea ääni.' : 'Soita matala ääni.');
+  }
+  if(status){
+    status.textContent=allDone ? 'LUPAKIRJA HYVÄKSYTTY' :
+      'KORKEA ÄÄNI '+licenseHighCount+'/5  •  MATALA ÄÄNI '+licenseLowCount+'/5';
+    status.classList.toggle('complete',allDone);
   }
   if(feedback){
-    feedback.textContent=message || (!highDone ? 'Odotetaan korkeaa ääntä.' : (allDone ? '' : 'Odotetaan matalaa ääntä.'));
+    feedback.textContent=message || (!highDone ? 'Kerää 5 ruksia.' : (allDone ? '' : 'Kerää vielä 5 ruksia.'));
     feedback.className='licenseFeedback'+(tone?' '+tone:'');
   }
 
@@ -2002,21 +2022,15 @@ function renderLicenseOverlay(){
   gameOverlay.classList.remove('hidden');
   gameOverlay.innerHTML=
     '<div class="licenseScreen">'+
-      '<div class="licenseCard">'+
-        '<div class="licenseEyebrow">LEO LENTOKOULU</div>'+
-        '<h2>Lentäjän lupakirja</h2>'+
-        '<div id="licensePrompt" class="licensePrompt">Soita korkea ääni 5 kertaa.</div>'+
-        '<div class="licenseRows">'+
-          '<div id="licenseHighRow" class="licenseRow active">'+
-            '<div class="licenseRowHead"><span>KORKEA ÄÄNI</span><span id="licenseHighCount">0 / 5</span></div>'+
-            '<div class="licenseChecks">'+licenseChecksHtml('licenseH')+'</div>'+
-          '</div>'+
-          '<div id="licenseLowRow" class="licenseRow">'+
-            '<div class="licenseRowHead"><span>MATALA ÄÄNI</span><span id="licenseLowCount">0 / 5</span></div>'+
-            '<div class="licenseChecks">'+licenseChecksHtml('licenseL')+'</div>'+
-          '</div>'+
-        '</div>'+
-        '<div id="licenseFeedback" class="licenseFeedback" aria-live="polite">Odotetaan korkeaa ääntä.</div>'+
+      '<div class="licenseVisual">'+
+        '<img class="licenseImage" src="lentolupakirja.webp" alt="Leo Air Academy -lentolupakirja">'+
+        licenseChecksHtml('licenseH',45.25)+
+        licenseChecksHtml('licenseL',65.95)+
+        '<div id="licenseStatusText" class="licenseStatusText">KORKEA ÄÄNI 0/5  •  MATALA ÄÄNI 0/5</div>'+
+      '</div>'+
+      '<div class="licenseControls">'+
+        '<div id="licensePrompt" class="licensePrompt">Soita korkea ääni.</div>'+
+        '<div id="licenseFeedback" class="licenseFeedback" aria-live="polite">Kerää 5 ruksia.</div>'+
         '<div id="licenseComplete" class="licenseComplete">✓ LENTOLUPAKIRJA SUORITETTU</div>'+
         '<div class="licenseActions">'+
           '<button id="licenseSkip" type="button">Minulla on jo lupakirja</button>'+
