@@ -728,29 +728,28 @@ body{
   position:absolute;left:33.243%;top:87.450%;width:57.983%;height:7.010%;
   display:flex;align-items:center;justify-content:center;text-align:center;
   color:#123b76;font-size:clamp(11px,1.5vw,22px);font-weight:850;
-  letter-spacing:.012em;line-height:1.08;white-space:nowrap;pointer-events:none;
+  letter-spacing:.028em;line-height:1.08;white-space:nowrap;pointer-events:none;
 }
-.licenseStatusText.complete{color:#16733a;letter-spacing:.06em}
 .licenseControls{
   width:min(calc(100vw - 24px),900px);display:flex;align-items:center;
   justify-content:center;gap:10px;flex-wrap:wrap;color:#123b76;text-align:center;
 }
-.licensePrompt{display:none}
-.licenseFeedback{display:none}
-.licenseFeedback.good{color:#16733a}.licenseFeedback.retry{color:#8a5b1f}
 .licenseActions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
 .licenseActions button{
   min-width:185px;min-height:44px;padding:9px 16px;border:1px solid rgba(18,59,118,.25);
   background:rgba(255,255,255,.82);color:#123b76;box-shadow:0 4px 12px rgba(25,62,95,.10);
 }
 .licenseActions .licensePrimary{background:#245e93;color:#fff;border-color:#245e93;font-weight:800}
-.licenseComplete{display:none;font-size:15px;font-weight:900;color:#16733a}
-.licenseComplete.visible{display:inline-block}
+.licenseFieldButton{
+  pointer-events:auto;min-width:min(220px,92%);min-height:40px;padding:7px 20px;border-radius:12px;
+  border:1px solid #245e93;background:#245e93;color:#fff;font-weight:800;font-size:clamp(12px,1.5vw,20px);
+  box-shadow:0 3px 10px rgba(36,94,147,.22);cursor:pointer;
+}
 @media(max-width:680px){
   .licenseScreen{gap:7px;padding:8px}
   .licenseVisual{width:min(calc(100vw - 16px),calc((100dvh - 142px) * 1.2625),1060px)}
   .licenseStatusText{font-size:clamp(9px,1.8vw,14px)}
-  .licenseControls{gap:6px}.licensePrompt,.licenseFeedback{min-width:0;width:100%}
+  .licenseFieldButton{min-width:min(170px,92%);min-height:34px;padding:5px 14px;font-size:clamp(11px,3.1vw,15px)}
   .licenseActions button{min-width:150px;min-height:40px;padding:7px 12px;font-size:13px}
 }
 
@@ -1968,7 +1967,7 @@ function licenseChecksHtml(idPrefix,rowTop){
   return html;
 }
 
-function updateLicenseScreen(message='',tone=''){
+function updateLicenseScreen(){
   for(let i=0;i<5;i++){
     const h=document.getElementById('licenseH'+i);
     const l=document.getElementById('licenseL'+i);
@@ -1980,17 +1979,21 @@ function updateLicenseScreen(message='',tone=''){
   const status=document.getElementById('licenseStatusText');
 
   if(status){
-    status.textContent=allDone ? 'LUPAKIRJA HYVÄKSYTTY' :
-      'KORKEA ÄÄNI '+licenseHighCount+'/5  •  MATALA ÄÄNI '+licenseLowCount+'/5';
-    status.classList.toggle('complete',allDone);
+    if(allDone){
+      status.innerHTML='<button id="licenseFlyField" class="licenseFieldButton" type="button">Lentoon</button>';
+    }else{
+      status.textContent='SUORITA LUPAKIRJA';
+    }
   }
 
-  const complete=document.getElementById('licenseComplete');
-  const fly=document.getElementById('licenseFly');
   const skip=document.getElementById('licenseSkip');
-  if(complete)complete.classList.toggle('visible',allDone);
-  if(fly)fly.style.display=allDone?'inline-block':'none';
   if(skip)skip.style.display=allDone?'none':'inline-block';
+
+  const flyField=document.getElementById('licenseFlyField');
+  if(flyField && !flyField.dataset.bound){
+    flyField.dataset.bound='1';
+    flyField.addEventListener('click',launchGameFromLicense);
+  }
 }
 
 function launchGameFromLicense(){
@@ -2002,9 +2005,7 @@ function launchGameFromLicense(){
 
 function bindLicenseButtons(){
   const skip=document.getElementById('licenseSkip');
-  const fly=document.getElementById('licenseFly');
   if(skip)skip.addEventListener('click',launchGameFromLicense);
-  if(fly)fly.addEventListener('click',launchGameFromLicense);
 }
 
 function renderLicenseOverlay(){
@@ -2015,13 +2016,11 @@ function renderLicenseOverlay(){
         '<img class="licenseImage" src="lentolupakirja.webp" alt="Leo Air Academy -lentolupakirja">'+
         licenseChecksHtml('licenseH',44.70)+
         licenseChecksHtml('licenseL',68.489)+
-        '<div id="licenseStatusText" class="licenseStatusText">KORKEA ÄÄNI 0/5  •  MATALA ÄÄNI 0/5</div>'+
+        '<div id="licenseStatusText" class="licenseStatusText">SUORITA LUPAKIRJA</div>'+
       '</div>'+
       '<div class="licenseControls">'+
-        '<div id="licenseComplete" class="licenseComplete">✓ LENTOLUPAKIRJA SUORITETTU</div>'+
         '<div class="licenseActions">'+
           '<button id="licenseSkip" type="button">Minulla on jo lupakirja</button>'+
-          '<button id="licenseFly" class="licensePrimary" type="button" style="display:none">Lentoon</button>'+
         '</div>'+
       '</div>'+
     '</div>';
