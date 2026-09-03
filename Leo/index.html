@@ -132,8 +132,6 @@ summary{cursor:pointer;color:var(--muted);font-size:13px}
 .loadingText{margin-top:10px;font-size:14px;color:rgba(255,255,255,.82);font-variant-numeric:tabular-nums}
 .loadingRetry{display:none;margin:16px auto 0;min-height:42px;padding:9px 16px}
 .loadingRetry.visible{display:block}
-.commandFlash{position:absolute;z-index:8;top:13px;left:50%;transform:translateX(-50%);padding:8px 15px;border-radius:999px;background:rgba(15,21,29,.88);font-size:18px;font-weight:850;opacity:0;transition:opacity .1s ease}
-.commandFlash.show{opacity:1}.commandFlash.high{color:var(--high)}.commandFlash.low{color:var(--low)}
 .gameHint{text-align:center;color:var(--muted);font-size:13px;margin-top:9px}
 .techDetails{margin-top:14px}
 .techDetails > summary{font-size:14px}
@@ -673,7 +671,7 @@ body{
 .car{
   transform:
     translateY(-50%)
-    translate(var(--turb-x,0px),var(--turb-y,0px))
+    translateY(var(--turb-y,0px))
     rotate(var(--turb-rot,0deg))
     scale(var(--plane-scale,1));
 }
@@ -767,7 +765,6 @@ body{
           </div>
         </div>
       </div>
-      <div id="commandFlash" class="commandFlash"></div>
       <div id="gameOverlay" class="gameOverlay">
         <div class="loadingScreen" id="loadingScreen">
           <div class="loadingCard">
@@ -877,10 +874,17 @@ const engineVolumeEl=$('#engineVolume'), thunderVolumeEl=$('#thunderVolume'), wi
 const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLimitEl=$('#cloudLowerLimit'), cloudCountEl=$('#cloudCount'), stormDeckBrightnessEl=$('#stormDeckBrightness'), stormDeckContrastEl=$('#stormDeckContrast'), weatherModeEl=$('#weatherMode'), stormShakeAmountEl=$('#stormShakeAmount'), stormShakeSpeedEl=$('#stormShakeSpeed'), snowAmountEl=$('#snowAmount');
 const exportSettingsJsonEl=$('#exportSettingsJson');
 const pauseButtonEl=$('#pauseButton');
-const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeMotionEl=$('#planeMotion'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), commandFlash=$('#commandFlash'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
-const weatherTintEl=$('#weatherTint'), weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
+const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
+const weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
 const planeSpriteEl=document.querySelector('.planeSprite');
 const PLANE_ASSETS={clear:'plane_sunny.webp',storm:'plane_storm.webp',snow:'plane_snow.webp'};
+const skyCloudEls=[...document.querySelectorAll('.skyCloud')];
+const rootStyle=document.documentElement.style;
+const liveUi={
+  db:$('#liveDb'), levelBar:$('#liveLevelBar'), levelMark:$('#liveLevelMark'),
+  hz:$('#liveHz'), heard:$('#liveHeard'), low:$('#liveLow'), high:$('#liveHigh'),
+  lowBar:$('#liveLowBar'), highBar:$('#liveHighBar'), interpretation:$('#liveInterpretation')
+};
 
 const GAME_ASSETS=[
   'sky_realistic.webp',
@@ -946,7 +950,7 @@ let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
 let liveCommandLatched=false, liveSoundStart=0;
-let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, commandFlashTimer=0, lastSpawnLane=null, sameLaneRun=0;
+let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, lastSpawnLane=null, sameLaneRun=0;
 const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
 
 // Weather is a separate gameplay layer. Clear mode leaves the original game untouched.
@@ -954,9 +958,9 @@ const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.web
 let currentWeather='clear';
 let snowAmount=100;
 let stormShakeAmount=100, stormShakeSpeed=100;
-let weatherGustX=0, weatherGustY=0, weatherGustRot=0, nextWeatherGustAt=0, nextLightningAt=0;
+let weatherGustY=0, weatherGustRot=0, nextWeatherGustAt=0, nextLightningAt=0;
 let stormRainTimer=0;
-let airX=0, airY=0, airRot=0, airTargetX=0, airTargetY=0, airTargetRot=0, nextAirTargetAt=0;
+let airY=0, airRot=0, airTargetY=0, airTargetRot=0, nextAirTargetAt=0;
 
 // Original clear-weather cloud top positions.
 const CLEAR_CLOUD_TOPS=[5,18,34,57,10,49,72,25,14,42,62,29];
@@ -974,7 +978,7 @@ let clearCloudCount=12;
 function applyClearCloudLowerLimit(limitPct){
   clearCloudLimit=Math.max(42,Math.min(70,+limitPct||58));
 
-  const clouds=[...document.querySelectorAll('.skyCloud')];
+  const clouds=skyCloudEls;
   const stageRect=gameStage.getBoundingClientRect();
   const stageH=Math.max(1,stageRect.height);
 
@@ -1012,8 +1016,8 @@ function applyClearCloudCount(count){
 function applyStormDeckImageTuning(){
   const brightness=Math.max(.5,Math.min(1.5,(+stormDeckBrightnessEl.value||100)/100));
   const contrast=Math.max(.5,Math.min(1.5,(+stormDeckContrastEl.value||104)/100));
-  document.documentElement.style.setProperty('--storm-deck-brightness',brightness);
-  document.documentElement.style.setProperty('--storm-deck-contrast',contrast);
+  rootStyle.setProperty('--storm-deck-brightness',brightness);
+  rootStyle.setProperty('--storm-deck-contrast',contrast);
   $('#stormDeckBrightnessVal').textContent=Math.round(brightness*100)+' %';
   $('#stormDeckContrastVal').textContent=Math.round(contrast*100)+' %';
 }
@@ -1028,7 +1032,7 @@ function rectsOverlapWithPadding(a,b,pad=12){
 }
 
 function updateClearCloudVisibility(){
-  const clouds=[...document.querySelectorAll('.skyCloud')];
+  const clouds=skyCloudEls;
 
   const enabled=new Set(CLEAR_CLOUD_COUNT_ORDER.slice(0,clearCloudCount));
   clouds.forEach((cloud,i)=>{
@@ -1126,17 +1130,17 @@ popVolumeEl.addEventListener('input',()=>{
 fingerprintOpacityEl.addEventListener('input',()=>{
   const opacity=Math.max(0,Math.min(1,+fingerprintOpacityEl.value/100));
   $('#fingerprintOpacityVal').textContent=Math.round(opacity*100)+' %';
-  document.documentElement.style.setProperty('--fingerprint-opacity',opacity);
+  rootStyle.setProperty('--fingerprint-opacity',opacity);
 });
 function applyPlaneSize(){
   const scale=Math.max(.5,Math.min(2.0,+planeSizeEl.value/100));
   $('#planeSizeVal').textContent=Math.round(scale*100)+' %';
-  document.documentElement.style.setProperty('--plane-scale',scale);
+  rootStyle.setProperty('--plane-scale',scale);
 }
 function applyBalloonSize(){
   const scale=Math.max(.5,Math.min(1.5,+balloonSizeEl.value/100));
   $('#balloonSizeVal').textContent=Math.round(scale*100)+' %';
-  document.documentElement.style.setProperty('--balloon-scale',scale);
+  rootStyle.setProperty('--balloon-scale',scale);
 }
 planeSizeEl.addEventListener('input',applyPlaneSize);
 balloonSizeEl.addEventListener('input',applyBalloonSize);
@@ -1258,11 +1262,17 @@ function rmsDb(buf){
   const rms=Math.sqrt(s/buf.length)||1e-12;
   return {rms,db:20*Math.log10(rms)};
 }
+let yinDiffBuffer=null, yinCmndBuffer=null;
 function yin(buf,sr){
   const n=Math.min(buf.length,4096),minF=75,maxF=1300;
   const minTau=Math.max(2,Math.floor(sr/maxF));
   const maxTau=Math.min(Math.floor(sr/minF),Math.floor(n/2));
-  const d=new Float32Array(maxTau+1),cmnd=new Float32Array(maxTau+1);
+  const needed=maxTau+1;
+  if(!yinDiffBuffer || yinDiffBuffer.length<needed){
+    yinDiffBuffer=new Float32Array(needed);
+    yinCmndBuffer=new Float32Array(needed);
+  }
+  const d=yinDiffBuffer,cmnd=yinCmndBuffer;
   for(let tau=1;tau<=maxTau;tau++){
     let sum=0;
     for(let i=0;i<n-tau;i++){const x=buf[i]-buf[i+tau];sum+=x*x}
@@ -1331,23 +1341,23 @@ function similarity(take,ref){
 }
 
 function updateLiveLevel(db){
-  $('#liveDb').textContent=Number.isFinite(db)?db.toFixed(1)+' dB':'– dB';
+  liveUi.db.textContent=Number.isFinite(db)?db.toFixed(1)+' dB':'– dB';
   // scale -70..-20 dB to 0..100 %
   const pct=Math.max(0,Math.min(100,(db+70)/50*100));
-  $('#liveLevelBar').style.width=pct+'%';
+  liveUi.levelBar.style.width=pct+'%';
   const thresholdPct=Math.max(0,Math.min(100,(+dbThreshold.value+70)/50*100));
-  $('#liveLevelMark').style.left=thresholdPct+'%';
+  liveUi.levelMark.style.left=thresholdPct+'%';
 }
 
 function resetLiveInterpretation(){
-  $('#liveHz').textContent='– Hz';
-  $('#liveHeard').textContent='EI';
-  $('#liveLow').textContent='–';
-  $('#liveHigh').textContent='–';
-  $('#liveLowBar').style.width='0';
-  $('#liveHighBar').style.width='0';
-  const e=$('#liveInterpretation');
-  e.textContent='–'; e.className='';
+  liveUi.hz.textContent='– Hz';
+  liveUi.heard.textContent='EI';
+  liveUi.low.textContent='–';
+  liveUi.high.textContent='–';
+  liveUi.lowBar.style.width='0';
+  liveUi.highBar.style.width='0';
+  liveUi.interpretation.textContent='–';
+  liveUi.interpretation.className='';
   liveLowHistory=[]; liveHighHistory=[]; liveF0History=[];
 }
 
@@ -1357,17 +1367,17 @@ function pushLimited(arr,val,max=6){
 }
 
 function updateLiveInterpretation(f0,fp,loud){
-  $('#liveHeard').textContent=loud?'KYLLÄ':'EI';
+  liveUi.heard.textContent=loud?'KYLLÄ':'EI';
 
   if(!loud || !f0 || !fp){
     if(!loud){
-      $('#liveHz').textContent='– Hz';
-      $('#liveLow').textContent='–';
-      $('#liveHigh').textContent='–';
-      $('#liveLowBar').style.width='0';
-      $('#liveHighBar').style.width='0';
-      const e=$('#liveInterpretation');
-      e.textContent='–'; e.className='';
+      liveUi.hz.textContent='– Hz';
+      liveUi.low.textContent='–';
+      liveUi.high.textContent='–';
+      liveUi.lowBar.style.width='0';
+      liveUi.highBar.style.width='0';
+      liveUi.interpretation.textContent='–';
+      liveUi.interpretation.className='';
       liveLowHistory=[]; liveHighHistory=[]; liveF0History=[];
     }
     return;
@@ -1386,13 +1396,13 @@ function updateLiveInterpretation(f0,fp,loud){
   const best=Math.max(lowS,highS);
   const gap=Math.abs(lowS-highS);
 
-  $('#liveHz').textContent=smoothF0.toFixed(1)+' Hz';
-  $('#liveLow').textContent=Math.round(lowS)+' %';
-  $('#liveHigh').textContent=Math.round(highS)+' %';
-  $('#liveLowBar').style.width=Math.max(0,Math.min(100,lowS))+'%';
-  $('#liveHighBar').style.width=Math.max(0,Math.min(100,highS))+'%';
+  liveUi.hz.textContent=smoothF0.toFixed(1)+' Hz';
+  liveUi.low.textContent=Math.round(lowS)+' %';
+  liveUi.high.textContent=Math.round(highS)+' %';
+  liveUi.lowBar.style.width=Math.max(0,Math.min(100,lowS))+'%';
+  liveUi.highBar.style.width=Math.max(0,Math.min(100,highS))+'%';
 
-  const e=$('#liveInterpretation');
+  const e=liveUi.interpretation;
   e.className='';
   let name='EPÄVARMA';
   if(best<+accept.value || gap<+margin.value){
@@ -1493,17 +1503,15 @@ function buildSnowWeather(){
 }
 
 function resetWeatherMotion(){
-  weatherGustX=0;
   weatherGustY=0;
   weatherGustRot=0;
   nextWeatherGustAt=0;
   nextLightningAt=0;
-  airX=0; airY=0; airRot=0;
-  airTargetX=0; airTargetY=0; airTargetRot=0;
+  airY=0; airRot=0;
+  airTargetY=0; airTargetRot=0;
   nextAirTargetAt=0;
-  document.documentElement.style.setProperty('--turb-x','0px');
-  document.documentElement.style.setProperty('--turb-y','0px');
-  document.documentElement.style.setProperty('--turb-rot','0deg');
+  rootStyle.setProperty('--turb-y','0px');
+  rootStyle.setProperty('--turb-rot','0deg');
   if(weatherLightningEl)weatherLightningEl.style.opacity='0';
 }
 
@@ -1511,7 +1519,7 @@ function applyWeatherMode(mode){
   currentWeather=(mode==='storm'||mode==='snow')?mode:'clear';
   weatherModeEl.value=currentWeather;
   $('#weatherModeVal').textContent=weatherLabel(currentWeather);
-  gameStage.classList.remove('weather-clear','weather-rain','weather-storm','weather-snow');
+  gameStage.classList.remove('weather-clear','weather-storm','weather-snow');
   gameStage.classList.add('weather-'+currentWeather);
   applyPlaneSpriteForWeather();
   resetWeatherMotion();
@@ -1562,7 +1570,6 @@ function updateWeatherMotion(t,dt){
   // Storm amount and speed are user-adjustable; 100 % preserves the previous feel.
   const stormAmountFactor=stormShakeAmount/100;
   const stormSpeedFactor=stormShakeSpeed/100;
-  const ampX=0;
   const ampY=storm?4.6*stormAmountFactor:(snow?1.45:1.05);
   const ampRot=storm?0:(snow?.22:.16);
   const targetMinMs=storm?180/stormSpeedFactor:(snow?650:760);
@@ -1570,7 +1577,6 @@ function updateWeatherMotion(t,dt){
   const follow=storm?4.0*stormSpeedFactor:(snow?2.15:1.85);
 
   if(!nextAirTargetAt || t>=nextAirTargetAt){
-    airTargetX=randomRange(-ampX,ampX);
     airTargetY=randomRange(-ampY,ampY);
     airTargetRot=storm?0:randomRange(-ampRot,ampRot);
     nextAirTargetAt=t+randomRange(targetMinMs,targetMaxMs);
@@ -1579,33 +1585,27 @@ function updateWeatherMotion(t,dt){
   if(storm){
     if(!nextWeatherGustAt)nextWeatherGustAt=t+randomRange(1800,4800)/stormSpeedFactor;
     if(t>=nextWeatherGustAt){
-      weatherGustX=0;
-      weatherGustY=randomRange(-8.5,8.5)*stormAmountFactor;
+          weatherGustY=randomRange(-8.5,8.5)*stormAmountFactor;
       weatherGustRot=0;
       nextWeatherGustAt=t+randomRange(2600,7600)/stormSpeedFactor;
     }
     const gustDecay=Math.exp(-dt*1.35*stormSpeedFactor);
-    weatherGustX*=gustDecay;
     weatherGustY*=gustDecay;
     weatherGustRot*=gustDecay;
   }else{
     const gustDecay=Math.exp(-dt*4.5);
-    weatherGustX*=gustDecay;
     weatherGustY*=gustDecay;
     weatherGustRot*=gustDecay;
   }
 
-  const targetX=airTargetX+weatherGustX;
   const targetY=airTargetY+weatherGustY;
   const targetRot=storm?0:(airTargetRot+weatherGustRot);
   const k=1-Math.exp(-dt*follow);
-  airX+=(targetX-airX)*k;
   airY+=(targetY-airY)*k;
   airRot=storm?0:(airRot+(targetRot-airRot)*k);
 
-  document.documentElement.style.setProperty('--turb-x','0px');
-  document.documentElement.style.setProperty('--turb-y',airY.toFixed(2)+'px');
-  document.documentElement.style.setProperty('--turb-rot',storm?'0deg':airRot.toFixed(2)+'deg');
+  rootStyle.setProperty('--turb-y',airY.toFixed(2)+'px');
+  rootStyle.setProperty('--turb-rot',storm?'0deg':airRot.toFixed(2)+'deg');
 
   if(storm){
     if(!nextLightningAt)nextLightningAt=t+randomRange(3000,9000);
@@ -1694,11 +1694,6 @@ function setGameLane(lane,source='audio'){
     planeAttitudeEl.style.transform='rotate(0deg)';
   }
 
-  if(source==='audio'){
-    const high=lane==='upper';
-    commandFlash.textContent='';
-    commandFlash.className='commandFlash';
-  }
 }
 function updateGameHud(){ $('#gameScore').textContent=gameScore; }
 function clearObstacles(){ obstacles.forEach(o=>o.el.remove()); obstacles=[]; }
