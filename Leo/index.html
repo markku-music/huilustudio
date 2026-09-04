@@ -96,21 +96,27 @@ summary{cursor:pointer;color:var(--muted);font-size:13px}
 .car{position:absolute;z-index:5;left:10%;width:168px;height:auto;aspect-ratio:1774/887;top:38%;transform:translateY(-50%);filter:drop-shadow(0 8px 5px rgba(0,0,0,.24));will-change:top}
 .planeMotion{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
 .soundHeardSignal{
-  position:absolute;left:8.4%;top:29.5%;width:9.2%;aspect-ratio:1/1;
-  transform:translate(-50%,-50%) scale(.95);opacity:.38;pointer-events:none;z-index:8;
+  position:absolute;
+  left:calc(8.4% + var(--tail-mic-x,0%));
+  top:calc(29.5% + var(--tail-mic-y,0%));
+  width:calc(9.2% * var(--tail-mic-scale,1));
+  aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(.95);
+  opacity:var(--tail-mic-idle-opacity,.38);
+  pointer-events:none;z-index:8;
   filter:drop-shadow(0 2px 2px rgba(37,72,112,.18));
-  transition:opacity .14s ease,transform .18s ease,filter .18s ease;
+  transition:opacity .14s ease,transform .18s ease,filter .18s ease,left .06s linear,top .06s linear,width .06s linear;
 }
 .soundHeardSignal img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}
 .soundHeardSignal::before,.soundHeardSignal::after{
-  content:"";position:absolute;top:50%;left:58%;width:34%;height:34%;
+  content:"";position:absolute;top:50%;left:calc(58% + var(--tail-mic-wave-distance,0%));width:calc(34% * var(--tail-mic-wave-size,1));height:calc(34% * var(--tail-mic-wave-size,1));
   border:3px solid rgba(188,241,255,.95);border-left:none;border-bottom:none;
   border-radius:50%;opacity:0;pointer-events:none;transform-origin:0 50%;
   transform:translateY(-50%) rotate(45deg) scale(.55);
   filter:drop-shadow(0 0 4px rgba(146,221,255,.72));
 }
-.soundHeardSignal::after{left:68%;width:52%;height:52%;transition-delay:.06s}
-.soundHeardSignal.active{opacity:1;transform:translate(-50%,-50%) scale(1.08);filter:drop-shadow(0 0 9px rgba(127,217,255,.8)) drop-shadow(0 0 18px rgba(127,217,255,.28));animation:tailMicBob .60s ease-in-out infinite alternate}
+.soundHeardSignal::after{left:calc(68% + var(--tail-mic-wave-distance,0%));width:calc(52% * var(--tail-mic-wave-size,1));height:calc(52% * var(--tail-mic-wave-size,1));transition-delay:.06s}
+.soundHeardSignal.active{opacity:var(--tail-mic-active-opacity,1);transform:translate(-50%,-50%) scale(1.08);filter:drop-shadow(0 0 9px rgba(127,217,255,.8)) drop-shadow(0 0 18px rgba(127,217,255,.28));animation:tailMicBob .60s ease-in-out infinite alternate}
 .soundHeardSignal.active::before{animation:tailMicWave .72s ease-out infinite}
 .soundHeardSignal.active::after{animation:tailMicWave .72s ease-out .18s infinite}
 @keyframes tailMicBob{from{transform:translate(-50%,-50%) scale(1.02)}to{transform:translate(-50%,-50%) scale(1.10)}}
@@ -297,6 +303,10 @@ body{
 }
 .settingsGear:active{
   transform:scale(.94);
+}
+.micSettingsGear{
+  right:max(114px,calc(env(safe-area-inset-right) + 114px));
+  font-size:20px;
 }
 .pauseButton{
   position:fixed;
@@ -857,6 +867,7 @@ body{
     </div>
     <button id="pauseButton" class="pauseButton" type="button" aria-label="Tauko">⏸</button>
     <button id="settingsGear" class="settingsGear" type="button" aria-label="Asetukset">⚙</button>
+    <button id="micSettingsGear" class="settingsGear micSettingsGear" type="button" aria-label="Mikrofoniasetukset">🎙</button>
     <button id="testHigh" class="routeTestButton routeTestHigh" type="button" aria-label="Testaa yläreitti"><svg viewBox="0 0 32 32" aria-hidden="true">
 <path d="M16 4.5c-5.3 0-9.6 4.1-9.6 9.2 0 2.1.7 3.9 1.4 5.5"/>
 <path d="M16 8.1c-3.3 0-6 2.5-6 5.7 0 4.6-1 7.8-2.5 10.3"/>
@@ -877,7 +888,7 @@ body{
 </svg></button>
     <div class="gameHint">Lentokone lentää itse. Sinä päätät vain korkeuden suukappaleen äänellä.</div>
 
-    <details class="techDetails">
+    <details id="settingsPanel" class="techDetails">
       <summary>Tunnistimen reaaliaikainen näyttö ja asetukset</summary>
 
       <div class="livebox">
@@ -936,6 +947,20 @@ body{
         <div id="debug" class="debug"></div>
       </details>
     </details>
+
+    <details id="micSettingsPanel" class="techDetails">
+      <summary>Peräsinmikrofonin asetukset</summary>
+      <details open>
+        <summary>Peräsinmikrofoni</summary>
+        <label class="setting"><span>Peräsinmikrofoni X</span><input id="tailMicX" type="range" min="-10" max="10" step="0.1" value="0"><strong id="tailMicXVal">0.0 %</strong></label>
+        <label class="setting"><span>Peräsinmikrofoni Y</span><input id="tailMicY" type="range" min="-10" max="10" step="0.1" value="0"><strong id="tailMicYVal">0.0 %</strong></label>
+        <label class="setting"><span>Peräsinmikrofoni koko</span><input id="tailMicSize" type="range" min="50" max="200" step="1" value="100"><strong id="tailMicSizeVal">100 %</strong></label>
+        <label class="setting"><span>Peräsinmikrofoni lepo-opacity</span><input id="tailMicIdleOpacity" type="range" min="0" max="100" step="1" value="38"><strong id="tailMicIdleOpacityVal">38 %</strong></label>
+        <label class="setting"><span>Peräsinmikrofoni aktiivinen opacity</span><input id="tailMicActiveOpacity" type="range" min="0" max="100" step="1" value="100"><strong id="tailMicActiveOpacityVal">100 %</strong></label>
+        <label class="setting"><span>Ääniaaltojen koko</span><input id="tailMicWaveSize" type="range" min="50" max="200" step="1" value="100"><strong id="tailMicWaveSizeVal">100 %</strong></label>
+        <label class="setting"><span>Ääniaaltojen etäisyys</span><input id="tailMicWaveDistance" type="range" min="-20" max="20" step="0.1" value="0"><strong id="tailMicWaveDistanceVal">0.0 %</strong></label>
+      </details>
+    </details>
   </section>
 </div>
 <audio id="airplaneAudio" preload="auto" loop playsinline src="airplane_loop.mp3"></audio>
@@ -956,6 +981,7 @@ const dbThreshold=$('#dbThreshold'), minDuration=$('#minDuration'), accept=$('#a
 const engineVolumeEl=$('#engineVolume'), thunderVolumeEl=$('#thunderVolume'), winterAmbienceVolumeEl=$('#winterAmbienceVolume'), popVolumeEl=$('#popVolume'), fingerprintOpacityEl=$('#fingerprintOpacity');
 const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLimitEl=$('#cloudLowerLimit'), cloudCountEl=$('#cloudCount'), stormDeckBrightnessEl=$('#stormDeckBrightness'), stormDeckContrastEl=$('#stormDeckContrast'), weatherModeEl=$('#weatherMode'), stormShakeAmountEl=$('#stormShakeAmount'), stormShakeSpeedEl=$('#stormShakeSpeed'), snowAmountEl=$('#snowAmount');
 const licenseCheckXEl=$('#licenseCheckX'), licenseCheckYEl=$('#licenseCheckY'), licenseFieldXEl=$('#licenseFieldX'), licenseFieldYEl=$('#licenseFieldY');
+const tailMicXEl=$('#tailMicX'), tailMicYEl=$('#tailMicY'), tailMicSizeEl=$('#tailMicSize'), tailMicIdleOpacityEl=$('#tailMicIdleOpacity'), tailMicActiveOpacityEl=$('#tailMicActiveOpacity'), tailMicWaveSizeEl=$('#tailMicWaveSize'), tailMicWaveDistanceEl=$('#tailMicWaveDistance');
 const exportSettingsJsonEl=$('#exportSettingsJson');
 const pauseButtonEl=$('#pauseButton');
 const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), soundHeardSignalEl=$('#soundHeardSignal'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
@@ -1010,7 +1036,14 @@ const SAVED_DEFAULT_SETTINGS={
   licenseCheckX:0,
   licenseCheckY:0,
   licenseFieldX:0,
-  licenseFieldY:0
+  licenseFieldY:0,
+  tailMicX:0,
+  tailMicY:0,
+  tailMicSize:100,
+  tailMicIdleOpacity:38,
+  tailMicActiveOpacity:100,
+  tailMicWaveSize:100,
+  tailMicWaveDistance:0
 };
 
 function applySavedDefaultsOnLoad(){
@@ -1289,6 +1322,41 @@ licenseCheckYEl.addEventListener('input',applyLicenseLayoutOffsets);
 licenseFieldXEl.addEventListener('input',applyLicenseLayoutOffsets);
 licenseFieldYEl.addEventListener('input',applyLicenseLayoutOffsets);
 
+function formatSignedPercent(value,min=-10,max=10){
+  const n=Math.max(min,Math.min(max,Number(value)||0));
+  return (n>0?'+':'')+n.toFixed(1)+' %';
+}
+function applyTailMicSettings(){
+  const micX=Math.max(-10,Math.min(10,+tailMicXEl.value||0));
+  const micY=Math.max(-10,Math.min(10,+tailMicYEl.value||0));
+  const micSize=Math.max(50,Math.min(200,+tailMicSizeEl.value||100));
+  const micIdleOpacity=Math.max(0,Math.min(100,+tailMicIdleOpacityEl.value||0));
+  const micActiveOpacity=Math.max(0,Math.min(100,+tailMicActiveOpacityEl.value||100));
+  const micWaveSize=Math.max(50,Math.min(200,+tailMicWaveSizeEl.value||100));
+  const micWaveDistance=Math.max(-20,Math.min(20,+tailMicWaveDistanceEl.value||0));
+  document.documentElement.style.setProperty('--tail-mic-x',micX+'%');
+  document.documentElement.style.setProperty('--tail-mic-y',micY+'%');
+  document.documentElement.style.setProperty('--tail-mic-scale',(micSize/100).toFixed(3));
+  document.documentElement.style.setProperty('--tail-mic-idle-opacity',(micIdleOpacity/100).toFixed(2));
+  document.documentElement.style.setProperty('--tail-mic-active-opacity',(micActiveOpacity/100).toFixed(2));
+  document.documentElement.style.setProperty('--tail-mic-wave-size',(micWaveSize/100).toFixed(3));
+  document.documentElement.style.setProperty('--tail-mic-wave-distance',micWaveDistance+'%');
+  $('#tailMicXVal').textContent=formatSignedPercent(micX);
+  $('#tailMicYVal').textContent=formatSignedPercent(micY);
+  $('#tailMicSizeVal').textContent=Math.round(micSize)+' %';
+  $('#tailMicIdleOpacityVal').textContent=Math.round(micIdleOpacity)+' %';
+  $('#tailMicActiveOpacityVal').textContent=Math.round(micActiveOpacity)+' %';
+  $('#tailMicWaveSizeVal').textContent=Math.round(micWaveSize)+' %';
+  $('#tailMicWaveDistanceVal').textContent=formatSignedPercent(micWaveDistance,-20,20);
+}
+tailMicXEl.addEventListener('input',applyTailMicSettings);
+tailMicYEl.addEventListener('input',applyTailMicSettings);
+tailMicSizeEl.addEventListener('input',applyTailMicSettings);
+tailMicIdleOpacityEl.addEventListener('input',applyTailMicSettings);
+tailMicActiveOpacityEl.addEventListener('input',applyTailMicSettings);
+tailMicWaveSizeEl.addEventListener('input',applyTailMicSettings);
+tailMicWaveDistanceEl.addEventListener('input',applyTailMicSettings);
+
 function exportSettingsJson(){
   const payload={
     app:'Leo Lentäjä',
@@ -1317,7 +1385,14 @@ function exportSettingsJson(){
       licenseCheckX:+licenseCheckXEl.value,
       licenseCheckY:+licenseCheckYEl.value,
       licenseFieldX:+licenseFieldXEl.value,
-      licenseFieldY:+licenseFieldYEl.value
+      licenseFieldY:+licenseFieldYEl.value,
+      tailMicX:+tailMicXEl.value,
+      tailMicY:+tailMicYEl.value,
+      tailMicSize:+tailMicSizeEl.value,
+      tailMicIdleOpacity:+tailMicIdleOpacityEl.value,
+      tailMicActiveOpacity:+tailMicActiveOpacityEl.value,
+      tailMicWaveSize:+tailMicWaveSizeEl.value,
+      tailMicWaveDistance:+tailMicWaveDistanceEl.value
     }
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
@@ -2629,6 +2704,7 @@ applySavedDefaultsOnLoad();
 if(winterAmbienceVolumeEl){
   winterAmbienceVolumeEl.dispatchEvent(new Event('input',{bubbles:true}));
 }
+applyTailMicSettings();
 runClearCloudMonitor();
 
 window.addEventListener('resize',()=>{
@@ -2638,6 +2714,7 @@ gameStart.style.display='none';
 micBtn.style.display='none';
 
 const settingsGear=$('#settingsGear');
+const micSettingsGear=$('#micSettingsGear');
 if(pauseButtonEl){
   pauseButtonEl.addEventListener('click',(e)=>{
     e.preventDefault();
@@ -2645,19 +2722,36 @@ if(pauseButtonEl){
     togglePause();
   });
 }
-const settingsPanel=$('.techDetails');
+const settingsPanel=$('#settingsPanel');
+const micSettingsPanel=$('#micSettingsPanel');
 const settingsInner=settingsPanel ? settingsPanel.querySelector('details') : null;
+const micSettingsInner=micSettingsPanel ? micSettingsPanel.querySelector('details') : null;
 if(settingsInner)settingsInner.open=true;
+if(micSettingsInner)micSettingsInner.open=true;
+function setFloatingSettingsState(panel,gear,open){
+  if(!panel || !gear)return;
+  panel.open=open;
+  panel.classList.toggle('settingsOpen',open);
+  gear.setAttribute('aria-expanded',open?'true':'false');
+}
+setFloatingSettingsState(settingsPanel,settingsGear,false);
+setFloatingSettingsState(micSettingsPanel,micSettingsGear,false);
 if(settingsGear && settingsPanel){
-  settingsPanel.open=false;
-  settingsGear.setAttribute('aria-expanded','false');
   settingsGear.addEventListener('click',(e)=>{
     e.preventDefault();
     e.stopPropagation();
     const opening=!settingsPanel.classList.contains('settingsOpen');
-    settingsPanel.open=opening;
-    settingsPanel.classList.toggle('settingsOpen',opening);
-    settingsGear.setAttribute('aria-expanded',opening?'true':'false');
+    setFloatingSettingsState(micSettingsPanel,micSettingsGear,false);
+    setFloatingSettingsState(settingsPanel,settingsGear,opening);
+  });
+}
+if(micSettingsGear && micSettingsPanel){
+  micSettingsGear.addEventListener('click',(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const opening=!micSettingsPanel.classList.contains('settingsOpen');
+    setFloatingSettingsState(settingsPanel,settingsGear,false);
+    setFloatingSettingsState(micSettingsPanel,micSettingsGear,opening);
   });
 }
 
