@@ -95,6 +95,21 @@ summary{cursor:pointer;color:var(--muted);font-size:13px}
 .laneLabel{position:absolute;left:14px;color:rgba(34,58,87,.55);font-weight:800;font-size:12px;letter-spacing:.12em}.laneLabel.upper{top:30%}.laneLabel.lower{top:62%}
 .car{position:absolute;z-index:5;left:10%;width:168px;height:auto;aspect-ratio:1774/887;top:38%;transform:translateY(-50%);filter:drop-shadow(0 8px 5px rgba(0,0,0,.24));will-change:top}
 .planeMotion{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
+.uncertainMark{
+  position:absolute;z-index:7;left:54%;top:-10%;transform:translate(-50%,-50%) scale(.7);
+  opacity:0;pointer-events:none;color:#fff;font-size:clamp(28px,4vw,46px);font-weight:1000;line-height:1;
+  text-shadow:0 2px 3px rgba(13,34,52,.75),0 0 7px rgba(13,34,52,.42);
+}
+.planeMotion.uncertainDown{animation:uncertainNudgeDown .46s cubic-bezier(.22,.76,.24,1)}
+.planeMotion.uncertainUp{animation:uncertainNudgeUp .46s cubic-bezier(.22,.76,.24,1)}
+.planeMotion.uncertainDown .uncertainMark,.planeMotion.uncertainUp .uncertainMark{animation:uncertainMarkPop .46s ease-out}
+@keyframes uncertainNudgeDown{0%,100%{transform:translate3d(0,0,0)}38%{transform:translate3d(0,22px,0)}65%{transform:translate3d(0,17px,0)}}
+@keyframes uncertainNudgeUp{0%,100%{transform:translate3d(0,0,0)}38%{transform:translate3d(0,-22px,0)}65%{transform:translate3d(0,-17px,0)}}
+@keyframes uncertainMarkPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.65)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}72%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.92)}}
+@media(prefers-reduced-motion:reduce){
+  .planeMotion.uncertainDown,.planeMotion.uncertainUp{animation-duration:.18s}
+  .planeMotion.uncertainDown .uncertainMark,.planeMotion.uncertainUp .uncertainMark{animation-duration:.28s}
+}
 .planeAttitude{position:absolute;inset:0;transform-origin:48% 52%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
 .planeSprite{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;transform:translateZ(0)}
 .planePropMount{position:absolute;right:-12px;top:50%;width:36px;height:72px;transform:translateY(-50%);pointer-events:none}
@@ -817,6 +832,7 @@ body{
       </div>
       <div id="car" class="car" aria-label="Lentokone">
         <div id="planeMotion" class="planeMotion">
+          <div id="uncertainMark" class="uncertainMark" aria-hidden="true">?</div>
           <div id="planeAttitude" class="planeAttitude">
             <img class="planeSprite" src="plane_sunny.webp" alt="">
             <div id="planePropMount" class="planePropMount"><img class="planePropSvg" src="propeller.svg" alt=""></div>
@@ -937,7 +953,7 @@ const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLi
 const licenseCheckXEl=$('#licenseCheckX'), licenseCheckYEl=$('#licenseCheckY'), licenseFieldXEl=$('#licenseFieldX'), licenseFieldYEl=$('#licenseFieldY');
 const exportSettingsJsonEl=$('#exportSettingsJson');
 const pauseButtonEl=$('#pauseButton');
-const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
+const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeMotionEl=$('#planeMotion'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
 const weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
 const planeSpriteEl=document.querySelector('.planeSprite');
 const PLANE_ASSETS={clear:'plane_sunny.webp',storm:'plane_storm.webp',snow:'plane_snow.webp'};
@@ -1016,7 +1032,7 @@ let thunderAudioBuffers=[null,null], thunderAudioBuffersPromise=null;
 let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
-let liveCommandLatched=false, liveSoundStart=0;
+let liveCommandLatched=false, uncertainFeedbackLatched=false, uncertainFeedbackTimer=0, liveSoundStart=0;
 let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, lastSpawnLane=null, sameLaneRun=0;
 let licenseTestActive=false, licenseHighCount=0, licenseLowCount=0;
 const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
@@ -2039,7 +2055,7 @@ function updateLicenseScreen(){
 
 function launchGameFromLicense(){
   licenseTestActive=false;
-  armed=false; inSound=false; silenceFrames=0; frames=[]; liveCommandLatched=false;
+  armed=false; inSound=false; silenceFrames=0; frames=[]; liveCommandLatched=false; uncertainFeedbackLatched=false;
   startAirplaneSoundFromUserGesture();
   startGame();
 }
@@ -2339,6 +2355,8 @@ function gameLoop(t){
 }
 function startGame(){
   if(!ctx || !gameAssetsReady)return;
+  clearUncertainGameFeedback();
+  uncertainFeedbackLatched=false;
   nextThunderUsesAlt=false;
   gamePaused=false;
   pauseStartedAt=0;
@@ -2379,6 +2397,8 @@ function pauseGame(){
   silenceFrames=0;
   frames=[];
   liveCommandLatched=false;
+  uncertainFeedbackLatched=false;
+  clearUncertainGameFeedback();
   gameStage.classList.add('paused');
   clearTimeout(stormRainTimer);
   stormRainTimer=0;
@@ -2406,6 +2426,8 @@ function resumeGame(){
   silenceFrames=0;
   frames=[];
   liveCommandLatched=false;
+  uncertainFeedbackLatched=false;
+  clearUncertainGameFeedback();
   lastGameT=0;
   if(currentWeather==='storm')stormRainTimer=setTimeout(scheduleStormRain,20);
   if(engineShouldPlay && airplaneAudio && airplaneAudio.paused){
@@ -2424,6 +2446,27 @@ function resumeGame(){
 function togglePause(){
   if(gamePaused)resumeGame();
   else pauseGame();
+}
+
+function clearUncertainGameFeedback(){
+  if(uncertainFeedbackTimer){
+    clearTimeout(uncertainFeedbackTimer);
+    uncertainFeedbackTimer=0;
+  }
+  if(planeMotionEl)planeMotionEl.classList.remove('uncertainDown','uncertainUp');
+}
+
+function triggerUncertainGameFeedback(){
+  if(!gameRunning || gamePaused || licenseTestActive || !planeMotionEl)return;
+  const cls=gameLane==='upper'?'uncertainDown':'uncertainUp';
+  clearUncertainGameFeedback();
+  // Restart the short animation reliably even after a previous uncertain blow.
+  void planeMotionEl.offsetWidth;
+  planeMotionEl.classList.add(cls);
+  uncertainFeedbackTimer=window.setTimeout(()=>{
+    uncertainFeedbackTimer=0;
+    if(planeMotionEl)planeMotionEl.classList.remove('uncertainDown','uncertainUp');
+  },520);
 }
 
 function handleGameRecognition(name){
@@ -2511,6 +2554,7 @@ function processFrame(){
       frames=[];
       liveSoundStart=performance.now();
       liveCommandLatched=false;
+      uncertainFeedbackLatched=false;
     }
     silenceFrames=0;
     const now=performance.now();
@@ -2522,9 +2566,20 @@ function processFrame(){
     const liveDuration=(now-liveSoundStart)+FRAME_MS;
     if((gameRunning || licenseTestActive) && !liveCommandLatched && liveDuration>=+minDuration.value && live && live.name!=='EPÄVARMA'){
       liveCommandLatched=true;
+      uncertainFeedbackLatched=true;
       setThresholdDisplay(liveDuration,live.best,live.gap);
       setResult(live.name,live.best,live.low,live.high);
       handleGameRecognition(live.name);
+    }
+
+    // GAME ONLY: the microphone clearly hears a sustained blow, but the
+    // real-time fingerprint still cannot classify it as high or low. Give
+    // one neutral physical acknowledgement per blow without changing lane.
+    const uncertainGraceMs=120;
+    if(gameRunning && !licenseTestActive && !liveCommandLatched && !uncertainFeedbackLatched &&
+       liveDuration>=+minDuration.value+uncertainGraceMs && live && live.name==='EPÄVARMA'){
+      uncertainFeedbackLatched=true;
+      triggerUncertainGameFeedback();
     }
   } else if(inSound){
     silenceFrames++;
@@ -2548,6 +2603,7 @@ function processFrame(){
           setThresholdDisplay(Math.max(take.duration,+minDuration.value),best,gap);
         }
         liveCommandLatched=false;
+        uncertainFeedbackLatched=false;
         if(gameRunning || licenseTestActive){armed=true;}
       }else if(duration>=+minDuration.value){
         finishCapture();
@@ -2555,6 +2611,7 @@ function processFrame(){
         setThresholdDisplay(duration,0,0);
         inSound=false;silenceFrames=0;frames=[];
         liveCommandLatched=false;
+        uncertainFeedbackLatched=false;
         confidenceEl.textContent='Ääni oli liian lyhyt. Minimi on '+minDuration.value+' ms.';
       }
     }
