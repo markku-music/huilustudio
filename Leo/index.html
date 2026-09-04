@@ -95,6 +95,32 @@ summary{cursor:pointer;color:var(--muted);font-size:13px}
 .laneLabel{position:absolute;left:14px;color:rgba(34,58,87,.55);font-weight:800;font-size:12px;letter-spacing:.12em}.laneLabel.upper{top:30%}.laneLabel.lower{top:62%}
 .car{position:absolute;z-index:5;left:10%;width:168px;height:auto;aspect-ratio:1774/887;top:38%;transform:translateY(-50%);filter:drop-shadow(0 8px 5px rgba(0,0,0,.24));will-change:top}
 .planeMotion{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
+.planeMotion.otherSoundUpper{animation:otherSoundDipUpper .52s cubic-bezier(.28,.8,.32,1)}
+.planeMotion.otherSoundLower{animation:otherSoundDipLower .52s cubic-bezier(.28,.8,.32,1)}
+.car.otherSoundMark::after{
+  content:'?';position:absolute;z-index:8;right:4%;top:-7%;
+  display:grid;place-items:center;width:clamp(30px,4.2vmin,52px);aspect-ratio:1;
+  border-radius:50%;background:rgba(255,255,255,.88);color:#234d73;
+  border:2px solid rgba(35,77,115,.30);font-size:clamp(22px,3.1vmin,38px);font-weight:1000;
+  box-shadow:0 4px 14px rgba(15,38,61,.16);pointer-events:none;
+  animation:otherSoundQuestion .52s ease-out both;
+}
+@keyframes otherSoundDipUpper{
+  0%{transform:translate3d(0,0,0)}
+  38%{transform:translate3d(0,14px,0)}
+  100%{transform:translate3d(0,0,0)}
+}
+@keyframes otherSoundDipLower{
+  0%{transform:translate3d(0,0,0)}
+  38%{transform:translate3d(0,-14px,0)}
+  100%{transform:translate3d(0,0,0)}
+}
+@keyframes otherSoundQuestion{
+  0%{opacity:0;transform:translateY(6px) scale(.72)}
+  18%{opacity:1;transform:translateY(0) scale(1)}
+  72%{opacity:1}
+  100%{opacity:0;transform:translateY(-5px) scale(.92)}
+}
 .planeAttitude{position:absolute;inset:0;transform-origin:48% 52%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
 .planeSprite{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;transform:translateZ(0)}
 .planePropMount{position:absolute;right:-12px;top:50%;width:36px;height:72px;transform:translateY(-50%);pointer-events:none}
@@ -937,7 +963,7 @@ const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLi
 const licenseCheckXEl=$('#licenseCheckX'), licenseCheckYEl=$('#licenseCheckY'), licenseFieldXEl=$('#licenseFieldX'), licenseFieldYEl=$('#licenseFieldY');
 const exportSettingsJsonEl=$('#exportSettingsJson');
 const pauseButtonEl=$('#pauseButton');
-const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
+const gameStart=$('#gameStart'), gameStage=$('#gameStage'), roadEl=$('#road'), carEl=$('#car'), planeMotionEl=$('#planeMotion'), planeAttitudeEl=$('#planeAttitude'), planePropMountEl=$('#planePropMount'), gameOverlay=$('#gameOverlay'), airplaneAudio=$('#airplaneAudio'), popAudio=$('#popAudio'), thunderAudio=$('#thunderAudio'), thunderAudioAlt=$('#thunderAudioAlt'), winterAmbienceAudio=$('#winterAmbienceAudio');
 const weatherRainEl=$('#weatherRain'), weatherSnowEl=$('#weatherSnow'), weatherLightningEl=$('#weatherLightning');
 const planeSpriteEl=document.querySelector('.planeSprite');
 const PLANE_ASSETS={clear:'plane_sunny.webp',storm:'plane_storm.webp',snow:'plane_snow.webp'};
@@ -1017,6 +1043,10 @@ let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
 let liveCommandLatched=false, liveSoundStart=0;
+// Passive game-only sound-event tracker. This NEVER changes the normal
+// pitch / harmonic recognition path. It only remembers whether a loud
+// event eventually produced a valid KORKEA or MATALA command.
+let otherSoundActive=false, otherSoundSilenceFrames=0, otherSoundRecognized=false, otherSoundFeedbackTimer=0;
 let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, lastSpawnLane=null, sameLaneRun=0;
 let licenseTestActive=false, licenseHighCount=0, licenseLowCount=0;
 const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
@@ -2362,7 +2392,7 @@ function startGame(){
   }
   planeY=laneTop('upper'); planeTargetY=planeY; planeVy=0; planePitch=0;
   setGameLane('upper','reset');
-  gameRunning=true; armed=true; inSound=false; silenceFrames=0; frames=[];
+  gameRunning=true; armed=true; inSound=false; silenceFrames=0; frames=[]; resetOtherSoundTracking();
   roadEl.classList.add('running');
   gameOverlay.classList.add('hidden'); gameStart.textContent='Aloita alusta';
   updateWinterAmbiencePlayback();
@@ -2379,6 +2409,7 @@ function pauseGame(){
   silenceFrames=0;
   frames=[];
   liveCommandLatched=false;
+  resetOtherSoundTracking();
   gameStage.classList.add('paused');
   clearTimeout(stormRainTimer);
   stormRainTimer=0;
@@ -2406,6 +2437,7 @@ function resumeGame(){
   silenceFrames=0;
   frames=[];
   liveCommandLatched=false;
+  resetOtherSoundTracking();
   lastGameT=0;
   if(currentWeather==='storm')stormRainTimer=setTimeout(scheduleStormRain,20);
   if(engineShouldPlay && airplaneAudio && airplaneAudio.paused){
@@ -2426,14 +2458,75 @@ function togglePause(){
   else pauseGame();
 }
 
+function resetOtherSoundTracking(){
+  otherSoundActive=false;
+  otherSoundSilenceFrames=0;
+  otherSoundRecognized=false;
+  if(otherSoundFeedbackTimer){clearTimeout(otherSoundFeedbackTimer);otherSoundFeedbackTimer=0;}
+  if(planeMotionEl)planeMotionEl.classList.remove('otherSoundUpper','otherSoundLower');
+  if(carEl)carEl.classList.remove('otherSoundMark');
+}
+
+function triggerOtherSoundFeedback(){
+  if(!gameRunning || gamePaused || !planeMotionEl || !carEl)return;
+  if(otherSoundFeedbackTimer){clearTimeout(otherSoundFeedbackTimer);otherSoundFeedbackTimer=0;}
+
+  planeMotionEl.classList.remove('otherSoundUpper','otherSoundLower');
+  carEl.classList.remove('otherSoundMark');
+  // Restart CSS animation even if feedback was triggered recently.
+  void planeMotionEl.offsetWidth;
+  planeMotionEl.classList.add(gameLane==='upper'?'otherSoundUpper':'otherSoundLower');
+  carEl.classList.add('otherSoundMark');
+
+  otherSoundFeedbackTimer=setTimeout(()=>{
+    planeMotionEl.classList.remove('otherSoundUpper','otherSoundLower');
+    carEl.classList.remove('otherSoundMark');
+    otherSoundFeedbackTimer=0;
+  },560);
+}
+
+function updateOtherSoundTracking(loud){
+  // This tracker is deliberately separate from inSound/frames/liveCommandLatched.
+  // It observes only the dB gate and cannot start, stop or block recognition.
+  if(!gameRunning || gamePaused){
+    otherSoundActive=false;
+    otherSoundSilenceFrames=0;
+    otherSoundRecognized=false;
+    return;
+  }
+
+  if(loud){
+    if(!otherSoundActive){
+      otherSoundActive=true;
+      otherSoundRecognized=false;
+    }
+    otherSoundSilenceFrames=0;
+    return;
+  }
+
+  if(!otherSoundActive)return;
+  otherSoundSilenceFrames++;
+  if(otherSoundSilenceFrames<END_SILENCE_FRAMES)return;
+
+  const shouldFeedback=!otherSoundRecognized;
+  otherSoundActive=false;
+  otherSoundSilenceFrames=0;
+  otherSoundRecognized=false;
+  if(shouldFeedback)triggerOtherSoundFeedback();
+}
+
 function handleGameRecognition(name){
   if(licenseTestActive){
     handleLicenseRecognition(name);
     return;
   }
   if(!gameRunning || gamePaused)return;
-  if(name==='KORKEA')setGameLane('upper','audio');
-  else if(name==='MATALA')setGameLane('lower','audio');
+  if(name==='KORKEA' || name==='MATALA'){
+    // Passive tracker only records success; it never influences recognition.
+    if(otherSoundActive)otherSoundRecognized=true;
+    if(name==='KORKEA')setGameLane('upper','audio');
+    else setGameLane('lower','audio');
+  }
 }
 
 function setResult(name,best,low,high){
@@ -2559,6 +2652,10 @@ function processFrame(){
       }
     }
   }
+
+  // IMPORTANT: run this only after the entire normal 3.79 recognition path
+  // above has had its chance to recognize this frame / finished take.
+  updateOtherSoundTracking(loud);
 }
 
 listenBtn.addEventListener('click',()=>{
@@ -2655,7 +2752,7 @@ async function stopMic(){
   micBtn.style.display='none';
   micStatus.textContent='Mikrofoni ei käytössä';
   listenBtn.disabled=true; gameStart.disabled=true;
-  gameRunning=false; gamePaused=false; pauseStartedAt=0; licenseTestActive=false; armed=false; liveCommandLatched=false;
+  gameRunning=false; gamePaused=false; pauseStartedAt=0; licenseTestActive=false; armed=false; liveCommandLatched=false; resetOtherSoundTracking();
   gameStage.classList.remove('paused');
   if(pauseButtonEl){
     pauseButtonEl.classList.remove('visible');
