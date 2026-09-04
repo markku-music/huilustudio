@@ -19,5 +19,3 @@ Tunnistuslogiikkaa EI ole muutettu 3.72-versiosta:
 - ensin korkeat, sitten matalat
 
 Varsinaisen lentopelin lentokone-, sää-, pallo-, ääni- ja törmäyslogiikkaa ei ole muutettu.
-
-3.80: Epävarma mutta kuultu ääni antaa yhden neutraalin palautteen per puhallus: yläreitillä kone notkahtaa alas ja palaa, alareitillä nousee hieman ja palaa. Samalla näkyy lyhyt ?. Lentokorkeuslogiikka ei muutu.
