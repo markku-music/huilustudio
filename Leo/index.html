@@ -96,22 +96,25 @@ summary{cursor:pointer;color:var(--muted);font-size:13px}
 .car{position:absolute;z-index:5;left:10%;width:168px;height:auto;aspect-ratio:1774/887;top:38%;transform:translateY(-50%);filter:drop-shadow(0 8px 5px rgba(0,0,0,.24));will-change:top}
 .planeMotion{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
 .soundHeardSignal{
-  position:absolute;left:50%;top:50%;width:58%;height:94%;
-  transform:translate(-50%,-50%) scale(.76);border-radius:50%;
-  border:3px solid rgba(238,249,255,.92);opacity:0;pointer-events:none;
-  filter:drop-shadow(0 0 5px rgba(120,205,255,.72));
-  transition:opacity .06s linear;z-index:8;
+  position:absolute;left:8.4%;top:29.5%;width:9.2%;aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(.95);opacity:.38;pointer-events:none;z-index:8;
+  filter:drop-shadow(0 2px 2px rgba(37,72,112,.18));
+  transition:opacity .14s ease,transform .18s ease,filter .18s ease;
 }
+.soundHeardSignal img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}
 .soundHeardSignal::before,.soundHeardSignal::after{
-  content:"";position:absolute;inset:50%;border-radius:50%;
-  border:2px solid rgba(238,249,255,.72);opacity:0;
-  transform:translate(-50%,-50%) scale(.62);pointer-events:none;
+  content:"";position:absolute;top:50%;left:58%;width:34%;height:34%;
+  border:3px solid rgba(188,241,255,.95);border-left:none;border-bottom:none;
+  border-radius:50%;opacity:0;pointer-events:none;transform-origin:0 50%;
+  transform:translateY(-50%) rotate(45deg) scale(.55);
+  filter:drop-shadow(0 0 4px rgba(146,221,255,.72));
 }
-.soundHeardSignal.active{opacity:1;animation:soundHeardCore .48s ease-in-out infinite alternate}
-.soundHeardSignal.active::before{animation:soundHeardWave .72s ease-out infinite}
-.soundHeardSignal.active::after{animation:soundHeardWave .72s ease-out .24s infinite}
-@keyframes soundHeardCore{from{transform:translate(-50%,-50%) scale(.76)}to{transform:translate(-50%,-50%) scale(.84)}}
-@keyframes soundHeardWave{0%{width:45%;height:45%;opacity:.72}100%{width:175%;height:175%;opacity:0}}
+.soundHeardSignal::after{left:68%;width:52%;height:52%;transition-delay:.06s}
+.soundHeardSignal.active{opacity:1;transform:translate(-50%,-50%) scale(1.08);filter:drop-shadow(0 0 9px rgba(127,217,255,.8)) drop-shadow(0 0 18px rgba(127,217,255,.28));animation:tailMicBob .60s ease-in-out infinite alternate}
+.soundHeardSignal.active::before{animation:tailMicWave .72s ease-out infinite}
+.soundHeardSignal.active::after{animation:tailMicWave .72s ease-out .18s infinite}
+@keyframes tailMicBob{from{transform:translate(-50%,-50%) scale(1.02)}to{transform:translate(-50%,-50%) scale(1.10)}}
+@keyframes tailMicWave{0%{opacity:.88;transform:translateY(-50%) rotate(45deg) scale(.55)}100%{opacity:0;transform:translateY(-50%) rotate(45deg) scale(1.55)}}
 .planeAttitude{position:absolute;inset:0;transform-origin:48% 52%;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
 .planeSprite{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;transform:translateZ(0)}
 .planePropMount{position:absolute;right:-12px;top:50%;width:36px;height:72px;transform:translateY(-50%);pointer-events:none}
@@ -834,7 +837,7 @@ body{
       </div>
       <div id="car" class="car" aria-label="Lentokone">
         <div id="planeMotion" class="planeMotion">
-          <div id="soundHeardSignal" class="soundHeardSignal" aria-hidden="true"></div>
+          <div id="soundHeardSignal" class="soundHeardSignal" aria-hidden="true"><img src="tail_mic.webp" alt=""></div>
           <div id="planeAttitude" class="planeAttitude">
             <img class="planeSprite" src="plane_sunny.webp" alt="">
             <div id="planePropMount" class="planePropMount"><img class="planePropSvg" src="propeller.svg" alt=""></div>
