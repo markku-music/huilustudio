@@ -2538,7 +2538,12 @@ function processFrame(){
   const loud=level.db>+dbThreshold.value;
   let f0=null,fp=null;
 
-  if(loud){
+  // A sound event is detected from LEVEL ONLY. Pitch/harmonic analysis is
+  // attempted only long enough to see whether the sound is one of the two
+  // valid control sounds. Once a sound has been acknowledged as "other",
+  // no further pitch/fingerprint work is needed for that same sound event.
+  const analyseCandidate=loud && !(gameRunning && inSound && uncertainFeedbackLatched && !liveCommandLatched);
+  if(analyseCandidate){
     f0=yin(timeData,ctx.sampleRate);
     if(f0)fp=harmonicVector(f0);
   }
@@ -2548,7 +2553,7 @@ function processFrame(){
 
   if(!armed)return;
 
-  if(loud&&f0&&fp){
+  if(loud){
     if(!inSound){
       inSound=true;
       frames=[];
@@ -2558,13 +2563,15 @@ function processFrame(){
     }
     silenceFrames=0;
     const now=performance.now();
-    frames.push({t:now,f0,fp});
-
-    // GAME: trigger as soon as the current blow has reached the minimum
-    // duration and the real-time L/H interpretation clears both thresholds.
-    // Do not wait for note-off / trailing silence.
     const liveDuration=(now-liveSoundStart)+FRAME_MS;
-    if((gameRunning || licenseTestActive) && !liveCommandLatched && liveDuration>=+minDuration.value && live && live.name!=='EPÄVARMA'){
+
+    // Keep analysis frames only when an actual measurable pitch/fingerprint
+    // exists. Non-pitched sounds are still real sound events for game feedback.
+    if(f0&&fp)frames.push({t:now,f0,fp});
+
+    // Valid HIGH/LOW command path. This is the only path that can change lane.
+    if((gameRunning || licenseTestActive) && !liveCommandLatched &&
+       liveDuration>=+minDuration.value && live && live.name!=='EPÄVARMA'){
       liveCommandLatched=true;
       uncertainFeedbackLatched=true;
       setThresholdDisplay(liveDuration,live.best,live.gap);
@@ -2572,26 +2579,27 @@ function processFrame(){
       handleGameRecognition(live.name);
     }
 
-    // GAME ONLY: the microphone clearly hears a sustained blow, but the
-    // real-time fingerprint still cannot classify it as high or low. Give
-    // one neutral physical acknowledgement per blow without changing lane.
-    const uncertainGraceMs=120;
+    // GAME ONLY: "other sound" / the famous fart detector.
+    // This depends only on: microphone heard a loud-enough sound + no valid
+    // HIGH/LOW command appeared during the short grace window. It does NOT
+    // require a measurable pitch or harmonic fingerprint.
+    const otherSoundGraceMs=120;
     if(gameRunning && !licenseTestActive && !liveCommandLatched && !uncertainFeedbackLatched &&
-       liveDuration>=+minDuration.value+uncertainGraceMs && live && live.name==='EPÄVARMA'){
+       liveDuration>=+minDuration.value+otherSoundGraceMs){
       uncertainFeedbackLatched=true;
       triggerUncertainGameFeedback();
     }
   } else if(inSound){
     silenceFrames++;
     if(silenceFrames>=END_SILENCE_FRAMES){
-      const duration=frames.length?frames[frames.length-1].t-frames[0].t:0;
+      const duration=Math.max(0,performance.now()-liveSoundStart);
       const alreadyTriggered=(gameRunning || licenseTestActive) && liveCommandLatched;
 
-      // If the lane already changed from the real-time recognition, the blow
-      // is accepted as a game command even when it was so short that only one
-      // analysis frame was captured.
+      // If the lane already changed from real-time recognition, the blow is
+      // accepted as a game command. Optional analysis data is used only for
+      // the developer readout, never for the command itself at this point.
       if(alreadyTriggered){
-        const take=makeTake(frames);
+        const take=frames.length?makeTake(frames):null;
         frames=[];
         inSound=false;
         silenceFrames=0;
@@ -2605,14 +2613,28 @@ function processFrame(){
         liveCommandLatched=false;
         uncertainFeedbackLatched=false;
         if(gameRunning || licenseTestActive){armed=true;}
-      }else if(duration>=+minDuration.value){
+      }else if(gameRunning && !licenseTestActive && uncertainFeedbackLatched){
+        // "Other sound" has already received its ? + nudge. Discard any
+        // candidate pitch data; do not run end-of-note pitch/fingerprint recognition.
+        frames=[];
+        inSound=false;
+        silenceFrames=0;
+        liveCommandLatched=false;
+        uncertainFeedbackLatched=false;
+        armed=true;
+      }else if(duration>=+minDuration.value && frames.length){
+        // License test / manual analyzer fallback: only measurable candidates
+        // can enter the existing reference recognizer.
         finishCapture();
       }else{
         setThresholdDisplay(duration,0,0);
         inSound=false;silenceFrames=0;frames=[];
         liveCommandLatched=false;
         uncertainFeedbackLatched=false;
-        confidenceEl.textContent='Ääni oli liian lyhyt. Minimi on '+minDuration.value+' ms.';
+        if(gameRunning || licenseTestActive)armed=true;
+        if(duration<+minDuration.value){
+          confidenceEl.textContent='Ääni oli liian lyhyt. Minimi on '+minDuration.value+' ms.';
+        }
       }
     }
   }
