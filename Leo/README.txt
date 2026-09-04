@@ -1,21 +1,14 @@
-LEO LENTÄJÄ – 3.73 LENTOLUPAKIRJA WEBP
+LEO LENTÄJÄ – 3.83 ÄÄNI KUULTU -SIGNAALI
 
-Pohja: 3.72 Lentolupakirja.
+Pohja: 3.79 Lentolupakirja XY.
 
-Ulkoasumuutos lupakirjatestiin:
-- lupakirjan staattinen ulkoasu on WebP-kuva: lentolupakirja.webp
-- 5 korkean äänen ja 5 matalan äänen ruksia piirretään dynaamisesti kuvan päälle
-- alareunan statuskenttä on dynaaminen:
-  KORKEA ÄÄNI x/5 • MATALA ÄÄNI x/5
-- 10/10 jälkeen status vaihtuu muotoon “LUPAKIRJA HYVÄKSYTTY”
-- “Minulla on jo lupakirja” -ohitus säilyy
-- hyväksytyn testin jälkeen näkyy Lentoon-painike
+Uusi muutos:
+- Lentopelissä näkyy neutraali vaalea pulssirengas aina, kun mikrofonitaso ylittää pelin nykyisen äänikynnyksen.
+- Oletuskynnys on -70 dB, kuten 3.79-versiossa.
+- Pulssi ei tarkoita onnistunutta tunnistusta, vaan ainoastaan että ääntä kuuluu.
+- Pulssi toimii täysin rinnakkain KORKEA/MATALA-tunnistuksen kanssa.
+- YIN-, yläsävel-, hyväksymis- ja lentokorkeuslogiikkaa ei ole muutettu.
+- Ilmapallon poksahduksen hetkellä vain uusi visuaalinen pulssi estetään 350 ms ajaksi.
+- Mikrofonia tai varsinaista tunnistusmoottoria ei sammuteta poksahduksen aikana.
 
-Tunnistuslogiikkaa EI ole muutettu 3.72-versiosta:
-- 5 hyväksyttyä korkeaa ääntä
-- 5 hyväksyttyä matalaa ääntä
-- yksi yhtäjaksoinen puhallus voi lisätä enintään yhden ruksin
-- väärä / epävarma ääni ei vähennä tulosta eikä lisää ruksia
-- ensin korkeat, sitten matalat
-
-Varsinaisen lentopelin lentokone-, sää-, pallo-, ääni- ja törmäyslogiikkaa ei ole muutettu.
+Lupakirjan XY-säädöt ja muu 3.79-version toiminta on säilytetty.
