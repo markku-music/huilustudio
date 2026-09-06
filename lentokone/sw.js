@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.16-no-start-card-cal-80';
+const CACHE_NAME = 'lentokone-pwa-base-2.1-treasure-collectibles';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,6 +8,9 @@ const APP_SHELL = [
   './pilvi_levea.webp',
   './pilvi_keski.webp',
   './pilvi_iso.webp',
+  './kerattava_kolikko.webp',
+  './kerattava_timantti.webp',
+  './kerattava_aarrearkku.webp',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',

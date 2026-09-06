@@ -144,3 +144,13 @@ BASE 1.15
 BASE 1.16
 - Aloitusnapin ympäriltä poistettu valkoinen kortti, varjo ja padding.
 - Kalibrointi-ikkunan koko pienennetty 80 %:iin aiemmasta.
+
+BASE 2.0
+- Tämä versio on hyväksytty uudeksi viralliseksi lähtöpisteeksi.
+- Pelin toimintaan, ulkoasuun tai asetuksiin ei tehty muutoksia BASE 1.16 -versioon nähden.
+
+BASE 2.1
+- Tähdet korvattu webp-kerättävinä aarteina.
+- Kultakolikko = 1 piste, timantti = 2 pistettä, aarrearkku = 5 pistettä.
+- Kerättävien esiintyvyys: kolikko 78 %, timantti 18 %, aarrearkku 4 %.
+- Pistevälähdys näyttää nyt kerätyn esineen pistearvon.
