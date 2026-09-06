@@ -271,8 +271,3 @@ Uutta 1.27
 - Laskeutumispaikan Y-oletusarvo on nyt 83,3 %.
 - Kehittäjäasetusten Y-slideri säilyy säädettävänä.
 - Oletus-JSONin landingYPercent on 83.3.
-
-
-Uutta 1.30
-- Mittariosasto on ankkuroidu suoraan ruudun alareunaan.
-- iPhonen safe-area-inset-bottom ei enää nosta HUDia Samsungia ylemmäs.
