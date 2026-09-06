@@ -12,3 +12,6 @@ Uusi muutos:
 - Mikrofonia tai varsinaista tunnistusmoottoria ei sammuteta poksahduksen aikana.
 
 Lupakirjan XY-säädöt ja muu 3.79-version toiminta on säilytetty.
+
+
+TESTIMUUTOS: pelin JavaScript-grafiikka/fysiikka on rajattu 30 fps:ään. Mikrofoni- ja yläsävelanalyysi on jätetty ennalleen. CSS-animaatioita ei ole muutettu.
