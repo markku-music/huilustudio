@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.14-no-route-visuals';
+const CACHE_NAME = 'lentokone-pwa-base-1.15-rotate-text-clean';
 const APP_SHELL = [
   './',
   './index.html',

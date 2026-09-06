@@ -137,3 +137,6 @@ BASE 1.14
 - Ylä- ja alareitin katkoviivat poistettu.
 - Myös reittivaihdon hetkellinen YLÄREITTI/ALAREITTI-vihjeteksti poistettu.
 - Reittien varsinainen pelilogiikka ja Y-koordinaatit säilyvät ennallaan.
+
+BASE 1.15
+- Käännä vaakatasoon -ikkunasta poistettu alempi selitysteksti. Jäljellä vain kääntöikoni ja teksti "Käännä vaakatasoon".
