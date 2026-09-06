@@ -1,9 +1,10 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.6-clean-ui-calibration-top';
+const CACHE_NAME = 'lentokone-pwa-base-1.8-calibration-gauge-90-30-clean';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './lentokone_sivu.webp',
+  './kalibrointi_tausta.webp',
   './pilvi_levea.webp',
   './pilvi_keski.webp',
   './pilvi_iso.webp',

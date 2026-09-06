@@ -258,9 +258,28 @@ button{font:inherit}
   font-weight:950;
   font-size:clamp(15px,2.8vw,18px);
 }
-#calOverlay{display:none;z-index:51}
+#calOverlay{display:none;z-index:51;background:rgba(20,54,78,.54);backdrop-filter:blur(5px)}
 #calOverlay.show{display:flex}
-#calText{font-size:clamp(15px,3vw,20px);font-weight:900}
+.cal-panel{
+  position:relative;
+  width:min(760px,92vw,calc(88vh * 1.5658));
+  aspect-ratio:1118/714;
+  border-radius:24px;
+  overflow:hidden;
+  filter:drop-shadow(0 18px 34px rgba(9,37,57,.34));
+}
+.cal-panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;user-select:none;-webkit-user-drag:none}
+.cal-live{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.cal-title{font:900 45px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#173f61;letter-spacing:-1px}
+.cal-scale{font:850 21px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#173f61}
+.cal-db{font:950 60px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#fff;letter-spacing:-2px}
+.cal-tick{stroke:#173f61;stroke-width:6;stroke-linecap:round}
+.cal-needle{stroke:#e84d2f;stroke-width:15;stroke-linecap:round;filter:drop-shadow(0 2px 2px rgba(54,24,16,.35))}
+.cal-needle-tip{fill:#e84d2f}
+.cal-hub{fill:#24313d;stroke:#0e1820;stroke-width:5}
+.cal-progress-track{fill:#243b4c;stroke:#a8bfd0;stroke-width:5}
+.cal-progress-fill{fill:url(#calProgressGradient)}
+@media(max-height:420px){.cal-panel{width:min(640px,92vw,calc(88vh * 1.5658))}}
 #rotateOverlay{display:none;z-index:80;background:#87cff8}
 #rotateOverlay .overlay-card{max-width:360px}
 #rotateIcon{font-size:48px;line-height:1;margin-bottom:8px}
@@ -350,10 +369,58 @@ button{font:inherit}
     </div>
   </div>
 
-  <div id="calOverlay">
-    <div class="overlay-card">
-      <h1>Kalibroidaan</h1>
-      <p id="calText">Ole hetki hiljaa…</p>
+  <div id="calOverlay" aria-live="polite">
+    <div class="cal-panel" role="status" aria-label="Mikrofonin kalibrointi">
+      <img class="cal-panel-bg" src="kalibrointi_tausta.webp" alt="">
+      <svg class="cal-live" viewBox="0 0 1118 714" aria-hidden="true">
+        <defs>
+          <linearGradient id="calGaugeGradient" x1="319" y1="0" x2="799" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#32a65a"/>
+            <stop offset="0.45" stop-color="#b7d936"/>
+            <stop offset="0.62" stop-color="#ffd13f"/>
+            <stop offset="0.82" stop-color="#ff8a29"/>
+            <stop offset="1" stop-color="#e74a35"/>
+          </linearGradient>
+          <linearGradient id="calProgressGradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#2e9af1"/>
+            <stop offset="1" stop-color="#40c85a"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Peitetään kuvan staattinen mittarisisältö ja piirretään live-mittari päälle. -->
+        <circle cx="559" cy="365" r="257" fill="#f7f4ed" opacity=".985"/>
+        <path d="M319 365 A240 240 0 0 1 799 365" fill="none" stroke="url(#calGaugeGradient)" stroke-width="48" stroke-linecap="butt"/>
+        <g id="calTicks">
+          <line class="cal-tick" x1="335" y1="365" x2="363" y2="365"/>
+          <line class="cal-tick" x1="365" y1="245" x2="390" y2="260"/>
+          <line class="cal-tick" x1="440" y1="170" x2="454" y2="195"/>
+          <line class="cal-tick" x1="559" y1="142" x2="559" y2="174"/>
+          <line class="cal-tick" x1="678" y1="170" x2="664" y2="195"/>
+          <line class="cal-tick" x1="753" y1="245" x2="728" y2="260"/>
+          <line class="cal-tick" x1="783" y1="365" x2="755" y2="365"/>
+        </g>
+        <g class="cal-scale" text-anchor="middle">
+          <text x="320" y="407">-90</text>
+          <text x="365" y="223">-80</text>
+          <text x="445" y="148">-70</text>
+          <text x="559" y="119">-60</text>
+          <text x="673" y="148">-50</text>
+          <text x="753" y="223">-40</text>
+          <text x="798" y="407">-30</text>
+        </g>
+
+        <g id="calNeedleGroup" transform="rotate(-90 559 365)">
+          <line class="cal-needle" x1="559" y1="365" x2="559" y2="178"/>
+          <circle class="cal-needle-tip" cx="559" cy="178" r="7"/>
+        </g>
+        <circle class="cal-hub" cx="559" cy="365" r="30"/>
+        <rect x="428" y="423" width="262" height="82" rx="30" fill="#243b4c" stroke="#8ba5b7" stroke-width="5"/>
+        <text id="calDbValue" class="cal-db" x="559" y="483" text-anchor="middle">– dB</text>
+
+        <rect class="cal-progress-track" x="352" y="590" width="414" height="54" rx="27"/>
+        <clipPath id="calProgressClip"><rect x="359" y="597" width="400" height="40" rx="20"/></clipPath>
+        <rect id="calProgressFill" class="cal-progress-fill" x="359" y="597" width="0" height="40" rx="20" clip-path="url(#calProgressClip)"/>
+      </svg>
     </div>
   </div>
 
@@ -401,7 +468,8 @@ const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
 const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
-const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
+const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),startError=$('#startError');
+const calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
 const devPanel=$('#devPanel');
 const dev={
   db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),
@@ -641,21 +709,44 @@ function processFrame(){
 }
 
 function sleepMs(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function updateCalibrationVisual(db,progress){
+  const shownDb=Number.isFinite(db)?Math.max(-90,Math.min(-30,db)):-90;
+  const ratio=(shownDb+90)/60;
+  const angle=-90+ratio*180;
+  calNeedleGroup.setAttribute('transform',`rotate(${angle.toFixed(2)} 559 365)`);
+  calDbValue.textContent=Number.isFinite(db)?`${Math.round(db)} dB`:'– dB';
+  calProgressFill.setAttribute('width',(400*clamp(progress,0,1)).toFixed(1));
+}
 async function calibrateMicrophoneNoiseFloor(){
   if(!analyser||!timeData)return false;
   if(timer){clearInterval(timer);timer=null}
   clearRecognition();
   calOverlay.classList.add('show');
-  calText.textContent='Ole hiljaa 1,5 sekuntia…';
-  await sleepMs(MIC_CAL_WARMUP_MS);
+  updateCalibrationVisual(-80,0);
+
+  const totalMs=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS;
+  const overallStart=performance.now();
+
+  // Lämmittely: näytetään live-taso, mutta näitä näytteitä ei käytetä kynnyksen laskentaan.
+  while(performance.now()-overallStart<MIC_CAL_WARMUP_MS){
+    analyser.getFloatTimeDomainData(timeData);
+    const level=rmsDb(timeData);
+    const elapsed=performance.now()-overallStart;
+    updateCalibrationVisual(level.db,elapsed/totalMs);
+    await sleepMs(33);
+  }
+
   const samples=[];
-  const started=performance.now();
-  while(performance.now()-started<MIC_CAL_MEASURE_MS){
+  const measureStart=performance.now();
+  while(performance.now()-measureStart<MIC_CAL_MEASURE_MS){
     analyser.getFloatTimeDomainData(timeData);
     const level=rmsDb(timeData);
     if(Number.isFinite(level.db))samples.push(level.db);
-    await sleepMs(50);
+    const elapsed=MIC_CAL_WARMUP_MS+(performance.now()-measureStart);
+    updateCalibrationVisual(level.db,elapsed/totalMs);
+    await sleepMs(33);
   }
+
   if(!samples.length){dbThreshold=-70}
   else{
     samples.sort((a,b)=>a-b);
@@ -664,6 +755,8 @@ async function calibrateMicrophoneNoiseFloor(){
     dbThreshold=Math.max(-70,Math.min(-20,Math.round(noiseFloor+MIC_CAL_MARGIN_DB)));
   }
   dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
+  updateCalibrationVisual(samples.length?samples[Math.floor(samples.length/2)]:-80,1);
+  await sleepMs(180);
   timer=setInterval(processFrame,FRAME_MS);
   calOverlay.classList.remove('show');
   return true;

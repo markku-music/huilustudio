@@ -106,3 +106,15 @@ BASE 1.6
 - Nollaa pisteet -painike poistettu asetuksista.
 - JSON-tuonti, JSON-vienti ja oletus-JSON-tiedosto poistettu.
 - Propellin ja nokan nykyiset toimivat arvot on lukittu suoraan appiin.
+
+BASE 1.7
+- Kalibrointi-ikkuna vaihdettu visuaaliseen lentomittaripaneeliin.
+- SVG-neula näyttää reaaliaikaisen melutason kalibroinnin aikana.
+- dB-lukema päivittyy livenä.
+- Vaakasuora palkki näyttää kalibroinnin etenemisen.
+- Kalibrointi sulkeutuu automaattisesti valmistuttuaan.
+
+BASE 1.8
+- Kalibrointimittarin asteikko muutettu alueelle -90 dB ... -30 dB.
+- Kalibrointinäkymän live-otsikko "Kalibroi mikrofoni" poistettu.
+- Taustakuvasta siivottu pois staattiset dB-tekstit ja staattinen aikapalkki, koska live-SVG piirtää ne nyt itse.
