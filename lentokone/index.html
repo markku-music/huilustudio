@@ -1382,9 +1382,20 @@ function gameLoop(now){
 }
 
 async function enterImmersiveMode(){
-  // Fullscreen tulee asennetun PWA:n manifestista. Emme kutsu
-  // requestFullscreen()-API:a, koska Android/Chrome näyttää silloin
-  // käyttöjärjestelmän oman poistumisvihjeen koko näytön tilasta.
+  const root=document.documentElement;
+  try{
+    if(!document.fullscreenElement && root.requestFullscreen){
+      try{
+        await root.requestFullscreen({navigationUI:'hide'});
+      }catch(_optionsErr){
+        // Vanhemmat Android/Chrome-versiot eivät tunne navigationUI-optiota.
+        await root.requestFullscreen();
+      }
+    }
+  }catch(_fullscreenErr){
+    // Asennettu fullscreen-PWA voi jo olla koko näytön tilassa.
+    // Pelin käynnistymistä ei estetä, vaikka selain torjuisi pyynnön.
+  }
   try{
     if(screen.orientation?.lock){
       await screen.orientation.lock('landscape');
