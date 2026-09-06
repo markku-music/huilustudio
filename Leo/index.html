@@ -802,6 +802,25 @@ body{
 .dbCompareActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 #dbMeasureStatus{font-weight:800;opacity:1;color:#315a78}
 #dbMeasureButton.active{background:#e85d3f;color:#fff}
+.profileCompareBox{
+  margin:10px 0 14px;padding:12px;border:1px solid rgba(18,67,108,.22);
+  border-radius:14px;background:rgba(255,255,255,.94);color:#173f61;
+}
+.profileCompareTitle{font-weight:900;margin-bottom:8px;color:#173f61}
+.profileCompareGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.profileCompareMetric{padding:8px 8px;border-radius:10px;background:rgba(230,244,255,.96);text-align:center;color:#173f61}
+.profileCompareMetric span{display:block;font-size:11px;color:#315a78;margin-bottom:3px;font-weight:800}
+.profileCompareMetric strong{font-size:clamp(16px,2.1vw,23px);color:#102f49;white-space:nowrap}
+.profileCompareActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+#profileMeasureStatus{font-weight:800;color:#315a78}
+#profileMeasureButton.active{background:#e85d3f;color:#fff}
+.profileFrozen{margin-top:10px;padding-top:9px;border-top:1px solid rgba(18,67,108,.15)}
+.profileFrozenLabel{font-size:12px;font-weight:900;color:#315a78;margin-bottom:6px}
+@media(max-width:760px){
+  .profileCompareGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .profileCompareMetric{padding:6px}
+  .profileCompareMetric strong{font-size:16px}
+}
 @media(max-width:620px){.dbCompareGrid{grid-template-columns:1fr 1fr 1fr}.dbCompareMetric{padding:6px}.dbCompareMetric strong{font-size:17px}}
 
 </style>
@@ -948,7 +967,32 @@ body{
             <button id="dbMeasureButton" type="button">Aloita 3 s mittaus</button>
             <span id="dbMeasureStatus">Puhalla normaalisti koko mittauksen ajan.</span>
           </div>
-        </div>        <label class="setting"><span>Sää</span><select id="weatherMode"><option value="clear">Aurinkoinen</option><option value="storm">Ukkonen</option><option value="snow" selected>Luminen</option></select><strong id="weatherModeVal">Luminen</strong></label>
+        </div>
+        <div class="profileCompareBox">
+          <div class="profileCompareTitle">Samsung / iPad ääniprofiilivertailu</div>
+          <div class="profileCompareGrid">
+            <div class="profileCompareMetric"><span>F0</span><strong id="profileLiveF0">– Hz</strong></div>
+            <div class="profileCompareMetric"><span>LOW</span><strong id="profileLiveLow">– %</strong></div>
+            <div class="profileCompareMetric"><span>HIGH</span><strong id="profileLiveHigh">– %</strong></div>
+            <div class="profileCompareMetric"><span>Paras</span><strong id="profileLiveBest">– %</strong></div>
+            <div class="profileCompareMetric"><span>Ero</span><strong id="profileLiveGap">– pp</strong></div>
+          </div>
+          <div class="profileCompareActions">
+            <button id="profileMeasureButton" type="button">Aloita 3 s profiilimittaus</button>
+            <span id="profileMeasureStatus">Puhalla sama ääni koko mittauksen ajan.</span>
+          </div>
+          <div class="profileFrozen">
+            <div class="profileFrozenLabel">3 s keskiarvot</div>
+            <div class="profileCompareGrid">
+              <div class="profileCompareMetric"><span>F0</span><strong id="profileAvgF0">– Hz</strong></div>
+              <div class="profileCompareMetric"><span>LOW</span><strong id="profileAvgLow">– %</strong></div>
+              <div class="profileCompareMetric"><span>HIGH</span><strong id="profileAvgHigh">– %</strong></div>
+              <div class="profileCompareMetric"><span>Paras</span><strong id="profileAvgBest">– %</strong></div>
+              <div class="profileCompareMetric"><span>Ero</span><strong id="profileAvgGap">– pp</strong></div>
+            </div>
+          </div>
+        </div>
+        <label class="setting"><span>Sää</span><select id="weatherMode"><option value="clear">Aurinkoinen</option><option value="storm">Ukkonen</option><option value="snow" selected>Luminen</option></select><strong id="weatherModeVal">Luminen</strong></label>
         <label class="setting"><span>Ukkosheilunnan määrä</span><input id="stormShakeAmount" type="range" min="0" max="500" step="1" value="100"><strong id="stormShakeAmountVal">100 %</strong></label>
         <label class="setting"><span>Ukkosheilunnan nopeus</span><input id="stormShakeSpeed" type="range" min="25" max="250" step="1" value="100"><strong id="stormShakeSpeedVal">100 %</strong></label>
         <label class="setting"><span>Lumisade</span><input id="snowAmount" type="range" min="0" max="100" step="1" value="100"><strong id="snowAmountVal">100 %</strong></label>
@@ -1081,6 +1125,107 @@ function updateDbMeasure(level){
   }
 }
 if(dbMeasureUi.button) dbMeasureUi.button.addEventListener('click',startDbMeasure);
+
+const profileUi={
+  f0:$('#profileLiveF0'), low:$('#profileLiveLow'), high:$('#profileLiveHigh'),
+  best:$('#profileLiveBest'), gap:$('#profileLiveGap'),
+  avgF0:$('#profileAvgF0'), avgLow:$('#profileAvgLow'), avgHigh:$('#profileAvgHigh'),
+  avgBest:$('#profileAvgBest'), avgGap:$('#profileAvgGap'),
+  button:$('#profileMeasureButton'), status:$('#profileMeasureStatus')
+};
+let profileMeasureActive=false;
+let profileMeasureStartedAt=0;
+let profileMeasureFrames=[];
+
+function resetProfileMeasure(){
+  profileMeasureActive=false;
+  profileMeasureStartedAt=0;
+  profileMeasureFrames=[];
+  if(profileUi.avgF0) profileUi.avgF0.textContent='– Hz';
+  if(profileUi.avgLow) profileUi.avgLow.textContent='– %';
+  if(profileUi.avgHigh) profileUi.avgHigh.textContent='– %';
+  if(profileUi.avgBest) profileUi.avgBest.textContent='– %';
+  if(profileUi.avgGap) profileUi.avgGap.textContent='– pp';
+  if(profileUi.button){
+    profileUi.button.classList.remove('active');
+    profileUi.button.textContent='Aloita 3 s profiilimittaus';
+  }
+  if(profileUi.status) profileUi.status.textContent='Puhalla sama ääni koko mittauksen ajan.';
+}
+
+function startProfileMeasure(){
+  if(!ctx || !analyser){
+    if(profileUi.status) profileUi.status.textContent='Käynnistä mikrofoni ensin.';
+    return;
+  }
+  profileMeasureActive=true;
+  profileMeasureStartedAt=performance.now();
+  profileMeasureFrames=[];
+  profileUi.avgF0.textContent='…';
+  profileUi.avgLow.textContent='…';
+  profileUi.avgHigh.textContent='…';
+  profileUi.avgBest.textContent='…';
+  profileUi.avgGap.textContent='…';
+  profileUi.button.classList.add('active');
+  profileUi.button.textContent='Mittaus käynnissä…';
+  profileUi.status.textContent='Puhalla nyt sama ääni 3 sekuntia.';
+}
+
+function updateProfileDiagnostics(f0,live,loud){
+  if(loud && live && Number.isFinite(f0)){
+    profileUi.f0.textContent=f0.toFixed(1)+' Hz';
+    profileUi.low.textContent=live.low.toFixed(1)+' %';
+    profileUi.high.textContent=live.high.toFixed(1)+' %';
+    profileUi.best.textContent=live.best.toFixed(1)+' %';
+    profileUi.gap.textContent=live.gap.toFixed(1)+' pp';
+  }else{
+    profileUi.f0.textContent='– Hz';
+    profileUi.low.textContent='– %';
+    profileUi.high.textContent='– %';
+    profileUi.best.textContent='– %';
+    profileUi.gap.textContent='– pp';
+  }
+
+  if(!profileMeasureActive) return;
+
+  if(loud && live && Number.isFinite(f0)){
+    profileMeasureFrames.push({
+      f0,
+      low:live.low,
+      high:live.high,
+      best:live.best,
+      gap:live.gap
+    });
+  }
+
+  const elapsed=performance.now()-profileMeasureStartedAt;
+  const left=Math.max(0,(3000-elapsed)/1000);
+  profileUi.status.textContent='Mittaus '+left.toFixed(1)+' s';
+
+  if(elapsed>=3000){
+    profileMeasureActive=false;
+    profileUi.button.classList.remove('active');
+    profileUi.button.textContent='Mittaa uudelleen';
+
+    if(profileMeasureFrames.length){
+      const avg=k=>profileMeasureFrames.reduce((s,v)=>s+v[k],0)/profileMeasureFrames.length;
+      profileUi.avgF0.textContent=avg('f0').toFixed(1)+' Hz';
+      profileUi.avgLow.textContent=avg('low').toFixed(1)+' %';
+      profileUi.avgHigh.textContent=avg('high').toFixed(1)+' %';
+      profileUi.avgBest.textContent=avg('best').toFixed(1)+' %';
+      profileUi.avgGap.textContent=avg('gap').toFixed(1)+' pp';
+      profileUi.status.textContent='Valmis. Ota nämä viisi lukua talteen.';
+    }else{
+      profileUi.avgF0.textContent='– Hz';
+      profileUi.avgLow.textContent='– %';
+      profileUi.avgHigh.textContent='– %';
+      profileUi.avgBest.textContent='– %';
+      profileUi.avgGap.textContent='– pp';
+      profileUi.status.textContent='Mittaus ei saanut kelvollista ääntä.';
+    }
+  }
+}
+if(profileUi.button) profileUi.button.addEventListener('click',startProfileMeasure);
 
 
 const GAME_ASSETS=[
@@ -2716,6 +2861,7 @@ function processFrame(){
 
   updateLiveLevel(level.db);
   const live=updateLiveInterpretation(f0,fp,loud);
+  updateProfileDiagnostics(f0,live,loud);
 
   if(!armed)return;
 
