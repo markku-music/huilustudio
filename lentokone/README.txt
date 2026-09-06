@@ -154,3 +154,7 @@ BASE 2.1
 - Kultakolikko = 1 piste, timantti = 2 pistettä, aarrearkku = 5 pistettä.
 - Kerättävien esiintyvyys: kolikko 78 %, timantti 18 %, aarrearkku 4 %.
 - Pistevälähdys näyttää nyt kerätyn esineen pistearvon.
+
+BASE 2.2
+- Kultakolikko korvattu tyylitellyllä eurokolikko-assetilla.
+- Timantti (2 p) ja aarrearkku (5 p) säilyvät ennallaan.

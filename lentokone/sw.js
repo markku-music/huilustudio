@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-2.1-treasure-collectibles';
+const CACHE_NAME = 'lentokone-pwa-base-2.2-euro-coin';
 const APP_SHELL = [
   './',
   './index.html',
