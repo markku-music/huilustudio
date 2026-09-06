@@ -1,4 +1,4 @@
-Lentokone – PWA 1.3 Refresh
+Lentokone – PWA 1.4 – ilman vakautta
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -10,13 +10,19 @@ Uutta 1.1
 - Pilvien koko ja määrä mukautuvat samaan viewport-skaalaan.
 - Service workerin cache-versio on päivitetty, jotta PWA ei jää käyttämään vanhaa näkymää.
 
+Muutos 1.4
+- Vakaustoiminto on poistettu kokonaan.
+- Vakauslaskentaa ei enää tehdä.
+- Kehittäjäpaneelin vakausmittari on poistettu.
+- Koneen vakauteen perustuva väpätys on poistettu.
+- LOW/HIGH-tunnistus ja muu äänimoottori on jätetty ennalleen.
+
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.
 - ★ tähti oikealla reitillä -> +1 piste.
 - 🛸 UFO -> +2 pistettä, noin 7 % kerättävistä.
 - 🚀 raketti -> +10 pistettä, noin 1 % kerättävistä.
-- Vakaus vaikuttaa koneen väpätykseen.
 - Äänen loputtua kone jää viimeiselle valitulle reitille.
 - Korkeuden vaihto käyttää 780 ms pehmeää smootherstep-siirtymää.
 
@@ -30,7 +36,7 @@ Pilvet 2.2
 - Usvaominaisuus on poistettu kokonaan. Koneen blur/opacity ei enää reagoi pilviin.
 
 Kehittäjätila
-- dBFS, mikrofonikynnys, F0, vakaus, LOW/HIGH, BEST, GAP, tunnistus ja puhalluksen pituus
+- dBFS, mikrofonikynnys, F0, LOW/HIGH, BEST, GAP, tunnistus ja puhalluksen pituus
 - propelli X/Y/koko/sivukääntö/idle-nopeus/aktiivinen nopeus
 - nokan kallistus
 - JSON vienti/tuonti
@@ -62,7 +68,6 @@ JSON
 - hyväksymisraja 50 %
 - LOW/HIGH-erotteluraja 7 pp
 - autokalibrointi = pohjataso + 10 dB
-- vakaus = 200 ms attack-ohitus + 400 ms raaka F0 -ikkuna centeissä
 
 Tiedostot
 - index.html

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.3-bonus-safe';
+const CACHE_NAME = 'lentokone-pwa-v1.4-no-stability';
 const APP_SHELL = [
   './',
   './index.html',
