@@ -788,6 +788,21 @@ body{
   .licenseActions button{min-width:150px;min-height:40px;padding:7px 12px;font-size:13px}
 }
 
+/* Laitekohtainen dB-vertailumittaus: ei muuta tunnistuslogiikkaa. */
+.dbCompareBox{
+  margin:10px 0 14px;padding:12px;border:1px solid rgba(18,67,108,.22);
+  border-radius:14px;background:rgba(255,255,255,.82);
+}
+.dbCompareTitle{font-weight:900;margin-bottom:8px;color:#173f61}
+.dbCompareGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dbCompareMetric{padding:8px 10px;border-radius:10px;background:rgba(230,244,255,.85);text-align:center}
+.dbCompareMetric span{display:block;font-size:12px;opacity:.72;margin-bottom:3px}
+.dbCompareMetric strong{font-size:clamp(18px,2.5vw,26px)}
+.dbCompareActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+#dbMeasureStatus{font-weight:800;opacity:.8}
+#dbMeasureButton.active{background:#e85d3f;color:#fff}
+@media(max-width:620px){.dbCompareGrid{grid-template-columns:1fr 1fr 1fr}.dbCompareMetric{padding:6px}.dbCompareMetric strong{font-size:17px}}
+
 </style>
 </head>
 <body>
@@ -898,6 +913,18 @@ body{
           <div class="liveMetric"><span>Perustaajuus</span><strong id="liveHz">– Hz</strong></div>
           <div class="liveMetric"><span>Kuuleeko äänen?</span><strong id="liveHeard">EI</strong></div>
         </div>
+        <div class="dbCompareBox">
+          <div class="dbCompareTitle">Samsung / iPad dB-vertailu</div>
+          <div class="dbCompareGrid">
+            <div class="dbCompareMetric"><span>Live</span><strong id="dbMeasureLive">– dB</strong></div>
+            <div class="dbCompareMetric"><span>3 s keskiarvo</span><strong id="dbMeasureAvg">– dB</strong></div>
+            <div class="dbCompareMetric"><span>3 s huippu</span><strong id="dbMeasurePeak">– dB</strong></div>
+          </div>
+          <div class="dbCompareActions">
+            <button id="dbMeasureButton" type="button">Aloita 3 s mittaus</button>
+            <span id="dbMeasureStatus">Puhalla normaalisti koko mittauksen ajan.</span>
+          </div>
+        </div>
         <div class="liveCompare">
           <div class="liveScore"><div class="liveScoreHead"><span>Matala</span><strong id="liveLow">–</strong></div><div class="liveBar"><i id="liveLowBar" class="lowFill"></i></div></div>
           <div class="liveScore"><div class="liveScoreHead"><span>Korkea</span><strong id="liveHigh">–</strong></div><div class="liveBar"><i id="liveHighBar" class="highFill"></i></div></div>
@@ -995,6 +1022,65 @@ const liveUi={
   hz:$('#liveHz'), heard:$('#liveHeard'), low:$('#liveLow'), high:$('#liveHigh'),
   lowBar:$('#liveLowBar'), highBar:$('#liveHighBar'), interpretation:$('#liveInterpretation')
 };
+
+const dbMeasureUi={
+  live:$('#dbMeasureLive'), avg:$('#dbMeasureAvg'), peak:$('#dbMeasurePeak'),
+  button:$('#dbMeasureButton'), status:$('#dbMeasureStatus')
+};
+let dbMeasureActive=false;
+let dbMeasureStartedAt=0;
+let dbMeasurePowerSum=0;
+let dbMeasureFrames=0;
+let dbMeasurePeak=-Infinity;
+
+function resetDbMeasure(){
+  dbMeasureActive=false;
+  dbMeasureStartedAt=0;
+  dbMeasurePowerSum=0;
+  dbMeasureFrames=0;
+  dbMeasurePeak=-Infinity;
+  if(dbMeasureUi.avg) dbMeasureUi.avg.textContent='– dB';
+  if(dbMeasureUi.peak) dbMeasureUi.peak.textContent='– dB';
+  if(dbMeasureUi.button){dbMeasureUi.button.classList.remove('active');dbMeasureUi.button.textContent='Aloita 3 s mittaus';}
+  if(dbMeasureUi.status) dbMeasureUi.status.textContent='Puhalla normaalisti koko mittauksen ajan.';
+}
+function startDbMeasure(){
+  if(!analyser){
+    if(dbMeasureUi.status) dbMeasureUi.status.textContent='Käynnistä mikrofoni ensin.';
+    return;
+  }
+  dbMeasureActive=true;
+  dbMeasureStartedAt=performance.now();
+  dbMeasurePowerSum=0;
+  dbMeasureFrames=0;
+  dbMeasurePeak=-Infinity;
+  dbMeasureUi.avg.textContent='…';
+  dbMeasureUi.peak.textContent='…';
+  dbMeasureUi.button.classList.add('active');
+  dbMeasureUi.button.textContent='Mittaus käynnissä…';
+  dbMeasureUi.status.textContent='Puhalla nyt normaalisti 3 sekuntia.';
+}
+function updateDbMeasure(level){
+  if(dbMeasureUi.live) dbMeasureUi.live.textContent=Number.isFinite(level.db)?level.db.toFixed(1)+' dB':'– dB';
+  if(!dbMeasureActive || !Number.isFinite(level.db) || !Number.isFinite(level.rms)) return;
+  dbMeasurePowerSum += level.rms*level.rms;
+  dbMeasureFrames++;
+  if(level.db>dbMeasurePeak) dbMeasurePeak=level.db;
+  const elapsed=performance.now()-dbMeasureStartedAt;
+  const left=Math.max(0,3-elapsed/1000);
+  dbMeasureUi.status.textContent='Mittaus '+left.toFixed(1)+' s';
+  if(elapsed>=3000){
+    dbMeasureActive=false;
+    const avgDb=dbMeasureFrames?10*Math.log10(Math.max(1e-24,dbMeasurePowerSum/dbMeasureFrames)):-Infinity;
+    dbMeasureUi.avg.textContent=Number.isFinite(avgDb)?avgDb.toFixed(1)+' dB':'– dB';
+    dbMeasureUi.peak.textContent=Number.isFinite(dbMeasurePeak)?dbMeasurePeak.toFixed(1)+' dB':'– dB';
+    dbMeasureUi.button.classList.remove('active');
+    dbMeasureUi.button.textContent='Mittaa uudelleen';
+    dbMeasureUi.status.textContent='Valmis. Ota nämä kaksi lukua talteen.';
+  }
+}
+if(dbMeasureUi.button) dbMeasureUi.button.addEventListener('click',startDbMeasure);
+
 
 const GAME_ASSETS=[
   'sky_realistic.webp',
@@ -2617,6 +2703,7 @@ function processFrame(){
   analyser.getFloatTimeDomainData(timeData);
   analyser.getFloatFrequencyData(freqData);
   const level=rmsDb(timeData);
+  updateDbMeasure(level);
   const loud=level.db>+dbThreshold.value;
   updateSoundHeardSignal(loud);
   let f0=null,fp=null;

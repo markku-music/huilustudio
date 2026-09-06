@@ -23,3 +23,7 @@ MIKROFONI RAW -TESTI:
 - Testissä poistetaan lisäksi voiceIsolation, jos selain tukee sitä.
 - Mikrofoni-tilariville tulostetaan selaimen track.getSettings()-arvot (EC/NS/AGC/VI), jotta nähdään, toteutuivatko pyydetyt asetukset Samsungissa.
 - YIN-, yläsävel-, kynnys- ja pelilogiikkaa ei muutettu.
+
+
+DB-VERTAILUTESTI:
+Avaa asetukset (ratas), käynnistä mikrofoni ja paina "Aloita 3 s mittaus". Puhalla samalla tavalla iPadilla ja Samsungilla. Vertaa 3 s keskiarvoa ja huippua. Mittaus ei muuta tunnistuslogiikkaa tai dB-kynnystä.
