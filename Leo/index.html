@@ -913,18 +913,6 @@ body{
           <div class="liveMetric"><span>Perustaajuus</span><strong id="liveHz">– Hz</strong></div>
           <div class="liveMetric"><span>Kuuleeko äänen?</span><strong id="liveHeard">EI</strong></div>
         </div>
-        <div class="dbCompareBox">
-          <div class="dbCompareTitle">Samsung / iPad dB-vertailu</div>
-          <div class="dbCompareGrid">
-            <div class="dbCompareMetric"><span>Live</span><strong id="dbMeasureLive">– dB</strong></div>
-            <div class="dbCompareMetric"><span>3 s keskiarvo</span><strong id="dbMeasureAvg">– dB</strong></div>
-            <div class="dbCompareMetric"><span>3 s huippu</span><strong id="dbMeasurePeak">– dB</strong></div>
-          </div>
-          <div class="dbCompareActions">
-            <button id="dbMeasureButton" type="button">Aloita 3 s mittaus</button>
-            <span id="dbMeasureStatus">Puhalla normaalisti koko mittauksen ajan.</span>
-          </div>
-        </div>
         <div class="liveCompare">
           <div class="liveScore"><div class="liveScoreHead"><span>Matala</span><strong id="liveLow">–</strong></div><div class="liveBar"><i id="liveLowBar" class="lowFill"></i></div></div>
           <div class="liveScore"><div class="liveScoreHead"><span>Korkea</span><strong id="liveHigh">–</strong></div><div class="liveBar"><i id="liveHighBar" class="highFill"></i></div></div>
@@ -947,7 +935,19 @@ body{
       </div>
 
       <details open>
-        <summary>Testiasetukset</summary>        <label class="setting"><span>Sää</span><select id="weatherMode"><option value="clear">Aurinkoinen</option><option value="storm">Ukkonen</option><option value="snow" selected>Luminen</option></select><strong id="weatherModeVal">Luminen</strong></label>
+        <summary>Testiasetukset</summary>
+        <div class="dbCompareBox">
+          <div class="dbCompareTitle">Samsung / iPad dB-vertailu</div>
+          <div class="dbCompareGrid">
+            <div class="dbCompareMetric"><span>Live</span><strong id="dbMeasureLive">– dB</strong></div>
+            <div class="dbCompareMetric"><span>3 s keskiarvo</span><strong id="dbMeasureAvg">– dB</strong></div>
+            <div class="dbCompareMetric"><span>3 s huippu</span><strong id="dbMeasurePeak">– dB</strong></div>
+          </div>
+          <div class="dbCompareActions">
+            <button id="dbMeasureButton" type="button">Aloita 3 s mittaus</button>
+            <span id="dbMeasureStatus">Puhalla normaalisti koko mittauksen ajan.</span>
+          </div>
+        </div>        <label class="setting"><span>Sää</span><select id="weatherMode"><option value="clear">Aurinkoinen</option><option value="storm">Ukkonen</option><option value="snow" selected>Luminen</option></select><strong id="weatherModeVal">Luminen</strong></label>
         <label class="setting"><span>Ukkosheilunnan määrä</span><input id="stormShakeAmount" type="range" min="0" max="500" step="1" value="100"><strong id="stormShakeAmountVal">100 %</strong></label>
         <label class="setting"><span>Ukkosheilunnan nopeus</span><input id="stormShakeSpeed" type="range" min="25" max="250" step="1" value="100"><strong id="stormShakeSpeedVal">100 %</strong></label>
         <label class="setting"><span>Lumisade</span><input id="snowAmount" type="range" min="0" max="100" step="1" value="100"><strong id="snowAmountVal">100 %</strong></label>
