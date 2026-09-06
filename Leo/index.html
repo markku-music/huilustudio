@@ -816,6 +816,16 @@ body{
 #profileMeasureButton.active{background:#e85d3f;color:#fff}
 .profileFrozen{margin-top:10px;padding-top:9px;border-top:1px solid rgba(18,67,108,.15)}
 .profileFrozenLabel{font-size:12px;font-weight:900;color:#315a78;margin-bottom:6px}
+.autoCalStatus{
+  margin:-2px 0 10px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:rgba(230,244,255,.94);
+  color:#315a78;
+  font-size:12px;
+  line-height:1.35;
+  font-weight:800;
+}
 .f0DistBox{margin-top:12px;padding-top:10px;border-top:1px solid rgba(18,67,108,.15)}
 .f0DistSummary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:9px}
 .f0DistMetric{padding:7px 8px;border-radius:9px;background:rgba(245,250,255,.98);text-align:center}
@@ -1032,6 +1042,7 @@ body{
         <label class="setting"><span>Myrskypilvien brightness</span><input id="stormDeckBrightness" type="range" min="50" max="150" step="1" value="100"><strong id="stormDeckBrightnessVal">100 %</strong></label>
         <label class="setting"><span>Myrskypilvien contrast</span><input id="stormDeckContrast" type="range" min="50" max="150" step="1" value="104"><strong id="stormDeckContrastVal">104 %</strong></label>
         <label class="setting"><span>Äänikynnys</span><input id="dbThreshold" type="range" min="-70" max="-20" step="1" value="-70"><strong id="dbVal">−70 dB</strong></label>
+        <div id="autoCalStatus" class="autoCalStatus">Autokalibrointi tehdään aina mikrofonin käynnistyessä.</div>
         <label class="setting"><span>Minimipituus</span><input id="minDuration" type="range" min="0" max="1000" step="20" value="0"><strong id="minDurationVal">0 ms</strong></label>
         <label class="setting"><span>Hyväksymisraja</span><input id="accept" type="range" min="50" max="95" step="1" value="50"><strong id="acceptVal">50 %</strong></label>
         <label class="setting"><span>Erotteluraja</span><input id="margin" type="range" min="0" max="30" step="1" value="7"><strong id="marginVal">7 %</strong></label>
@@ -1074,6 +1085,7 @@ const $=s=>document.querySelector(s);
 const micBtn=$('#mic'), listenBtn=$('#listen'), micStatus=$('#micStatus');
 const resultEl=$('#result'), confidenceEl=$('#confidence'), confBar=$('#confBar');
 const dbThreshold=$('#dbThreshold'), minDuration=$('#minDuration'), accept=$('#accept'), margin=$('#margin');
+const autoCalStatus=$('#autoCalStatus');
 const engineVolumeEl=$('#engineVolume'), thunderVolumeEl=$('#thunderVolume'), winterAmbienceVolumeEl=$('#winterAmbienceVolume'), popVolumeEl=$('#popVolume'), fingerprintOpacityEl=$('#fingerprintOpacity');
 const planeSizeEl=$('#planeSize'), balloonSizeEl=$('#balloonSize'), cloudLowerLimitEl=$('#cloudLowerLimit'), cloudCountEl=$('#cloudCount'), stormDeckBrightnessEl=$('#stormDeckBrightness'), stormDeckContrastEl=$('#stormDeckContrast'), weatherModeEl=$('#weatherMode'), stormShakeAmountEl=$('#stormShakeAmount'), stormShakeSpeedEl=$('#stormShakeSpeed'), snowAmountEl=$('#snowAmount');
 const licenseCheckXEl=$('#licenseCheckX'), licenseCheckYEl=$('#licenseCheckY'), licenseFieldXEl=$('#licenseFieldX'), licenseFieldYEl=$('#licenseFieldY');
@@ -2972,6 +2984,60 @@ function finishCapture(){
     armed=true; inSound=false; silenceFrames=0; frames=[];
   }
 }
+
+const MIC_CAL_WARMUP_MS=250;
+const MIC_CAL_MEASURE_MS=1500;
+const MIC_CAL_MARGIN_DB=10;
+
+function sleepMs(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
+
+async function calibrateMicrophoneNoiseFloor(){
+  if(!analyser || !timeData) return null;
+
+  if(autoCalStatus) autoCalStatus.textContent='Kalibroidaan mikrofonia… älä puhalla 1,5 sekuntiin.';
+  micStatus.textContent='Kalibroidaan mikrofonin pohjatasoa… älä puhalla.';
+
+  // Pieni lämpenemisaika antaa selaimen ja laitteen mikrofoniketjun asettua.
+  await sleepMs(MIC_CAL_WARMUP_MS);
+
+  const samples=[];
+  const started=performance.now();
+
+  while(performance.now()-started < MIC_CAL_MEASURE_MS){
+    analyser.getFloatTimeDomainData(timeData);
+    const level=rmsDb(timeData);
+    if(Number.isFinite(level.db)) samples.push(level.db);
+    await sleepMs(50);
+  }
+
+  if(!samples.length){
+    if(autoCalStatus) autoCalStatus.textContent='Autokalibrointi ei saanut pohjatasoa mitattua. Käytetään nykyistä kynnystä.';
+    return null;
+  }
+
+  // Mediaani kestää yksittäiset napsahdukset paremmin kuin tavallinen keskiarvo.
+  samples.sort((a,b)=>a-b);
+  const mid=Math.floor(samples.length/2);
+  const noiseFloor=samples.length%2
+    ? samples[mid]
+    : (samples[mid-1]+samples[mid])/2;
+
+  // Kynnys asetetaan 10 dB laitteen oman pohjatason yläpuolelle.
+  // Nykyisen liukurin turvallinen alue säilytetään -70...-20 dB.
+  const threshold=Math.max(-70,Math.min(-20,Math.round(noiseFloor+MIC_CAL_MARGIN_DB)));
+
+  dbThreshold.value=String(threshold);
+  dbThreshold.dispatchEvent(new Event('input',{bubbles:true}));
+
+  const floorText=noiseFloor.toFixed(1).replace('-', '−');
+  const thresholdText=String(threshold).replace('-', '−');
+  if(autoCalStatus){
+    autoCalStatus.textContent=`Pohjataso ${floorText} dB → automaattinen äänikynnys ${thresholdText} dB (+${MIC_CAL_MARGIN_DB} dB).`;
+  }
+
+  return {noiseFloor,threshold};
+}
+
 function processFrame(){
   if(gamePaused){
     if(soundHeardSignalEl)soundHeardSignalEl.classList.remove('active');
@@ -3219,6 +3285,12 @@ async function startMic(autoStart=false){
 
     timeData=new Float32Array(analyser.fftSize);
     freqData=new Float32Array(analyser.frequencyBinCount);
+
+    // Laitekohtainen automaattinen pohjatason mittaus ennen pelin analyysilooppia.
+    // Näin esimerkiksi iPadin ja Samsungin hyvin erilaiset dBFS-tasot
+    // eivät joudu käyttämään samaa kiinteää -70 dB rajaa.
+    const calibration=await calibrateMicrophoneNoiseFloor();
+
     timer=setInterval(processFrame,FRAME_MS);
 
     micBtn.textContent='Pysäytä mikrofoni';
@@ -3232,7 +3304,8 @@ async function startMic(autoStart=false){
       fmt('autoGainControl','AGC')
     ];
     if('voiceIsolation' in s) diag.push(fmt('voiceIsolation','VI'));
-    micStatus.textContent='Mikrofoni aktiivinen · '+diag.join(' · ');
+    micStatus.textContent='Mikrofoni aktiivinen · '+diag.join(' · ')
+      +' · kynnys '+dbThreshold.value.replace('-','−')+' dB';
     listenBtn.disabled=false; gameStart.disabled=false;
     const thresholdPct=Math.max(0,Math.min(100,(+dbThreshold.value+70)/50*100));
     $('#liveLevelMark').style.left=thresholdPct+'%';
