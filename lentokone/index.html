@@ -143,6 +143,15 @@ button{font:inherit}
   user-select:none;
   pointer-events:none;
 }
+.ufo-glyph{
+  display:inline-block;
+  transform-origin:50% 60%;
+  animation:ufoRock 1.45s ease-in-out infinite;
+}
+@keyframes ufoRock{
+  0%,100%{transform:rotate(-4deg)}
+  50%{transform:rotate(4deg)}
+}
 .star.high{top:31%}
 .star.low{top:69%}
 .star.collected{animation:collect .28s ease-out forwards}
@@ -884,7 +893,14 @@ function spawnStar(){
       : {symbol:'★',points:1};
   const el=document.createElement('div');
   el.className='star '+lane;
-  el.textContent=item.symbol;
+  if(item.symbol==='🛸'){
+    const glyph=document.createElement('span');
+    glyph.className='ufo-glyph';
+    glyph.textContent=item.symbol;
+    el.appendChild(glyph);
+  }else{
+    el.textContent=item.symbol;
+  }
   game.appendChild(el);
   stars.push({el,lane,x:window.innerWidth+70,collected:false,points:item.points});
 }

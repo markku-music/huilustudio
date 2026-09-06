@@ -1,4 +1,4 @@
-Lentokone – PWA 1.4 – ilman vakautta
+Lentokone – PWA 1.5 – ilman vakautta
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -16,6 +16,10 @@ Muutos 1.4
 - Kehittäjäpaneelin vakausmittari on poistettu.
 - Koneen vakauteen perustuva väpätys on poistettu.
 - LOW/HIGH-tunnistus ja muu äänimoottori on jätetty ennalleen.
+
+Uutta 1.5
+- UFO 🛸 keinuu kevyesti noin ±4° hitaalla 1,45 s rytmillä.
+- Keinunta on eristetty UFO-emojin sisäelementtiin, joten kerättävän etenemisliike ja pelisilmukka pysyvät ennallaan.
 
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
