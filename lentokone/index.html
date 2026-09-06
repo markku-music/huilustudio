@@ -130,12 +130,12 @@ button{font:inherit}
   z-index:7;
   top:0;
   left:0;
-  width:calc(var(--star-size,clamp(34px,6.6vw,58px)) * var(--item-scale,1));
+  width:var(--star-size,clamp(34px,6.6vw,58px));
   aspect-ratio:1;
   display:grid;
   place-items:center;
   color:#ffd84d;
-  font-size:calc(var(--star-size,clamp(34px,6.6vw,58px)) * var(--item-scale,1));
+  font-size:var(--star-size,clamp(34px,6.6vw,58px));
   line-height:1;
   text-shadow:0 2px 0 #e5a825,0 4px 10px rgba(93,63,0,.28);
   transform:translate(-50%,-50%);
@@ -143,8 +143,6 @@ button{font:inherit}
   user-select:none;
   pointer-events:none;
 }
-.star.ufo{filter:drop-shadow(0 4px 12px rgba(70,151,208,.28))}
-.star.rocket{filter:drop-shadow(0 4px 12px rgba(227,107,66,.28))}
 .star.high{top:31%}
 .star.low{top:69%}
 .star.collected{animation:collect .28s ease-out forwards}
@@ -484,11 +482,6 @@ let spawnClock=0;
 let lastSpawnLane=null;
 let sameLaneCount=0;
 const SPAWN_INTERVAL=1850;
-const COLLECTIBLE_TYPES=[
-  {id:'star',emoji:'★',points:1,weight:92,scale:1},
-  {id:'ufo',emoji:'🛸',points:2,weight:7,scale:1.08},
-  {id:'rocket',emoji:'🚀',points:10,weight:1,scale:1.16}
-];
 const CLOUD_MIN_GAP=34;
 const CLOUD_VERTICAL_BANDS=[0.14,0.27,0.40,0.52];
 const CLOUD_TYPES=[
@@ -933,32 +926,20 @@ function chooseLane(){
   lastSpawnLane=lane;
   return lane;
 }
-function pickCollectibleType(){
-  const roll=Math.random()*100;
-  let acc=0;
-  for(const type of COLLECTIBLE_TYPES){
-    acc+=type.weight;
-    if(roll<acc)return type;
-  }
-  return COLLECTIBLE_TYPES[0];
-}
 function spawnStar(){
   const lane=chooseLane();
-  const type=pickCollectibleType();
   const el=document.createElement('div');
-  el.className='star '+lane+' '+type.id;
-  el.textContent=type.emoji;
-  el.style.setProperty('--item-scale',String(type.scale));
+  el.className='star '+lane;
+  el.textContent='★';
   game.appendChild(el);
-  stars.push({el,lane,x:window.innerWidth+70,collected:false,points:type.points,typeId:type.id});
+  stars.push({el,lane,x:window.innerWidth+70,collected:false});
 }
 function collectStar(star){
   if(star.collected)return;
   star.collected=true;
-  score+=star.points;
+  score++;
   scoreNum.textContent=score;
   star.el.classList.add('collected');
-  flash.textContent='+'+star.points;
   flash.classList.remove('pop');
   void flash.offsetWidth;
   flash.classList.add('pop');
