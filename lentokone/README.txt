@@ -131,3 +131,9 @@ BASE 1.13
 - Aloitusikkunasta poistettu lentokonekuva ja kaikki tekstit.
 - Aloitusikkunassa on vain Aloita peli -nappi.
 - Aloitusikkuna poistuu heti napin painalluksesta ennen mikrofonin kalibrointia.
+
+BASE 1.14
+- YLÄREITTI- ja ALAREITTI-tekstit poistettu.
+- Ylä- ja alareitin katkoviivat poistettu.
+- Myös reittivaihdon hetkellinen YLÄREITTI/ALAREITTI-vihjeteksti poistettu.
+- Reittien varsinainen pelilogiikka ja Y-koordinaatit säilyvät ennallaan.

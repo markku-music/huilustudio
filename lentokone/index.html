@@ -55,30 +55,6 @@ button{font:inherit}
   filter:drop-shadow(0 10px 14px rgba(34,78,108,.14));
   user-select:none;
 }
-.route{
-  position:absolute;
-  left:5vw;
-  right:2vw;
-  height:0;
-  border-top:2px dashed var(--route);
-  z-index:2;
-  pointer-events:none;
-}
-.route.high{top:31%}
-.route.low{top:69%}
-.route-label{
-  position:absolute;
-  right:2.8vw;
-  transform:translateY(-50%);
-  z-index:3;
-  color:rgba(22,59,87,.52);
-  font-size:var(--route-label-size,clamp(10px,1.8vw,14px));
-  font-weight:900;
-  letter-spacing:.12em;
-  pointer-events:none;
-}
-.route-label.high{top:31%}
-.route-label.low{top:69%}
 #plane{
   position:absolute;
   left:22%;
@@ -165,21 +141,6 @@ button{font:inherit}
   text-align:center;
   backdrop-filter:blur(6px);
 }
-#routeHint{
-  position:absolute;
-  left:50%;top:max(10px,env(safe-area-inset-top));
-  transform:translateX(-50%);
-  z-index:18;
-  padding:var(--hint-pad-y,6px) var(--hint-pad-x,12px);
-  border-radius:999px;
-  background:rgba(255,255,255,.70);
-  font-size:var(--hint-font-size,clamp(11px,2vw,15px));
-  font-weight:850;
-  opacity:0;
-  transition:opacity .16s ease;
-  pointer-events:none;
-}
-#routeHint.show{opacity:1}
 #gear,#refreshBtn,#recalBtn{
   position:absolute;
   top:max(8px,env(safe-area-inset-top));
@@ -327,10 +288,6 @@ button{font:inherit}
 <body>
 <div id="game">
   <div id="cloudLayer"></div>
-  <div class="route high"></div>
-  <div class="route low"></div>
-  <div class="route-label high">YLÄREITTI</div>
-  <div class="route-label low">ALAREITTI</div>
 
   <div id="plane" class="idle">
     <img class="plane-img" src="lentokone_sivu.webp" alt="Lentokone">
@@ -349,7 +306,6 @@ button{font:inherit}
     </div>
   </div>
   <div id="score">★ <span id="scoreNum">0</span></div>
-  <div id="routeHint"></div>
   <div id="flash">+1</div>
 
   <button id="recalBtn" aria-label="Kalibroi mikrofoni" title="Kalibroi mikrofoni">Kalibroi</button>
@@ -473,7 +429,7 @@ const MIC_CAL_MARGIN_DB=10;
 const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
-const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
+const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),flash=$('#flash');
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),startError=$('#startError');
 const calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
 const devPanel=$('#devPanel');
@@ -502,7 +458,6 @@ let routeTransitionDurationMs=ROUTE_TRANSITION_MS;
 const FULL_ROUTE_DISTANCE=38;
 const ROUTE_HIT_TOLERANCE=5.5;
 const ROUTE_START_SPEED=0.55;
-let routeHintTimer=null;
 let noseTiltAmount=20;
 let score=0;
 let stars=[];
@@ -644,10 +599,6 @@ function setRoute(name){
   routeTransitionStartedAt=now;
   routeTransitionDurationMs=Math.max(1,duration);
   currentRoute=next;
-  routeHint.textContent=next==='high'?'YLÄREITTI':'ALAREITTI';
-  routeHint.classList.add('show');
-  clearTimeout(routeHintTimer);
-  routeHintTimer=setTimeout(()=>routeHint.classList.remove('show'),420);
 }
 
 function clearRecognition(){
@@ -808,8 +759,6 @@ function applyResponsiveVisualScale(){
   const basePlane=clamp(w*.17,84,155);
   const baseStar=clamp(w*.066,34,58);
   const baseScore=clamp(w*.036,19,30);
-  const baseRouteLabel=clamp(w*.018,10,14);
-  const baseHint=clamp(w*.02,11,15);
   const baseFlash=clamp(w*.04,18,32);
   const baseH1=clamp(w*.06,26,42);
   const baseP=clamp(w*.026,13,17);
@@ -821,10 +770,6 @@ function applyResponsiveVisualScale(){
   root.style.setProperty('--score-pad-y',(7*s).toFixed(1)+'px');
   root.style.setProperty('--score-pad-y2',(8*s).toFixed(1)+'px');
   root.style.setProperty('--score-pad-x',(13*s).toFixed(1)+'px');
-  root.style.setProperty('--route-label-size',Math.min(22,baseRouteLabel*s).toFixed(1)+'px');
-  root.style.setProperty('--hint-font-size',Math.min(22,baseHint*s).toFixed(1)+'px');
-  root.style.setProperty('--hint-pad-y',(6*s).toFixed(1)+'px');
-  root.style.setProperty('--hint-pad-x',(12*s).toFixed(1)+'px');
   root.style.setProperty('--gear-size',Math.min(52,38*s).toFixed(1)+'px');
   root.style.setProperty('--gear-font-size',Math.min(27,20*s).toFixed(1)+'px');
   root.style.setProperty('--flash-font-size',Math.min(50,baseFlash*s).toFixed(1)+'px');
