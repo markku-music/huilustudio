@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.29-pwa-fullscreen-no-toast';
+const CACHE_NAME = 'lentokone-pwa-v1.30-hud-bottom-anchor';
 const APP_SHELL = [
   './',
   './index.html',
