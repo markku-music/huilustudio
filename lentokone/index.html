@@ -325,7 +325,6 @@ button{font:inherit}
       <span>dBFS</span><strong id="devDb">–</strong>
       <span>Kynnys</span><strong id="devThreshold">–</strong>
       <span>F0</span><strong id="devF0">–</strong>
-      <span>Vakaus</span><strong id="devStability">–</strong>
       <span>LOW</span><strong id="devLow">–</strong>
       <span>HIGH</span><strong id="devHigh">–</strong>
       <span>BEST</span><strong id="devBest">–</strong>
@@ -433,9 +432,6 @@ const MARGIN=7;
 const MIC_CAL_WARMUP_MS=250;
 const MIC_CAL_MEASURE_MS=1500;
 const MIC_CAL_MARGIN_DB=10;
-const STABILITY_ATTACK_MS=200;
-const STABILITY_WINDOW_MS=400;
-const STABILITY_MIN_SAMPLES=6;
 const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
@@ -443,7 +439,7 @@ const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
 const devPanel=$('#devPanel');
 const dev={
-  db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),stability:$('#devStability'),
+  db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),
   low:$('#devLow'),high:$('#devHigh'),best:$('#devBest'),gap:$('#devGap'),
   recognition:$('#devRecognition'),duration:$('#devDuration')
 };
@@ -465,9 +461,6 @@ let dbThreshold=-70;
 let yinDiffBuffer=null,yinCmndBuffer=null;
 let liveLowHistory=[],liveHighHistory=[],liveF0History=[];
 let soundStartedAt=null,soundActive=false;
-let stabilityF0Window=[];
-let stabilityScoreSum=0,stabilityCentsSum=0,stabilityScoreCount=0;
-let currentStabilityScore=null,currentStabilityCents=null;
 
 // Pelitila
 let gameRunning=false;
@@ -505,52 +498,6 @@ function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
 function rand(min,max){return min+Math.random()*(max-min)}
 function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function centsDiff(a,b){return 1200*Math.log2(a/b)}
-function stabilityScoreFromCents(cents){
-  const points=[[3,100],[8,90],[15,75],[25,50],[40,20],[60,0]];
-  if(cents<=points[0][0])return 100;
-  if(cents>=points[points.length-1][0])return 0;
-  for(let i=1;i<points.length;i++){
-    const [x1,y1]=points[i-1],[x2,y2]=points[i];
-    if(cents<=x2){
-      const t=(cents-x1)/(x2-x1);
-      return y1+(y2-y1)*t;
-    }
-  }
-  return 0;
-}
-
-function resetStabilityForNewSound(){
-  stabilityF0Window=[];
-  stabilityScoreSum=0;
-  stabilityCentsSum=0;
-  stabilityScoreCount=0;
-  currentStabilityScore=null;
-  currentStabilityCents=null;
-}
-function updateStability(f0,now){
-  if(soundStartedAt===null)return;
-  if(now-soundStartedAt<STABILITY_ATTACK_MS)return;
-  stabilityF0Window.push({t:now,f0});
-  const cutoff=now-STABILITY_WINDOW_MS;
-  while(stabilityF0Window.length&&stabilityF0Window[0].t<cutoff)stabilityF0Window.shift();
-  if(stabilityF0Window.length<STABILITY_MIN_SAMPLES)return;
-  const freqs=stabilityF0Window.map(x=>x.f0);
-  const center=median(freqs);
-  const cents=mean(freqs.map(f=>Math.abs(centsDiff(f,center))));
-  const score=stabilityScoreFromCents(cents);
-  currentStabilityScore=score;
-  currentStabilityCents=cents;
-  stabilityScoreSum+=score;
-  stabilityCentsSum+=cents;
-  stabilityScoreCount++;
-  dev.stability.textContent=score.toFixed(0)+' %';
-}
-function finalizeStability(){
-  if(!stabilityScoreCount)return;
-  currentStabilityScore=stabilityScoreSum/stabilityScoreCount;
-  currentStabilityCents=stabilityCentsSum/stabilityScoreCount;
-  dev.stability.textContent=currentStabilityScore.toFixed(0)+' %';
-}
 function rmsDb(buf){
   let s=0;
   for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}
@@ -658,7 +605,6 @@ function processFrame(){
   plane.classList.toggle('idle',!loud);
 
   if(!loud){
-    if(soundStartedAt!==null)finalizeStability();
     soundStartedAt=null;
     dev.duration.textContent='–';
     liveLowHistory=[];liveHighHistory=[];liveF0History=[];
@@ -666,7 +612,7 @@ function processFrame(){
   }
 
   const now=performance.now();
-  if(soundStartedAt===null){soundStartedAt=now;resetStabilityForNewSound()}
+  if(soundStartedAt===null)soundStartedAt=now;
   dev.duration.textContent=((now-soundStartedAt)/1000).toFixed(2)+' s';
 
   analyser.getFloatFrequencyData(freqData);
@@ -677,7 +623,6 @@ function processFrame(){
     return;
   }
 
-  updateStability(f0,now);
   const fp=harmonicVector(f0);
   if(!fp){dev.f0.textContent=f0.toFixed(1)+' Hz';return}
 
@@ -1068,15 +1013,8 @@ function gameLoop(now){
   }else{
     planeY=routeTransitionTargetY;
   }
-  const stability=Number.isFinite(currentStabilityScore)?clamp(currentStabilityScore/100,0,1):.72;
-  // Äänen alkaessa vakausväpätys ei saa hypätä nollasta suoraan täyteen arvoon.
-  const soundAge=(soundActive&&soundStartedAt!==null)?Math.max(0,now-soundStartedAt):0;
-  const wobbleT=clamp(soundAge/500,0,1);
-  const wobbleFade=wobbleT*wobbleT*wobbleT*(wobbleT*(wobbleT*6-15)+10);
-  const wobbleAmp=soundActive?(1-stability)*6.8*wobbleFade:0;
-  const wobble=soundActive?Math.sin(now/78)*wobbleAmp:0;
-  const tilt=routeTilt+wobble*.38;
-  const planeTopPercent=clamp(planeY+wobble,13,87);
+  const tilt=routeTilt;
+  const planeTopPercent=clamp(planeY,13,87);
   plane.style.top=planeTopPercent+'%';
   plane.style.transform=`translate(-50%,-50%) rotate(${tilt.toFixed(1)}deg)`;
   const planeX=window.innerWidth*.22;

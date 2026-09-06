@@ -60,7 +60,9 @@ JSON
 - hyväksymisraja 50 %
 - LOW/HIGH-erotteluraja 7 pp
 - autokalibrointi = pohjataso + 10 dB
-- vakaus = 200 ms attack-ohitus + 400 ms raaka F0 -ikkuna centeissä
+- vakausmittaus poistettu kokonaan
+- äänen pituuteen sidottu 500 ms wobble/ease-in poistettu
+- reittisiirtymien oma liike-easing on jätetty ennalleen
 
 Tiedostot
 - index.html

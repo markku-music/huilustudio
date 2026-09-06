@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.2-refresh';
+const CACHE_NAME = 'lentokone-pwa-v1.3-no-stability-no-audio-easein';
 const APP_SHELL = [
   './',
   './index.html',
