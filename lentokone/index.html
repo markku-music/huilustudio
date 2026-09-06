@@ -4,7 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#92d8ff">
-<title>Leo Lentäjä</title>
+<meta name="application-name" content="Lentokone">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lentokone">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<title>Lentokone</title>
 <style>
 :root{
   --sky1:#86d1fb;
@@ -287,7 +295,7 @@ button{font:inherit}
   <div class="route-label low">ALAREITTI</div>
 
   <div id="plane" class="idle">
-    <img class="plane-img" src="lentokone_sivu.webp" alt="Leo Lentäjän lentokone">
+    <img class="plane-img" src="lentokone_sivu.webp" alt="Lentokone">
     <div id="propeller" aria-hidden="true">
       <svg viewBox="0 0 100 100" role="presentation">
         <g class="prop-plane">
@@ -361,7 +369,7 @@ button{font:inherit}
 
   <div id="startOverlay">
     <div class="overlay-card">
-      <h1>Leo Lentäjä</h1>
+      <h1>Lentokone</h1>
       <p>Kerää tähdet vaihtamalla lentoreittiä sävelellä.</p>
       <div class="rules">
         <div class="rule">KORKEA → YLÄ</div>
@@ -384,7 +392,7 @@ button{font:inherit}
     <div class="overlay-card">
       <div id="rotateIcon">↻</div>
       <h1>Käännä puhelin</h1>
-      <p>Leo Lentäjä pelaa vaakatasossa.</p>
+      <p>Lentokone-peli toimii vaakatasossa.</p>
     </div>
   </div>
 </div>
@@ -393,7 +401,7 @@ button{font:inherit}
 (() => {
 'use strict';
 
-// === Leo Lentäjä -äänimoottorin nykyiset referenssit ja ydinasetukset ===
+// === Lentokone-pelin äänimoottorin nykyiset referenssit ja ydinasetukset ===
 const REFS = {
   version:"1.0",
   low:{
@@ -948,7 +956,7 @@ function exportSettingsJson(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download='leo_lentaja_asetukset.json';
+  a.download='lentokone_asetukset.json';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -1082,6 +1090,15 @@ clearRecognition();
 applyPropSettings();
 applyMovementSettings();
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.warn('Service workerin rekisteröinti epäonnistui:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
