@@ -180,9 +180,8 @@ button{font:inherit}
   pointer-events:none;
 }
 #routeHint.show{opacity:1}
-#gear{
+#gear,#refreshBtn{
   position:absolute;
-  right:max(10px,env(safe-area-inset-right));
   top:max(8px,env(safe-area-inset-top));
   z-index:30;
   border:0;
@@ -194,6 +193,10 @@ button{font:inherit}
   font-weight:900;
   box-shadow:0 4px 14px rgba(24,77,113,.12);
 }
+#gear{right:max(10px,env(safe-area-inset-right))}
+#refreshBtn{right:calc(max(10px,env(safe-area-inset-right)) + var(--gear-size,38px) + 8px)}
+#refreshBtn.updating{animation:refreshSpin .7s linear infinite}
+@keyframes refreshSpin{to{transform:rotate(360deg)}}
 #devPanel{
   position:absolute;
   right:max(10px,env(safe-area-inset-right));
@@ -315,6 +318,7 @@ button{font:inherit}
   <div id="routeHint"></div>
   <div id="flash">+1</div>
 
+  <button id="refreshBtn" aria-label="Päivitä peli" title="Päivitä peli">↻</button>
   <button id="gear" aria-label="Kehittäjätila">⚙</button>
   <aside id="devPanel">
     <div class="dev-grid">
@@ -1109,6 +1113,26 @@ $('#startBtn').addEventListener('click',async()=>{
     calOverlay.classList.remove('show');
   }
 });
+$('#refreshBtn').addEventListener('click',async()=>{
+  const btn=$('#refreshBtn');
+  if(btn.classList.contains('updating'))return;
+  btn.classList.add('updating');
+  btn.disabled=true;
+  try{
+    if('caches' in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(key=>caches.delete(key)));
+    }
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(reg=>reg.update().catch(()=>null)));
+    }
+  }finally{
+    const url=new URL(location.href);
+    url.searchParams.set('_refresh',Date.now().toString());
+    location.replace(url.href);
+  }
+});
 $('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
 $('#resetScoreBtn').addEventListener('click',resetScore);
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
@@ -1137,6 +1161,11 @@ applyMovementSettings();
 })();
 </script>
 <script>
+if (location.search.includes('_refresh=')) {
+  const cleanUrl=new URL(location.href);
+  cleanUrl.searchParams.delete('_refresh');
+  history.replaceState(null,'',cleanUrl.pathname+(cleanUrl.search||'')+cleanUrl.hash);
+}
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(err => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.2';
+const CACHE_NAME = 'lentokone-pwa-v1.2-refresh';
 const APP_SHELL = [
   './',
   './index.html',
@@ -32,6 +32,22 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
+  // Navigoinnissa verkko ensin: PWA saa uuden index.html:n heti kun verkko toimii.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
+        }
+        return response;
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Staattiset tiedostot edelleen cache-first, jotta peli toimii nopeasti ja offline.
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
@@ -40,7 +56,7 @@ self.addEventListener('fetch', event => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         return response;
-      }).catch(() => caches.match('./index.html'));
+      });
     })
   );
 });
