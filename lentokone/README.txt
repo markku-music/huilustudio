@@ -1,4 +1,4 @@
-Lentokone – PWA 1.2
+Lentokone – PWA 1.3
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -13,7 +13,9 @@ Uutta 1.1
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.
-- Tähti oikealla reitillä -> +1 piste.
+- ★ tähti oikealla reitillä -> +1 piste.
+- 🛸 UFO oikealla reitillä -> +2 pistettä.
+- 🚀 raketti oikealla reitillä -> +10 pistettä.
 - Vakaus vaikuttaa koneen väpätykseen.
 - Äänen loputtua kone jää viimeiselle valitulle reitille.
 - Korkeuden vaihto käyttää 780 ms pehmeää smootherstep-siirtymää.
@@ -26,6 +28,12 @@ Pilvet 2.2
 - Vasemmalta poistuva pilvi siirtyy oikeanpuoleisimman pilven perään hallitulla välillä.
 - Pilvien nopeuksissa ja korkeuksissa on edelleen vaihtelua.
 - Usvaominaisuus on poistettu kokonaan. Koneen blur/opacity ei enää reagoi pilviin.
+
+Harvinaiset kerättävät
+- Tavallinen kerättävä on tähti ★.
+- Harvinaisempi kerättävä on UFO 🛸.
+- Todella harvinainen jättipotti on raketti 🚀.
+- Todennäköisyydet: tähti 92 %, UFO 7 %, raketti 1 %.
 
 Kehittäjätila
 - dBFS, mikrofonikynnys, F0, vakaus, LOW/HIGH, BEST, GAP, tunnistus ja puhalluksen pituus
