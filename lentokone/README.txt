@@ -1,4 +1,4 @@
-Lentokone – PWA 1.2
+Lentokone – PWA 1.2 Refresh
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -87,3 +87,9 @@ PWA-tiedostot
 - icons/icon-512.png
 - icons/icon-maskable-512.png
 - icons/apple-touch-icon.png
+
+PWA-päivitys
+- Yläreunassa on ↻-nappi pelin päivittämiseen.
+- Päivitysnappi tyhjentää PWA-välimuistin, tarkistaa service worker -päivityksen ja lataa pelin uudelleen verkosta.
+- HTML-navigointi on network-first, joten uusi index.html haetaan verkosta aina kun yhteys toimii.
+- Offline-tilassa käytetään edelleen välimuistissa olevaa versiota.
