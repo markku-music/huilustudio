@@ -1,4 +1,4 @@
-Lentokone – PWA 1.9 – kojelauta
+Lentokone – PWA 1.11 – lelulentokoneen kojelauta + automaattilasku
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -54,6 +54,13 @@ Uutta 1.9
 - Kojelaudassa on analoginen altimeter/korkeusmittari, joka seuraa koneen todellista korkeutta jatkuvasti.
 - Kojelaudassa on uusi digitaalinen pistekenttä, joka näyttää kokonaispisteet ja viimeisimmän pistekertymän (+1 / +2 / +10).
 - Kojelauta skaalautuu muun käyttöliittymän mukana dynaamisesti eri näyttökokoihin.
+
+Uutta 1.10
+- Peli päättyy nyt, kun 3 minuutin aika loppuu.
+- Lopussa näytetään loppupisteet ja nappi uuteen peliin.
+- Kojelaudan pyöreät mittarit on korvattu matalilla kaarimittareilla, jotta ne vievät vähemmän pystysuuntaista tilaa.
+- Pelikello näyttää jäljellä olevan ajan ja sen viisari etenee vasemmalta oikealle kolmen vaiheen yli.
+- Altimeter on nyt matala kaarimittari, joka seuraa koneen todellista korkeutta.
 
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
@@ -138,3 +145,16 @@ PWA-päivitys
 - Päivitysnappi tyhjentää PWA-välimuistin, tarkistaa service worker -päivityksen ja lataa pelin uudelleen verkosta.
 - HTML-navigointi on network-first, joten uusi index.html haetaan verkosta aina kun yhteys toimii.
 - Offline-tilassa käytetään edelleen välimuistissa olevaa versiota.
+
+Uutta 1.11
+- Kojelauta on muutettu yhdeksi erittäin matalaksi lelulentokoneen ohjaamopaneeliksi ilman ylimääräisiä ulkomarginaaleja.
+- Pelikello ja korkeusmittari ovat leveitä, matalia puolikaarimittareita SVG-asteikoilla.
+- Pelikellossa näkyvät ALKU / KESKI / TURBO ja jäljellä oleva aika.
+- Altimeterissa on neljä merkittyä korkeutta: RWY / ALA / VÄLI / YLÄ.
+- Korkeudet vastaavat 0 / 2000 / 4000 / 6000 ft. Peli alkaa VÄLI-korkeudelta.
+- VÄLI on edelleen vain lähtökorkeus eikä siitä tule uutta kerättävien reittiä.
+- Kun 3 minuutin aika loppuu, kerättävät poistuvat, ohjaus lukittuu ja kiitorata ilmestyy.
+- Lentokone tekee automaattisen pehmeän loppulaskun kiitoradalle. Altimeter seuraa laskua jatkuvasti RWY-asentoon.
+- Loppupisteet näytetään vasta automaattisen laskeutumisen jälkeen.
+- Pistekenttä on integroitu samaan matalaan kojelautaan ja näyttää kokonaispisteet sekä viimeisimmän +1 / +2 / +10 -kertymän.
+

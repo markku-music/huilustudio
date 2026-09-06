@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.9-dashboard';
+const CACHE_NAME = 'lentokone-pwa-v1.11-toy-cockpit';
 const APP_SHELL = [
   './',
   './index.html',

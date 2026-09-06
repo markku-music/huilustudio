@@ -161,198 +161,102 @@ button{font:inherit}
 }
 #dashboard{
   position:absolute;
-  left:50%;
-  bottom:max(10px,env(safe-area-inset-bottom));
-  transform:translateX(-50%);
+  left:0;
+  right:0;
+  bottom:0;
   z-index:20;
   display:grid;
-  grid-template-columns:auto auto auto;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;
   align-items:end;
-  gap:var(--dash-gap,10px);
-  padding:var(--dash-pad,10px);
-  border-radius:24px;
-  background:linear-gradient(180deg,rgba(22,43,58,.82),rgba(10,22,31,.90));
-  box-shadow:0 10px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16);
-  backdrop-filter:blur(8px);
+  gap:var(--dash-gap,5px);
+  padding:var(--dash-pad-y,4px) max(var(--dash-pad-x,6px),env(safe-area-inset-right)) calc(var(--dash-pad-y,4px) + env(safe-area-inset-bottom)) max(var(--dash-pad-x,6px),env(safe-area-inset-left));
+  background:linear-gradient(180deg,#426d83 0%,#31596f 14%,#1c4054 18%,#183748 100%);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.18),0 -5px 16px rgba(13,43,62,.13);
 }
-.gauge{
+.toy-gauge{
   position:relative;
-  width:var(--gauge-size,96px);
-  height:var(--gauge-size,96px);
-  border-radius:50%;
-  background:radial-gradient(circle at 50% 54%,#223848 0 58%,#122530 59% 64%,#09141b 65% 100%);
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.10), inset 0 10px 18px rgba(255,255,255,.03), 0 4px 12px rgba(0,0,0,.18);
+  min-width:0;
+  height:var(--toy-gauge-height,66px);
+  overflow:hidden;
+  border-radius:var(--toy-radius,12px);
+  background:linear-gradient(180deg,#f4f7f9 0%,#dce6eb 100%);
+  box-shadow:inset 0 0 0 2px rgba(21,62,84,.24),inset 0 2px 0 rgba(255,255,255,.75),0 2px 4px rgba(0,0,0,.16);
 }
-.gauge::before{
-  content:"";
-  position:absolute;
-  inset:8%;
-  border-radius:50%;
-  background:var(--gauge-ring,conic-gradient(from -90deg,#7dc8f3 0 360deg));
-}
-.gauge::after{
-  content:"";
-  position:absolute;
-  inset:18%;
-  border-radius:50%;
-  background:radial-gradient(circle at 50% 40%,#314e62 0,#1e3443 62%,#12212b 100%);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
-}
-#timerGauge{--gauge-ring:conic-gradient(from -90deg,#69ca77 0 120deg,#f0cf63 120deg 240deg,#f78a6e 240deg 360deg)}
-#altGauge{--gauge-ring:conic-gradient(from -135deg,#2c83bd 0 72deg,#67aede 72deg 144deg,#b6e0fb 144deg 216deg,#89c8ef 216deg 288deg,#377fb3 288deg 360deg)}
-.gauge-title,.gauge-mark,.gauge-readout,.needle,.hub{position:absolute;z-index:3}
-.gauge-title{
-  left:50%;
-  top:14%;
-  transform:translateX(-50%);
-  font-size:var(--gauge-title-size,10px);
-  font-weight:900;
-  letter-spacing:.16em;
-  color:#eaf5ff;
-}
-.gauge-mark{
-  font-size:var(--gauge-mark-size,9px);
-  font-weight:850;
-  letter-spacing:.1em;
-  color:rgba(231,245,255,.82);
-}
-.gauge-mark.left{left:14%;bottom:24%}
-.gauge-mark.right{right:14%;bottom:24%}
-.gauge-readout{
-  left:50%;
-  bottom:13%;
-  transform:translateX(-50%);
-  min-width:48%;
-  padding:3px 8px 4px;
-  border-radius:999px;
-  background:rgba(9,20,28,.62);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
-  text-align:center;
-  font-size:var(--gauge-readout-size,11px);
-  font-weight:900;
-  color:#f3fbff;
-}
-.needle{
-  left:50%;
-  bottom:50%;
-  width:4px;
-  height:31%;
-  border-radius:999px;
-  background:linear-gradient(180deg,#fff2c4 0,#f4c95d 100%);
-  box-shadow:0 0 8px rgba(255,220,125,.33);
-  transform:translateX(-50%) rotate(-90deg);
-  transform-origin:50% calc(100% - 2px);
-}
-.hub{
-  left:50%;
-  top:50%;
-  width:16%;
-  aspect-ratio:1;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  background:radial-gradient(circle at 40% 35%,#f8f0cd 0,#f0d072 45%,#b48b35 100%);
-  box-shadow:0 0 0 2px rgba(12,24,33,.33);
-}
+.toy-gauge svg{display:block;width:100%;height:100%;overflow:visible}
+.toy-gauge .dial-bg{fill:none;stroke:#bcc9d0;stroke-width:14;stroke-linecap:butt}
+.toy-gauge .dial-inner{fill:none;stroke:#f5f7f8;stroke-width:9;stroke-linecap:butt}
+.toy-gauge .dial-seg{fill:none;stroke-width:14;stroke-linecap:butt}
+#timerGauge .seg-1{stroke:#78c85a}
+#timerGauge .seg-2{stroke:#f1c84e}
+#timerGauge .seg-3{stroke:#ef765f}
+#altGauge .dial-bg{stroke:#92b7ca}
+#altGauge .dial-inner{stroke:#e7f0f4}
+.toy-gauge .tick{stroke:#426174;stroke-width:2}
+.toy-gauge .needle-line{stroke:#3186cb;stroke-width:3.5;stroke-linecap:round}
+.toy-gauge .needle-hub{fill:#f5c95a;stroke:#9d7622;stroke-width:2}
+.toy-gauge .g-title{font:800 10px system-ui,-apple-system,sans-serif;fill:#425664;letter-spacing:1px;text-anchor:middle}
+.toy-gauge .g-label{font:800 8px system-ui,-apple-system,sans-serif;fill:#536975;text-anchor:middle}
+.toy-gauge .g-value{font:950 19px system-ui,-apple-system,sans-serif;fill:#102c3c;text-anchor:middle}
+.toy-gauge .g-unit{font:800 8px system-ui,-apple-system,sans-serif;fill:#82939d;text-anchor:middle;letter-spacing:.7px}
 #scorePanel{
-  height:var(--gauge-size,96px);
-  min-width:var(--score-panel-width,128px);
-  padding:var(--score-panel-pad-y,10px) var(--score-panel-pad-x,12px);
-  border-radius:18px;
-  background:linear-gradient(180deg,#223848,#122531);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), 0 4px 12px rgba(0,0,0,.18);
+  height:var(--toy-gauge-height,66px);
+  min-width:var(--score-panel-width,104px);
+  padding:var(--score-panel-pad-y,6px) var(--score-panel-pad-x,8px);
+  border-radius:var(--toy-radius,12px);
+  background:linear-gradient(180deg,#ffd968 0%,#efb93f 9%,#233d4d 10%,#162d3b 100%);
+  box-shadow:inset 0 0 0 2px rgba(9,38,54,.32),inset 0 2px 0 rgba(255,255,255,.30),0 2px 4px rgba(0,0,0,.16);
   display:grid;
-  grid-template-rows:auto 1fr auto;
+  grid-template-columns:1fr auto;
+  grid-template-rows:auto 1fr;
   align-items:center;
+  column-gap:5px;
 }
 .score-title{
-  font-size:var(--score-title-size,10px);
-  font-weight:900;
-  letter-spacing:.16em;
-  color:#ddebfa;
+  grid-column:1 / -1;
+  font-size:var(--score-title-size,9px);
+  font-weight:950;
+  letter-spacing:.15em;
+  color:#cde7f6;
 }
 .score-total{
-  font-size:var(--score-total-size,28px);
+  align-self:center;
+  font-size:var(--score-total-size,30px);
   font-weight:950;
-  line-height:1;
-  color:#fff;
+  line-height:.9;
+  color:#fff8c9;
+  text-shadow:0 2px 0 rgba(0,0,0,.18);
 }
 .score-last{
-  justify-self:start;
-  min-width:62px;
-  padding:4px 8px;
+  align-self:center;
+  min-width:var(--score-last-width,38px);
+  padding:3px 5px;
   border-radius:999px;
-  background:rgba(7,16,22,.58);
-  color:rgba(244,251,255,.78);
-  font-size:var(--score-last-size,12px);
-  font-weight:900;
+  background:#0b1d28;
+  color:#94b3c5;
+  font-size:var(--score-last-size,11px);
+  font-weight:950;
   text-align:center;
-  transition:transform .18s ease, opacity .28s ease, color .18s ease, background .18s ease;
+  transition:transform .18s ease,color .18s ease,background .18s ease;
 }
-.score-last.hot{
-  transform:translateY(-1px) scale(1.06);
-  color:#fff8cf;
-  background:rgba(97,71,12,.74);
-}
-#routeHint{
+.score-last.hot{transform:scale(1.08);color:#fff7b2;background:#6e5112}
+#runway{
   position:absolute;
-  left:50%;top:max(10px,env(safe-area-inset-top));
-  transform:translateX(-50%);
-  z-index:18;
-  padding:var(--hint-pad-y,6px) var(--hint-pad-x,12px);
-  border-radius:999px;
-  background:rgba(255,255,255,.70);
-  font-size:var(--hint-font-size,clamp(11px,2vw,15px));
-  font-weight:850;
+  left:-4vw;
+  right:-4vw;
+  top:72%;
+  height:10%;
+  z-index:4;
   opacity:0;
-  transition:opacity .16s ease;
+  transform:translateY(28px);
+  transition:opacity .45s ease,transform .65s ease;
   pointer-events:none;
+  background:
+    linear-gradient(90deg,transparent 0 5%,rgba(255,255,255,.94) 5% 13%,transparent 13% 22%,rgba(255,255,255,.94) 22% 30%,transparent 30% 39%,rgba(255,255,255,.94) 39% 47%,transparent 47% 56%,rgba(255,255,255,.94) 56% 64%,transparent 64% 73%,rgba(255,255,255,.94) 73% 81%,transparent 81% 90%,rgba(255,255,255,.94) 90% 98%,transparent 98%) center 48%/100% 7% no-repeat,
+    linear-gradient(180deg,#6d7b81 0%,#4a565c 100%);
+  box-shadow:inset 0 4px 0 rgba(255,255,255,.35),0 -10px 24px rgba(71,96,106,.16);
 }
-#routeHint.show{opacity:1}
-#gear,#refreshBtn{
-  position:absolute;
-  top:max(8px,env(safe-area-inset-top));
-  z-index:30;
-  border:0;
-  width:var(--gear-size,38px);height:var(--gear-size,38px);
-  border-radius:50%;
-  background:rgba(255,255,255,.76);
-  color:var(--ink);
-  font-size:var(--gear-font-size,20px);
-  font-weight:900;
-  box-shadow:0 4px 14px rgba(24,77,113,.12);
-}
-#gear{right:max(10px,env(safe-area-inset-right))}
-#refreshBtn{right:calc(max(10px,env(safe-area-inset-right)) + var(--gear-size,38px) + 8px)}
-#refreshBtn.updating{animation:refreshSpin .7s linear infinite}
-@keyframes refreshSpin{to{transform:rotate(360deg)}}
-#devPanel{
-  position:absolute;
-  right:max(10px,env(safe-area-inset-right));
-  top:54px;
-  z-index:29;
-  width:min(270px,44vw);
-  max-height:calc(100dvh - 64px);
-  overflow:auto;
-  padding:12px;
-  border-radius:16px;
-  background:rgba(18,47,68,.90);
-  color:white;
-  box-shadow:0 10px 30px rgba(0,0,0,.22);
-  display:none;
-  font-size:12px;
-  backdrop-filter:blur(8px);
-}
-#devPanel.open{display:block}
-.dev-grid{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center}
-.dev-grid strong{text-align:right}
-.dev-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
-.dev-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:850;background:#fff;color:#173f61}
-#settingsFile{display:none}
-.dev-sliders{margin-top:12px;display:grid;gap:10px}
-.dev-slider label{display:flex;justify-content:space-between;gap:10px;margin-bottom:3px;font-size:11px;font-weight:800}
-.dev-slider output{min-width:52px;text-align:right;color:#cfe7ff}
-.dev-slider input[type="range"]{width:100%}
-#startOverlay,#calOverlay,#rotateOverlay{
+#runway.show{opacity:1;transform:translateY(0)}
+#startOverlay,#calOverlay,#endOverlay,#rotateOverlay{
   position:absolute;
   inset:0;
   z-index:50;
@@ -387,6 +291,8 @@ button{font:inherit}
 }
 #calOverlay{display:none;z-index:51}
 #calOverlay.show{display:flex}
+#endOverlay{display:none;z-index:60}
+#endOverlay.show{display:flex}
 #calText{font-size:clamp(15px,3vw,20px);font-weight:900}
 #rotateOverlay{display:none;z-index:80;background:#87cff8}
 #rotateOverlay .overlay-card{max-width:360px}
@@ -442,22 +348,50 @@ button{font:inherit}
       </svg>
     </div>
   </div>
+  <div id="runway" aria-hidden="true"></div>
   <div id="dashboard">
-    <div class="gauge" id="timerGauge" aria-label="Pelikello">
-      <div class="gauge-title">AIKA</div>
-      <div class="gauge-mark left">ALKU</div>
-      <div class="gauge-mark right">TURBO</div>
-      <div class="needle" id="timerNeedle"></div>
-      <div class="hub"></div>
-      <div class="gauge-readout" id="timerReadout">3:00</div>
+    <div class="toy-gauge" id="timerGauge" aria-label="Pelikello">
+      <svg viewBox="0 0 220 86" role="presentation">
+        <text class="g-title" x="110" y="12">AIKA</text>
+        <path class="dial-bg" d="M24 68 A86 58 0 0 1 196 68"/>
+        <path class="dial-seg seg-1" d="M24 68 A86 58 0 0 1 67 18"/>
+        <path class="dial-seg seg-2" d="M67 18 A86 58 0 0 1 153 18"/>
+        <path class="dial-seg seg-3" d="M153 18 A86 58 0 0 1 196 68"/>
+        <path class="dial-inner" d="M36 68 A74 48 0 0 1 184 68"/>
+        <line class="tick" x1="24" y1="68" x2="33" y2="68"/>
+        <line class="tick" x1="67" y1="18" x2="72" y2="26"/>
+        <line class="tick" x1="153" y1="18" x2="148" y2="26"/>
+        <line class="tick" x1="196" y1="68" x2="187" y2="68"/>
+        <text class="g-label" x="27" y="82">ALKU</text>
+        <text class="g-label" x="110" y="23">KESKI</text>
+        <text class="g-label" x="193" y="82">TURBO</text>
+        <g id="timerNeedle" transform="rotate(-90 110 68)">
+          <line class="needle-line" x1="110" y1="68" x2="110" y2="24"/>
+        </g>
+        <circle class="needle-hub" cx="110" cy="68" r="5"/>
+        <text class="g-value" id="timerReadout" x="110" y="57">3:00</text>
+      </svg>
     </div>
-    <div class="gauge" id="altGauge" aria-label="Korkeusmittari">
-      <div class="gauge-title">ALT</div>
-      <div class="gauge-mark left">ALA</div>
-      <div class="gauge-mark right">YLÄ</div>
-      <div class="needle" id="altNeedle"></div>
-      <div class="hub"></div>
-      <div class="gauge-readout" id="altReadout">5000 FT</div>
+    <div class="toy-gauge" id="altGauge" aria-label="Korkeusmittari">
+      <svg viewBox="0 0 220 86" role="presentation">
+        <text class="g-title" x="110" y="12">KORKEUS</text>
+        <path class="dial-bg" d="M24 68 A86 58 0 0 1 196 68"/>
+        <path class="dial-inner" d="M36 68 A74 48 0 0 1 184 68"/>
+        <line class="tick" x1="24" y1="68" x2="33" y2="68"/>
+        <line class="tick" x1="67" y1="18" x2="72" y2="26"/>
+        <line class="tick" x1="153" y1="18" x2="148" y2="26"/>
+        <line class="tick" x1="196" y1="68" x2="187" y2="68"/>
+        <text class="g-label" x="25" y="82">RWY</text>
+        <text class="g-label" x="67" y="18">ALA</text>
+        <text class="g-label" x="153" y="18">VÄLI</text>
+        <text class="g-label" x="195" y="82">YLÄ</text>
+        <g id="altNeedle" transform="rotate(30 110 68)">
+          <line class="needle-line" x1="110" y1="68" x2="110" y2="24"/>
+        </g>
+        <circle class="needle-hub" cx="110" cy="68" r="5"/>
+        <text class="g-value" id="altReadout" x="110" y="57">4000</text>
+        <text class="g-unit" x="110" y="67">FT</text>
+      </svg>
     </div>
     <div id="scorePanel" aria-label="Pisteet">
       <div class="score-title">PISTEET</div>
@@ -541,6 +475,14 @@ button{font:inherit}
     </div>
   </div>
 
+  <div id="endOverlay">
+    <div class="overlay-card">
+      <h1>Aika loppui</h1>
+      <p>Sait <strong id="finalScore">0</strong> pistettä.</p>
+      <button id="replayBtn" class="primary">Pelaa uudelleen</button>
+    </div>
+  </div>
+
   <div id="rotateOverlay">
     <div class="overlay-card">
       <div id="rotateIcon">↻</div>
@@ -585,8 +527,9 @@ const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
 const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
-const timerNeedle=$('#timerNeedle'),timerReadout=$('#timerReadout'),altNeedle=$('#altNeedle'),altReadout=$('#altReadout'),scoreDelta=$('#scoreDelta');
+const timerNeedle=$('#timerNeedle'),timerReadout=$('#timerReadout'),altNeedle=$('#altNeedle'),altReadout=$('#altReadout'),scoreDelta=$('#scoreDelta'),runway=$('#runway');
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
+const endOverlay=$('#endOverlay'),finalScore=$('#finalScore');
 const devPanel=$('#devPanel');
 const dev={
   db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),
@@ -622,8 +565,15 @@ let routeTransitionStartedAt=0;
 let routeTransitionDurationMs=780;
 let routeTarget=null;
 let routeTargetWasLate=false;
+let landingActive=false;
+let landingStartedAt=0;
+let landingStartY=50;
+let landingDurationMs=2200;
 const ROUTE_TRANSITION_MS=780;
 const FULL_ROUTE_DISTANCE=38;
+const RUNWAY_Y=76;
+const LANDING_MIN_MS=1500;
+const LANDING_MAX_MS=2400;
 const ROUTE_START_SPEED=0.55;
 const ROUTE_HIT_TOLERANCE=5.5;
 let noseTiltAmount=20;
@@ -737,7 +687,7 @@ function similarity(take,ref){
   return Math.max(0,Math.min(100,100*Math.exp(-0.82*combined)));
 }
 
-function routeY(route){return route==='high'?31:route==='low'?69:50}
+function routeY(route){return route==='high'?31:route==='low'?69:route==='runway'?RUNWAY_Y:50}
 function difficultyProgress(now=performance.now()){
   if(!gameStartedAt)return 0;
   return clamp((now-gameStartedAt)/DIFFICULTY_RAMP_MS,0,1);
@@ -759,19 +709,28 @@ function formatClock(ms){
   const s=String(total%60).padStart(2,'0');
   return `${m}:${s}`;
 }
+function altitudeNormFromY(y){
+  const highY=routeY('high'),midY=routeY('center'),lowY=routeY('low');
+  if(y>=lowY){
+    return clamp(((RUNWAY_Y-y)/Math.max(1,RUNWAY_Y-lowY))*(1/3),0,1/3);
+  }
+  if(y>=midY){
+    return 1/3+clamp((lowY-y)/Math.max(1,lowY-midY),0,1)*(1/3);
+  }
+  return 2/3+clamp((midY-y)/Math.max(1,midY-highY),0,1)*(1/3);
+}
 function updateDashboard(now=performance.now()){
-  const progress=gameRunning?difficultyProgress(now):0;
-  const timerAngle=-90+progress*360;
-  timerNeedle.style.transform=`translateX(-50%) rotate(${timerAngle.toFixed(1)}deg)`;
-  timerReadout.textContent=formatClock(DIFFICULTY_RAMP_MS-(gameRunning?(now-gameStartedAt):0));
+  const elapsed=gameStartedAt?Math.max(0,now-gameStartedAt):0;
+  const progress=(landingActive||!gameRunning)?clamp(elapsed/DIFFICULTY_RAMP_MS,0,1):difficultyProgress(now);
+  const timerAngle=-90+progress*180;
+  timerNeedle.setAttribute('transform',`rotate(${timerAngle.toFixed(1)} 110 68)`);
+  timerReadout.textContent=formatClock(Math.max(0,DIFFICULTY_RAMP_MS-elapsed));
 
-  const lowY=routeY('low');
-  const highY=routeY('high');
-  const altitudeNorm=clamp((lowY-planeY)/Math.max(1,lowY-highY),0,1);
-  const altAngle=-135+altitudeNorm*270;
-  altNeedle.style.transform=`translateX(-50%) rotate(${altAngle.toFixed(1)}deg)`;
-  const altitudeFeet=Math.round(2000+altitudeNorm*6000);
-  altReadout.textContent=`${altitudeFeet} FT`;
+  const altitudeNorm=altitudeNormFromY(planeY);
+  const altAngle=-90+altitudeNorm*180;
+  altNeedle.setAttribute('transform',`rotate(${altAngle.toFixed(1)} 110 68)`);
+  const altitudeFeet=Math.round((altitudeNorm*6000)/100)*100;
+  altReadout.textContent=String(altitudeFeet);
 
   if(scoreDeltaHideAt && now>scoreDeltaHideAt){
     scoreDelta.classList.remove('hot');
@@ -792,6 +751,7 @@ function minimumRouteTimeMs(fromY,toY){
   return ROUTE_TRANSITION_MS*(distance/FULL_ROUTE_DISTANCE);
 }
 function setRoute(name){
+  if(!gameRunning||landingActive)return;
   const next=name==='KORKEA'?'high':name==='MATALA'?'low':null;
   if(!next||next===currentRoute)return;
 
@@ -838,9 +798,16 @@ function processFrame(){
   dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';
   dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
   const loud=level.db>dbThreshold;
-  soundActive=loud;
-  plane.classList.toggle('active',loud);
-  plane.classList.toggle('idle',!loud);
+  soundActive=loud && gameRunning && !landingActive;
+  plane.classList.toggle('active',loud && gameRunning && !landingActive);
+  plane.classList.toggle('idle',!(loud && gameRunning && !landingActive));
+
+  if(!gameRunning||landingActive){
+    soundStartedAt=null;
+    dev.duration.textContent='–';
+    liveLowHistory=[];liveHighHistory=[];liveF0History=[];
+    return;
+  }
 
   if(!loud){
     soundStartedAt=null;
@@ -977,18 +944,18 @@ function applyResponsiveVisualScale(){
   root.style.setProperty('--flash-font-size',Math.min(50,baseFlash*s).toFixed(1)+'px');
   root.style.setProperty('--overlay-h1-size',Math.min(56,baseH1*s).toFixed(1)+'px');
   root.style.setProperty('--overlay-p-size',Math.min(24,baseP*s).toFixed(1)+'px');
-  root.style.setProperty('--dash-gap',Math.min(16,10*s).toFixed(1)+'px');
-  root.style.setProperty('--dash-pad',Math.min(16,10*s).toFixed(1)+'px');
-  root.style.setProperty('--gauge-size',Math.min(142,96*s).toFixed(1)+'px');
-  root.style.setProperty('--gauge-title-size',Math.min(14,10*s).toFixed(1)+'px');
-  root.style.setProperty('--gauge-mark-size',Math.min(12,9*s).toFixed(1)+'px');
-  root.style.setProperty('--gauge-readout-size',Math.min(16,11*s).toFixed(1)+'px');
-  root.style.setProperty('--score-panel-width',Math.min(210,128*s).toFixed(1)+'px');
-  root.style.setProperty('--score-panel-pad-y',Math.min(16,10*s).toFixed(1)+'px');
-  root.style.setProperty('--score-panel-pad-x',Math.min(18,12*s).toFixed(1)+'px');
-  root.style.setProperty('--score-title-size',Math.min(14,10*s).toFixed(1)+'px');
-  root.style.setProperty('--score-total-size',Math.min(42,28*s).toFixed(1)+'px');
-  root.style.setProperty('--score-last-size',Math.min(18,12*s).toFixed(1)+'px');
+  root.style.setProperty('--dash-gap',Math.min(8,5*s).toFixed(1)+'px');
+  root.style.setProperty('--dash-pad-y',Math.min(6,4*s).toFixed(1)+'px');
+  root.style.setProperty('--dash-pad-x',Math.min(9,6*s).toFixed(1)+'px');
+  root.style.setProperty('--toy-gauge-height',Math.min(92,66*s).toFixed(1)+'px');
+  root.style.setProperty('--toy-radius',Math.min(16,12*s).toFixed(1)+'px');
+  root.style.setProperty('--score-panel-width',Math.min(160,104*s).toFixed(1)+'px');
+  root.style.setProperty('--score-panel-pad-y',Math.min(9,6*s).toFixed(1)+'px');
+  root.style.setProperty('--score-panel-pad-x',Math.min(12,8*s).toFixed(1)+'px');
+  root.style.setProperty('--score-title-size',Math.min(13,9*s).toFixed(1)+'px');
+  root.style.setProperty('--score-total-size',Math.min(44,30*s).toFixed(1)+'px');
+  root.style.setProperty('--score-last-size',Math.min(16,11*s).toFixed(1)+'px');
+  root.style.setProperty('--score-last-width',Math.min(58,38*s).toFixed(1)+'px');
   return s;
 }
 function desiredCloudCount(){
@@ -1251,7 +1218,38 @@ function importSettingsJson(data){
   applyPropSettings();
   applyMovementSettings();
 }
+function startLanding(now=performance.now()){
+  if(!gameRunning||landingActive)return;
+  landingActive=true;
+  landingStartedAt=now;
+  landingStartY=planeY;
+  const distance=Math.abs(RUNWAY_Y-landingStartY);
+  landingDurationMs=clamp(1500+distance*16,LANDING_MIN_MS,LANDING_MAX_MS);
+  routeTransitionStartedAt=0;
+  routeTarget=null;
+  routeTargetWasLate=false;
+  currentRoute='runway';
+  routeHint.classList.remove('show');
+  clearStars();
+  runway.classList.add('show');
+  plane.classList.remove('active');
+  plane.classList.add('idle');
+}
+function completeLanding(){
+  landingActive=false;
+  gameRunning=false;
+  planeY=RUNWAY_Y;
+  plane.style.top=RUNWAY_Y+'%';
+  plane.style.transform='translate(-50%,-50%) rotate(0deg)';
+  finalScore.textContent=String(score);
+  updateDashboard(gameStartedAt+DIFFICULTY_RAMP_MS);
+  setTimeout(()=>endOverlay.classList.add('show'),450);
+}
 function beginGame(){
+  endOverlay.classList.remove('show');
+  runway.classList.remove('show');
+  landingActive=false;
+  landingStartedAt=0;
   clearStars();
   initClouds();
   resetScore();
@@ -1276,9 +1274,22 @@ function gameLoop(now){
   if(!gameRunning)return;
   const dt=Math.min(40,Math.max(0,now-lastFrame));
   lastFrame=now;
+  if(!landingActive && now-gameStartedAt>=DIFFICULTY_RAMP_MS){
+    updateDashboard(gameStartedAt+DIFFICULTY_RAMP_MS);
+    startLanding(gameStartedAt+DIFFICULTY_RAMP_MS);
+  }
 
   let routeTilt=0;
-  if(routeTransitionStartedAt){
+  if(landingActive){
+    const t=clamp((now-landingStartedAt)/Math.max(1,landingDurationMs),0,1);
+    const eased=t*t*t*(t*(t*6-15)+10);
+    planeY=landingStartY+(RUNWAY_Y-landingStartY)*eased;
+    routeTilt=Math.min(10,noseTiltAmount*.5)*Math.sin(Math.PI*eased);
+    if(t>=1){
+      completeLanding();
+      return;
+    }
+  }else if(routeTransitionStartedAt){
     const t=clamp((now-routeTransitionStartedAt)/Math.max(1,routeTransitionDurationMs),0,1);
     // Välitön lähtö + pehmeä loppu: alkunopeus on pieni mutta ei nolla.
     // Cubic Hermite: y(0)=0, y(1)=1, y'(0)=ROUTE_START_SPEED, y'(1)=0.
@@ -1303,11 +1314,13 @@ function gameLoop(now){
   const planeX=window.innerWidth*.22;
   updateClouds(dt);
 
-  spawnClock+=dt;
-  if(spawnClock>=nextSpawnDelayMs){
-    spawnClock-=nextSpawnDelayMs;
-    spawnStar();
-    nextSpawnDelayMs=randomSpawnDelayMs(now);
+  if(!landingActive){
+    spawnClock+=dt;
+    if(spawnClock>=nextSpawnDelayMs){
+      spawnClock-=nextSpawnDelayMs;
+      spawnStar();
+      nextSpawnDelayMs=randomSpawnDelayMs(now);
+    }
   }
   const speed=itemHorizontalSpeed(now); // px/s, kasvaa vähitellen pelin aikana
   for(let i=stars.length-1;i>=0;i--){
@@ -1316,7 +1329,7 @@ function gameLoop(now){
     s.el.style.left=s.x+'px';
     const atPlaneX=Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035);
     const atItemHeight=Math.abs(planeTopPercent-routeY(s.lane))<=ROUTE_HIT_TOLERANCE;
-    if(!s.collected&&atPlaneX&&atItemHeight){
+    if(!landingActive&&!s.collected&&atPlaneX&&atItemHeight){
       collectStar(s);
     }
     if(s.x<-80||s.collected&&s.x<planeX-30){
@@ -1341,6 +1354,7 @@ $('#startBtn').addEventListener('click',async()=>{
     calOverlay.classList.remove('show');
   }
 });
+$('#replayBtn').addEventListener('click',()=>beginGame());
 $('#refreshBtn').addEventListener('click',async()=>{
   const btn=$('#refreshBtn');
   if(btn.classList.contains('updating'))return;
