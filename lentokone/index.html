@@ -91,9 +91,9 @@ button{font:inherit}
   filter:drop-shadow(0 8px 10px rgba(19,58,84,.26));
   pointer-events:none;
   overflow:visible;
-  --prop-x:95.4%;
-  --prop-y:40.8%;
-  --prop-size:24%;
+  --prop-x:91.4%;
+  --prop-y:50.7%;
+  --prop-size:40%;
   --prop-side-scale:.208;
   --prop-idle-duration:.18s;
   --prop-active-duration:.055s;
@@ -180,7 +180,7 @@ button{font:inherit}
   pointer-events:none;
 }
 #routeHint.show{opacity:1}
-#gear,#refreshBtn{
+#gear,#refreshBtn,#recalBtn{
   position:absolute;
   top:max(8px,env(safe-area-inset-top));
   z-index:30;
@@ -195,6 +195,14 @@ button{font:inherit}
 }
 #gear{right:max(10px,env(safe-area-inset-right))}
 #refreshBtn{right:calc(max(10px,env(safe-area-inset-right)) + var(--gear-size,38px) + 8px)}
+#recalBtn{
+  right:calc(max(10px,env(safe-area-inset-right)) + var(--gear-size,38px) + 8px + var(--gear-size,38px) + 8px);
+  width:auto;
+  min-width:68px;
+  padding:0 10px;
+  border-radius:999px;
+  font-size:11px;
+}
 #refreshBtn.updating{animation:refreshSpin .7s linear infinite}
 @keyframes refreshSpin{to{transform:rotate(360deg)}}
 #devPanel{
@@ -217,13 +225,6 @@ button{font:inherit}
 #devPanel.open{display:block}
 .dev-grid{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center}
 .dev-grid strong{text-align:right}
-.dev-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
-.dev-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:850;background:#fff;color:#173f61}
-#settingsFile{display:none}
-.dev-sliders{margin-top:12px;display:grid;gap:10px}
-.dev-slider label{display:flex;justify-content:space-between;gap:10px;margin-bottom:3px;font-size:11px;font-weight:800}
-.dev-slider output{min-width:52px;text-align:right;color:#cfe7ff}
-.dev-slider input[type="range"]{width:100%}
 #startOverlay,#calOverlay,#rotateOverlay{
   position:absolute;
   inset:0;
@@ -318,6 +319,7 @@ button{font:inherit}
   <div id="routeHint"></div>
   <div id="flash">+1</div>
 
+  <button id="recalBtn" aria-label="Kalibroi mikrofoni" title="Kalibroi mikrofoni">Kalibroi</button>
   <button id="refreshBtn" aria-label="Päivitä peli" title="Päivitä peli">↻</button>
   <button id="gear" aria-label="Kehittäjätila">⚙</button>
   <aside id="devPanel">
@@ -331,43 +333,6 @@ button{font:inherit}
       <span>GAP</span><strong id="devGap">–</strong>
       <span>Tunnistus</span><strong id="devRecognition">–</strong>
       <span>Puhallus</span><strong id="devDuration">–</strong>
-    </div>
-    <div class="dev-actions">
-      <button id="recalBtn">Kalibroi</button>
-      <button id="resetScoreBtn">Nollaa pisteet</button>
-      <button id="exportSettingsBtn">Vie JSON</button>
-      <button id="importSettingsBtn">Tuo JSON</button>
-      <input id="settingsFile" type="file" accept="application/json,.json">
-    </div>
-    <div class="dev-sliders">
-      <div class="dev-slider">
-        <label for="propX"><span>Propelli X</span><output id="propXOut">91.4%</output></label>
-        <input id="propX" type="range" min="80" max="110" step="0.1" value="91.4">
-      </div>
-      <div class="dev-slider">
-        <label for="propY"><span>Propelli Y</span><output id="propYOut">50.7%</output></label>
-        <input id="propY" type="range" min="20" max="60" step="0.1" value="50.7">
-      </div>
-      <div class="dev-slider">
-        <label for="propSize"><span>Propellin koko</span><output id="propSizeOut">40.0%</output></label>
-        <input id="propSize" type="range" min="10" max="40" step="0.1" value="40">
-      </div>
-      <div class="dev-slider">
-        <label for="propTiltY"><span>Sivukääntö 0° edestä / 90° sivusta</span><output id="propTiltYOut">78°</output></label>
-        <input id="propTiltY" type="range" min="0" max="90" step="1" value="78">
-      </div>
-      <div class="dev-slider">
-        <label for="propIdle"><span>Idle-nopeus</span><output id="propIdleOut">180 ms</output></label>
-        <input id="propIdle" type="range" min="80" max="400" step="5" value="180">
-      </div>
-      <div class="dev-slider">
-        <label for="propActive"><span>Aktiivinen nopeus</span><output id="propActiveOut">55 ms</output></label>
-        <input id="propActive" type="range" min="20" max="160" step="5" value="55">
-      </div>
-      <div class="dev-slider">
-        <label for="noseTilt"><span>Nokan kallistus</span><output id="noseTiltOut">20.0°</output></label>
-        <input id="noseTilt" type="range" min="0" max="20" step="0.5" value="20">
-      </div>
     </div>
   </aside>
 
@@ -443,24 +408,13 @@ const dev={
   low:$('#devLow'),high:$('#devHigh'),best:$('#devBest'),gap:$('#devGap'),
   recognition:$('#devRecognition'),duration:$('#devDuration')
 };
-const propControls={
-  x:$('#propX'),xOut:$('#propXOut'),
-  y:$('#propY'),yOut:$('#propYOut'),
-  size:$('#propSize'),sizeOut:$('#propSizeOut'),
-  tiltY:$('#propTiltY'),tiltYOut:$('#propTiltYOut'),
-  idle:$('#propIdle'),idleOut:$('#propIdleOut'),
-  active:$('#propActive'),activeOut:$('#propActiveOut')
-};
-const movementControls={
-  noseTilt:$('#noseTilt'),noseTiltOut:$('#noseTiltOut')
-};
 
 let ctx=null,stream=null,analyser=null,timer=null;
 let timeData=null,freqData=null;
 let dbThreshold=-70;
 let yinDiffBuffer=null,yinCmndBuffer=null;
 let liveLowHistory=[],liveHighHistory=[],liveF0History=[];
-let soundStartedAt=null,soundActive=false;
+let soundStartedAt=null;
 
 // Pelitila
 let gameRunning=false;
@@ -469,11 +423,12 @@ let planeY=50;
 let routeTransitionStartY=50;
 let routeTransitionTargetY=50;
 let routeTransitionStartedAt=0;
-let routeTransitionDurationMs=780;
 const ROUTE_TRANSITION_MS=780;
+let routeTransitionDurationMs=ROUTE_TRANSITION_MS;
 const FULL_ROUTE_DISTANCE=38;
 const ROUTE_HIT_TOLERANCE=5.5;
 const ROUTE_START_SPEED=0.55;
+let routeHintTimer=null;
 let noseTiltAmount=20;
 let score=0;
 let stars=[];
@@ -617,8 +572,8 @@ function setRoute(name){
   currentRoute=next;
   routeHint.textContent=next==='high'?'YLÄREITTI':'ALAREITTI';
   routeHint.classList.add('show');
-  clearTimeout(setRoute._t);
-  setRoute._t=setTimeout(()=>routeHint.classList.remove('show'),420);
+  clearTimeout(routeHintTimer);
+  routeHintTimer=setTimeout(()=>routeHint.classList.remove('show'),420);
 }
 
 function clearRecognition(){
@@ -634,7 +589,6 @@ function processFrame(){
   dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';
   dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
   const loud=level.db>dbThreshold;
-  soundActive=loud;
   plane.classList.toggle('active',loud);
   plane.classList.toggle('idle',!loud);
 
@@ -929,87 +883,6 @@ function collectStar(star){
 }
 function resetScore(){score=0;scoreNum.textContent='0'}
 function clearStars(){for(const s of stars)s.el.remove();stars=[]}
-function clearClouds(){for(const c of clouds)c.el.remove();clouds=[]}
-function applyPropSettings(){
-  const x=parseFloat(propControls.x.value);
-  const y=parseFloat(propControls.y.value);
-  const size=parseFloat(propControls.size.value);
-  const tiltY=parseFloat(propControls.tiltY.value);
-  const idle=parseFloat(propControls.idle.value);
-  const active=parseFloat(propControls.active.value);
-  const sideScale=Math.max(0.055,Math.cos(tiltY*Math.PI/180));
-  plane.style.setProperty('--prop-x',x.toFixed(1)+'%');
-  plane.style.setProperty('--prop-y',y.toFixed(1)+'%');
-  plane.style.setProperty('--prop-size',size.toFixed(1)+'%');
-  plane.style.setProperty('--prop-side-scale',sideScale.toFixed(3));
-  plane.style.setProperty('--prop-idle-duration',(idle/1000).toFixed(3)+'s');
-  plane.style.setProperty('--prop-active-duration',(active/1000).toFixed(3)+'s');
-  propControls.xOut.value=x.toFixed(1)+'%';
-  propControls.yOut.value=y.toFixed(1)+'%';
-  propControls.sizeOut.value=size.toFixed(1)+'%';
-  propControls.tiltYOut.value=Math.round(tiltY)+'°';
-  propControls.idleOut.value=Math.round(idle)+' ms';
-  propControls.activeOut.value=Math.round(active)+' ms';
-}
-function applyMovementSettings(){
-  noseTiltAmount=parseFloat(movementControls.noseTilt.value);
-  movementControls.noseTiltOut.value=noseTiltAmount.toFixed(1)+'°';
-}
-function clampControlValue(control,value){
-  const min=parseFloat(control.min),max=parseFloat(control.max);
-  const n=Number(value);
-  if(!Number.isFinite(n))return null;
-  return clamp(n,min,max);
-}
-function getSettingsJson(){
-  return {
-    version:1,
-    propeller:{
-      x:parseFloat(propControls.x.value),
-      y:parseFloat(propControls.y.value),
-      size:parseFloat(propControls.size.value),
-      sideTilt:parseFloat(propControls.tiltY.value),
-      idleMs:parseFloat(propControls.idle.value),
-      activeMs:parseFloat(propControls.active.value)
-    },
-    flight:{
-      noseTiltDeg:parseFloat(movementControls.noseTilt.value)
-    }
-  };
-}
-function exportSettingsJson(){
-  const json=JSON.stringify(getSettingsJson(),null,2);
-  const blob=new Blob([json],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download='lentokone_asetukset.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-function importSettingsJson(data){
-  if(!data||typeof data!=='object')throw new Error('JSON ei sisällä asetuksia.');
-  const prop=data.propeller||{};
-  const flight=data.flight||{};
-  const mappings=[
-    [propControls.x,prop.x],
-    [propControls.y,prop.y],
-    [propControls.size,prop.size],
-    [propControls.tiltY,prop.sideTilt],
-    [propControls.idle,prop.idleMs],
-    [propControls.active,prop.activeMs],
-    [movementControls.noseTilt,flight.noseTiltDeg]
-  ];
-  for(const [control,value] of mappings){
-    if(value===undefined)continue;
-    const v=clampControlValue(control,value);
-    if(v!==null)control.value=String(v);
-  }
-  applyPropSettings();
-  applyMovementSettings();
-}
 function beginGame(){
   clearStars();
   initClouds();
@@ -1110,30 +983,10 @@ $('#refreshBtn').addEventListener('click',async()=>{
   }
 });
 $('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
-$('#resetScoreBtn').addEventListener('click',resetScore);
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
-[propControls.x,propControls.y,propControls.size,propControls.tiltY,propControls.idle,propControls.active]
-  .forEach(el=>el.addEventListener('input',applyPropSettings));
-movementControls.noseTilt.addEventListener('input',applyMovementSettings);
-$('#exportSettingsBtn').addEventListener('click',exportSettingsJson);
-$('#importSettingsBtn').addEventListener('click',()=>$('#settingsFile').click());
-$('#settingsFile').addEventListener('change',async e=>{
-  const file=e.target.files&&e.target.files[0];
-  if(!file)return;
-  try{
-    const data=JSON.parse(await file.text());
-    importSettingsJson(data);
-  }catch(err){
-    alert('JSON-asetuksia ei voitu lukea: '+(err?.message||'tuntematon virhe'));
-  }finally{
-    e.target.value='';
-  }
-});
 
 clearRecognition();
 applyResponsiveVisualScale();
-applyPropSettings();
-applyMovementSettings();
 })();
 </script>
 <script>

@@ -1,10 +1,9 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.4-target-driven-flight';
+const CACHE_NAME = 'lentokone-pwa-base-1.6-clean-ui-calibration-top';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './lentokone_sivu.webp',
-  './lentokone_asetukset_DEFAULT.json',
   './pilvi_levea.webp',
   './pilvi_keski.webp',
   './pilvi_iso.webp',
