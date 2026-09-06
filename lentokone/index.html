@@ -477,8 +477,13 @@ let planeY=50;
 let routeTransitionStartY=50;
 let routeTransitionTargetY=50;
 let routeTransitionStartedAt=0;
+let routeTransitionDurationMs=780;
+let routeTarget=null;
+let routeTargetWasLate=false;
 const ROUTE_TRANSITION_MS=780;
+const FULL_ROUTE_DISTANCE=38;
 const ROUTE_START_SPEED=0.55;
+const ROUTE_HIT_TOLERANCE=5.5;
 let noseTiltAmount=20;
 let score=0;
 let stars=[];
@@ -583,12 +588,47 @@ function similarity(take,ref){
 }
 
 function routeY(route){return route==='high'?31:route==='low'?69:50}
+function itemHorizontalSpeed(){return Math.max(116,window.innerWidth*.19)}
+function nextTargetOnRoute(route){
+  const planeX=window.innerWidth*.22;
+  let best=null;
+  for(const s of stars){
+    if(s.collected||s.lane!==route||s.x<=planeX)continue;
+    if(!best||s.x<best.x)best=s;
+  }
+  return best;
+}
+function minimumRouteTimeMs(fromY,toY){
+  const distance=Math.abs(toY-fromY);
+  return ROUTE_TRANSITION_MS*(distance/FULL_ROUTE_DISTANCE);
+}
 function setRoute(name){
   const next=name==='KORKEA'?'high':name==='MATALA'?'low':null;
   if(!next||next===currentRoute)return;
+
+  const now=performance.now();
+  const targetY=routeY(next);
+  const minDuration=Math.max(1,minimumRouteTimeMs(planeY,targetY));
+  const target=nextTargetOnRoute(next);
+
   routeTransitionStartY=planeY;
-  routeTransitionTargetY=routeY(next);
-  routeTransitionStartedAt=performance.now();
+  routeTransitionTargetY=targetY;
+  routeTarget=target;
+  routeTargetWasLate=false;
+
+  if(target){
+    const planeX=window.innerWidth*.22;
+    const timeToTarget=Math.max(0,(target.x-planeX)/itemHorizontalSpeed()*1000);
+    routeTargetWasLate=timeToTarget<minDuration;
+    // Ajoissa: sovitetaan lento niin, että reittikorkeus saavutetaan kohteen kohdalla.
+    // Myöhässä: nopeutta ei kasvateta yli sallitun, joten kohde ehtii näkyvästi ohi.
+    routeTransitionDurationMs=Math.max(minDuration,timeToTarget);
+  }else{
+    // Jos valitulla reitillä ei vielä ole näkyvää kohdetta, käytetään tuttua maksiminopeutta.
+    routeTransitionDurationMs=minDuration;
+  }
+
+  routeTransitionStartedAt=now;
   currentRoute=next;
   routeHint.textContent=next==='high'?'YLÄREITTI':'ALAREITTI';
   routeHint.classList.add('show');
@@ -1007,6 +1047,9 @@ function beginGame(){
   routeTransitionStartY=50;
   routeTransitionTargetY=50;
   routeTransitionStartedAt=0;
+  routeTransitionDurationMs=ROUTE_TRANSITION_MS;
+  routeTarget=null;
+  routeTargetWasLate=false;
   plane.classList.remove('active');
   plane.classList.add('idle');
   spawnClock=1000;
@@ -1021,7 +1064,7 @@ function gameLoop(now){
 
   let routeTilt=0;
   if(routeTransitionStartedAt){
-    const t=clamp((now-routeTransitionStartedAt)/ROUTE_TRANSITION_MS,0,1);
+    const t=clamp((now-routeTransitionStartedAt)/Math.max(1,routeTransitionDurationMs),0,1);
     // Välitön lähtö + pehmeä loppu: alkunopeus on pieni mutta ei nolla.
     // Cubic Hermite: y(0)=0, y(1)=1, y'(0)=ROUTE_START_SPEED, y'(1)=0.
     const eased=(ROUTE_START_SPEED-2)*t*t*t+(3-2*ROUTE_START_SPEED)*t*t+ROUTE_START_SPEED*t;
@@ -1031,6 +1074,8 @@ function gameLoop(now){
     if(t>=1){
       planeY=routeTransitionTargetY;
       routeTransitionStartedAt=0;
+      routeTarget=null;
+      routeTargetWasLate=false;
       routeTilt=0;
     }
   }else{
@@ -1045,12 +1090,14 @@ function gameLoop(now){
 
   spawnClock+=dt;
   if(spawnClock>=SPAWN_INTERVAL){spawnClock-=SPAWN_INTERVAL;spawnStar()}
-  const speed=Math.max(116,window.innerWidth*.19); // px/s
+  const speed=itemHorizontalSpeed(); // px/s
   for(let i=stars.length-1;i>=0;i--){
     const s=stars[i];
     if(!s.collected)s.x-=speed*(dt/1000);
     s.el.style.left=s.x+'px';
-    if(!s.collected&&Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035)&&s.lane===currentRoute){
+    const atPlaneX=Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035);
+    const atItemHeight=Math.abs(planeTopPercent-routeY(s.lane))<=ROUTE_HIT_TOLERANCE;
+    if(!s.collected&&atPlaneX&&atItemHeight){
       collectStar(s);
     }
     if(s.x<-80||s.collected&&s.x<planeX-30){

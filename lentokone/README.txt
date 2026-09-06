@@ -1,4 +1,4 @@
-Lentokone – PWA 1.6 – välitön lentoreaktio
+Lentokone – PWA 1.7 – kohteeseen sovitettu lento – välitön lentoreaktio
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -27,6 +27,16 @@ Uutta 1.6
 - 780 ms kokonaiskesto säilyy.
 - Loppu hidastuu edelleen pehmeästi reitille.
 - Äänentunnistukseen ei ole tehty muutoksia.
+
+Kohteeseen sovitettu lento 1.7
+- Kun pelaaja vaihtaa reittiä, kone hakee seuraavan näkyvän kerättävän valitulta reitiltä.
+- Kone laskee kerättävän vaakasijainnista ajan kohtaamiseen ja sovittaa nousun/laskun keston siihen.
+- Ajoissa annetulla komennolla kone saavuttaa reittikorkeuden kohteen kohdalla.
+- Koneen suurinta korkeudenvaihtonopeutta ei ylitetä: täysi reittivaihto voi nopeimmillaan kestää 780 ms.
+- Jos komento tulee liian myöhään, kone lähtee silti heti mutta kerättävä ehtii näkyvästi ohi ennen kuin kone saavuttaa oikean korkeuden.
+- Piste annetaan nyt todellisen korkeuden perusteella, ei pelkän valitun reitin perusteella.
+- Jos valitulla reitillä ei ole vielä näkyvää kerättävää, kone siirtyy reitille normaalilla suurimmalla nopeudella.
+- Äänentunnistus ja kerättävien vaakaliike ovat ennallaan.
 
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
