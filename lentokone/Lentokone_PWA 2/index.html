@@ -72,7 +72,7 @@ button{font:inherit}
   transform:translateY(-50%);
   z-index:3;
   color:rgba(22,59,87,.52);
-  font-size:clamp(10px,1.8vw,14px);
+  font-size:var(--route-label-size,clamp(10px,1.8vw,14px));
   font-weight:900;
   letter-spacing:.12em;
   pointer-events:none;
@@ -83,7 +83,7 @@ button{font:inherit}
   position:absolute;
   left:22%;
   top:50%;
-  width:clamp(84px,17vw,155px);
+  width:var(--plane-width,clamp(84px,17vw,155px));
   z-index:8;
   transform:translate(-50%,-50%);
   transform-origin:50% 50%;
@@ -130,12 +130,12 @@ button{font:inherit}
   z-index:7;
   top:0;
   left:0;
-  width:clamp(34px,6.6vw,58px);
+  width:var(--star-size,clamp(34px,6.6vw,58px));
   aspect-ratio:1;
   display:grid;
   place-items:center;
   color:#ffd84d;
-  font-size:clamp(34px,6.6vw,58px);
+  font-size:var(--star-size,clamp(34px,6.6vw,58px));
   line-height:1;
   text-shadow:0 2px 0 #e5a825,0 4px 10px rgba(93,63,0,.28);
   transform:translate(-50%,-50%);
@@ -155,12 +155,12 @@ button{font:inherit}
   left:max(14px,env(safe-area-inset-left));
   top:max(10px,env(safe-area-inset-top));
   z-index:20;
-  min-width:72px;
-  padding:7px 13px 8px;
+  min-width:var(--score-min-width,72px);
+  padding:var(--score-pad-y,7px) var(--score-pad-x,13px) var(--score-pad-y2,8px);
   border-radius:999px;
   background:rgba(255,255,255,.86);
   box-shadow:0 4px 18px rgba(24,77,113,.14);
-  font-size:clamp(19px,3.6vw,30px);
+  font-size:var(--score-font-size,clamp(19px,3.6vw,30px));
   font-weight:950;
   text-align:center;
   backdrop-filter:blur(6px);
@@ -170,10 +170,10 @@ button{font:inherit}
   left:50%;top:max(10px,env(safe-area-inset-top));
   transform:translateX(-50%);
   z-index:18;
-  padding:6px 12px;
+  padding:var(--hint-pad-y,6px) var(--hint-pad-x,12px);
   border-radius:999px;
   background:rgba(255,255,255,.70);
-  font-size:clamp(11px,2vw,15px);
+  font-size:var(--hint-font-size,clamp(11px,2vw,15px));
   font-weight:850;
   opacity:0;
   transition:opacity .16s ease;
@@ -186,11 +186,11 @@ button{font:inherit}
   top:max(8px,env(safe-area-inset-top));
   z-index:30;
   border:0;
-  width:38px;height:38px;
+  width:var(--gear-size,38px);height:var(--gear-size,38px);
   border-radius:50%;
   background:rgba(255,255,255,.76);
   color:var(--ink);
-  font-size:20px;
+  font-size:var(--gear-font-size,20px);
   font-weight:900;
   box-shadow:0 4px 14px rgba(24,77,113,.12);
 }
@@ -240,8 +240,8 @@ button{font:inherit}
   text-align:center;
   box-shadow:0 18px 55px rgba(27,81,116,.20);
 }
-.overlay-card h1{margin:0 0 8px;font-size:clamp(26px,6vw,42px);line-height:1}
-.overlay-card p{margin:7px 0;font-size:clamp(13px,2.6vw,17px);font-weight:700;line-height:1.35}
+.overlay-card h1{margin:0 0 8px;font-size:var(--overlay-h1-size,clamp(26px,6vw,42px));line-height:1}
+.overlay-card p{margin:7px 0;font-size:var(--overlay-p-size,clamp(13px,2.6vw,17px));font-weight:700;line-height:1.35}
 .overlay-card .rules{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
 .rule{padding:8px 12px;border-radius:999px;background:#e9f5fb;font-weight:900}
 .primary{
@@ -266,7 +266,7 @@ button{font:inherit}
   left:22%;
   top:50%;
   transform:translate(-50%,-50%);
-  font-size:clamp(18px,4vw,32px);
+  font-size:var(--flash-font-size,clamp(18px,4vw,32px));
   font-weight:950;
   color:#fff;
   text-shadow:0 2px 9px rgba(15,69,105,.6);
@@ -275,6 +275,7 @@ button{font:inherit}
 }
 #flash.pop{animation:flashPop .5s ease-out forwards}
 @keyframes flashPop{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}25%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-130%) scale(1)}}
+/* Visuaalinen mittakaava lasketaan JavaScriptillä portaattomasti viewportin koosta. */
 @media(orientation:portrait){#rotateOverlay{display:flex}}
 @media(max-height:380px){
   .overlay-card{padding:14px 18px}
@@ -391,7 +392,7 @@ button{font:inherit}
   <div id="rotateOverlay">
     <div class="overlay-card">
       <div id="rotateIcon">↻</div>
-      <h1>Käännä puhelin</h1>
+      <h1>Käännä vaakatasoon</h1>
       <p>Lentokone-peli toimii vaakatasossa.</p>
     </div>
   </div>
@@ -752,13 +753,55 @@ async function startMic(){
   return true;
 }
 
+function visualScale(){
+  // iPhone 15 landscape (~852x393 CSS px) on vertailutaso 1.0.
+  // Käytetään viewportin pienempää suhteellista mittaa, jotta hyvin leveä tai korkea
+  // ikkuna ei kasvata elementtejä kohtuuttomasti. Puhelimia ei kutisteta alle 1.0:n.
+  const widthScale=window.innerWidth/852;
+  const heightScale=window.innerHeight/393;
+  return clamp(Math.min(widthScale,heightScale),1,1.75);
+}
+function applyResponsiveVisualScale(){
+  const s=visualScale();
+  const w=window.innerWidth;
+  const root=document.documentElement;
+  const basePlane=clamp(w*.17,84,155);
+  const baseStar=clamp(w*.066,34,58);
+  const baseScore=clamp(w*.036,19,30);
+  const baseRouteLabel=clamp(w*.018,10,14);
+  const baseHint=clamp(w*.02,11,15);
+  const baseFlash=clamp(w*.04,18,32);
+  const baseH1=clamp(w*.06,26,42);
+  const baseP=clamp(w*.026,13,17);
+
+  root.style.setProperty('--plane-width',(basePlane*s).toFixed(1)+'px');
+  root.style.setProperty('--star-size',(baseStar*s).toFixed(1)+'px');
+  root.style.setProperty('--score-font-size',Math.min(46,baseScore*s).toFixed(1)+'px');
+  root.style.setProperty('--score-min-width',(72*s).toFixed(1)+'px');
+  root.style.setProperty('--score-pad-y',(7*s).toFixed(1)+'px');
+  root.style.setProperty('--score-pad-y2',(8*s).toFixed(1)+'px');
+  root.style.setProperty('--score-pad-x',(13*s).toFixed(1)+'px');
+  root.style.setProperty('--route-label-size',Math.min(22,baseRouteLabel*s).toFixed(1)+'px');
+  root.style.setProperty('--hint-font-size',Math.min(22,baseHint*s).toFixed(1)+'px');
+  root.style.setProperty('--hint-pad-y',(6*s).toFixed(1)+'px');
+  root.style.setProperty('--hint-pad-x',(12*s).toFixed(1)+'px');
+  root.style.setProperty('--gear-size',Math.min(52,38*s).toFixed(1)+'px');
+  root.style.setProperty('--gear-font-size',Math.min(27,20*s).toFixed(1)+'px');
+  root.style.setProperty('--flash-font-size',Math.min(50,baseFlash*s).toFixed(1)+'px');
+  root.style.setProperty('--overlay-h1-size',Math.min(56,baseH1*s).toFixed(1)+'px');
+  root.style.setProperty('--overlay-p-size',Math.min(24,baseP*s).toFixed(1)+'px');
+  return s;
+}
 function desiredCloudCount(){
-  return Math.round(clamp(Math.ceil(window.innerWidth/320)+2,4,7));
+  // Pilvimäärä kasvaa näkymän leveyden mukana, mutta ei laitetyyppiin sidotusti.
+  const s=visualScale();
+  return Math.round(clamp(Math.ceil(window.innerWidth/(320*s))+2,4,7));
 }
 function cloudSizeScale(){
-  // Pilvien koko seuraa ennen kaikkea näkymän korkeutta. Näin leveä/matala
-  // selainikkuna ei vedä pilviä liian alas tai liian suuriksi.
-  return clamp(window.innerHeight/430,.68,1.18);
+  // Säilytetään puhelinten nykyinen pilvikoko, mutta kasvatetaan sitä samalla
+  // jatkuvalla kertoimella kuin muuta pelikuvaa suuremmilla viewporteilla.
+  const phoneHeightFactor=clamp(window.innerHeight/430,.68,1);
+  return phoneHeightFactor*visualScale();
 }
 function cloudMaxGap(){
   return clamp(window.innerWidth*.13,72,155);
@@ -869,6 +912,7 @@ function reflowCloudsForViewport(){
 }
 let cloudResizeTimer=null;
 window.addEventListener('resize',()=>{
+  applyResponsiveVisualScale();
   clearTimeout(cloudResizeTimer);
   cloudResizeTimer=setTimeout(()=>reflowCloudsForViewport(),70);
 });
@@ -1087,6 +1131,7 @@ $('#settingsFile').addEventListener('change',async e=>{
 });
 
 clearRecognition();
+applyResponsiveVisualScale();
 applyPropSettings();
 applyMovementSettings();
 })();

@@ -1,4 +1,14 @@
-Lentokone – PWA / versio 1.0
+Lentokone – PWA 1.2
+
+Uutta 1.1
+- Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
+- iPhone-kokoinen näkymä säilyy ennallaan.
+- Visuaalinen mittakaava on nyt täysin dynaaminen eikä sidottu tiettyyn laitetyyppiin.
+- Skaala lasketaan nykyisen viewportin leveydestä ja korkeudesta, ja päivittyy myös ikkunan kokoa muutettaessa.
+- iPhone 15:n vaakakoko toimii vertailutasona 1.0. Suuremmilla näytöillä lentokone, tähdet, pilvet ja käyttöliittymän pääelementit kasvavat portaattomasti.
+- Skaala rajataan noin 1.75-kertaiseksi, jotta hyvin suuret näytöt eivät tee elementeistä kohtuuttoman suuria.
+- Pilvien koko ja määrä mukautuvat samaan viewport-skaalaan.
+- Service workerin cache-versio on päivitetty, jotta PWA ei jää käyttämään vanhaa näkymää.
 
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
