@@ -2829,9 +2829,20 @@ async function startMic(autoStart=false){
     }
     if(ctx.state!=='running')await ctx.resume();
 
-    stream=await navigator.mediaDevices.getUserMedia({
-      audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
-    });
+    // Pyydetään selaimelta mahdollisimman käsittelemätön mikrofonisignaali.
+    // Nämä kolme olivat jo pois päältä tässä pohjaversiossa; tässä testissä
+    // lisätään lisäksi tuettujen constraintien tarkistus ja voiceIsolation pois,
+    // jos selain tukee sitä.
+    const supported = navigator.mediaDevices.getSupportedConstraints
+      ? navigator.mediaDevices.getSupportedConstraints()
+      : {};
+    const micConstraints = {
+      echoCancellation:false,
+      noiseSuppression:false,
+      autoGainControl:false
+    };
+    if(supported.voiceIsolation) micConstraints.voiceIsolation=false;
+    stream=await navigator.mediaDevices.getUserMedia({audio:micConstraints});
     await Promise.all([preparePopAudioBuffer(),prepareThunderAudioBuffers()]);
     const src=ctx.createMediaStreamSource(stream);
     analyser=ctx.createAnalyser();
@@ -2847,7 +2858,16 @@ async function startMic(autoStart=false){
 
     micBtn.textContent='Pysäytä mikrofoni';
     micBtn.style.display='none';
-    micStatus.textContent='Mikrofoni aktiivinen';
+    const track=stream.getAudioTracks()[0];
+    const s=track && track.getSettings ? track.getSettings() : {};
+    const fmt=(key,label)=> (key in s) ? `${label}:${s[key]===false?'pois':s[key]===true?'päällä':s[key]}` : `${label}:?`;
+    const diag=[
+      fmt('echoCancellation','EC'),
+      fmt('noiseSuppression','NS'),
+      fmt('autoGainControl','AGC')
+    ];
+    if('voiceIsolation' in s) diag.push(fmt('voiceIsolation','VI'));
+    micStatus.textContent='Mikrofoni aktiivinen · '+diag.join(' · ');
     listenBtn.disabled=false; gameStart.disabled=false;
     const thresholdPct=Math.max(0,Math.min(100,(+dbThreshold.value+70)/50*100));
     $('#liveLevelMark').style.left=thresholdPct+'%';

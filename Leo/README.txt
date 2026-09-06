@@ -15,3 +15,11 @@ Lupakirjan XY-säädöt ja muu 3.79-version toiminta on säilytetty.
 
 
 TESTIMUUTOS: pelin JavaScript-grafiikka/fysiikka on rajattu 30 fps:ään. Mikrofoni- ja yläsävelanalyysi on jätetty ennalleen. CSS-animaatioita ei ole muutettu.
+
+
+MIKROFONI RAW -TESTI:
+- Grafiikan 30 fps -rajoitus ennallaan.
+- echoCancellation=false, noiseSuppression=false ja autoGainControl=false olivat jo pohjaversiossa.
+- Testissä poistetaan lisäksi voiceIsolation, jos selain tukee sitä.
+- Mikrofoni-tilariville tulostetaan selaimen track.getSettings()-arvot (EC/NS/AGC/VI), jotta nähdään, toteutuivatko pyydetyt asetukset Samsungissa.
+- YIN-, yläsävel-, kynnys- ja pelilogiikkaa ei muutettu.
