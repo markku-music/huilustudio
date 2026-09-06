@@ -230,10 +230,14 @@ body{
   transform-origin:left center;
 }
 .obstacle{
+  left:0;
   min-width:0;
   min-height:0;
-  transform:translate(-50%,-50%) scale(var(--balloon-scale,1));
+  --balloon-x-px:0px;
+  transform:translate3d(calc(var(--balloon-x-px) - 50%),-50%,0) scale(var(--balloon-scale,1));
   transform-origin:center center;
+  will-change:transform,top;
+  backface-visibility:hidden;
 }
 .gameOverlay{
   position:absolute;
@@ -1448,9 +1452,12 @@ let timeData=null, freqData=null;
 let armed=false, inSound=false, silenceFrames=0, frames=[];
 let liveLowHistory=[], liveHighHistory=[], liveF0History=[];
 let liveCommandLatched=false, liveSoundStart=0;
-let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, lastGameRenderT=0, spawnClock=0, lastSpawnLane=null, sameLaneRun=0;
-const GAME_RENDER_FPS=30;
-const GAME_RENDER_MS=1000/GAME_RENDER_FPS;
+let gameRunning=false, gamePaused=false, pauseStartedAt=0, gameLane='upper', gameScore=0, obstacles=[], gameRaf=0, lastGameT=0, spawnClock=0, lastSpawnLane=null, sameLaneRun=0;
+let gameStageWidthPx=1;
+
+function refreshGameStageWidth(){
+  gameStageWidthPx=Math.max(1,gameStage.clientWidth || window.innerWidth || 1);
+}
 let licenseTestActive=false, licenseHighCount=0, licenseLowCount=0;
 const BALLOON_ASSETS=['balloon_red.webp','balloon_yellow.webp','balloon_blue.webp','balloon_green.webp','balloon_purple.webp'];
 
@@ -2298,6 +2305,8 @@ function spawnObstacle(){
   el.style.width=w.toFixed(1)+'px';
   el.style.height=h.toFixed(1)+'px';
   el.innerHTML='<img class="balloonSprite" src="'+asset+'" alt="Ilmapallo">';
+  const initialX=106;
+  el.style.setProperty('--balloon-x-px',(gameStageWidthPx*initialX/100).toFixed(2)+'px');
   gameStage.appendChild(el);
 
   const driftChance=currentWeather==='storm'?.34:0;
@@ -2790,16 +2799,11 @@ function popBalloon(o){
 function gameLoop(t){
   if(!gameRunning || gamePaused)return;
 
-  // Selain voi kutsua requestAnimationFramea 60/90/120 Hz, mutta itse pelin
-  // JS-grafiikka ja siihen sidottu fysiikka päivitetään korkeintaan 30 fps.
-  // Mikrofoni- ja yläsävelanalyysiin ei kosketa lainkaan.
-  gameRaf=requestAnimationFrame(gameLoop);
-  if(lastGameRenderT && (t-lastGameRenderT)<GAME_RENDER_MS)return;
-
+  // Alkuperäinen requestAnimationFrame-pohjainen päivitys on palautettu.
+  // 60 Hz Samsungissa grafiikka päivittyy käytännössä noin 60 fps.
   if(!lastGameT)lastGameT=t;
   const dt=Math.min(.05,(t-lastGameT)/1000);
   lastGameT=t;
-  lastGameRenderT=t;
 
   updatePlanePhysics(dt);
   updateWeatherMotion(t,dt);
@@ -2808,7 +2812,10 @@ function gameLoop(t){
   if(spawnClock>1.95){ spawnClock=0; spawnObstacle(); }
   const speed=24;
   for(let i=obstacles.length-1;i>=0;i--){
-    const o=obstacles[i]; o.x-=speed*dt; o.el.style.left=o.x+'%';
+    const o=obstacles[i];
+    o.x-=speed*dt;
+    // GPU-ystävällinen vaakaliike: transform ei muuta dokumentin layoutia.
+    o.el.style.setProperty('--balloon-x-px',(gameStageWidthPx*o.x/100).toFixed(2)+'px');
 
     // Weather may make a balloon slowly float to the other route,
     // but never once it has entered the left/near-airplane part of the screen.
@@ -2832,6 +2839,7 @@ function gameLoop(t){
       obstacles.splice(i,1);
     }
   }
+  gameRaf=requestAnimationFrame(gameLoop);
 }
 function startGame(){
   if(!ctx || !gameAssetsReady)return;
@@ -2848,7 +2856,8 @@ function startGame(){
   const lowTest=document.getElementById('testLow');
   if(highTest)highTest.classList.add('visible');
   if(lowTest)lowTest.classList.add('visible');
-  clearObstacles(); gameScore=0; spawnClock=0; lastGameT=0; lastGameRenderT=0; lastSpawnLane=null; sameLaneRun=0; updateGameHud();
+  refreshGameStageWidth();
+  clearObstacles(); gameScore=0; spawnClock=0; lastGameT=0; lastSpawnLane=null; sameLaneRun=0; updateGameHud();
   resetWeatherMotion();
   const weatherNow=performance.now();
   if(currentWeather==='storm'){
@@ -2903,7 +2912,6 @@ function resumeGame(){
   frames=[];
   liveCommandLatched=false;
   lastGameT=0;
-  lastGameRenderT=0;
   if(currentWeather==='storm')stormRainTimer=setTimeout(scheduleStormRain,20);
   if(engineShouldPlay && airplaneAudio && airplaneAudio.paused){
     airplaneAudio.volume=engineVolume;
@@ -3151,6 +3159,7 @@ applyTailMicSettings();
 runClearCloudMonitor();
 
 window.addEventListener('resize',()=>{
+  refreshGameStageWidth();
   applyClearCloudLowerLimit(clearCloudLimit);
 });
 gameStart.style.display='none';
