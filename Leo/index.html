@@ -791,15 +791,16 @@ body{
 /* Laitekohtainen dB-vertailumittaus: ei muuta tunnistuslogiikkaa. */
 .dbCompareBox{
   margin:10px 0 14px;padding:12px;border:1px solid rgba(18,67,108,.22);
-  border-radius:14px;background:rgba(255,255,255,.82);
+  border-radius:14px;background:rgba(255,255,255,.94);
+  color:#173f61;
 }
 .dbCompareTitle{font-weight:900;margin-bottom:8px;color:#173f61}
 .dbCompareGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.dbCompareMetric{padding:8px 10px;border-radius:10px;background:rgba(230,244,255,.85);text-align:center}
-.dbCompareMetric span{display:block;font-size:12px;opacity:.72;margin-bottom:3px}
-.dbCompareMetric strong{font-size:clamp(18px,2.5vw,26px)}
+.dbCompareMetric{padding:8px 10px;border-radius:10px;background:rgba(230,244,255,.96);text-align:center;color:#173f61}
+.dbCompareMetric span{display:block;font-size:12px;color:#315a78;opacity:1;margin-bottom:3px;font-weight:800}
+.dbCompareMetric strong{font-size:clamp(18px,2.5vw,26px);color:#102f49}
 .dbCompareActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-#dbMeasureStatus{font-weight:800;opacity:.8}
+#dbMeasureStatus{font-weight:800;opacity:1;color:#315a78}
 #dbMeasureButton.active{background:#e85d3f;color:#fff}
 @media(max-width:620px){.dbCompareGrid{grid-template-columns:1fr 1fr 1fr}.dbCompareMetric{padding:6px}.dbCompareMetric strong{font-size:17px}}
 
