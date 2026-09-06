@@ -1,4 +1,4 @@
-Lentokone – PWA 1.27 – laskeutumispaikka Y 83,3 %
+Lentokone – PWA 1.31 – Samsung fullscreen + HUD alareunassa
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -271,3 +271,14 @@ Uutta 1.27
 - Laskeutumispaikan Y-oletusarvo on nyt 83,3 %.
 - Kehittäjäasetusten Y-slideri säilyy säädettävänä.
 - Oletus-JSONin landingYPercent on 83.3.
+
+
+Uutta 1.30
+- Mittariosasto on ankkuroidu suoraan ruudun alareunaan.
+- iPhonen safe-area-inset-bottom ei enää nosta HUDia Samsungia ylemmäs.
+
+Uutta 1.31
+- Samsung/Android PWA:n fullscreen-tila vahvistettu manifestissa ilman standalone-fallbackia.
+- Lisätty Android mobile-web-app-capable -metatieto.
+- requestFullscreen()-kutsua ei käytetä, joten poistumisvihjettä ei pitäisi tulla.
+- HUD säilyy ankkuroituna ruudun alareunaan (bottom: 0).
