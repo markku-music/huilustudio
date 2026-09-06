@@ -1,4 +1,4 @@
-Lentokone – PWA 1.7 – kohteeseen sovitettu lento – välitön lentoreaktio
+Lentokone – PWA 1.8 – kohteeseen sovitettu lento – välitön lentoreaktio
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -37,6 +37,15 @@ Kohteeseen sovitettu lento 1.7
 - Piste annetaan nyt todellisen korkeuden perusteella, ei pelkän valitun reitin perusteella.
 - Jos valitulla reitillä ei ole vielä näkyvää kerättävää, kone siirtyy reitille normaalilla suurimmalla nopeudella.
 - Äänentunnistus ja kerättävien vaakaliike ovat ennallaan.
+
+Vaikeustaso 1.8
+- Vaikeus kasvaa jatkuvasti ensimmäisten 3 minuutin aikana.
+- Kerättävien vaakanopeus kasvaa portaattomasti 1.0x -> 1.5x.
+- Kerättävät eivät enää synny tasavälein. Jokaisen uuden kohteen syntymisväli arvotaan erikseen.
+- Alussa syntymisväli vaihtelee noin 1.70-2.20 s.
+- Maksimivaikeudella väli vaihtelee noin 0.85-1.55 s.
+- Satunnaisuudessa on aina minimiväli, joten kohteet eivät synny kiinni toisiinsa.
+- Kohdeohjattu lento käyttää aina senhetkistä objektinopeutta, joten ajoituslogiikka säilyy oikeana vaikeuden kasvaessa.
 
 Pelin toiminta
 - KORKEA ääni vie yläreitille.

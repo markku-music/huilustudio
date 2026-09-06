@@ -490,9 +490,16 @@ let stars=[];
 let clouds=[];
 let lastFrame=0;
 let spawnClock=0;
+let nextSpawnDelayMs=1850;
+let gameStartedAt=0;
 let lastSpawnLane=null;
 let sameLaneCount=0;
-const SPAWN_INTERVAL=1850;
+const DIFFICULTY_RAMP_MS=180000; // 3 min -> maksimitaso
+const SPEED_MAX_MULTIPLIER=1.50;
+const SPAWN_MIN_START_MS=1700;
+const SPAWN_MAX_START_MS=2200;
+const SPAWN_MIN_END_MS=850;
+const SPAWN_MAX_END_MS=1550;
 const CLOUD_MIN_GAP=34;
 const CLOUD_VERTICAL_BANDS=[0.14,0.27,0.40,0.52];
 const CLOUD_TYPES=[
@@ -588,7 +595,21 @@ function similarity(take,ref){
 }
 
 function routeY(route){return route==='high'?31:route==='low'?69:50}
-function itemHorizontalSpeed(){return Math.max(116,window.innerWidth*.19)}
+function difficultyProgress(now=performance.now()){
+  if(!gameStartedAt)return 0;
+  return clamp((now-gameStartedAt)/DIFFICULTY_RAMP_MS,0,1);
+}
+function itemHorizontalSpeed(now=performance.now()){
+  const base=Math.max(116,window.innerWidth*.19);
+  const p=difficultyProgress(now);
+  return base*(1+(SPEED_MAX_MULTIPLIER-1)*p);
+}
+function randomSpawnDelayMs(now=performance.now()){
+  const p=difficultyProgress(now);
+  const minMs=SPAWN_MIN_START_MS+(SPAWN_MIN_END_MS-SPAWN_MIN_START_MS)*p;
+  const maxMs=SPAWN_MAX_START_MS+(SPAWN_MAX_END_MS-SPAWN_MAX_START_MS)*p;
+  return rand(minMs,maxMs);
+}
 function nextTargetOnRoute(route){
   const planeX=window.innerWidth*.22;
   let best=null;
@@ -1052,9 +1073,11 @@ function beginGame(){
   routeTargetWasLate=false;
   plane.classList.remove('active');
   plane.classList.add('idle');
+  gameStartedAt=performance.now();
   spawnClock=1000;
+  nextSpawnDelayMs=randomSpawnDelayMs(gameStartedAt);
   gameRunning=true;
-  lastFrame=performance.now();
+  lastFrame=gameStartedAt;
   requestAnimationFrame(gameLoop);
 }
 function gameLoop(now){
@@ -1089,8 +1112,12 @@ function gameLoop(now){
   updateClouds(dt);
 
   spawnClock+=dt;
-  if(spawnClock>=SPAWN_INTERVAL){spawnClock-=SPAWN_INTERVAL;spawnStar()}
-  const speed=itemHorizontalSpeed(); // px/s
+  if(spawnClock>=nextSpawnDelayMs){
+    spawnClock-=nextSpawnDelayMs;
+    spawnStar();
+    nextSpawnDelayMs=randomSpawnDelayMs(now);
+  }
+  const speed=itemHorizontalSpeed(now); // px/s, kasvaa vähitellen pelin aikana
   for(let i=stars.length-1;i>=0;i--){
     const s=stars[i];
     if(!s.collected)s.x-=speed*(dt/1000);
