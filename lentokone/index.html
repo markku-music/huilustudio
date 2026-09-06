@@ -244,6 +244,19 @@ button{font:inherit}
   text-align:center;
   box-shadow:0 18px 55px rgba(27,81,116,.20);
 }
+#startOverlay .start-minimal{
+  width:auto;
+  min-width:220px;
+  padding:18px 22px 16px;
+}
+#startError{
+  margin:8px 0 0;
+  min-height:0;
+  font-size:13px;
+  font-weight:700;
+  color:#9b3f3f;
+}
+#startError:empty{display:none}
 .overlay-card h1{margin:0 0 8px;font-size:var(--overlay-h1-size,clamp(26px,6vw,42px));line-height:1}
 .overlay-card p{margin:7px 0;font-size:var(--overlay-p-size,clamp(13px,2.6vw,17px));font-weight:700;line-height:1.35}
 .overlay-card .rules{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
@@ -357,16 +370,9 @@ button{font:inherit}
   </aside>
 
   <div id="startOverlay">
-    <div class="overlay-card">
-      <h1>Lentokone</h1>
-      <p>Kerää tähdet vaihtamalla lentoreittiä sävelellä.</p>
-      <div class="rules">
-        <div class="rule">KORKEA → YLÄ</div>
-        <div class="rule">MATALA → ALA</div>
-      </div>
-      <p>Vakaan äänen aikana kone lentää rauhallisemmin.</p>
+    <div class="overlay-card start-minimal">
       <button id="startBtn" class="primary">Aloita peli</button>
-      <p id="startError" style="color:#9b3f3f;min-height:1.35em"></p>
+      <p id="startError"></p>
     </div>
   </div>
 
@@ -1049,14 +1055,15 @@ function gameLoop(now){
 $('#startBtn').addEventListener('click',async()=>{
   startError.textContent='';
   $('#startBtn').disabled=true;
+  startOverlay.style.display='none';
   try{
     await startMic();
-    startOverlay.style.display='none';
     beginGame();
   }catch(err){
+    startOverlay.style.display='flex';
     startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';
     $('#startBtn').disabled=false;
-    calOverlay.classList.remove('show');
+    calOverlay.classList.remove('show','fade-out');
   }
 });
 $('#refreshBtn').addEventListener('click',async()=>{

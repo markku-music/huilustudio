@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.10-calibration-fadeout';
+const CACHE_NAME = 'lentokone-pwa-base-1.13-start-button-only';
 const APP_SHELL = [
   './',
   './index.html',

@@ -126,3 +126,8 @@ BASE 1.9
 
 BASE 1.10
 - Kalibrointi-ikkuna feidautuu pehmeästi pois kalibroinnin valmistuttua.
+
+BASE 1.13
+- Aloitusikkunasta poistettu lentokonekuva ja kaikki tekstit.
+- Aloitusikkunassa on vain Aloita peli -nappi.
+- Aloitusikkuna poistuu heti napin painalluksesta ennen mikrofonin kalibrointia.
