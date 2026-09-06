@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.8-calibration-gauge-90-30-clean';
+const CACHE_NAME = 'lentokone-pwa-base-1.10-calibration-fadeout';
 const APP_SHELL = [
   './',
   './index.html',

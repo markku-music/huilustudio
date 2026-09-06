@@ -118,3 +118,11 @@ BASE 1.8
 - Kalibrointimittarin asteikko muutettu alueelle -90 dB ... -30 dB.
 - Kalibrointinäkymän live-otsikko "Kalibroi mikrofoni" poistettu.
 - Taustakuvasta siivottu pois staattiset dB-tekstit ja staattinen aikapalkki, koska live-SVG piirtää ne nyt itse.
+
+BASE 1.9
+- Kalibrointitaustasta poistettu kokonaan vanha staattinen aikapalkki.
+- Live-SVG-aikapalkki pelkistetty: ei reunusta eikä sisäpaddingia.
+- Täyttö alkaa samasta kohdasta kuin palkin tausta ja käyttää koko leveyden.
+
+BASE 1.10
+- Kalibrointi-ikkuna feidautuu pehmeästi pois kalibroinnin valmistuttua.
