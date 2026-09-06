@@ -23,7 +23,7 @@
   --route:rgba(255,255,255,.54);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8fd5fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#8fd5fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
 button{font:inherit}
 #game{
   position:fixed;
@@ -1381,10 +1381,33 @@ function gameLoop(now){
   requestAnimationFrame(gameLoop);
 }
 
+async function enterImmersiveMode(){
+  const root=document.documentElement;
+  try{
+    if(!document.fullscreenElement && root.requestFullscreen){
+      try{
+        await root.requestFullscreen({navigationUI:'hide'});
+      }catch(_optionsErr){
+        // Vanhemmat Android/Chrome-versiot eivät tunne navigationUI-optiota.
+        await root.requestFullscreen();
+      }
+    }
+  }catch(_fullscreenErr){
+    // Asennettu fullscreen-PWA voi jo olla koko näytön tilassa.
+    // Pelin käynnistymistä ei estetä, vaikka selain torjuisi pyynnön.
+  }
+  try{
+    if(screen.orientation?.lock){
+      await screen.orientation.lock('landscape');
+    }
+  }catch(_orientationErr){}
+}
+
 $('#startBtn').addEventListener('click',async()=>{
   startError.textContent='';
   $('#startBtn').disabled=true;
   try{
+    await enterImmersiveMode();
     await startMic();
     startOverlay.style.display='none';
     beginGame();

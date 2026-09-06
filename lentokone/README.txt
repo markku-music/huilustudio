@@ -164,6 +164,13 @@ Uutta 1.26
 - Arvo päivittyy heti, jos kone on jo laskeutunut, joten touchdown-korkeutta voi hienosäätää suoraan ruudulta.
 - Laskeutumispaikan Y-arvo tallentuu JSON-vientiin ja palautuu JSON-tuonnissa.
 
+
+Uutta 1.28
+- PWA käynnistyy manifestin fullscreen-tilassa (display: fullscreen).
+- Aloita peli -painallus pyytää selaimelta Fullscreen API:n navigationUI: hide -tilaa.
+- Android/Samsung Chrome -laitteilla peli yrittää samalla lukita näytön vaakasuuntaan.
+- Fullscreen-pyynnön epäonnistuminen ei estä pelin käynnistymistä.
+
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.

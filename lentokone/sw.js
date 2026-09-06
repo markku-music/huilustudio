@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.27-landing-y-83-3';
+const CACHE_NAME = 'lentokone-pwa-v1.28-samsung-immersive-fullscreen';
 const APP_SHELL = [
   './',
   './index.html',
