@@ -171,6 +171,12 @@ Uutta 1.28
 - Android/Samsung Chrome -laitteilla peli yrittää samalla lukita näytön vaakasuuntaan.
 - Fullscreen-pyynnön epäonnistuminen ei estä pelin käynnistymistä.
 
+
+Uutta 1.29
+- Poistettu Aloita peli -napin requestFullscreen()-kutsu, joka laukaisi Android/Chromen poistumisvihjeen.
+- Koko näytön tila tulee nyt asennetun PWA:n manifestin display: fullscreen -asetuksesta.
+- Vaakasuunnan orientation lock säilyy.
+
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.
