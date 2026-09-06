@@ -159,20 +159,139 @@ button{font:inherit}
   0%{transform:translate(-50%,-50%) scale(1);opacity:1}
   100%{transform:translate(-50%,-75%) scale(1.8) rotate(20deg);opacity:0}
 }
-#score{
+#dashboard{
   position:absolute;
-  left:max(14px,env(safe-area-inset-left));
-  top:max(10px,env(safe-area-inset-top));
+  left:50%;
+  bottom:max(10px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);
   z-index:20;
-  min-width:var(--score-min-width,72px);
-  padding:var(--score-pad-y,7px) var(--score-pad-x,13px) var(--score-pad-y2,8px);
+  display:grid;
+  grid-template-columns:auto auto auto;
+  align-items:end;
+  gap:var(--dash-gap,10px);
+  padding:var(--dash-pad,10px);
+  border-radius:24px;
+  background:linear-gradient(180deg,rgba(22,43,58,.82),rgba(10,22,31,.90));
+  box-shadow:0 10px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16);
+  backdrop-filter:blur(8px);
+}
+.gauge{
+  position:relative;
+  width:var(--gauge-size,96px);
+  height:var(--gauge-size,96px);
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 54%,#223848 0 58%,#122530 59% 64%,#09141b 65% 100%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.10), inset 0 10px 18px rgba(255,255,255,.03), 0 4px 12px rgba(0,0,0,.18);
+}
+.gauge::before{
+  content:"";
+  position:absolute;
+  inset:8%;
+  border-radius:50%;
+  background:var(--gauge-ring,conic-gradient(from -90deg,#7dc8f3 0 360deg));
+}
+.gauge::after{
+  content:"";
+  position:absolute;
+  inset:18%;
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 40%,#314e62 0,#1e3443 62%,#12212b 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+}
+#timerGauge{--gauge-ring:conic-gradient(from -90deg,#69ca77 0 120deg,#f0cf63 120deg 240deg,#f78a6e 240deg 360deg)}
+#altGauge{--gauge-ring:conic-gradient(from -135deg,#2c83bd 0 72deg,#67aede 72deg 144deg,#b6e0fb 144deg 216deg,#89c8ef 216deg 288deg,#377fb3 288deg 360deg)}
+.gauge-title,.gauge-mark,.gauge-readout,.needle,.hub{position:absolute;z-index:3}
+.gauge-title{
+  left:50%;
+  top:14%;
+  transform:translateX(-50%);
+  font-size:var(--gauge-title-size,10px);
+  font-weight:900;
+  letter-spacing:.16em;
+  color:#eaf5ff;
+}
+.gauge-mark{
+  font-size:var(--gauge-mark-size,9px);
+  font-weight:850;
+  letter-spacing:.1em;
+  color:rgba(231,245,255,.82);
+}
+.gauge-mark.left{left:14%;bottom:24%}
+.gauge-mark.right{right:14%;bottom:24%}
+.gauge-readout{
+  left:50%;
+  bottom:13%;
+  transform:translateX(-50%);
+  min-width:48%;
+  padding:3px 8px 4px;
   border-radius:999px;
-  background:rgba(255,255,255,.86);
-  box-shadow:0 4px 18px rgba(24,77,113,.14);
-  font-size:var(--score-font-size,clamp(19px,3.6vw,30px));
-  font-weight:950;
+  background:rgba(9,20,28,.62);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
   text-align:center;
-  backdrop-filter:blur(6px);
+  font-size:var(--gauge-readout-size,11px);
+  font-weight:900;
+  color:#f3fbff;
+}
+.needle{
+  left:50%;
+  bottom:50%;
+  width:4px;
+  height:31%;
+  border-radius:999px;
+  background:linear-gradient(180deg,#fff2c4 0,#f4c95d 100%);
+  box-shadow:0 0 8px rgba(255,220,125,.33);
+  transform:translateX(-50%) rotate(-90deg);
+  transform-origin:50% calc(100% - 2px);
+}
+.hub{
+  left:50%;
+  top:50%;
+  width:16%;
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#f8f0cd 0,#f0d072 45%,#b48b35 100%);
+  box-shadow:0 0 0 2px rgba(12,24,33,.33);
+}
+#scorePanel{
+  height:var(--gauge-size,96px);
+  min-width:var(--score-panel-width,128px);
+  padding:var(--score-panel-pad-y,10px) var(--score-panel-pad-x,12px);
+  border-radius:18px;
+  background:linear-gradient(180deg,#223848,#122531);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), 0 4px 12px rgba(0,0,0,.18);
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  align-items:center;
+}
+.score-title{
+  font-size:var(--score-title-size,10px);
+  font-weight:900;
+  letter-spacing:.16em;
+  color:#ddebfa;
+}
+.score-total{
+  font-size:var(--score-total-size,28px);
+  font-weight:950;
+  line-height:1;
+  color:#fff;
+}
+.score-last{
+  justify-self:start;
+  min-width:62px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(7,16,22,.58);
+  color:rgba(244,251,255,.78);
+  font-size:var(--score-last-size,12px);
+  font-weight:900;
+  text-align:center;
+  transition:transform .18s ease, opacity .28s ease, color .18s ease, background .18s ease;
+}
+.score-last.hot{
+  transform:translateY(-1px) scale(1.06);
+  color:#fff8cf;
+  background:rgba(97,71,12,.74);
 }
 #routeHint{
   position:absolute;
@@ -323,7 +442,29 @@ button{font:inherit}
       </svg>
     </div>
   </div>
-  <div id="score">★ <span id="scoreNum">0</span></div>
+  <div id="dashboard">
+    <div class="gauge" id="timerGauge" aria-label="Pelikello">
+      <div class="gauge-title">AIKA</div>
+      <div class="gauge-mark left">ALKU</div>
+      <div class="gauge-mark right">TURBO</div>
+      <div class="needle" id="timerNeedle"></div>
+      <div class="hub"></div>
+      <div class="gauge-readout" id="timerReadout">3:00</div>
+    </div>
+    <div class="gauge" id="altGauge" aria-label="Korkeusmittari">
+      <div class="gauge-title">ALT</div>
+      <div class="gauge-mark left">ALA</div>
+      <div class="gauge-mark right">YLÄ</div>
+      <div class="needle" id="altNeedle"></div>
+      <div class="hub"></div>
+      <div class="gauge-readout" id="altReadout">5000 FT</div>
+    </div>
+    <div id="scorePanel" aria-label="Pisteet">
+      <div class="score-title">PISTEET</div>
+      <div class="score-total"><span id="scoreNum">0</span></div>
+      <div class="score-last" id="scoreDelta">+0</div>
+    </div>
+  </div>
   <div id="routeHint"></div>
   <div id="flash">+1</div>
 
@@ -444,6 +585,7 @@ const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
 const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
+const timerNeedle=$('#timerNeedle'),timerReadout=$('#timerReadout'),altNeedle=$('#altNeedle'),altReadout=$('#altReadout'),scoreDelta=$('#scoreDelta');
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
 const devPanel=$('#devPanel');
 const dev={
@@ -486,6 +628,7 @@ const ROUTE_START_SPEED=0.55;
 const ROUTE_HIT_TOLERANCE=5.5;
 let noseTiltAmount=20;
 let score=0;
+let scoreDeltaHideAt=0;
 let stars=[];
 let clouds=[];
 let lastFrame=0;
@@ -609,6 +752,31 @@ function randomSpawnDelayMs(now=performance.now()){
   const minMs=SPAWN_MIN_START_MS+(SPAWN_MIN_END_MS-SPAWN_MIN_START_MS)*p;
   const maxMs=SPAWN_MAX_START_MS+(SPAWN_MAX_END_MS-SPAWN_MAX_START_MS)*p;
   return rand(minMs,maxMs);
+}
+function formatClock(ms){
+  const total=Math.max(0,Math.ceil(ms/1000));
+  const m=Math.floor(total/60);
+  const s=String(total%60).padStart(2,'0');
+  return `${m}:${s}`;
+}
+function updateDashboard(now=performance.now()){
+  const progress=gameRunning?difficultyProgress(now):0;
+  const timerAngle=-90+progress*360;
+  timerNeedle.style.transform=`translateX(-50%) rotate(${timerAngle.toFixed(1)}deg)`;
+  timerReadout.textContent=formatClock(DIFFICULTY_RAMP_MS-(gameRunning?(now-gameStartedAt):0));
+
+  const lowY=routeY('low');
+  const highY=routeY('high');
+  const altitudeNorm=clamp((lowY-planeY)/Math.max(1,lowY-highY),0,1);
+  const altAngle=-135+altitudeNorm*270;
+  altNeedle.style.transform=`translateX(-50%) rotate(${altAngle.toFixed(1)}deg)`;
+  const altitudeFeet=Math.round(2000+altitudeNorm*6000);
+  altReadout.textContent=`${altitudeFeet} FT`;
+
+  if(scoreDeltaHideAt && now>scoreDeltaHideAt){
+    scoreDelta.classList.remove('hot');
+    scoreDeltaHideAt=0;
+  }
 }
 function nextTargetOnRoute(route){
   const planeX=window.innerWidth*.22;
@@ -809,6 +977,18 @@ function applyResponsiveVisualScale(){
   root.style.setProperty('--flash-font-size',Math.min(50,baseFlash*s).toFixed(1)+'px');
   root.style.setProperty('--overlay-h1-size',Math.min(56,baseH1*s).toFixed(1)+'px');
   root.style.setProperty('--overlay-p-size',Math.min(24,baseP*s).toFixed(1)+'px');
+  root.style.setProperty('--dash-gap',Math.min(16,10*s).toFixed(1)+'px');
+  root.style.setProperty('--dash-pad',Math.min(16,10*s).toFixed(1)+'px');
+  root.style.setProperty('--gauge-size',Math.min(142,96*s).toFixed(1)+'px');
+  root.style.setProperty('--gauge-title-size',Math.min(14,10*s).toFixed(1)+'px');
+  root.style.setProperty('--gauge-mark-size',Math.min(12,9*s).toFixed(1)+'px');
+  root.style.setProperty('--gauge-readout-size',Math.min(16,11*s).toFixed(1)+'px');
+  root.style.setProperty('--score-panel-width',Math.min(210,128*s).toFixed(1)+'px');
+  root.style.setProperty('--score-panel-pad-y',Math.min(16,10*s).toFixed(1)+'px');
+  root.style.setProperty('--score-panel-pad-x',Math.min(18,12*s).toFixed(1)+'px');
+  root.style.setProperty('--score-title-size',Math.min(14,10*s).toFixed(1)+'px');
+  root.style.setProperty('--score-total-size',Math.min(42,28*s).toFixed(1)+'px');
+  root.style.setProperty('--score-last-size',Math.min(18,12*s).toFixed(1)+'px');
   return s;
 }
 function desiredCloudCount(){
@@ -972,12 +1152,23 @@ function collectStar(star){
   score+=star.points;
   scoreNum.textContent=score;
   flash.textContent='+'+star.points;
+  scoreDelta.textContent='+'+star.points;
+  scoreDelta.classList.remove('hot');
+  void scoreDelta.offsetWidth;
+  scoreDelta.classList.add('hot');
+  scoreDeltaHideAt=performance.now()+1400;
   star.el.classList.add('collected');
   flash.classList.remove('pop');
   void flash.offsetWidth;
   flash.classList.add('pop');
 }
-function resetScore(){score=0;scoreNum.textContent='0'}
+function resetScore(){
+  score=0;
+  scoreNum.textContent='0';
+  scoreDelta.textContent='+0';
+  scoreDelta.classList.remove('hot');
+  scoreDeltaHideAt=0;
+}
 function clearStars(){for(const s of stars)s.el.remove();stars=[]}
 function clearClouds(){for(const c of clouds)c.el.remove();clouds=[]}
 function applyPropSettings(){
@@ -1078,6 +1269,7 @@ function beginGame(){
   nextSpawnDelayMs=randomSpawnDelayMs(gameStartedAt);
   gameRunning=true;
   lastFrame=gameStartedAt;
+  updateDashboard(gameStartedAt);
   requestAnimationFrame(gameLoop);
 }
 function gameLoop(now){
@@ -1132,6 +1324,7 @@ function gameLoop(now){
       stars.splice(i,1);
     }
   }
+  updateDashboard(now);
   requestAnimationFrame(gameLoop);
 }
 
@@ -1193,6 +1386,7 @@ clearRecognition();
 applyResponsiveVisualScale();
 applyPropSettings();
 applyMovementSettings();
+updateDashboard(performance.now());
 })();
 </script>
 <script>

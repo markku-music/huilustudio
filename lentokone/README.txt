@@ -1,4 +1,4 @@
-Lentokone – PWA 1.8 – kohteeseen sovitettu lento – välitön lentoreaktio
+Lentokone – PWA 1.9 – kojelauta
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -46,6 +46,14 @@ Vaikeustaso 1.8
 - Maksimivaikeudella väli vaihtelee noin 0.85-1.55 s.
 - Satunnaisuudessa on aina minimiväli, joten kohteet eivät synny kiinni toisiinsa.
 - Kohdeohjattu lento käyttää aina senhetkistä objektinopeutta, joten ajoituslogiikka säilyy oikeana vaikeuden kasvaessa.
+
+
+Uutta 1.9
+- Peliin on lisätty yhteinen ohjaamokojelauta.
+- Kojelaudassa on analoginen pelikello, joka näyttää 3 minuutin vaikeusnousun vaiheet.
+- Kojelaudassa on analoginen altimeter/korkeusmittari, joka seuraa koneen todellista korkeutta jatkuvasti.
+- Kojelaudassa on uusi digitaalinen pistekenttä, joka näyttää kokonaispisteet ja viimeisimmän pistekertymän (+1 / +2 / +10).
+- Kojelauta skaalautuu muun käyttöliittymän mukana dynaamisesti eri näyttökokoihin.
 
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
