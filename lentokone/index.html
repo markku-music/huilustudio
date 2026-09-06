@@ -478,6 +478,7 @@ let routeTransitionStartY=50;
 let routeTransitionTargetY=50;
 let routeTransitionStartedAt=0;
 const ROUTE_TRANSITION_MS=780;
+const ROUTE_START_SPEED=0.55;
 let noseTiltAmount=20;
 let score=0;
 let stars=[];
@@ -1021,11 +1022,11 @@ function gameLoop(now){
   let routeTilt=0;
   if(routeTransitionStartedAt){
     const t=clamp((now-routeTransitionStartedAt)/ROUTE_TRANSITION_MS,0,1);
-    // Smootherstep: nopeus JA kiihtyvyys ovat nollassa alussa ja lopussa.
-    const eased=t*t*t*(t*(t*6-15)+10);
+    // Välitön lähtö + pehmeä loppu: alkunopeus on pieni mutta ei nolla.
+    // Cubic Hermite: y(0)=0, y(1)=1, y'(0)=ROUTE_START_SPEED, y'(1)=0.
+    const eased=(ROUTE_START_SPEED-2)*t*t*t+(3-2*ROUTE_START_SPEED)*t*t+ROUTE_START_SPEED*t;
     planeY=routeTransitionStartY+(routeTransitionTargetY-routeTransitionStartY)*eased;
     const direction=Math.sign(routeTransitionTargetY-routeTransitionStartY);
-    // Myös nokan kallistus käynnistyy smootherstepin kautta, ettei ensimmäinen ruutu nykäise.
     routeTilt=direction*noseTiltAmount*Math.sin(Math.PI*eased);
     if(t>=1){
       planeY=routeTransitionTargetY;

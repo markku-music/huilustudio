@@ -1,4 +1,4 @@
-Lentokone – PWA 1.5 – ilman vakautta
+Lentokone – PWA 1.6 – välitön lentoreaktio
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -21,6 +21,13 @@ Uutta 1.5
 - UFO 🛸 keinuu kevyesti noin ±4° hitaalla 1,45 s rytmillä.
 - Keinunta on eristetty UFO-emojin sisäelementtiin, joten kerättävän etenemisliike ja pelisilmukka pysyvät ennallaan.
 
+Uutta 1.6
+- Korkeudenvaihdon alun nollanopeus on poistettu.
+- Kone alkaa nousta tai laskea heti, kun KORKEA/MATALA tunnistetaan.
+- 780 ms kokonaiskesto säilyy.
+- Loppu hidastuu edelleen pehmeästi reitille.
+- Äänentunnistukseen ei ole tehty muutoksia.
+
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.
@@ -28,7 +35,7 @@ Pelin toiminta
 - 🛸 UFO -> +2 pistettä, noin 7 % kerättävistä.
 - 🚀 raketti -> +10 pistettä, noin 1 % kerättävistä.
 - Äänen loputtua kone jää viimeiselle valitulle reitille.
-- Korkeuden vaihto käyttää 780 ms pehmeää smootherstep-siirtymää.
+- Korkeuden vaihto alkaa heti ja hidastuu pehmeästi reitille 780 ms aikana.
 
 Pilvet 2.2
 - Käytössä ovat kolme käyttäjän toimittamaa pilvikuvaa.
