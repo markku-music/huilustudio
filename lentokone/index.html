@@ -4,7 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#92d8ff">
-<title>Leo Lentäjä</title>
+<meta name="application-name" content="Lentokone">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lentokone">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<title>Lentokone</title>
 <style>
 :root{
   --sky1:#86d1fb;
@@ -25,32 +33,28 @@ button{font:inherit}
   overflow:hidden;
   background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 76%,#dcf3df 100%);
 }
-#game::before{
-  content:"";
+
+#cloudLayer{
   position:absolute;
   inset:0;
-  opacity:.52;
-  background:
-    radial-gradient(ellipse at 12% 23%,rgba(255,255,255,.95) 0 5%,rgba(255,255,255,0) 5.7%),
-    radial-gradient(ellipse at 55% 16%,rgba(255,255,255,.72) 0 4%,rgba(255,255,255,0) 4.8%),
-    radial-gradient(ellipse at 89% 27%,rgba(255,255,255,.84) 0 5%,rgba(255,255,255,0) 5.8%);
-  background-size:72vw 100%,82vw 100%,68vw 100%;
-  animation:cloudDrift 14s linear infinite;
+  z-index:1;
   pointer-events:none;
+  overflow:hidden;
 }
-#game::after{
-  content:"";
+.cloud{
   position:absolute;
-  left:-5%;right:-5%;bottom:-14%;height:38%;
-  background:
-    radial-gradient(ellipse at 10% 90%,#72b869 0 25%,transparent 26%),
-    radial-gradient(ellipse at 34% 90%,#83c778 0 26%,transparent 27%),
-    radial-gradient(ellipse at 62% 90%,#6fb664 0 28%,transparent 29%),
-    radial-gradient(ellipse at 90% 90%,#87ca7c 0 27%,transparent 28%);
-  opacity:.95;
+  left:0;
+  top:0;
+  will-change:transform;
   pointer-events:none;
 }
-@keyframes cloudDrift{from{transform:translateX(0)}to{transform:translateX(-18vw)}}
+.cloud img{
+  display:block;
+  width:100%;
+  height:auto;
+  filter:drop-shadow(0 10px 14px rgba(34,78,108,.14));
+  user-select:none;
+}
 .route{
   position:absolute;
   left:5vw;
@@ -68,7 +72,7 @@ button{font:inherit}
   transform:translateY(-50%);
   z-index:3;
   color:rgba(22,59,87,.52);
-  font-size:clamp(10px,1.8vw,14px);
+  font-size:var(--route-label-size,clamp(10px,1.8vw,14px));
   font-weight:900;
   letter-spacing:.12em;
   pointer-events:none;
@@ -79,7 +83,7 @@ button{font:inherit}
   position:absolute;
   left:22%;
   top:50%;
-  width:clamp(84px,17vw,155px);
+  width:var(--plane-width,clamp(84px,17vw,155px));
   z-index:8;
   transform:translate(-50%,-50%);
   transform-origin:50% 50%;
@@ -95,6 +99,7 @@ button{font:inherit}
   --prop-active-duration:.055s;
 }
 .plane-img{display:block;width:100%;height:auto}
+#plane img{user-select:none;-webkit-user-drag:none}
 #propeller{
   position:absolute;
   left:var(--prop-x);
@@ -125,12 +130,12 @@ button{font:inherit}
   z-index:7;
   top:0;
   left:0;
-  width:clamp(34px,6.6vw,58px);
+  width:var(--star-size,clamp(34px,6.6vw,58px));
   aspect-ratio:1;
   display:grid;
   place-items:center;
   color:#ffd84d;
-  font-size:clamp(34px,6.6vw,58px);
+  font-size:var(--star-size,clamp(34px,6.6vw,58px));
   line-height:1;
   text-shadow:0 2px 0 #e5a825,0 4px 10px rgba(93,63,0,.28);
   transform:translate(-50%,-50%);
@@ -150,12 +155,12 @@ button{font:inherit}
   left:max(14px,env(safe-area-inset-left));
   top:max(10px,env(safe-area-inset-top));
   z-index:20;
-  min-width:72px;
-  padding:7px 13px 8px;
+  min-width:var(--score-min-width,72px);
+  padding:var(--score-pad-y,7px) var(--score-pad-x,13px) var(--score-pad-y2,8px);
   border-radius:999px;
   background:rgba(255,255,255,.86);
   box-shadow:0 4px 18px rgba(24,77,113,.14);
-  font-size:clamp(19px,3.6vw,30px);
+  font-size:var(--score-font-size,clamp(19px,3.6vw,30px));
   font-weight:950;
   text-align:center;
   backdrop-filter:blur(6px);
@@ -165,10 +170,10 @@ button{font:inherit}
   left:50%;top:max(10px,env(safe-area-inset-top));
   transform:translateX(-50%);
   z-index:18;
-  padding:6px 12px;
+  padding:var(--hint-pad-y,6px) var(--hint-pad-x,12px);
   border-radius:999px;
   background:rgba(255,255,255,.70);
-  font-size:clamp(11px,2vw,15px);
+  font-size:var(--hint-font-size,clamp(11px,2vw,15px));
   font-weight:850;
   opacity:0;
   transition:opacity .16s ease;
@@ -181,11 +186,11 @@ button{font:inherit}
   top:max(8px,env(safe-area-inset-top));
   z-index:30;
   border:0;
-  width:38px;height:38px;
+  width:var(--gear-size,38px);height:var(--gear-size,38px);
   border-radius:50%;
   background:rgba(255,255,255,.76);
   color:var(--ink);
-  font-size:20px;
+  font-size:var(--gear-font-size,20px);
   font-weight:900;
   box-shadow:0 4px 14px rgba(24,77,113,.12);
 }
@@ -211,6 +216,7 @@ button{font:inherit}
 .dev-grid strong{text-align:right}
 .dev-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
 .dev-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:850;background:#fff;color:#173f61}
+#settingsFile{display:none}
 .dev-sliders{margin-top:12px;display:grid;gap:10px}
 .dev-slider label{display:flex;justify-content:space-between;gap:10px;margin-bottom:3px;font-size:11px;font-weight:800}
 .dev-slider output{min-width:52px;text-align:right;color:#cfe7ff}
@@ -234,8 +240,8 @@ button{font:inherit}
   text-align:center;
   box-shadow:0 18px 55px rgba(27,81,116,.20);
 }
-.overlay-card h1{margin:0 0 8px;font-size:clamp(26px,6vw,42px);line-height:1}
-.overlay-card p{margin:7px 0;font-size:clamp(13px,2.6vw,17px);font-weight:700;line-height:1.35}
+.overlay-card h1{margin:0 0 8px;font-size:var(--overlay-h1-size,clamp(26px,6vw,42px));line-height:1}
+.overlay-card p{margin:7px 0;font-size:var(--overlay-p-size,clamp(13px,2.6vw,17px));font-weight:700;line-height:1.35}
 .overlay-card .rules{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
 .rule{padding:8px 12px;border-radius:999px;background:#e9f5fb;font-weight:900}
 .primary{
@@ -260,7 +266,7 @@ button{font:inherit}
   left:22%;
   top:50%;
   transform:translate(-50%,-50%);
-  font-size:clamp(18px,4vw,32px);
+  font-size:var(--flash-font-size,clamp(18px,4vw,32px));
   font-weight:950;
   color:#fff;
   text-shadow:0 2px 9px rgba(15,69,105,.6);
@@ -269,6 +275,7 @@ button{font:inherit}
 }
 #flash.pop{animation:flashPop .5s ease-out forwards}
 @keyframes flashPop{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}25%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-130%) scale(1)}}
+/* Visuaalinen mittakaava lasketaan JavaScriptillä portaattomasti viewportin koosta. */
 @media(orientation:portrait){#rotateOverlay{display:flex}}
 @media(max-height:380px){
   .overlay-card{padding:14px 18px}
@@ -282,13 +289,14 @@ button{font:inherit}
 </head>
 <body>
 <div id="game">
+  <div id="cloudLayer"></div>
   <div class="route high"></div>
   <div class="route low"></div>
   <div class="route-label high">YLÄREITTI</div>
   <div class="route-label low">ALAREITTI</div>
 
   <div id="plane" class="idle">
-    <img class="plane-img" src="lentokone_sivu.webp" alt="Leo Lentäjän lentokone">
+    <img class="plane-img" src="lentokone_sivu.webp" alt="Lentokone">
     <div id="propeller" aria-hidden="true">
       <svg viewBox="0 0 100 100" role="presentation">
         <g class="prop-plane">
@@ -324,19 +332,22 @@ button{font:inherit}
     <div class="dev-actions">
       <button id="recalBtn">Kalibroi</button>
       <button id="resetScoreBtn">Nollaa pisteet</button>
+      <button id="exportSettingsBtn">Vie JSON</button>
+      <button id="importSettingsBtn">Tuo JSON</button>
+      <input id="settingsFile" type="file" accept="application/json,.json">
     </div>
     <div class="dev-sliders">
       <div class="dev-slider">
-        <label for="propX"><span>Propelli X</span><output id="propXOut">95.4%</output></label>
-        <input id="propX" type="range" min="80" max="110" step="0.1" value="95.4">
+        <label for="propX"><span>Propelli X</span><output id="propXOut">91.4%</output></label>
+        <input id="propX" type="range" min="80" max="110" step="0.1" value="91.4">
       </div>
       <div class="dev-slider">
-        <label for="propY"><span>Propelli Y</span><output id="propYOut">40.8%</output></label>
-        <input id="propY" type="range" min="20" max="60" step="0.1" value="40.8">
+        <label for="propY"><span>Propelli Y</span><output id="propYOut">50.7%</output></label>
+        <input id="propY" type="range" min="20" max="60" step="0.1" value="50.7">
       </div>
       <div class="dev-slider">
-        <label for="propSize"><span>Propellin koko</span><output id="propSizeOut">24.0%</output></label>
-        <input id="propSize" type="range" min="10" max="40" step="0.1" value="24">
+        <label for="propSize"><span>Propellin koko</span><output id="propSizeOut">40.0%</output></label>
+        <input id="propSize" type="range" min="10" max="40" step="0.1" value="40">
       </div>
       <div class="dev-slider">
         <label for="propTiltY"><span>Sivukääntö 0° edestä / 90° sivusta</span><output id="propTiltYOut">78°</output></label>
@@ -350,12 +361,16 @@ button{font:inherit}
         <label for="propActive"><span>Aktiivinen nopeus</span><output id="propActiveOut">55 ms</output></label>
         <input id="propActive" type="range" min="20" max="160" step="5" value="55">
       </div>
+      <div class="dev-slider">
+        <label for="noseTilt"><span>Nokan kallistus</span><output id="noseTiltOut">20.0°</output></label>
+        <input id="noseTilt" type="range" min="0" max="20" step="0.5" value="20">
+      </div>
     </div>
   </aside>
 
   <div id="startOverlay">
     <div class="overlay-card">
-      <h1>Leo Lentäjä</h1>
+      <h1>Lentokone</h1>
       <p>Kerää tähdet vaihtamalla lentoreittiä sävelellä.</p>
       <div class="rules">
         <div class="rule">KORKEA → YLÄ</div>
@@ -377,8 +392,8 @@ button{font:inherit}
   <div id="rotateOverlay">
     <div class="overlay-card">
       <div id="rotateIcon">↻</div>
-      <h1>Käännä puhelin</h1>
-      <p>Leo Lentäjä pelaa vaakatasossa.</p>
+      <h1>Käännä vaakatasoon</h1>
+      <p>Lentokone-peli toimii vaakatasossa.</p>
     </div>
   </div>
 </div>
@@ -387,7 +402,7 @@ button{font:inherit}
 (() => {
 'use strict';
 
-// === Leo Lentäjä -äänimoottorin nykyiset referenssit ja ydinasetukset ===
+// === Lentokone-pelin äänimoottorin nykyiset referenssit ja ydinasetukset ===
 const REFS = {
   version:"1.0",
   low:{
@@ -420,7 +435,7 @@ const STABILITY_MIN_SAMPLES=6;
 const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
-const game=$('#game'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
+const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
 const devPanel=$('#devPanel');
 const dev={
@@ -435,6 +450,9 @@ const propControls={
   tiltY:$('#propTiltY'),tiltYOut:$('#propTiltYOut'),
   idle:$('#propIdle'),idleOut:$('#propIdleOut'),
   active:$('#propActive'),activeOut:$('#propActiveOut')
+};
+const movementControls={
+  noseTilt:$('#noseTilt'),noseTiltOut:$('#noseTiltOut')
 };
 
 let ctx=null,stream=null,analyser=null,timer=null;
@@ -455,13 +473,22 @@ let routeTransitionStartY=50;
 let routeTransitionTargetY=50;
 let routeTransitionStartedAt=0;
 const ROUTE_TRANSITION_MS=780;
+let noseTiltAmount=20;
 let score=0;
 let stars=[];
+let clouds=[];
 let lastFrame=0;
 let spawnClock=0;
 let lastSpawnLane=null;
 let sameLaneCount=0;
 const SPAWN_INTERVAL=1850;
+const CLOUD_MIN_GAP=34;
+const CLOUD_VERTICAL_BANDS=[0.14,0.27,0.40,0.52];
+const CLOUD_TYPES=[
+  {src:'pilvi_levea.webp',aspect:620/286,minW:110,maxW:210},
+  {src:'pilvi_keski.webp',aspect:560/255,minW:95,maxW:175},
+  {src:'pilvi_iso.webp',aspect:700/327,minW:140,maxW:250}
+];
 
 function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
 function median(a){
@@ -471,6 +498,8 @@ function median(a){
 }
 function pushLimited(arr,val,max=6){arr.push(val);if(arr.length>max)arr.shift()}
 function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
+function rand(min,max){return min+Math.random()*(max-min)}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function centsDiff(a,b){return 1200*Math.log2(a/b)}
 function stabilityScoreFromCents(cents){
   const points=[[3,100],[8,90],[15,75],[25,50],[40,20],[60,0]];
@@ -724,6 +753,170 @@ async function startMic(){
   return true;
 }
 
+function visualScale(){
+  // iPhone 15 landscape (~852x393 CSS px) on vertailutaso 1.0.
+  // Käytetään viewportin pienempää suhteellista mittaa, jotta hyvin leveä tai korkea
+  // ikkuna ei kasvata elementtejä kohtuuttomasti. Puhelimia ei kutisteta alle 1.0:n.
+  const widthScale=window.innerWidth/852;
+  const heightScale=window.innerHeight/393;
+  return clamp(Math.min(widthScale,heightScale),1,1.75);
+}
+function applyResponsiveVisualScale(){
+  const s=visualScale();
+  const w=window.innerWidth;
+  const root=document.documentElement;
+  const basePlane=clamp(w*.17,84,155);
+  const baseStar=clamp(w*.066,34,58);
+  const baseScore=clamp(w*.036,19,30);
+  const baseRouteLabel=clamp(w*.018,10,14);
+  const baseHint=clamp(w*.02,11,15);
+  const baseFlash=clamp(w*.04,18,32);
+  const baseH1=clamp(w*.06,26,42);
+  const baseP=clamp(w*.026,13,17);
+
+  root.style.setProperty('--plane-width',(basePlane*s).toFixed(1)+'px');
+  root.style.setProperty('--star-size',(baseStar*s).toFixed(1)+'px');
+  root.style.setProperty('--score-font-size',Math.min(46,baseScore*s).toFixed(1)+'px');
+  root.style.setProperty('--score-min-width',(72*s).toFixed(1)+'px');
+  root.style.setProperty('--score-pad-y',(7*s).toFixed(1)+'px');
+  root.style.setProperty('--score-pad-y2',(8*s).toFixed(1)+'px');
+  root.style.setProperty('--score-pad-x',(13*s).toFixed(1)+'px');
+  root.style.setProperty('--route-label-size',Math.min(22,baseRouteLabel*s).toFixed(1)+'px');
+  root.style.setProperty('--hint-font-size',Math.min(22,baseHint*s).toFixed(1)+'px');
+  root.style.setProperty('--hint-pad-y',(6*s).toFixed(1)+'px');
+  root.style.setProperty('--hint-pad-x',(12*s).toFixed(1)+'px');
+  root.style.setProperty('--gear-size',Math.min(52,38*s).toFixed(1)+'px');
+  root.style.setProperty('--gear-font-size',Math.min(27,20*s).toFixed(1)+'px');
+  root.style.setProperty('--flash-font-size',Math.min(50,baseFlash*s).toFixed(1)+'px');
+  root.style.setProperty('--overlay-h1-size',Math.min(56,baseH1*s).toFixed(1)+'px');
+  root.style.setProperty('--overlay-p-size',Math.min(24,baseP*s).toFixed(1)+'px');
+  return s;
+}
+function desiredCloudCount(){
+  // Pilvimäärä kasvaa näkymän leveyden mukana, mutta ei laitetyyppiin sidotusti.
+  const s=visualScale();
+  return Math.round(clamp(Math.ceil(window.innerWidth/(320*s))+2,4,7));
+}
+function cloudSizeScale(){
+  // Säilytetään puhelinten nykyinen pilvikoko, mutta kasvatetaan sitä samalla
+  // jatkuvalla kertoimella kuin muuta pelikuvaa suuremmilla viewporteilla.
+  const phoneHeightFactor=clamp(window.innerHeight/430,.68,1);
+  return phoneHeightFactor*visualScale();
+}
+function cloudMaxGap(){
+  return clamp(window.innerWidth*.13,72,155);
+}
+function createCloudElement(){
+  const el=document.createElement('div');
+  el.className='cloud';
+  const img=document.createElement('img');
+  img.alt='';
+  img.draggable=false;
+  el.appendChild(img);
+  cloudLayer.appendChild(el);
+  return {el,img,type:null,nominalWidth:0,bandIndex:0,x:0,y:0,width:0,height:0,speed:0,opacity:1};
+}
+function chooseCloudBand(excludeBand=-1){
+  const choices=CLOUD_VERTICAL_BANDS.map((_,i)=>i).filter(i=>i!==excludeBand);
+  return pick(choices.length?choices:[0]);
+}
+function configureCloud(cloud,{keepBand=false,excludeBand=-1}={}){
+  if(!cloud.type || Math.random()<.38)cloud.type=pick(CLOUD_TYPES);
+  if(!cloud.nominalWidth || Math.random()<.38){
+    cloud.nominalWidth=rand(cloud.type.minW,cloud.type.maxW);
+  }else{
+    cloud.nominalWidth=clamp(cloud.nominalWidth,cloud.type.minW,cloud.type.maxW);
+  }
+  if(!keepBand)cloud.bandIndex=chooseCloudBand(excludeBand);
+  const scale=cloudSizeScale();
+  cloud.width=cloud.nominalWidth*scale;
+  cloud.height=cloud.width/cloud.type.aspect;
+  const centerNorm=CLOUD_VERTICAL_BANDS[cloud.bandIndex]+rand(-.018,.018);
+  const minY=window.innerHeight*.025;
+  const maxY=Math.max(minY,window.innerHeight*.61-cloud.height);
+  cloud.y=clamp(centerNorm*window.innerHeight-cloud.height*.5,minY,maxY);
+  cloud.speed=rand(11,22)*clamp(cloud.width/170,.78,1.2);
+  cloud.opacity=rand(.66,.94);
+  cloud.el.style.width=cloud.width.toFixed(0)+'px';
+  cloud.el.style.opacity=cloud.opacity.toFixed(2);
+  cloud.img.src=cloud.type.src;
+}
+function renderCloud(cloud){
+  cloud.el.style.transform=`translate(${cloud.x.toFixed(1)}px,${cloud.y.toFixed(1)}px)`;
+}
+function distributeClouds(){
+  if(!clouds.length)return;
+  // Järjestetään pilvet tasaisesti vasemman reunan ulkopuolelta oikean reunan yli.
+  const totalWidth=clouds.reduce((s,c)=>s+c.width,0);
+  const targetSpan=window.innerWidth+clouds[0].width*.55+clouds[clouds.length-1].width*.55;
+  const gap=Math.max(CLOUD_MIN_GAP,Math.min(cloudMaxGap(),(targetSpan-totalWidth)/Math.max(1,clouds.length-1)));
+  let cursor=-clouds[0].width*.48;
+  for(let i=0;i<clouds.length;i++){
+    const c=clouds[i];
+    if(i>0)cursor+=clouds[i-1].width+gap;
+    c.x=cursor;
+    renderCloud(c);
+  }
+}
+function initClouds(){
+  for(const c of clouds)c.el.remove();
+  clouds=[];
+  const count=desiredCloudCount();
+  let previousBand=-1;
+  for(let i=0;i<count;i++){
+    const cloud=createCloudElement();
+    configureCloud(cloud,{excludeBand:previousBand});
+    previousBand=cloud.bandIndex;
+    clouds.push(cloud);
+  }
+  distributeClouds();
+}
+function respawnCloud(cloud){
+  const others=clouds.filter(c=>c!==cloud);
+  const rightmost=others.length?others.reduce((a,b)=>(a.x+a.width)>(b.x+b.width)?a:b):null;
+  const excludeBand=rightmost?rightmost.bandIndex:-1;
+  configureCloud(cloud,{excludeBand});
+  const rightEdge=rightmost?rightmost.x+rightmost.width:window.innerWidth;
+  cloud.x=Math.max(window.innerWidth+20,rightEdge+CLOUD_MIN_GAP+rand(12,44));
+  renderCloud(cloud);
+}
+function enforceCloudSpacing(){
+  const sorted=[...clouds].sort((a,b)=>a.x-b.x);
+  const maxGap=cloudMaxGap();
+  for(let i=1;i<sorted.length;i++){
+    const prev=sorted[i-1],cur=sorted[i];
+    const prevRight=prev.x+prev.width;
+    const minX=prevRight+CLOUD_MIN_GAP;
+    const maxX=prevRight+maxGap;
+    if(cur.x<minX)cur.x=minX;
+    else if(cur.x>maxX)cur.x=maxX;
+  }
+}
+function updateClouds(dt){
+  for(const cloud of clouds)cloud.x-=cloud.speed*(dt/1000);
+  // Vasemmalta poistuvat siirretään oikeanpuoleisimman perään, eivät satunnaiseksi ryppääksi.
+  const leaving=clouds.filter(c=>c.x<-c.width-45).sort((a,b)=>a.x-b.x);
+  for(const cloud of leaving)respawnCloud(cloud);
+  enforceCloudSpacing();
+  for(const cloud of clouds)renderCloud(cloud);
+}
+function reflowCloudsForViewport(){
+  if(!clouds.length)return;
+  const wanted=desiredCloudCount();
+  if(wanted!==clouds.length){
+    initClouds();
+    return;
+  }
+  for(const cloud of clouds)configureCloud(cloud,{keepBand:true});
+  distributeClouds();
+}
+let cloudResizeTimer=null;
+window.addEventListener('resize',()=>{
+  applyResponsiveVisualScale();
+  clearTimeout(cloudResizeTimer);
+  cloudResizeTimer=setTimeout(()=>reflowCloudsForViewport(),70);
+});
+
 function chooseLane(){
   let lane=Math.random()<.5?'high':'low';
   if(lane===lastSpawnLane){
@@ -753,6 +946,7 @@ function collectStar(star){
 }
 function resetScore(){score=0;scoreNum.textContent='0'}
 function clearStars(){for(const s of stars)s.el.remove();stars=[]}
+function clearClouds(){for(const c of clouds)c.el.remove();clouds=[]}
 function applyPropSettings(){
   const x=parseFloat(propControls.x.value);
   const y=parseFloat(propControls.y.value);
@@ -774,8 +968,69 @@ function applyPropSettings(){
   propControls.idleOut.value=Math.round(idle)+' ms';
   propControls.activeOut.value=Math.round(active)+' ms';
 }
+function applyMovementSettings(){
+  noseTiltAmount=parseFloat(movementControls.noseTilt.value);
+  movementControls.noseTiltOut.value=noseTiltAmount.toFixed(1)+'°';
+}
+function clampControlValue(control,value){
+  const min=parseFloat(control.min),max=parseFloat(control.max);
+  const n=Number(value);
+  if(!Number.isFinite(n))return null;
+  return clamp(n,min,max);
+}
+function getSettingsJson(){
+  return {
+    version:1,
+    propeller:{
+      x:parseFloat(propControls.x.value),
+      y:parseFloat(propControls.y.value),
+      size:parseFloat(propControls.size.value),
+      sideTilt:parseFloat(propControls.tiltY.value),
+      idleMs:parseFloat(propControls.idle.value),
+      activeMs:parseFloat(propControls.active.value)
+    },
+    flight:{
+      noseTiltDeg:parseFloat(movementControls.noseTilt.value)
+    }
+  };
+}
+function exportSettingsJson(){
+  const json=JSON.stringify(getSettingsJson(),null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='lentokone_asetukset.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importSettingsJson(data){
+  if(!data||typeof data!=='object')throw new Error('JSON ei sisällä asetuksia.');
+  const prop=data.propeller||{};
+  const flight=data.flight||{};
+  const mappings=[
+    [propControls.x,prop.x],
+    [propControls.y,prop.y],
+    [propControls.size,prop.size],
+    [propControls.tiltY,prop.sideTilt],
+    [propControls.idle,prop.idleMs],
+    [propControls.active,prop.activeMs],
+    [movementControls.noseTilt,flight.noseTiltDeg]
+  ];
+  for(const [control,value] of mappings){
+    if(value===undefined)continue;
+    const v=clampControlValue(control,value);
+    if(v!==null)control.value=String(v);
+  }
+  applyPropSettings();
+  applyMovementSettings();
+}
 function beginGame(){
-  clearStars();resetScore();
+  clearStars();
+  initClouds();
+  resetScore();
   currentRoute='center';planeY=50;
   routeTransitionStartY=50;
   routeTransitionTargetY=50;
@@ -795,11 +1050,12 @@ function gameLoop(now){
   let routeTilt=0;
   if(routeTransitionStartedAt){
     const t=clamp((now-routeTransitionStartedAt)/ROUTE_TRANSITION_MS,0,1);
-    // Smootherstep: hidas lähtö, pehmeä keskivaihe ja hidas asettuminen reitille.
+    // Smootherstep: nopeus JA kiihtyvyys ovat nollassa alussa ja lopussa.
     const eased=t*t*t*(t*(t*6-15)+10);
     planeY=routeTransitionStartY+(routeTransitionTargetY-routeTransitionStartY)*eased;
     const direction=Math.sign(routeTransitionTargetY-routeTransitionStartY);
-    routeTilt=direction*7*Math.sin(Math.PI*t);
+    // Myös nokan kallistus käynnistyy smootherstepin kautta, ettei ensimmäinen ruutu nykäise.
+    routeTilt=direction*noseTiltAmount*Math.sin(Math.PI*eased);
     if(t>=1){
       planeY=routeTransitionTargetY;
       routeTransitionStartedAt=0;
@@ -809,16 +1065,22 @@ function gameLoop(now){
     planeY=routeTransitionTargetY;
   }
   const stability=Number.isFinite(currentStabilityScore)?clamp(currentStabilityScore/100,0,1):.72;
-  const wobbleAmp=soundActive?(1-stability)*6.8:0;
+  // Äänen alkaessa vakausväpätys ei saa hypätä nollasta suoraan täyteen arvoon.
+  const soundAge=(soundActive&&soundStartedAt!==null)?Math.max(0,now-soundStartedAt):0;
+  const wobbleT=clamp(soundAge/500,0,1);
+  const wobbleFade=wobbleT*wobbleT*wobbleT*(wobbleT*(wobbleT*6-15)+10);
+  const wobbleAmp=soundActive?(1-stability)*6.8*wobbleFade:0;
   const wobble=soundActive?Math.sin(now/78)*wobbleAmp:0;
   const tilt=routeTilt+wobble*.38;
-  plane.style.top=clamp(planeY+wobble,13,87)+'%';
+  const planeTopPercent=clamp(planeY+wobble,13,87);
+  plane.style.top=planeTopPercent+'%';
   plane.style.transform=`translate(-50%,-50%) rotate(${tilt.toFixed(1)}deg)`;
+  const planeX=window.innerWidth*.22;
+  updateClouds(dt);
 
   spawnClock+=dt;
   if(spawnClock>=SPAWN_INTERVAL){spawnClock-=SPAWN_INTERVAL;spawnStar()}
   const speed=Math.max(116,window.innerWidth*.19); // px/s
-  const planeX=window.innerWidth*.22;
   for(let i=stars.length-1;i>=0;i--){
     const s=stars[i];
     if(!s.collected)s.x-=speed*(dt/1000);
@@ -852,10 +1114,36 @@ $('#resetScoreBtn').addEventListener('click',resetScore);
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
 [propControls.x,propControls.y,propControls.size,propControls.tiltY,propControls.idle,propControls.active]
   .forEach(el=>el.addEventListener('input',applyPropSettings));
+movementControls.noseTilt.addEventListener('input',applyMovementSettings);
+$('#exportSettingsBtn').addEventListener('click',exportSettingsJson);
+$('#importSettingsBtn').addEventListener('click',()=>$('#settingsFile').click());
+$('#settingsFile').addEventListener('change',async e=>{
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  try{
+    const data=JSON.parse(await file.text());
+    importSettingsJson(data);
+  }catch(err){
+    alert('JSON-asetuksia ei voitu lukea: '+(err?.message||'tuntematon virhe'));
+  }finally{
+    e.target.value='';
+  }
+});
 
 clearRecognition();
+applyResponsiveVisualScale();
 applyPropSettings();
+applyMovementSettings();
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.warn('Service workerin rekisteröinti epäonnistui:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
