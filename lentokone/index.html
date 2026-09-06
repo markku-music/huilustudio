@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#92d8ff">
+<title>Leo Lentäjä</title>
+<style>
+:root{
+  --sky1:#86d1fb;
+  --sky2:#cdeeff;
+  --ink:#163b57;
+  --panel:rgba(255,255,255,.92);
+  --line:rgba(255,255,255,.58);
+  --route:rgba(255,255,255,.54);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8fd5fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+button{font:inherit}
+#game{
+  position:fixed;
+  inset:0;
+  width:100dvw;
+  height:100dvh;
+  overflow:hidden;
+  background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 76%,#dcf3df 100%);
+}
+
+#cloudLayer{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  overflow:hidden;
+}
+.cloud{
+  position:absolute;
+  left:0;
+  top:0;
+  will-change:transform;
+  pointer-events:none;
+}
+.cloud img{
+  display:block;
+  width:100%;
+  height:auto;
+  filter:drop-shadow(0 10px 14px rgba(34,78,108,.14));
+  user-select:none;
+}
+.route{
+  position:absolute;
+  left:5vw;
+  right:2vw;
+  height:0;
+  border-top:2px dashed var(--route);
+  z-index:2;
+  pointer-events:none;
+}
+.route.high{top:31%}
+.route.low{top:69%}
+.route-label{
+  position:absolute;
+  right:2.8vw;
+  transform:translateY(-50%);
+  z-index:3;
+  color:rgba(22,59,87,.52);
+  font-size:clamp(10px,1.8vw,14px);
+  font-weight:900;
+  letter-spacing:.12em;
+  pointer-events:none;
+}
+.route-label.high{top:31%}
+.route-label.low{top:69%}
+#plane{
+  position:absolute;
+  left:22%;
+  top:50%;
+  width:clamp(84px,17vw,155px);
+  z-index:8;
+  transform:translate(-50%,-50%);
+  transform-origin:50% 50%;
+  will-change:top,transform;
+  filter:drop-shadow(0 8px 10px rgba(19,58,84,.26));
+  pointer-events:none;
+  overflow:visible;
+  --prop-x:95.4%;
+  --prop-y:40.8%;
+  --prop-size:24%;
+  --prop-side-scale:.208;
+  --prop-idle-duration:.18s;
+  --prop-active-duration:.055s;
+}
+.plane-img{display:block;width:100%;height:auto}
+#plane img{user-select:none;-webkit-user-drag:none}
+#propeller{
+  position:absolute;
+  left:var(--prop-x);
+  top:var(--prop-y);
+  width:var(--prop-size);
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+#propeller svg{display:block;width:100%;height:100%;overflow:visible}
+.prop-plane{
+  transform-origin:50% 50%;
+  transform-box:view-box;
+  transform:scaleX(var(--prop-side-scale));
+}
+.prop-blades{
+  transform-origin:50% 50%;
+  transform-box:view-box;
+  animation:propSpin var(--prop-idle-duration) linear infinite;
+}
+#plane.active .prop-blades{animation-duration:var(--prop-active-duration)}
+#plane.idle .prop-blades{animation-duration:var(--prop-idle-duration)}
+.prop-blur{opacity:.24}
+#plane.active .prop-blur{opacity:.42}
+@keyframes propSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.star{
+  position:absolute;
+  z-index:7;
+  top:0;
+  left:0;
+  width:clamp(34px,6.6vw,58px);
+  aspect-ratio:1;
+  display:grid;
+  place-items:center;
+  color:#ffd84d;
+  font-size:clamp(34px,6.6vw,58px);
+  line-height:1;
+  text-shadow:0 2px 0 #e5a825,0 4px 10px rgba(93,63,0,.28);
+  transform:translate(-50%,-50%);
+  will-change:transform,left;
+  user-select:none;
+  pointer-events:none;
+}
+.star.high{top:31%}
+.star.low{top:69%}
+.star.collected{animation:collect .28s ease-out forwards}
+@keyframes collect{
+  0%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  100%{transform:translate(-50%,-75%) scale(1.8) rotate(20deg);opacity:0}
+}
+#score{
+  position:absolute;
+  left:max(14px,env(safe-area-inset-left));
+  top:max(10px,env(safe-area-inset-top));
+  z-index:20;
+  min-width:72px;
+  padding:7px 13px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.86);
+  box-shadow:0 4px 18px rgba(24,77,113,.14);
+  font-size:clamp(19px,3.6vw,30px);
+  font-weight:950;
+  text-align:center;
+  backdrop-filter:blur(6px);
+}
+#routeHint{
+  position:absolute;
+  left:50%;top:max(10px,env(safe-area-inset-top));
+  transform:translateX(-50%);
+  z-index:18;
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.70);
+  font-size:clamp(11px,2vw,15px);
+  font-weight:850;
+  opacity:0;
+  transition:opacity .16s ease;
+  pointer-events:none;
+}
+#routeHint.show{opacity:1}
+#gear{
+  position:absolute;
+  right:max(10px,env(safe-area-inset-right));
+  top:max(8px,env(safe-area-inset-top));
+  z-index:30;
+  border:0;
+  width:38px;height:38px;
+  border-radius:50%;
+  background:rgba(255,255,255,.76);
+  color:var(--ink);
+  font-size:20px;
+  font-weight:900;
+  box-shadow:0 4px 14px rgba(24,77,113,.12);
+}
+#devPanel{
+  position:absolute;
+  right:max(10px,env(safe-area-inset-right));
+  top:54px;
+  z-index:29;
+  width:min(270px,44vw);
+  max-height:calc(100dvh - 64px);
+  overflow:auto;
+  padding:12px;
+  border-radius:16px;
+  background:rgba(18,47,68,.90);
+  color:white;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);
+  display:none;
+  font-size:12px;
+  backdrop-filter:blur(8px);
+}
+#devPanel.open{display:block}
+.dev-grid{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center}
+.dev-grid strong{text-align:right}
+.dev-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+.dev-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:850;background:#fff;color:#173f61}
+#settingsFile{display:none}
+.dev-sliders{margin-top:12px;display:grid;gap:10px}
+.dev-slider label{display:flex;justify-content:space-between;gap:10px;margin-bottom:3px;font-size:11px;font-weight:800}
+.dev-slider output{min-width:52px;text-align:right;color:#cfe7ff}
+.dev-slider input[type="range"]{width:100%}
+#startOverlay,#calOverlay,#rotateOverlay{
+  position:absolute;
+  inset:0;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(111,190,235,.46);
+  backdrop-filter:blur(7px);
+}
+.overlay-card{
+  width:min(540px,90vw);
+  border-radius:24px;
+  padding:20px 24px;
+  background:rgba(255,255,255,.94);
+  text-align:center;
+  box-shadow:0 18px 55px rgba(27,81,116,.20);
+}
+.overlay-card h1{margin:0 0 8px;font-size:clamp(26px,6vw,42px);line-height:1}
+.overlay-card p{margin:7px 0;font-size:clamp(13px,2.6vw,17px);font-weight:700;line-height:1.35}
+.overlay-card .rules{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.rule{padding:8px 12px;border-radius:999px;background:#e9f5fb;font-weight:900}
+.primary{
+  border:0;
+  border-radius:15px;
+  padding:11px 22px;
+  margin-top:8px;
+  background:#173f61;
+  color:white;
+  font-weight:950;
+  font-size:clamp(15px,2.8vw,18px);
+}
+#calOverlay{display:none;z-index:51}
+#calOverlay.show{display:flex}
+#calText{font-size:clamp(15px,3vw,20px);font-weight:900}
+#rotateOverlay{display:none;z-index:80;background:#87cff8}
+#rotateOverlay .overlay-card{max-width:360px}
+#rotateIcon{font-size:48px;line-height:1;margin-bottom:8px}
+#flash{
+  position:absolute;
+  z-index:16;
+  left:22%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:clamp(18px,4vw,32px);
+  font-weight:950;
+  color:#fff;
+  text-shadow:0 2px 9px rgba(15,69,105,.6);
+  opacity:0;
+  pointer-events:none;
+}
+#flash.pop{animation:flashPop .5s ease-out forwards}
+@keyframes flashPop{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}25%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-130%) scale(1)}}
+@media(orientation:portrait){#rotateOverlay{display:flex}}
+@media(max-height:380px){
+  .overlay-card{padding:14px 18px}
+  .overlay-card h1{font-size:26px}
+  .overlay-card p{font-size:12px}
+  .overlay-card .rules{margin:8px 0}
+  .rule{padding:5px 9px;font-size:12px}
+  .primary{padding:8px 18px}
+}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="cloudLayer"></div>
+  <div class="route high"></div>
+  <div class="route low"></div>
+  <div class="route-label high">YLÄREITTI</div>
+  <div class="route-label low">ALAREITTI</div>
+
+  <div id="plane" class="idle">
+    <img class="plane-img" src="lentokone_sivu.webp" alt="Leo Lentäjän lentokone">
+    <div id="propeller" aria-hidden="true">
+      <svg viewBox="0 0 100 100" role="presentation">
+        <g class="prop-plane">
+          <circle class="prop-blur" cx="50" cy="50" r="36" fill="rgba(28,42,56,.18)"/>
+          <g class="prop-blades">
+            <path d="M48 9 C56 11, 60 17, 58 28 C55 43, 46 46, 42 34 C39 24, 41 13, 48 9Z" fill="#2e3943"/>
+            <path d="M52 91 C44 89, 40 83, 42 72 C45 57, 54 54, 58 66 C61 76, 59 87, 52 91Z" fill="#2e3943"/>
+            <rect x="46" y="8" width="8" height="10" rx="3" fill="#efd25c"/>
+            <rect x="46" y="82" width="8" height="10" rx="3" fill="#efd25c"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div id="score">★ <span id="scoreNum">0</span></div>
+  <div id="routeHint"></div>
+  <div id="flash">+1</div>
+
+  <button id="gear" aria-label="Kehittäjätila">⚙</button>
+  <aside id="devPanel">
+    <div class="dev-grid">
+      <span>dBFS</span><strong id="devDb">–</strong>
+      <span>Kynnys</span><strong id="devThreshold">–</strong>
+      <span>F0</span><strong id="devF0">–</strong>
+      <span>Vakaus</span><strong id="devStability">–</strong>
+      <span>LOW</span><strong id="devLow">–</strong>
+      <span>HIGH</span><strong id="devHigh">–</strong>
+      <span>BEST</span><strong id="devBest">–</strong>
+      <span>GAP</span><strong id="devGap">–</strong>
+      <span>Tunnistus</span><strong id="devRecognition">–</strong>
+      <span>Puhallus</span><strong id="devDuration">–</strong>
+    </div>
+    <div class="dev-actions">
+      <button id="recalBtn">Kalibroi</button>
+      <button id="resetScoreBtn">Nollaa pisteet</button>
+      <button id="exportSettingsBtn">Vie JSON</button>
+      <button id="importSettingsBtn">Tuo JSON</button>
+      <input id="settingsFile" type="file" accept="application/json,.json">
+    </div>
+    <div class="dev-sliders">
+      <div class="dev-slider">
+        <label for="propX"><span>Propelli X</span><output id="propXOut">91.4%</output></label>
+        <input id="propX" type="range" min="80" max="110" step="0.1" value="91.4">
+      </div>
+      <div class="dev-slider">
+        <label for="propY"><span>Propelli Y</span><output id="propYOut">50.7%</output></label>
+        <input id="propY" type="range" min="20" max="60" step="0.1" value="50.7">
+      </div>
+      <div class="dev-slider">
+        <label for="propSize"><span>Propellin koko</span><output id="propSizeOut">40.0%</output></label>
+        <input id="propSize" type="range" min="10" max="40" step="0.1" value="40">
+      </div>
+      <div class="dev-slider">
+        <label for="propTiltY"><span>Sivukääntö 0° edestä / 90° sivusta</span><output id="propTiltYOut">78°</output></label>
+        <input id="propTiltY" type="range" min="0" max="90" step="1" value="78">
+      </div>
+      <div class="dev-slider">
+        <label for="propIdle"><span>Idle-nopeus</span><output id="propIdleOut">180 ms</output></label>
+        <input id="propIdle" type="range" min="80" max="400" step="5" value="180">
+      </div>
+      <div class="dev-slider">
+        <label for="propActive"><span>Aktiivinen nopeus</span><output id="propActiveOut">55 ms</output></label>
+        <input id="propActive" type="range" min="20" max="160" step="5" value="55">
+      </div>
+      <div class="dev-slider">
+        <label for="noseTilt"><span>Nokan kallistus</span><output id="noseTiltOut">20.0°</output></label>
+        <input id="noseTilt" type="range" min="0" max="20" step="0.5" value="20">
+      </div>
+    </div>
+  </aside>
+
+  <div id="startOverlay">
+    <div class="overlay-card">
+      <h1>Leo Lentäjä</h1>
+      <p>Kerää tähdet vaihtamalla lentoreittiä sävelellä.</p>
+      <div class="rules">
+        <div class="rule">KORKEA → YLÄ</div>
+        <div class="rule">MATALA → ALA</div>
+      </div>
+      <p>Vakaan äänen aikana kone lentää rauhallisemmin.</p>
+      <button id="startBtn" class="primary">Aloita peli</button>
+      <p id="startError" style="color:#9b3f3f;min-height:1.35em"></p>
+    </div>
+  </div>
+
+  <div id="calOverlay">
+    <div class="overlay-card">
+      <h1>Kalibroidaan</h1>
+      <p id="calText">Ole hetki hiljaa…</p>
+    </div>
+  </div>
+
+  <div id="rotateOverlay">
+    <div class="overlay-card">
+      <div id="rotateIcon">↻</div>
+      <h1>Käännä puhelin</h1>
+      <p>Leo Lentäjä pelaa vaakatasossa.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// === Leo Lentäjä -äänimoottorin nykyiset referenssit ja ydinasetukset ===
+const REFS = {
+  version:"1.0",
+  low:{
+    f0:430.20803833421076,
+    fingerprint:[
+      0.09391629137887444,0.701957182318073,0.07941402810746946,
+      0.04534061240603828,0.04522878208440739,0.020297069138826587,
+      0.013846034566310759
+    ]
+  },
+  high:{
+    f0:837.8248546223447,
+    fingerprint:[
+      0.6783152252542366,0.17302815688574255,0.05004085182535056,
+      0.038840760907468776,0.023742261188500674,0.02629115993507365,
+      0.009741584003627188
+    ]
+  }
+};
+const FRAME_MS=16;
+const HARMONICS=8;
+const ACCEPT=50;
+const MARGIN=7;
+const MIC_CAL_WARMUP_MS=250;
+const MIC_CAL_MEASURE_MS=1500;
+const MIC_CAL_MARGIN_DB=10;
+const STABILITY_ATTACK_MS=200;
+const STABILITY_WINDOW_MS=400;
+const STABILITY_MIN_SAMPLES=6;
+const UNCERTAIN_DELAY_MS=180;
+
+const $=s=>document.querySelector(s);
+const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
+const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
+const devPanel=$('#devPanel');
+const dev={
+  db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),stability:$('#devStability'),
+  low:$('#devLow'),high:$('#devHigh'),best:$('#devBest'),gap:$('#devGap'),
+  recognition:$('#devRecognition'),duration:$('#devDuration')
+};
+const propControls={
+  x:$('#propX'),xOut:$('#propXOut'),
+  y:$('#propY'),yOut:$('#propYOut'),
+  size:$('#propSize'),sizeOut:$('#propSizeOut'),
+  tiltY:$('#propTiltY'),tiltYOut:$('#propTiltYOut'),
+  idle:$('#propIdle'),idleOut:$('#propIdleOut'),
+  active:$('#propActive'),activeOut:$('#propActiveOut')
+};
+const movementControls={
+  noseTilt:$('#noseTilt'),noseTiltOut:$('#noseTiltOut')
+};
+
+let ctx=null,stream=null,analyser=null,timer=null;
+let timeData=null,freqData=null;
+let dbThreshold=-70;
+let yinDiffBuffer=null,yinCmndBuffer=null;
+let liveLowHistory=[],liveHighHistory=[],liveF0History=[];
+let soundStartedAt=null,soundActive=false;
+let stabilityF0Window=[];
+let stabilityScoreSum=0,stabilityCentsSum=0,stabilityScoreCount=0;
+let currentStabilityScore=null,currentStabilityCents=null;
+
+// Pelitila
+let gameRunning=false;
+let currentRoute='center';
+let planeY=50;
+let routeTransitionStartY=50;
+let routeTransitionTargetY=50;
+let routeTransitionStartedAt=0;
+const ROUTE_TRANSITION_MS=780;
+let noseTiltAmount=20;
+let score=0;
+let stars=[];
+let clouds=[];
+let lastFrame=0;
+let spawnClock=0;
+let lastSpawnLane=null;
+let sameLaneCount=0;
+const SPAWN_INTERVAL=1850;
+const CLOUD_MIN_GAP=34;
+const CLOUD_VERTICAL_BANDS=[0.14,0.27,0.40,0.52];
+const CLOUD_TYPES=[
+  {src:'pilvi_levea.webp',aspect:620/286,minW:110,maxW:210},
+  {src:'pilvi_keski.webp',aspect:560/255,minW:95,maxW:175},
+  {src:'pilvi_iso.webp',aspect:700/327,minW:140,maxW:250}
+];
+
+function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
+function median(a){
+  if(!a.length)return 0;
+  const b=[...a].sort((x,y)=>x-y),m=b.length>>1;
+  return b.length%2?b[m]:(b[m-1]+b[m])/2;
+}
+function pushLimited(arr,val,max=6){arr.push(val);if(arr.length>max)arr.shift()}
+function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
+function rand(min,max){return min+Math.random()*(max-min)}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function centsDiff(a,b){return 1200*Math.log2(a/b)}
+function stabilityScoreFromCents(cents){
+  const points=[[3,100],[8,90],[15,75],[25,50],[40,20],[60,0]];
+  if(cents<=points[0][0])return 100;
+  if(cents>=points[points.length-1][0])return 0;
+  for(let i=1;i<points.length;i++){
+    const [x1,y1]=points[i-1],[x2,y2]=points[i];
+    if(cents<=x2){
+      const t=(cents-x1)/(x2-x1);
+      return y1+(y2-y1)*t;
+    }
+  }
+  return 0;
+}
+
+function resetStabilityForNewSound(){
+  stabilityF0Window=[];
+  stabilityScoreSum=0;
+  stabilityCentsSum=0;
+  stabilityScoreCount=0;
+  currentStabilityScore=null;
+  currentStabilityCents=null;
+}
+function updateStability(f0,now){
+  if(soundStartedAt===null)return;
+  if(now-soundStartedAt<STABILITY_ATTACK_MS)return;
+  stabilityF0Window.push({t:now,f0});
+  const cutoff=now-STABILITY_WINDOW_MS;
+  while(stabilityF0Window.length&&stabilityF0Window[0].t<cutoff)stabilityF0Window.shift();
+  if(stabilityF0Window.length<STABILITY_MIN_SAMPLES)return;
+  const freqs=stabilityF0Window.map(x=>x.f0);
+  const center=median(freqs);
+  const cents=mean(freqs.map(f=>Math.abs(centsDiff(f,center))));
+  const score=stabilityScoreFromCents(cents);
+  currentStabilityScore=score;
+  currentStabilityCents=cents;
+  stabilityScoreSum+=score;
+  stabilityCentsSum+=cents;
+  stabilityScoreCount++;
+  dev.stability.textContent=score.toFixed(0)+' %';
+}
+function finalizeStability(){
+  if(!stabilityScoreCount)return;
+  currentStabilityScore=stabilityScoreSum/stabilityScoreCount;
+  currentStabilityCents=stabilityCentsSum/stabilityScoreCount;
+  dev.stability.textContent=currentStabilityScore.toFixed(0)+' %';
+}
+function rmsDb(buf){
+  let s=0;
+  for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}
+  const rms=Math.sqrt(s/buf.length)||1e-12;
+  return {rms,db:20*Math.log10(rms)};
+}
+function yin(buf,sr){
+  const n=Math.min(buf.length,4096),minF=75,maxF=1300;
+  const minTau=Math.max(2,Math.floor(sr/maxF));
+  const maxTau=Math.min(Math.floor(sr/minF),Math.floor(n/2));
+  const needed=maxTau+1;
+  if(!yinDiffBuffer||yinDiffBuffer.length<needed){
+    yinDiffBuffer=new Float32Array(needed);
+    yinCmndBuffer=new Float32Array(needed);
+  }
+  const d=yinDiffBuffer,cmnd=yinCmndBuffer;
+  for(let tau=1;tau<=maxTau;tau++){
+    let sum=0;
+    for(let i=0;i<n-tau;i++){const x=buf[i]-buf[i+tau];sum+=x*x}
+    d[tau]=sum;
+  }
+  cmnd[0]=1;
+  let run=0;
+  for(let tau=1;tau<=maxTau;tau++){
+    run+=d[tau];
+    cmnd[tau]=d[tau]*tau/(run||1);
+  }
+  let tau=-1;
+  for(let t=minTau;t<=maxTau;t++){
+    if(cmnd[t]<0.13){while(t+1<=maxTau&&cmnd[t+1]<cmnd[t])t++;tau=t;break}
+  }
+  if(tau<0)return null;
+  const x0=Math.max(minTau,tau-1),x2=Math.min(maxTau,tau+1);
+  const s0=cmnd[x0],s1=cmnd[tau],s2=cmnd[x2],den=2*s1-s2-s0;
+  const better=den?tau+(s2-s0)/(2*den):tau;
+  const f=sr/better;
+  return (f>=minF&&f<=maxF)?f:null;
+}
+function harmonicVector(f0){
+  if(!f0)return null;
+  const ny=ctx.sampleRate/2;
+  const binHz=ny/freqData.length;
+  const amps=[];
+  for(let h=1;h<=HARMONICS;h++){
+    const target=f0*h;
+    if(target>=ny){amps.push(0);continue}
+    const idx=Math.round(target/binHz);
+    const radius=Math.max(1,Math.round(12/binHz));
+    let best=-Infinity;
+    for(let j=Math.max(1,idx-radius);j<=Math.min(freqData.length-1,idx+radius);j++){
+      if(freqData[j]>best)best=freqData[j];
+    }
+    amps.push(Math.pow(10,best/20));
+  }
+  const vals=amps.slice(1,8);
+  const total=vals.reduce((s,x)=>s+x,0);
+  if(total<=0)return null;
+  return vals.map(x=>x/total);
+}
+function fpDistance(a,b){
+  let s=0;
+  for(let i=0;i<a.length;i++){
+    const da=20*Math.log10(a[i]+1e-5),db=20*Math.log10(b[i]+1e-5),d=(da-db)/16;
+    s+=d*d;
+  }
+  return Math.sqrt(s/a.length);
+}
+function similarity(take,ref){
+  const cents=Math.abs(centsDiff(take.f0,ref.f0));
+  const pitchPenalty=Math.min(3,cents/110);
+  const spectralPenalty=fpDistance(take.fp,ref.fingerprint);
+  const combined=Math.sqrt(0.42*pitchPenalty*pitchPenalty+0.58*spectralPenalty*spectralPenalty);
+  return Math.max(0,Math.min(100,100*Math.exp(-0.82*combined)));
+}
+
+function routeY(route){return route==='high'?31:route==='low'?69:50}
+function setRoute(name){
+  const next=name==='KORKEA'?'high':name==='MATALA'?'low':null;
+  if(!next||next===currentRoute)return;
+  routeTransitionStartY=planeY;
+  routeTransitionTargetY=routeY(next);
+  routeTransitionStartedAt=performance.now();
+  currentRoute=next;
+  routeHint.textContent=next==='high'?'YLÄREITTI':'ALAREITTI';
+  routeHint.classList.add('show');
+  clearTimeout(setRoute._t);
+  setRoute._t=setTimeout(()=>routeHint.classList.remove('show'),420);
+}
+
+function clearRecognition(){
+  liveLowHistory=[];liveHighHistory=[];liveF0History=[];
+  dev.f0.textContent='–';dev.low.textContent='–';dev.high.textContent='–';
+  dev.best.textContent='–';dev.gap.textContent='–';dev.recognition.textContent='–';
+}
+
+function processFrame(){
+  if(!analyser)return;
+  analyser.getFloatTimeDomainData(timeData);
+  const level=rmsDb(timeData);
+  dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';
+  dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
+  const loud=level.db>dbThreshold;
+  soundActive=loud;
+  plane.classList.toggle('active',loud);
+  plane.classList.toggle('idle',!loud);
+
+  if(!loud){
+    if(soundStartedAt!==null)finalizeStability();
+    soundStartedAt=null;
+    dev.duration.textContent='–';
+    liveLowHistory=[];liveHighHistory=[];liveF0History=[];
+    return;
+  }
+
+  const now=performance.now();
+  if(soundStartedAt===null){soundStartedAt=now;resetStabilityForNewSound()}
+  dev.duration.textContent=((now-soundStartedAt)/1000).toFixed(2)+' s';
+
+  analyser.getFloatFrequencyData(freqData);
+  const f0=yin(timeData,ctx.sampleRate);
+  if(!f0){
+    dev.f0.textContent='–';
+    if(now-soundStartedAt>=UNCERTAIN_DELAY_MS)dev.recognition.textContent='EPÄVARMA';
+    return;
+  }
+
+  updateStability(f0,now);
+  const fp=harmonicVector(f0);
+  if(!fp){dev.f0.textContent=f0.toFixed(1)+' Hz';return}
+
+  pushLimited(liveF0History,f0);
+  const smoothF0=median(liveF0History);
+  const take={f0:smoothF0,fp};
+  const low=similarity(take,REFS.low);
+  const high=similarity(take,REFS.high);
+  pushLimited(liveLowHistory,low);
+  pushLimited(liveHighHistory,high);
+  const lowS=mean(liveLowHistory),highS=mean(liveHighHistory);
+  const best=Math.max(lowS,highS),gap=Math.abs(lowS-highS);
+
+  dev.f0.textContent=smoothF0.toFixed(1)+' Hz';
+  dev.low.textContent=lowS.toFixed(1)+' %';
+  dev.high.textContent=highS.toFixed(1)+' %';
+  dev.best.textContent=best.toFixed(1)+' %';
+  dev.gap.textContent=gap.toFixed(1)+' pp';
+
+  let name='EPÄVARMA';
+  if(best>=ACCEPT&&gap>=MARGIN)name=lowS>highS?'MATALA':'KORKEA';
+  if(name==='EPÄVARMA'&&now-soundStartedAt<UNCERTAIN_DELAY_MS){
+    dev.recognition.textContent='–';
+    return;
+  }
+  dev.recognition.textContent=name;
+  if(name!=='EPÄVARMA')setRoute(name);
+}
+
+function sleepMs(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function calibrateMicrophoneNoiseFloor(){
+  if(!analyser||!timeData)return false;
+  if(timer){clearInterval(timer);timer=null}
+  clearRecognition();
+  calOverlay.classList.add('show');
+  calText.textContent='Ole hiljaa 1,5 sekuntia…';
+  await sleepMs(MIC_CAL_WARMUP_MS);
+  const samples=[];
+  const started=performance.now();
+  while(performance.now()-started<MIC_CAL_MEASURE_MS){
+    analyser.getFloatTimeDomainData(timeData);
+    const level=rmsDb(timeData);
+    if(Number.isFinite(level.db))samples.push(level.db);
+    await sleepMs(50);
+  }
+  if(!samples.length){dbThreshold=-70}
+  else{
+    samples.sort((a,b)=>a-b);
+    const mid=Math.floor(samples.length/2);
+    const noiseFloor=samples.length%2?samples[mid]:(samples[mid-1]+samples[mid])/2;
+    dbThreshold=Math.max(-70,Math.min(-20,Math.round(noiseFloor+MIC_CAL_MARGIN_DB)));
+  }
+  dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
+  timer=setInterval(processFrame,FRAME_MS);
+  calOverlay.classList.remove('show');
+  return true;
+}
+async function startMic(){
+  if(stream)return true;
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  if(ctx.state!=='running')await ctx.resume();
+  const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};
+  const constraints={echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+  if(supported.voiceIsolation)constraints.voiceIsolation=false;
+  stream=await navigator.mediaDevices.getUserMedia({audio:constraints});
+  const src=ctx.createMediaStreamSource(stream);
+  analyser=ctx.createAnalyser();
+  analyser.fftSize=8192;
+  analyser.smoothingTimeConstant=.08;
+  analyser.minDecibels=-110;
+  analyser.maxDecibels=-10;
+  src.connect(analyser);
+  timeData=new Float32Array(analyser.fftSize);
+  freqData=new Float32Array(analyser.frequencyBinCount);
+  await calibrateMicrophoneNoiseFloor();
+  return true;
+}
+
+function desiredCloudCount(){
+  return Math.round(clamp(Math.ceil(window.innerWidth/320)+2,4,7));
+}
+function cloudSizeScale(){
+  // Pilvien koko seuraa ennen kaikkea näkymän korkeutta. Näin leveä/matala
+  // selainikkuna ei vedä pilviä liian alas tai liian suuriksi.
+  return clamp(window.innerHeight/430,.68,1.18);
+}
+function cloudMaxGap(){
+  return clamp(window.innerWidth*.13,72,155);
+}
+function createCloudElement(){
+  const el=document.createElement('div');
+  el.className='cloud';
+  const img=document.createElement('img');
+  img.alt='';
+  img.draggable=false;
+  el.appendChild(img);
+  cloudLayer.appendChild(el);
+  return {el,img,type:null,nominalWidth:0,bandIndex:0,x:0,y:0,width:0,height:0,speed:0,opacity:1};
+}
+function chooseCloudBand(excludeBand=-1){
+  const choices=CLOUD_VERTICAL_BANDS.map((_,i)=>i).filter(i=>i!==excludeBand);
+  return pick(choices.length?choices:[0]);
+}
+function configureCloud(cloud,{keepBand=false,excludeBand=-1}={}){
+  if(!cloud.type || Math.random()<.38)cloud.type=pick(CLOUD_TYPES);
+  if(!cloud.nominalWidth || Math.random()<.38){
+    cloud.nominalWidth=rand(cloud.type.minW,cloud.type.maxW);
+  }else{
+    cloud.nominalWidth=clamp(cloud.nominalWidth,cloud.type.minW,cloud.type.maxW);
+  }
+  if(!keepBand)cloud.bandIndex=chooseCloudBand(excludeBand);
+  const scale=cloudSizeScale();
+  cloud.width=cloud.nominalWidth*scale;
+  cloud.height=cloud.width/cloud.type.aspect;
+  const centerNorm=CLOUD_VERTICAL_BANDS[cloud.bandIndex]+rand(-.018,.018);
+  const minY=window.innerHeight*.025;
+  const maxY=Math.max(minY,window.innerHeight*.61-cloud.height);
+  cloud.y=clamp(centerNorm*window.innerHeight-cloud.height*.5,minY,maxY);
+  cloud.speed=rand(11,22)*clamp(cloud.width/170,.78,1.2);
+  cloud.opacity=rand(.66,.94);
+  cloud.el.style.width=cloud.width.toFixed(0)+'px';
+  cloud.el.style.opacity=cloud.opacity.toFixed(2);
+  cloud.img.src=cloud.type.src;
+}
+function renderCloud(cloud){
+  cloud.el.style.transform=`translate(${cloud.x.toFixed(1)}px,${cloud.y.toFixed(1)}px)`;
+}
+function distributeClouds(){
+  if(!clouds.length)return;
+  // Järjestetään pilvet tasaisesti vasemman reunan ulkopuolelta oikean reunan yli.
+  const totalWidth=clouds.reduce((s,c)=>s+c.width,0);
+  const targetSpan=window.innerWidth+clouds[0].width*.55+clouds[clouds.length-1].width*.55;
+  const gap=Math.max(CLOUD_MIN_GAP,Math.min(cloudMaxGap(),(targetSpan-totalWidth)/Math.max(1,clouds.length-1)));
+  let cursor=-clouds[0].width*.48;
+  for(let i=0;i<clouds.length;i++){
+    const c=clouds[i];
+    if(i>0)cursor+=clouds[i-1].width+gap;
+    c.x=cursor;
+    renderCloud(c);
+  }
+}
+function initClouds(){
+  for(const c of clouds)c.el.remove();
+  clouds=[];
+  const count=desiredCloudCount();
+  let previousBand=-1;
+  for(let i=0;i<count;i++){
+    const cloud=createCloudElement();
+    configureCloud(cloud,{excludeBand:previousBand});
+    previousBand=cloud.bandIndex;
+    clouds.push(cloud);
+  }
+  distributeClouds();
+}
+function respawnCloud(cloud){
+  const others=clouds.filter(c=>c!==cloud);
+  const rightmost=others.length?others.reduce((a,b)=>(a.x+a.width)>(b.x+b.width)?a:b):null;
+  const excludeBand=rightmost?rightmost.bandIndex:-1;
+  configureCloud(cloud,{excludeBand});
+  const rightEdge=rightmost?rightmost.x+rightmost.width:window.innerWidth;
+  cloud.x=Math.max(window.innerWidth+20,rightEdge+CLOUD_MIN_GAP+rand(12,44));
+  renderCloud(cloud);
+}
+function enforceCloudSpacing(){
+  const sorted=[...clouds].sort((a,b)=>a.x-b.x);
+  const maxGap=cloudMaxGap();
+  for(let i=1;i<sorted.length;i++){
+    const prev=sorted[i-1],cur=sorted[i];
+    const prevRight=prev.x+prev.width;
+    const minX=prevRight+CLOUD_MIN_GAP;
+    const maxX=prevRight+maxGap;
+    if(cur.x<minX)cur.x=minX;
+    else if(cur.x>maxX)cur.x=maxX;
+  }
+}
+function updateClouds(dt){
+  for(const cloud of clouds)cloud.x-=cloud.speed*(dt/1000);
+  // Vasemmalta poistuvat siirretään oikeanpuoleisimman perään, eivät satunnaiseksi ryppääksi.
+  const leaving=clouds.filter(c=>c.x<-c.width-45).sort((a,b)=>a.x-b.x);
+  for(const cloud of leaving)respawnCloud(cloud);
+  enforceCloudSpacing();
+  for(const cloud of clouds)renderCloud(cloud);
+}
+function reflowCloudsForViewport(){
+  if(!clouds.length)return;
+  const wanted=desiredCloudCount();
+  if(wanted!==clouds.length){
+    initClouds();
+    return;
+  }
+  for(const cloud of clouds)configureCloud(cloud,{keepBand:true});
+  distributeClouds();
+}
+let cloudResizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(cloudResizeTimer);
+  cloudResizeTimer=setTimeout(()=>reflowCloudsForViewport(),70);
+});
+
+function chooseLane(){
+  let lane=Math.random()<.5?'high':'low';
+  if(lane===lastSpawnLane){
+    sameLaneCount++;
+    if(sameLaneCount>=2){lane=lane==='high'?'low':'high';sameLaneCount=0}
+  }else sameLaneCount=0;
+  lastSpawnLane=lane;
+  return lane;
+}
+function spawnStar(){
+  const lane=chooseLane();
+  const el=document.createElement('div');
+  el.className='star '+lane;
+  el.textContent='★';
+  game.appendChild(el);
+  stars.push({el,lane,x:window.innerWidth+70,collected:false});
+}
+function collectStar(star){
+  if(star.collected)return;
+  star.collected=true;
+  score++;
+  scoreNum.textContent=score;
+  star.el.classList.add('collected');
+  flash.classList.remove('pop');
+  void flash.offsetWidth;
+  flash.classList.add('pop');
+}
+function resetScore(){score=0;scoreNum.textContent='0'}
+function clearStars(){for(const s of stars)s.el.remove();stars=[]}
+function clearClouds(){for(const c of clouds)c.el.remove();clouds=[]}
+function applyPropSettings(){
+  const x=parseFloat(propControls.x.value);
+  const y=parseFloat(propControls.y.value);
+  const size=parseFloat(propControls.size.value);
+  const tiltY=parseFloat(propControls.tiltY.value);
+  const idle=parseFloat(propControls.idle.value);
+  const active=parseFloat(propControls.active.value);
+  const sideScale=Math.max(0.055,Math.cos(tiltY*Math.PI/180));
+  plane.style.setProperty('--prop-x',x.toFixed(1)+'%');
+  plane.style.setProperty('--prop-y',y.toFixed(1)+'%');
+  plane.style.setProperty('--prop-size',size.toFixed(1)+'%');
+  plane.style.setProperty('--prop-side-scale',sideScale.toFixed(3));
+  plane.style.setProperty('--prop-idle-duration',(idle/1000).toFixed(3)+'s');
+  plane.style.setProperty('--prop-active-duration',(active/1000).toFixed(3)+'s');
+  propControls.xOut.value=x.toFixed(1)+'%';
+  propControls.yOut.value=y.toFixed(1)+'%';
+  propControls.sizeOut.value=size.toFixed(1)+'%';
+  propControls.tiltYOut.value=Math.round(tiltY)+'°';
+  propControls.idleOut.value=Math.round(idle)+' ms';
+  propControls.activeOut.value=Math.round(active)+' ms';
+}
+function applyMovementSettings(){
+  noseTiltAmount=parseFloat(movementControls.noseTilt.value);
+  movementControls.noseTiltOut.value=noseTiltAmount.toFixed(1)+'°';
+}
+function clampControlValue(control,value){
+  const min=parseFloat(control.min),max=parseFloat(control.max);
+  const n=Number(value);
+  if(!Number.isFinite(n))return null;
+  return clamp(n,min,max);
+}
+function getSettingsJson(){
+  return {
+    version:1,
+    propeller:{
+      x:parseFloat(propControls.x.value),
+      y:parseFloat(propControls.y.value),
+      size:parseFloat(propControls.size.value),
+      sideTilt:parseFloat(propControls.tiltY.value),
+      idleMs:parseFloat(propControls.idle.value),
+      activeMs:parseFloat(propControls.active.value)
+    },
+    flight:{
+      noseTiltDeg:parseFloat(movementControls.noseTilt.value)
+    }
+  };
+}
+function exportSettingsJson(){
+  const json=JSON.stringify(getSettingsJson(),null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='leo_lentaja_asetukset.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importSettingsJson(data){
+  if(!data||typeof data!=='object')throw new Error('JSON ei sisällä asetuksia.');
+  const prop=data.propeller||{};
+  const flight=data.flight||{};
+  const mappings=[
+    [propControls.x,prop.x],
+    [propControls.y,prop.y],
+    [propControls.size,prop.size],
+    [propControls.tiltY,prop.sideTilt],
+    [propControls.idle,prop.idleMs],
+    [propControls.active,prop.activeMs],
+    [movementControls.noseTilt,flight.noseTiltDeg]
+  ];
+  for(const [control,value] of mappings){
+    if(value===undefined)continue;
+    const v=clampControlValue(control,value);
+    if(v!==null)control.value=String(v);
+  }
+  applyPropSettings();
+  applyMovementSettings();
+}
+function beginGame(){
+  clearStars();
+  initClouds();
+  resetScore();
+  currentRoute='center';planeY=50;
+  routeTransitionStartY=50;
+  routeTransitionTargetY=50;
+  routeTransitionStartedAt=0;
+  plane.classList.remove('active');
+  plane.classList.add('idle');
+  spawnClock=1000;
+  gameRunning=true;
+  lastFrame=performance.now();
+  requestAnimationFrame(gameLoop);
+}
+function gameLoop(now){
+  if(!gameRunning)return;
+  const dt=Math.min(40,Math.max(0,now-lastFrame));
+  lastFrame=now;
+
+  let routeTilt=0;
+  if(routeTransitionStartedAt){
+    const t=clamp((now-routeTransitionStartedAt)/ROUTE_TRANSITION_MS,0,1);
+    // Smootherstep: nopeus JA kiihtyvyys ovat nollassa alussa ja lopussa.
+    const eased=t*t*t*(t*(t*6-15)+10);
+    planeY=routeTransitionStartY+(routeTransitionTargetY-routeTransitionStartY)*eased;
+    const direction=Math.sign(routeTransitionTargetY-routeTransitionStartY);
+    // Myös nokan kallistus käynnistyy smootherstepin kautta, ettei ensimmäinen ruutu nykäise.
+    routeTilt=direction*noseTiltAmount*Math.sin(Math.PI*eased);
+    if(t>=1){
+      planeY=routeTransitionTargetY;
+      routeTransitionStartedAt=0;
+      routeTilt=0;
+    }
+  }else{
+    planeY=routeTransitionTargetY;
+  }
+  const stability=Number.isFinite(currentStabilityScore)?clamp(currentStabilityScore/100,0,1):.72;
+  // Äänen alkaessa vakausväpätys ei saa hypätä nollasta suoraan täyteen arvoon.
+  const soundAge=(soundActive&&soundStartedAt!==null)?Math.max(0,now-soundStartedAt):0;
+  const wobbleT=clamp(soundAge/500,0,1);
+  const wobbleFade=wobbleT*wobbleT*wobbleT*(wobbleT*(wobbleT*6-15)+10);
+  const wobbleAmp=soundActive?(1-stability)*6.8*wobbleFade:0;
+  const wobble=soundActive?Math.sin(now/78)*wobbleAmp:0;
+  const tilt=routeTilt+wobble*.38;
+  const planeTopPercent=clamp(planeY+wobble,13,87);
+  plane.style.top=planeTopPercent+'%';
+  plane.style.transform=`translate(-50%,-50%) rotate(${tilt.toFixed(1)}deg)`;
+  const planeX=window.innerWidth*.22;
+  updateClouds(dt);
+
+  spawnClock+=dt;
+  if(spawnClock>=SPAWN_INTERVAL){spawnClock-=SPAWN_INTERVAL;spawnStar()}
+  const speed=Math.max(116,window.innerWidth*.19); // px/s
+  for(let i=stars.length-1;i>=0;i--){
+    const s=stars[i];
+    if(!s.collected)s.x-=speed*(dt/1000);
+    s.el.style.left=s.x+'px';
+    if(!s.collected&&Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035)&&s.lane===currentRoute){
+      collectStar(s);
+    }
+    if(s.x<-80||s.collected&&s.x<planeX-30){
+      s.el.remove();
+      stars.splice(i,1);
+    }
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+$('#startBtn').addEventListener('click',async()=>{
+  startError.textContent='';
+  $('#startBtn').disabled=true;
+  try{
+    await startMic();
+    startOverlay.style.display='none';
+    beginGame();
+  }catch(err){
+    startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';
+    $('#startBtn').disabled=false;
+    calOverlay.classList.remove('show');
+  }
+});
+$('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
+$('#resetScoreBtn').addEventListener('click',resetScore);
+$('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
+[propControls.x,propControls.y,propControls.size,propControls.tiltY,propControls.idle,propControls.active]
+  .forEach(el=>el.addEventListener('input',applyPropSettings));
+movementControls.noseTilt.addEventListener('input',applyMovementSettings);
+$('#exportSettingsBtn').addEventListener('click',exportSettingsJson);
+$('#importSettingsBtn').addEventListener('click',()=>$('#settingsFile').click());
+$('#settingsFile').addEventListener('change',async e=>{
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  try{
+    const data=JSON.parse(await file.text());
+    importSettingsJson(data);
+  }catch(err){
+    alert('JSON-asetuksia ei voitu lukea: '+(err?.message||'tuntematon virhe'));
+  }finally{
+    e.target.value='';
+  }
+});
+
+clearRecognition();
+applyPropSettings();
+applyMovementSettings();
+})();
+</script>
+</body>
+</html>
