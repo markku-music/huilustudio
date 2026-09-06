@@ -1,4 +1,4 @@
-Lentokone – PWA 1.2 Refresh
+Lentokone – PWA 1.3 Refresh
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -13,7 +13,9 @@ Uutta 1.1
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.
-- Tähti oikealla reitillä -> +1 piste.
+- ★ tähti oikealla reitillä -> +1 piste.
+- 🛸 UFO -> +2 pistettä, noin 7 % kerättävistä.
+- 🚀 raketti -> +10 pistettä, noin 1 % kerättävistä.
 - Vakaus vaikuttaa koneen väpätykseen.
 - Äänen loputtua kone jää viimeiselle valitulle reitille.
 - Korkeuden vaihto käyttää 780 ms pehmeää smootherstep-siirtymää.

@@ -932,17 +932,24 @@ function chooseLane(){
 }
 function spawnStar(){
   const lane=chooseLane();
+  const roll=Math.random()*100;
+  const item=roll<1
+    ? {symbol:'🚀',points:10}
+    : roll<8
+      ? {symbol:'🛸',points:2}
+      : {symbol:'★',points:1};
   const el=document.createElement('div');
   el.className='star '+lane;
-  el.textContent='★';
+  el.textContent=item.symbol;
   game.appendChild(el);
-  stars.push({el,lane,x:window.innerWidth+70,collected:false});
+  stars.push({el,lane,x:window.innerWidth+70,collected:false,points:item.points});
 }
 function collectStar(star){
   if(star.collected)return;
   star.collected=true;
-  score++;
+  score+=star.points;
   scoreNum.textContent=score;
+  flash.textContent='+'+star.points;
   star.el.classList.add('collected');
   flash.classList.remove('pop');
   void flash.offsetWidth;
