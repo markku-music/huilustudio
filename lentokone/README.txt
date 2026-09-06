@@ -1,4 +1,4 @@
-Lentokone – PWA 1.2 Refresh
+Lentokone – PWA BASE 1.4 – kohteeseen tähtäävä reittiliike
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -95,3 +95,10 @@ PWA-päivitys
 - Päivitysnappi tyhjentää PWA-välimuistin, tarkistaa service worker -päivityksen ja lataa pelin uudelleen verkosta.
 - HTML-navigointi on network-first, joten uusi index.html haetaan verkosta aina kun yhteys toimii.
 - Offline-tilassa käytetään edelleen välimuistissa olevaa versiota.
+
+Uutta BASE 1.4
+- YLÄ/ALA-reittivaihto tähtää valitun reitin seuraavaan edessä olevaan objektiin.
+- Kone ajoittaa pystysiirtymän objektin saapumishetkeen, kun komento annetaan riittävän ajoissa.
+- Myöhäinen komento ei nopeuta konetta yli normaalin reittivaihdon nopeuden.
+- Osuma ratkaistaan koneen todellisen Y-korkeuden perusteella (toleranssi 5,5 %-yksikköä).
+- Äänentunnistus ja BASE 1.3:ssa poistettu vakaus/audio-ease-in pysyvät muuttumattomina.

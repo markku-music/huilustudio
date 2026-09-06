@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.3-no-stability-no-audio-easein';
+const CACHE_NAME = 'lentokone-pwa-base-1.4-target-driven-flight';
 const APP_SHELL = [
   './',
   './index.html',

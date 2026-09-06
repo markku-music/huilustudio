@@ -469,7 +469,11 @@ let planeY=50;
 let routeTransitionStartY=50;
 let routeTransitionTargetY=50;
 let routeTransitionStartedAt=0;
+let routeTransitionDurationMs=780;
 const ROUTE_TRANSITION_MS=780;
+const FULL_ROUTE_DISTANCE=38;
+const ROUTE_HIT_TOLERANCE=5.5;
+const ROUTE_START_SPEED=0.55;
 let noseTiltAmount=20;
 let score=0;
 let stars=[];
@@ -574,12 +578,42 @@ function similarity(take,ref){
 }
 
 function routeY(route){return route==='high'?31:route==='low'?69:50}
+function planeXPosition(){return window.innerWidth*.22}
+function objectSpeedPxPerSec(){return Math.max(116,window.innerWidth*.19)}
+function minimumRouteTimeMs(fromY,toY){
+  return ROUTE_TRANSITION_MS*(Math.abs(toY-fromY)/FULL_ROUTE_DISTANCE);
+}
+function nextTargetOnLane(lane){
+  const planeX=planeXPosition();
+  let target=null;
+  for(const star of stars){
+    if(star.collected||star.lane!==lane||star.x<=planeX)continue;
+    if(!target||star.x<target.x)target=star;
+  }
+  return target;
+}
 function setRoute(name){
   const next=name==='KORKEA'?'high':name==='MATALA'?'low':null;
   if(!next||next===currentRoute)return;
+
+  const now=performance.now();
+  const targetY=routeY(next);
+  const minDuration=minimumRouteTimeMs(planeY,targetY);
+  const target=nextTargetOnLane(next);
+  let duration=minDuration;
+
+  if(target){
+    const distancePx=Math.max(0,target.x-planeXPosition());
+    const timeToTargetMs=(distancePx/objectSpeedPxPerSec())*1000;
+    // Ajoissa annettu komento osuu objektin korkeudelle juuri sen saapuessa koneelle.
+    // Myöhäistä komentoa ei nopeuteta yli normaalin reittivaihdon nopeuden.
+    duration=Math.max(minDuration,timeToTargetMs);
+  }
+
   routeTransitionStartY=planeY;
-  routeTransitionTargetY=routeY(next);
-  routeTransitionStartedAt=performance.now();
+  routeTransitionTargetY=targetY;
+  routeTransitionStartedAt=now;
+  routeTransitionDurationMs=Math.max(1,duration);
   currentRoute=next;
   routeHint.textContent=next==='high'?'YLÄREITTI':'ALAREITTI';
   routeHint.classList.add('show');
@@ -984,6 +1018,7 @@ function beginGame(){
   routeTransitionStartY=50;
   routeTransitionTargetY=50;
   routeTransitionStartedAt=0;
+  routeTransitionDurationMs=ROUTE_TRANSITION_MS;
   plane.classList.remove('active');
   plane.classList.add('idle');
   spawnClock=1000;
@@ -998,12 +1033,13 @@ function gameLoop(now){
 
   let routeTilt=0;
   if(routeTransitionStartedAt){
-    const t=clamp((now-routeTransitionStartedAt)/ROUTE_TRANSITION_MS,0,1);
-    // Smootherstep: nopeus JA kiihtyvyys ovat nollassa alussa ja lopussa.
-    const eased=t*t*t*(t*(t*6-15)+10);
+    const t=clamp((now-routeTransitionStartedAt)/routeTransitionDurationMs,0,1);
+    // Cubic Hermite: liike alkaa heti pienellä nopeudella mutta pehmenee loppua kohti.
+    const eased=(ROUTE_START_SPEED-2)*t*t*t+
+                (3-2*ROUTE_START_SPEED)*t*t+
+                ROUTE_START_SPEED*t;
     planeY=routeTransitionStartY+(routeTransitionTargetY-routeTransitionStartY)*eased;
     const direction=Math.sign(routeTransitionTargetY-routeTransitionStartY);
-    // Myös nokan kallistus käynnistyy smootherstepin kautta, ettei ensimmäinen ruutu nykäise.
     routeTilt=direction*noseTiltAmount*Math.sin(Math.PI*eased);
     if(t>=1){
       planeY=routeTransitionTargetY;
@@ -1017,17 +1053,19 @@ function gameLoop(now){
   const planeTopPercent=clamp(planeY,13,87);
   plane.style.top=planeTopPercent+'%';
   plane.style.transform=`translate(-50%,-50%) rotate(${tilt.toFixed(1)}deg)`;
-  const planeX=window.innerWidth*.22;
+  const planeX=planeXPosition();
   updateClouds(dt);
 
   spawnClock+=dt;
   if(spawnClock>=SPAWN_INTERVAL){spawnClock-=SPAWN_INTERVAL;spawnStar()}
-  const speed=Math.max(116,window.innerWidth*.19); // px/s
+  const speed=objectSpeedPxPerSec(); // px/s
   for(let i=stars.length-1;i>=0;i--){
     const s=stars[i];
     if(!s.collected)s.x-=speed*(dt/1000);
     s.el.style.left=s.x+'px';
-    if(!s.collected&&Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035)&&s.lane===currentRoute){
+    const horizontalHit=Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035);
+    const verticalHit=Math.abs(planeY-routeY(s.lane))<=ROUTE_HIT_TOLERANCE;
+    if(!s.collected&&horizontalHit&&verticalHit){
       collectStar(s);
     }
     if(s.x<-80||s.collected&&s.x<planeX-30){
