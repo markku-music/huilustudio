@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-v1.27-landing-y-83-3';
+const CACHE_NAME = 'lentokone-pwa-v1.9-arcade-hud-transparent';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,7 +8,6 @@ const APP_SHELL = [
   './pilvi_levea.webp',
   './pilvi_keski.webp',
   './pilvi_iso.webp',
-  './laskeutumismaisema.webp',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
@@ -34,6 +33,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
+  // Navigoinnissa verkko ensin: PWA saa uuden index.html:n heti kun verkko toimii.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).then(response => {
@@ -47,6 +47,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Staattiset tiedostot edelleen cache-first, jotta peli toimii nopeasti ja offline.
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;

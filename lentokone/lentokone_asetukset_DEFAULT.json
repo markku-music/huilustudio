@@ -9,7 +9,6 @@
     "activeMs": 55
   },
   "flight": {
-    "noseTiltDeg": 20,
-    "landingYPercent": 83.3
+    "noseTiltDeg": 20
   }
 }
