@@ -63,6 +63,8 @@ button{font:inherit}
   border-top:2px dashed var(--route);
   z-index:2;
   pointer-events:none;
+
+  transition:opacity .9s ease;
 }
 .route.high{top:31%}
 .route.low{top:69%}
@@ -76,6 +78,7 @@ button{font:inherit}
   font-weight:900;
   letter-spacing:.12em;
   pointer-events:none;
+  transition:opacity .9s ease;
 }
 .route-label.high{top:31%}
 .route-label.low{top:69%}
@@ -142,6 +145,12 @@ button{font:inherit}
   will-change:transform,left;
   user-select:none;
   pointer-events:none;
+  transition:opacity .9s ease;
+}
+#game.landing .route,
+#game.landing .route-label,
+#game.landing .star{
+  opacity:0;
 }
 .ufo-glyph{
   display:inline-block;
@@ -158,6 +167,27 @@ button{font:inherit}
 @keyframes collect{
   0%{transform:translate(-50%,-50%) scale(1);opacity:1}
   100%{transform:translate(-50%,-75%) scale(1.8) rotate(20deg);opacity:0}
+}
+#landingScene{
+  position:absolute;
+  left:-2%;
+  bottom:-1%;
+  width:104%;
+  height:52%;
+  z-index:4;
+  opacity:0;
+  transform:translateY(70%);
+  pointer-events:none;
+  will-change:transform,opacity;
+}
+#landingScene img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+  user-select:none;
+  -webkit-user-drag:none;
+  filter:saturate(1.02) brightness(1.03) blur(.04px);
 }
 #hud{
   position:absolute;
@@ -331,6 +361,7 @@ button{font:inherit}
   <div class="route low"></div>
   <div class="route-label high">YLÄREITTI</div>
   <div class="route-label low">ALAREITTI</div>
+  <div id="landingScene" aria-hidden="true"><img src="laskeutumismaisema.webp" alt=""></div>
 
   <div id="plane" class="idle">
     <img class="plane-img" src="lentokone_sivu.webp" alt="Lentokone">
@@ -401,6 +432,7 @@ button{font:inherit}
     </div>
     <div class="dev-actions">
       <button id="recalBtn">Kalibroi</button>
+      <button id="testLandingBtn">Lasku nyt</button>
       <button id="resetScoreBtn">Nollaa pisteet</button>
       <button id="exportSettingsBtn">Vie JSON</button>
       <button id="importSettingsBtn">Tuo JSON</button>
@@ -434,6 +466,10 @@ button{font:inherit}
       <div class="dev-slider">
         <label for="noseTilt"><span>Nokan kallistus</span><output id="noseTiltOut">20.0°</output></label>
         <input id="noseTilt" type="range" min="0" max="20" step="0.5" value="20">
+      </div>
+      <div class="dev-slider">
+        <label for="landingY"><span>Laskeutumispaikka Y</span><output id="landingYOut">83.3%</output></label>
+        <input id="landingY" type="range" min="72" max="96" step="0.1" value="83.3">
       </div>
     </div>
   </aside>
@@ -501,7 +537,7 @@ const MIC_CAL_MARGIN_DB=10;
 const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
-const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
+const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),landingScene=$('#landingScene'),scoreNum=$('#scoreNum'),routeHint=$('#routeHint'),flash=$('#flash');
 const timeNeedleWrap=$('#timeNeedleWrap'),altNeedleWrap=$('#altNeedleWrap');
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),calText=$('#calText'),startError=$('#startError');
 const devPanel=$('#devPanel');
@@ -519,7 +555,8 @@ const propControls={
   active:$('#propActive'),activeOut:$('#propActiveOut')
 };
 const movementControls={
-  noseTilt:$('#noseTilt'),noseTiltOut:$('#noseTiltOut')
+  noseTilt:$('#noseTilt'),noseTiltOut:$('#noseTiltOut'),
+  landingY:$('#landingY'),landingYOut:$('#landingYOut')
 };
 
 let ctx=null,stream=null,analyser=null,timer=null;
@@ -531,6 +568,17 @@ let soundStartedAt=null,soundActive=false;
 
 // Pelitila
 let gameRunning=false;
+let postLandingAnimationActive=false;
+let postLandingLastFrame=0;
+let gameState='idle'; // idle | playing | landing | ended
+let landingStartedAt=0;
+let landingStartY=50;
+let landingStartX=22;
+let planeXPercent=22;
+let landingCloudOffset=0;
+const LANDING_DURATION_MS=3200;
+let landingPlaneY=83.3;
+const LANDING_PLANE_X=50;
 let currentRoute='center';
 let planeY=50;
 let routeTransitionStartY=50;
@@ -664,11 +712,11 @@ function updateHud(now=performance.now()){
   const timeAngle=65-p*130;
   timeNeedleWrap.setAttribute('transform',`rotate(${timeAngle.toFixed(1)} 60 54)`);
 
-  // Korkeusasteikon neljä pääkohtaa: kiitorata -70°, ALA -35°, VÄLI 0°, YLÄ +55°.
-  // 1.8-pelissä kiitorata on vasta varattu pykälä; peli alkaa VÄLI-asennosta.
+  // Neljä pääkohtaa ilman tekstejä: kiitorata -70°, ALA -35°, VÄLI 0°, YLÄ +55°.
   let altAngle;
   if(planeY>=69){
-    altAngle=-35;
+    const runwayPart=clamp((planeY-69)/(landingPlaneY-69),0,1);
+    altAngle=-35-runwayPart*35;
   }else if(planeY>50){
     altAngle=-35+((69-planeY)/19)*35;
   }else if(planeY>31){
@@ -703,6 +751,7 @@ function minimumRouteTimeMs(fromY,toY){
   return ROUTE_TRANSITION_MS*(distance/FULL_ROUTE_DISTANCE);
 }
 function setRoute(name){
+  if(gameState!=='playing')return;
   const next=name==='KORKEA'?'high':name==='MATALA'?'low':null;
   if(!next||next===currentRoute)return;
 
@@ -749,6 +798,24 @@ function processFrame(){
   dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';
   dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
   const loud=level.db>dbThreshold;
+  if(gameState==='landing'){
+    soundActive=false;
+    plane.classList.add('active');
+    plane.classList.remove('idle');
+    soundStartedAt=null;
+    dev.duration.textContent='–';
+    liveLowHistory=[];liveHighHistory=[];liveF0History=[];
+    return;
+  }
+  if(gameState!=='playing'){
+    soundActive=false;
+    plane.classList.remove('active');
+    plane.classList.add('idle');
+    soundStartedAt=null;
+    dev.duration.textContent='–';
+    liveLowHistory=[];liveHighHistory=[];liveF0History=[];
+    return;
+  }
   soundActive=loud;
   plane.classList.toggle('active',loud);
   plane.classList.toggle('idle',!loud);
@@ -941,7 +1008,8 @@ function configureCloud(cloud,{keepBand=false,excludeBand=-1}={}){
   cloud.img.src=cloud.type.src;
 }
 function renderCloud(cloud){
-  cloud.el.style.transform=`translate(${cloud.x.toFixed(1)}px,${cloud.y.toFixed(1)}px)`;
+  const y=cloud.y-landingCloudOffset;
+  cloud.el.style.transform=`translate(${cloud.x.toFixed(1)}px,${y.toFixed(1)}px)`;
 }
 function distributeClouds(){
   if(!clouds.length)return;
@@ -1083,7 +1151,15 @@ function applyPropSettings(){
 }
 function applyMovementSettings(){
   noseTiltAmount=parseFloat(movementControls.noseTilt.value);
+  landingPlaneY=parseFloat(movementControls.landingY.value);
   movementControls.noseTiltOut.value=noseTiltAmount.toFixed(1)+'°';
+  movementControls.landingYOut.value=landingPlaneY.toFixed(1)+'%';
+  if(gameState==='ended'){
+    planeY=landingPlaneY;
+    landingCloudOffset=Math.max(0,(landingPlaneY-landingStartY)*window.innerHeight/100);
+    plane.style.top=planeY+'%';
+    updateHud(performance.now());
+  }
 }
 function clampControlValue(control,value){
   const min=parseFloat(control.min),max=parseFloat(control.max);
@@ -1103,7 +1179,8 @@ function getSettingsJson(){
       activeMs:parseFloat(propControls.active.value)
     },
     flight:{
-      noseTiltDeg:parseFloat(movementControls.noseTilt.value)
+      noseTiltDeg:parseFloat(movementControls.noseTilt.value),
+      landingYPercent:parseFloat(movementControls.landingY.value)
     }
   };
 }
@@ -1130,7 +1207,8 @@ function importSettingsJson(data){
     [propControls.tiltY,prop.sideTilt],
     [propControls.idle,prop.idleMs],
     [propControls.active,prop.activeMs],
-    [movementControls.noseTilt,flight.noseTiltDeg]
+    [movementControls.noseTilt,flight.noseTiltDeg],
+    [movementControls.landingY,flight.landingYPercent]
   ];
   for(const [control,value] of mappings){
     if(value===undefined)continue;
@@ -1140,11 +1218,67 @@ function importSettingsJson(data){
   applyPropSettings();
   applyMovementSettings();
 }
+function startLanding(now=performance.now()){
+  if(gameState!=='playing')return;
+  postLandingAnimationActive=false;
+  gameState='landing';
+  landingStartedAt=now;
+  landingStartY=planeY;
+  landingStartX=planeXPercent;
+  routeTransitionStartedAt=0;
+  routeTarget=null;
+  routeTargetWasLate=false;
+  currentRoute='landing';
+  routeHint.classList.remove('show');
+  clearTimeout(setRoute._t);
+  landingCloudOffset=0;
+  game.classList.add('landing');
+  landingScene.style.opacity='0';
+  landingScene.style.transform='translateY(70%)';
+  plane.classList.add('active');
+  plane.classList.remove('idle');
+}
+function finishLanding(now=performance.now()){
+  gameState='ended';
+  gameRunning=false;
+  postLandingAnimationActive=true;
+  postLandingLastFrame=now;
+  planeY=landingPlaneY;
+  planeXPercent=LANDING_PLANE_X;
+  // Säilytetään pilvikerroksen touchdownissa saavuttama pystysiirtymä.
+  // Näin pilvet eivät pomppaa takaisin alas, vaan jatkavat tästä korkeudesta vaakasuoraan.
+  landingCloudOffset=Math.max(0,(landingPlaneY-landingStartY)*window.innerHeight/100);
+  plane.style.left=planeXPercent+'%';
+  plane.style.top=planeY+'%';
+  plane.style.transform='translate(-50%,-50%) rotate(0deg)';
+  plane.classList.remove('active');
+  plane.classList.add('idle');
+  landingScene.style.opacity='1';
+  landingScene.style.transform='translateY(0%)';
+  updateHud(now);
+  requestAnimationFrame(postLandingLoop);
+}
+function postLandingLoop(now){
+  if(!postLandingAnimationActive||gameState!=='ended')return;
+  const dt=Math.min(40,Math.max(0,now-postLandingLastFrame));
+  postLandingLastFrame=now;
+  // Touchdownin jälkeen vain pilvet jatkavat omaa oikealta vasemmalle animaatiotaan.
+  // Pystysiirtymää ei enää muuteta eikä kiitorataa vieritetä.
+  updateClouds(dt);
+  requestAnimationFrame(postLandingLoop);
+}
 function beginGame(){
   clearStars();
   initClouds();
   resetScore();
-  currentRoute='center';planeY=50;
+  postLandingAnimationActive=false;
+  gameState='playing';
+  game.classList.remove('landing');
+  landingCloudOffset=0;
+  landingScene.style.opacity='0';
+  landingScene.style.transform='translateY(70%)';
+  currentRoute='center';planeY=50;planeXPercent=22;
+  plane.style.left=planeXPercent+'%';
   routeTransitionStartY=50;
   routeTransitionTargetY=50;
   routeTransitionStartedAt=0;
@@ -1166,8 +1300,35 @@ function gameLoop(now){
   const dt=Math.min(40,Math.max(0,now-lastFrame));
   lastFrame=now;
 
+  if(gameState==='playing' && now-gameStartedAt>=DIFFICULTY_RAMP_MS){
+    startLanding(gameStartedAt+DIFFICULTY_RAMP_MS);
+  }
+
   let routeTilt=0;
-  if(routeTransitionStartedAt){
+  if(gameState==='landing'){
+    const lt=clamp((now-landingStartedAt)/LANDING_DURATION_MS,0,1);
+    // Ensin pieni vakaa hetki, sitten pehmeä loppulasku.
+    const d=clamp((lt-.10)/.90,0,1);
+    const eased=d*d*(3-2*d);
+    planeY=landingStartY+(landingPlaneY-landingStartY)*eased;
+    planeXPercent=landingStartX+(LANDING_PLANE_X-landingStartX)*eased;
+    landingCloudOffset=Math.max(0,(planeY-landingStartY)*window.innerHeight/100);
+    const landingTilt=Math.min(11,Math.max(5,noseTiltAmount*.52));
+    const tiltEnvelope=Math.sin(Math.PI*Math.min(1,eased/.92));
+    const levelOut=1-clamp((eased-.82)/.18,0,1);
+    routeTilt=landingTilt*tiltEnvelope*levelOut;
+
+    // Kylä ja kiitorata ovat nyt yksi yhtenäinen WebP-maisema.
+    const sceneT=clamp((lt-.03)/.72,0,1);
+    const sceneEase=sceneT*sceneT*(3-2*sceneT);
+    landingScene.style.opacity=sceneEase.toFixed(3);
+    landingScene.style.transform=`translateY(${((1-sceneEase)*70).toFixed(1)}%)`;
+
+    if(lt>=1){
+      finishLanding(now);
+      return;
+    }
+  }else if(routeTransitionStartedAt){
     const t=clamp((now-routeTransitionStartedAt)/Math.max(1,routeTransitionDurationMs),0,1);
     // Välitön lähtö + pehmeä loppu: alkunopeus on pieni mutta ei nolla.
     // Cubic Hermite: y(0)=0, y(1)=1, y'(0)=ROUTE_START_SPEED, y'(1)=0.
@@ -1187,16 +1348,19 @@ function gameLoop(now){
   }
   const tilt=routeTilt;
   const planeTopPercent=clamp(planeY,13,87);
+  plane.style.left=planeXPercent+'%';
   plane.style.top=planeTopPercent+'%';
   plane.style.transform=`translate(-50%,-50%) rotate(${tilt.toFixed(1)}deg)`;
   const planeX=window.innerWidth*.22;
   updateClouds(dt);
 
-  spawnClock+=dt;
-  if(spawnClock>=nextSpawnDelayMs){
-    spawnClock-=nextSpawnDelayMs;
-    spawnStar();
-    nextSpawnDelayMs=randomSpawnDelayMs(now);
+  if(gameState==='playing'){
+    spawnClock+=dt;
+    if(spawnClock>=nextSpawnDelayMs){
+      spawnClock-=nextSpawnDelayMs;
+      spawnStar();
+      nextSpawnDelayMs=randomSpawnDelayMs(now);
+    }
   }
   const speed=itemHorizontalSpeed(now); // px/s, kasvaa vähitellen pelin aikana
   for(let i=stars.length-1;i>=0;i--){
@@ -1205,7 +1369,7 @@ function gameLoop(now){
     s.el.style.left=s.x+'px';
     const atPlaneX=Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035);
     const atItemHeight=Math.abs(planeTopPercent-routeY(s.lane))<=ROUTE_HIT_TOLERANCE;
-    if(!s.collected&&atPlaneX&&atItemHeight){
+    if(gameState==='playing'&&!s.collected&&atPlaneX&&atItemHeight){
       collectStar(s);
     }
     if(s.x<-80||s.collected&&s.x<planeX-30){
@@ -1253,9 +1417,18 @@ $('#refreshBtn').addEventListener('click',async()=>{
 $('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
 $('#resetScoreBtn').addEventListener('click',resetScore);
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
+$('#testLandingBtn').addEventListener('click',()=>{
+  if(gameState==='playing'){
+    startLanding(performance.now());
+  }else if(gameState==='ended'){
+    beginGame();
+    startLanding(performance.now());
+  }
+});
 [propControls.x,propControls.y,propControls.size,propControls.tiltY,propControls.idle,propControls.active]
   .forEach(el=>el.addEventListener('input',applyPropSettings));
 movementControls.noseTilt.addEventListener('input',applyMovementSettings);
+movementControls.landingY.addEventListener('input',applyMovementSettings);
 $('#exportSettingsBtn').addEventListener('click',exportSettingsJson);
 $('#importSettingsBtn').addEventListener('click',()=>$('#settingsFile').click());
 $('#settingsFile').addEventListener('change',async e=>{
