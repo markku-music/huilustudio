@@ -1,4 +1,4 @@
-Lentokone – PWA 1.31 – Samsung fullscreen + HUD alareunassa
+Lentokone – PWA 1.27 – laskeutumispaikka Y 83,3 %
 
 Uutta 1.1
 - Pystyasennon ohjeteksti on nyt "Käännä vaakatasoon".
@@ -171,12 +171,6 @@ Uutta 1.28
 - Android/Samsung Chrome -laitteilla peli yrittää samalla lukita näytön vaakasuuntaan.
 - Fullscreen-pyynnön epäonnistuminen ei estä pelin käynnistymistä.
 
-
-Uutta 1.29
-- Poistettu Aloita peli -napin requestFullscreen()-kutsu, joka laukaisi Android/Chromen poistumisvihjeen.
-- Koko näytön tila tulee nyt asennetun PWA:n manifestin display: fullscreen -asetuksesta.
-- Vaakasuunnan orientation lock säilyy.
-
 Pelin toiminta
 - KORKEA ääni vie yläreitille.
 - MATALA ääni vie alareitille.
@@ -272,13 +266,8 @@ Uutta 1.27
 - Kehittäjäasetusten Y-slideri säilyy säädettävänä.
 - Oletus-JSONin landingYPercent on 83.3.
 
-
-Uutta 1.30
-- Mittariosasto on ankkuroidu suoraan ruudun alareunaan.
-- iPhonen safe-area-inset-bottom ei enää nosta HUDia Samsungia ylemmäs.
-
-Uutta 1.31
-- Samsung/Android PWA:n fullscreen-tila vahvistettu manifestissa ilman standalone-fallbackia.
-- Lisätty Android mobile-web-app-capable -metatieto.
-- requestFullscreen()-kutsua ei käytetä, joten poistumisvihjettä ei pitäisi tulla.
-- HUD säilyy ankkuroituna ruudun alareunaan (bottom: 0).
+Uutta 1.32
+- Perustuu suoraan toimivaan 1.28 Samsung immersive fullscreen -versioon.
+- Fullscreen API -logiikka on jätetty täsmälleen käyttöön.
+- HUD on ankkuroitu ruudun alareunaan bottom: 0.
+- Laskeutumispaikka Y 83,3 % säilyy.
