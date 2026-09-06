@@ -140,3 +140,7 @@ BASE 1.14
 
 BASE 1.15
 - Käännä vaakatasoon -ikkunasta poistettu alempi selitysteksti. Jäljellä vain kääntöikoni ja teksti "Käännä vaakatasoon".
+
+BASE 1.16
+- Aloitusnapin ympäriltä poistettu valkoinen kortti, varjo ja padding.
+- Kalibrointi-ikkunan koko pienennetty 80 %:iin aiemmasta.

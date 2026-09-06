@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-1.15-rotate-text-clean';
+const CACHE_NAME = 'lentokone-pwa-base-1.16-no-start-card-cal-80';
 const APP_SHELL = [
   './',
   './index.html',
