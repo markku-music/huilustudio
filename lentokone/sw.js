@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-3.0-object-fx-preset-19';
+const CACHE_NAME = 'lentokone-pwa-base-4.0-ios-audio-fix-1';
 const APP_SHELL = [
   './',
   './index.html',
