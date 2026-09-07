@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-2.2-euro-coin';
+const CACHE_NAME = 'lentokone-pwa-base-3.0-object-fx-preset-19';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,6 +11,8 @@ const APP_SHELL = [
   './kerattava_kolikko.webp',
   './kerattava_timantti.webp',
   './kerattava_aarrearkku.webp',
+  './este_lehma.webp',
+  './este_kivi.webp',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',

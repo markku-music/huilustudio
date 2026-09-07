@@ -158,3 +158,12 @@ BASE 2.1
 BASE 2.2
 - Kultakolikko korvattu tyylitellyllä eurokolikko-assetilla.
 - Timantti (2 p) ja aarrearkku (5 p) säilyvät ennallaan.
+
+BASE 3.0
+- Tämä BASE 2.2 EUROKOLIKKO -versio on hyväksytty uudeksi viralliseksi lähtöpisteeksi.
+- Pelin toimintaan, ulkoasuun, pisteisiin, assetteihin tai asetuksiin ei tehty muutoksia.
+
+BASE 3.0 cow+rock -lisäys:
+- Lentävä lehmä: osuma vähentää 1 pisteen (ei alle nollan) ja lehmä kieppuu kaartuen pois ruudulta.
+- Kivi: osuma ponnauttaa koneen vastakkaiselle lentokorkeudelle ja lukitsee korkeusohjauksen hyvin lyhyesti, jotta isku näkyy.
+- Esteet eivät muuta äänentunnistusmoottorin referenssejä tai analyysilogiikkaa.
