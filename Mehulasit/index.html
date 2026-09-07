@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#d8f2ff">
+<meta name="application-name" content="Juomalasipeli H1–H8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Juomalasipeli">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<title>Viiden mehulasin peli H1–H8 PLAY 0.6</title>
+<style>
+:root{
+  --ink:#173f61;--muted:#52728a;--panel:rgba(255,255,255,.94);--line:#b9d7e8;
+  --sky1:#8dd7ff;--sky2:#e9f8ff;--water:#3ca9ef;--water2:#89d9ff;--good:#27a65e;--warn:#e7a824;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#cfefff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+button,input{font:inherit}
+button{cursor:pointer}
+#app{position:fixed;inset:0;overflow:hidden;background:linear-gradient(180deg,var(--sky1),var(--sky2) 80%,#f7fbff)}
+.topbar{position:absolute;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.title{font-weight:950;font-size:clamp(18px,2.3vw,30px);text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.top-actions{display:flex;gap:8px;align-items:center}
+.pill,.iconbtn{border:0;background:rgba(255,255,255,.86);color:var(--ink);box-shadow:0 4px 14px rgba(24,77,113,.12);font-weight:850}
+.pill{height:38px;padding:0 13px;border-radius:999px;font-size:12px}
+.iconbtn{width:38px;height:38px;border-radius:50%;font-size:20px}
+.stage{position:absolute;inset:64px 16px 104px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(8px,2vw,28px);align-items:end;justify-items:center}
+.note-column{width:100%;height:100%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.note-label{font-size:clamp(22px,3.4vw,44px);font-weight:1000;margin-bottom:6px}
+.glass-wrap{position:relative;width:min(17vw,180px);min-width:72px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center}
+.glass-scene{position:relative;width:100%;height:100%;filter:drop-shadow(0 12px 18px rgba(35,100,139,.16))}
+.glass-scene>img,.glass-scene>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.glass-back{z-index:1;object-fit:contain}
+.glass-juice{z-index:2;pointer-events:none;overflow:visible}
+.glass-front{z-index:3;object-fit:contain;pointer-events:none}
+.percent{font-weight:900;font-size:clamp(12px,1.6vw,17px);margin-top:6px;min-height:20px}
+.flavor-label{font-size:clamp(9px,1.05vw,12px);font-weight:850;color:rgba(23,63,97,.72);margin-top:1px;min-height:16px}
+.live-ring{position:absolute;z-index:5;inset:2.5% 1.5%;border:4px solid transparent;border-radius:12% 12% 18% 18%;pointer-events:none;transition:border-color .1s,box-shadow .1s}
+.note-column.active .live-ring{border-color:rgba(23,63,97,.52);box-shadow:0 0 0 4px rgba(255,255,255,.28)}
+.note-column.good .live-ring{border-color:rgba(39,166,94,.82)}
+.bottom{position:absolute;left:16px;right:16px;bottom:max(12px,env(safe-area-inset-bottom));z-index:15;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.77);backdrop-filter:blur(8px);padding:10px 14px;border-radius:18px;box-shadow:0 7px 24px rgba(24,77,113,.12)}
+.status{font-weight:900;min-width:160px;flex:1}.status small{display:block;color:var(--muted);font-weight:700;margin-top:2px}.progress-track{height:12px;flex:1.2;background:#d7e8f2;border-radius:999px;overflow:hidden}.progress-fill{height:100%;width:0;background:#34a86a;transition:width .15s linear}
+#devPanel{position:absolute;right:max(12px,env(safe-area-inset-right));top:58px;z-index:40;width:min(440px,54vw);max-height:calc(100% - 78px);overflow:auto;background:rgba(18,47,68,.94);color:white;border-radius:16px;padding:13px;display:none;box-shadow:0 12px 32px rgba(0,0,0,.22)}
+#devPanel.open{display:block}.dev-grid{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:center;font-size:12px}.dev-grid strong{text-align:right}.dev-section{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18)}.refs{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px 8px;font-size:11px;align-items:start}.refs code{white-space:normal;line-height:1.35}.refs code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#c6efff}.dev-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.dev-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:850}
+#startOverlay,#calOverlay,#trainOverlay,#rotateOverlay{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(92,177,227,.48);backdrop-filter:blur(7px)}
+.overlay-card{width:min(500px,90vw);border-radius:24px;padding:22px;background:rgba(255,255,255,.96);text-align:center;box-shadow:0 18px 55px rgba(27,81,116,.2)}
+.primary{border:0;border-radius:15px;padding:12px 24px;background:#173f61;color:white;font-weight:950;font-size:18px}.error{color:#a13c3c;font-size:13px;font-weight:800;min-height:18px;margin:8px 0 0}
+#calOverlay,#trainOverlay{display:none;background:rgba(20,54,78,.58)}
+#calOverlay.show,#trainOverlay.show{display:flex}
+.cal-panel{position:relative;width:min(608px,73.6vw,calc(70.4vh * 1.5658));aspect-ratio:1118/714;border-radius:24px;overflow:hidden;filter:drop-shadow(0 18px 34px rgba(9,37,57,.34))}.cal-panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}.cal-live{position:absolute;inset:0;width:100%;height:100%}.cal-db{font:950 60px system-ui;fill:#fff}.cal-tick{stroke:#173f61;stroke-width:6;stroke-linecap:round}.cal-scale{font:850 21px system-ui;fill:#173f61}.cal-needle{stroke:#e84d2f;stroke-width:15;stroke-linecap:round}.cal-needle-tip{fill:#e84d2f}.cal-hub{fill:#24313d;stroke:#0e1820;stroke-width:5}.cal-progress-track{fill:rgba(36,59,76,.24)}
+.train-card h1{font-size:clamp(34px,7vw,72px);margin:0 0 6px}.train-card p{margin:6px 0;font-weight:800}.countdown{font-size:clamp(48px,10vw,96px);font-weight:1000;line-height:1;margin:14px 0}.meter{height:16px;background:#dcebf4;border-radius:999px;overflow:hidden;margin-top:14px}.meter>div{height:100%;width:0;background:#36a86a;transition:width .06s linear}
+#rotateOverlay{display:none;z-index:90;background:#87cff8}#rotateOverlay .overlay-card{max-width:360px}#rotateIcon{font-size:48px}
+@media(orientation:portrait){#rotateOverlay{display:flex}}
+@media(max-width:800px){.stage{gap:5px}.glass-wrap{min-width:58px;width:min(17.5vw,150px)}.bottom{font-size:12px}.status{min-width:110px}.note-label{font-size:22px}}
+@media(max-height:470px){.stage{inset:54px 14px 78px}.glass-wrap{width:min(14.5vw,122px);min-width:58px}.bottom{padding:7px 10px}.percent{margin-top:2px}.flavor-label{display:none}.note-label{margin-bottom:2px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="title">Mehulasipeli <span style="font-size:.55em;font-weight:800">H1–H8 PLAY 0.6</span></div>
+    <div class="top-actions">
+      <button id="recalBtn" class="pill" type="button">Kalibroi</button>
+      <button id="gear" class="iconbtn" type="button" aria-label="Kehittäjätila">⚙</button>
+    </div>
+  </div>
+
+  <main class="stage" id="stage" aria-label="Viisi täytettävää lasia"></main>
+
+  <div class="bottom">
+    <div class="status"><span id="statusMain">Valmiina</span><small id="statusSub">Soita G, A, H, C tai D. Oikea mehulasisi täyttyy automaattisesti.</small></div>
+    <div class="progress-track" aria-label="Kokonaisedistyminen"><div id="overallFill" class="progress-fill"></div></div>
+    <strong id="overallText">0 %</strong>
+  </div>
+
+  <aside id="devPanel">
+    <div class="dev-grid">
+      <span>dBFS</span><strong id="devDb">–</strong>
+      <span>Kynnys</span><strong id="devThreshold">–</strong>
+      <span>F0</span><strong id="devF0">–</strong>
+      <span>Tunnistettu</span><strong id="devNote">–</strong>
+      <span>cent</span><strong id="devCents">–</strong>
+      <span>H1</span><strong id="devH1">–</strong>
+      <span>H2</span><strong id="devH2">–</strong>
+      <span>H3</span><strong id="devH3">–</strong>
+      <span>H4</span><strong id="devH4">–</strong>
+      <span>H5</span><strong id="devH5">–</strong>
+      <span>H6</span><strong id="devH6">–</strong>
+      <span>H7</span><strong id="devH7">–</strong>
+      <span>H8</span><strong id="devH8">–</strong>
+      <span>H1–H8 painot</span><strong id="devWeights">–</strong>
+      <span>Osuma</span><strong id="devMatch">–</strong>
+      <span>Täyttönopeus</span><strong id="devRate">–</strong>
+      <span>Puhallus</span><strong id="devDuration">–</strong>
+    </div>
+    <div class="dev-section"><strong>H1–H8 JSON-referenssit</strong><div id="refList" class="refs" style="margin-top:7px"></div></div>
+    <div class="dev-actions">
+      <button id="resetFills" type="button">Tyhjennä lasit</button>
+    </div>
+  </aside>
+
+  <div id="startOverlay">
+    <div class="overlay-card">
+      <button id="startBtn" class="primary" type="button">Aloita</button>
+      <p id="startError" class="error"></p>
+    </div>
+  </div>
+
+  <div id="calOverlay" aria-live="polite">
+    <div class="cal-panel" role="status" aria-label="Mikrofonin kalibrointi">
+      <img class="cal-panel-bg" src="kalibrointi_tausta.webp" alt="">
+      <svg class="cal-live" viewBox="0 0 1118 714" aria-hidden="true">
+        <defs>
+          <linearGradient id="calGaugeGradient" x1="319" y1="0" x2="799" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#32a65a"/><stop offset=".45" stop-color="#b7d936"/><stop offset=".62" stop-color="#ffd13f"/><stop offset=".82" stop-color="#ff8a29"/><stop offset="1" stop-color="#e74a35"/></linearGradient>
+          <linearGradient id="calProgressGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2e9af1"/><stop offset="1" stop-color="#40c85a"/></linearGradient>
+        </defs>
+        <circle cx="559" cy="365" r="257" fill="#f7f4ed" opacity=".985"/><path d="M319 365 A240 240 0 0 1 799 365" fill="none" stroke="url(#calGaugeGradient)" stroke-width="48"/>
+        <g><line class="cal-tick" x1="335" y1="365" x2="363" y2="365"/><line class="cal-tick" x1="365" y1="245" x2="390" y2="260"/><line class="cal-tick" x1="440" y1="170" x2="454" y2="195"/><line class="cal-tick" x1="559" y1="142" x2="559" y2="174"/><line class="cal-tick" x1="678" y1="170" x2="664" y2="195"/><line class="cal-tick" x1="753" y1="245" x2="728" y2="260"/><line class="cal-tick" x1="783" y1="365" x2="755" y2="365"/></g>
+        <g class="cal-scale" text-anchor="middle"><text x="320" y="407">-90</text><text x="365" y="223">-80</text><text x="445" y="148">-70</text><text x="559" y="119">-60</text><text x="673" y="148">-50</text><text x="753" y="223">-40</text><text x="798" y="407">-30</text></g>
+        <g id="calNeedleGroup" transform="rotate(-90 559 365)"><line class="cal-needle" x1="559" y1="365" x2="559" y2="178"/><circle class="cal-needle-tip" cx="559" cy="178" r="7"/></g><circle class="cal-hub" cx="559" cy="365" r="30"/>
+        <rect x="428" y="423" width="262" height="82" rx="30" fill="#243b4c" stroke="#8ba5b7" stroke-width="5"/><text id="calDbValue" class="cal-db" x="559" y="483" text-anchor="middle">– dB</text>
+        <rect class="cal-progress-track" x="352" y="612" width="414" height="18" rx="9"/><rect id="calProgressFill" x="352" y="612" width="0" height="18" rx="9" fill="url(#calProgressGradient)"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="rotateOverlay"><div class="overlay-card"><div id="rotateIcon">↻</div><h1>Käännä vaakatasoon</h1></div></div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+
+// === Lentokone PWA BASE 3.0 -moottorin ydinasetukset säilytetty ===
+const FRAME_MS=16;
+const HARMONICS=8;
+const MIC_CAL_WARMUP_MS=250;
+const MIC_CAL_MEASURE_MS=1500;
+const MIC_CAL_MARGIN_DB=10;
+const YIN_HISTORY=6;
+const MATCH_HISTORY=6;
+
+// Juomalasipelin kiinteä H1–H8 JSON-referenssiversio
+const PITCH_TOLERANCE_CENTS=55;
+// F0 valitsee vain aktiivisen lasin. H1–H8 ja niiden koulutuksessa mitattu vakaus määräävät täyttönopeuden.
+const refs={"G":{"f0":390.9783096102657,"fingerprint":[0.6968125850503348,0.06190136325397965,0.10392596913479042,0.08234756834348872,0.037112973543821565,0.007183174325794377,0.008035015360104997,0.0026813509876854997],"spreadDb":[0.2855835213898579,1.4220993765039456,1.2901192921887237,0.6522317907224249,1.8828661396292325,1.375611136671317,1.461428729118687,2.4179057751678243],"samples":94,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:17:45.328Z"},"A":{"f0":435.9136184358308,"fingerprint":[0.592678306469251,0.05180991696935879,0.2782239488816018,0.02469784225715715,0.03788261669021051,0.006974871232316328,0.005706136432825304,0.0020263610672791683],"spreadDb":[0.3659320157949253,0.7821213400877092,0.6547206624323838,1.4039516562694132,1.2311598909813846,1.5142376807330535,1.9052777942240624,3.200122038781636],"samples":99,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:17:51.236Z"},"H":{"f0":493.27278117625264,"fingerprint":[0.7367972916798017,0.03198383645063645,0.18741400303082892,0.026121779787410673,0.00832444476493863,0.004234846271999569,0.0029003420925652243,0.0022234559218188583],"spreadDb":[0.23813580382215882,0.9646313779444,0.7518052937507367,1.5561054458220234,0.8676198430842632,1.2413472652157012,0.9074552974340548,3.263744098328175],"samples":93,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:17:57.276Z"},"C":{"f0":521.7425815931465,"fingerprint":[0.6776314329271602,0.09776480219973635,0.17070999779628698,0.028675280511233282,0.01553202776758606,0.005389803404332016,0.0023892046727490663,0.001907450720915998],"spreadDb":[0.19137588050923204,0.35967165241865473,0.6808091432584824,1.0162234845957272,0.7741647558665363,2.145557643781224,0.9341312441310237,2.4859526785472923],"samples":107,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:18:03.687Z"},"D":{"f0":590.9565023710167,"fingerprint":[0.5561066823567657,0.2922646227707547,0.10799993473358771,0.009502453453150242,0.01859730964748468,0.005934018507956832,0.0072979143231053445,0.0022970642071947216],"spreadDb":[0.3892942467831606,0.4576288097261152,0.6355864456450888,1.317976804404033,0.6475089040560604,1.3763829752426133,1.1348403747392197,2.5951718203994716],"samples":105,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:18:09.957Z"}};
+const NOTES=[
+  {key:'G',label:'G',target:refs.G.f0},
+  {key:'A',label:'A',target:refs.A.f0},
+  {key:'H',label:'H',target:refs.H.f0},
+  {key:'C',label:'C',target:refs.C.f0},
+  {key:'D',label:'D',target:refs.D.f0}
+];
+
+// Viisi yhtenäistä limonadimakua, yksi jokaiselle sävelelle.
+const FLAVORS={
+  G:{name:'Mansikka',juice:'#DD2C4A',surface:'#EF6179'},
+  A:{name:'Päärynä',juice:'#96DD2C',surface:'#B7EF61'},
+  H:{name:'Appelsiini',juice:'#DD852C',surface:'#EFA861'},
+  C:{name:'Mustikka',juice:'#2C3BDD',surface:'#616DEF'},
+  D:{name:'Vadelma',juice:'#DD2C85',surface:'#EF61A8'}
+};
+const SVG_NS='http://www.w3.org/2000/svg';
+const GLASS_TOP=154,GLASS_BOTTOM=1330,GLASS_VISUAL_MAX=98;
+const GLASS_INNER_LEFT=286,GLASS_INNER_RIGHT=738,GLASS_CENTER_X=512;
+const SURFACE_RY_KEYFRAMES=[[0,30],[1,36],[3,20],[4,20],[6,23],[98,30],[100,30]];
+const glassFx={};
+let bubbleAnimationLast=performance.now();
+
+
+const $=s=>document.querySelector(s);
+const stage=$('#stage');
+const devPanel=$('#devPanel');
+const statusMain=$('#statusMain'),statusSub=$('#statusSub');
+const overallFill=$('#overallFill'),overallText=$('#overallText');
+const startOverlay=$('#startOverlay'),startError=$('#startError');
+const calOverlay=$('#calOverlay'),calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
+const dev={db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),note:$('#devNote'),cents:$('#devCents'),harmonics:[1,2,3,4,5,6,7,8].map(i=>$('#devH'+i)),weights:$('#devWeights'),match:$('#devMatch'),rate:$('#devRate'),duration:$('#devDuration')};
+
+let ctx=null,stream=null,analyser=null,timer=null,timeData=null,freqData=null;
+let dbThreshold=-70,yinDiffBuffer=null,yinCmndBuffer=null;
+let liveF0History=[],liveMatchHistory=[];
+let soundStartedAt=null,lastProcessAt=performance.now();
+let fills={G:0,A:0,H:0,C:0,D:0};
+
+function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
+function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
+function median(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function pushLimited(arr,val,max=6){arr.push(val);if(arr.length>max)arr.shift()}
+function centsDiff(a,b){return 1200*Math.log2(a/b)}
+function rmsDb(buf){let s=0;for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}const rms=Math.sqrt(s/buf.length)||1e-12;return {rms,db:20*Math.log10(rms)}}
+
+function yin(buf,sr){
+  const n=Math.min(buf.length,4096),minF=75,maxF=1300;
+  const minTau=Math.max(2,Math.floor(sr/maxF));
+  const maxTau=Math.min(Math.floor(sr/minF),Math.floor(n/2));
+  const needed=maxTau+1;
+  if(!yinDiffBuffer||yinDiffBuffer.length<needed){yinDiffBuffer=new Float32Array(needed);yinCmndBuffer=new Float32Array(needed)}
+  const d=yinDiffBuffer,cmnd=yinCmndBuffer;
+  for(let tau=1;tau<=maxTau;tau++){let sum=0;for(let i=0;i<n-tau;i++){const x=buf[i]-buf[i+tau];sum+=x*x}d[tau]=sum}
+  cmnd[0]=1;let run=0;
+  for(let tau=1;tau<=maxTau;tau++){run+=d[tau];cmnd[tau]=d[tau]*tau/(run||1)}
+  let tau=-1;
+  for(let t=minTau;t<=maxTau;t++){if(cmnd[t]<0.13){while(t+1<=maxTau&&cmnd[t+1]<cmnd[t])t++;tau=t;break}}
+  if(tau<0)return null;
+  const x0=Math.max(minTau,tau-1),x2=Math.min(maxTau,tau+1),s0=cmnd[x0],s1=cmnd[tau],s2=cmnd[x2],den=2*s1-s2-s0;
+  const better=den?tau+(s2-s0)/(2*den):tau;const f=sr/better;
+  return (f>=minF&&f<=maxF)?f:null;
+}
+
+// Sama FFT-harmonisten poiminta kuin lentokoneessa. Tässä käytetään koko H1–H8-jakaumaa.
+function harmonicH1H8(f0){
+  if(!f0)return null;
+  const ny=ctx.sampleRate/2,binHz=ny/freqData.length,amps=[];
+  for(let h=1;h<=HARMONICS;h++){
+    const target=f0*h;if(target>=ny){amps.push(0);continue}
+    const idx=Math.round(target/binHz),radius=Math.max(1,Math.round(12/binHz));let best=-Infinity;
+    for(let j=Math.max(1,idx-radius);j<=Math.min(freqData.length-1,idx+radius);j++)if(freqData[j]>best)best=freqData[j];
+    amps.push(Math.pow(10,best/20));
+  }
+  const total=amps.reduce((s,x)=>s+x,0);
+  if(total<=0)return null;
+  return amps.map(x=>x/total);
+}
+
+// Vakauspainotus: pienempi koulutuksen spreadDb => suurempi paino.
+// 0.35 dB lattia estää yksittäistä erittäin vakaata harmonista kaappaamasta koko pisteytystä.
+function stabilityWeights(ref){
+  const floorDb=.35;
+  const raw=ref.spreadDb.map(s=>1/Math.max(floorDb,s));
+  const total=raw.reduce((s,x)=>s+x,0)||1;
+  return raw.map(x=>x/total);
+}
+function weightedFpDistance(a,b,weights){
+  let sum=0,wSum=0;
+  for(let i=0;i<HARMONICS;i++){
+    const da=20*Math.log10((a[i]||0)+1e-5),db=20*Math.log10((b[i]||0)+1e-5);
+    const d=(da-db)/16,w=weights[i]||0;
+    sum+=w*d*d;wSum+=w;
+  }
+  return Math.sqrt(sum/(wSum||1));
+}
+function similarity(take,ref){
+  // F0 on vain säveltunnistuksen portti. Pisteet tulevat kokonaan H1–H8-rakenteesta.
+  const weights=stabilityWeights(ref);
+  const spectralPenalty=weightedFpDistance(take.fp,ref.fingerprint,weights);
+  return clamp(100*Math.exp(-.82*spectralPenalty),0,100);
+}
+function nearestNote(f0){
+  if(!f0)return null;let best=null;
+  for(const n of NOTES){const cents=centsDiff(f0,n.target),abs=Math.abs(cents);if(!best||abs<best.abs)best={...n,cents,abs}}
+  return best&&best.abs<=PITCH_TOLERANCE_CENTS?best:null;
+}
+function fillRate(match){
+  // Oikea sävel täyttää aina hieman. Hyvä vakauspainotettu H1–H8-osuma nopeuttaa selvästi.
+  const x=clamp(match,0,100)/100;
+  return 1.2+11.8*Math.pow(x,1.55); // prosenttiyksikköä / sekunti
+}
+
+function surfaceRyAt(percent){
+  const p=clamp(Number(percent),0,100);let lo=SURFACE_RY_KEYFRAMES[0],hi=SURFACE_RY_KEYFRAMES.at(-1);
+  for(const frame of SURFACE_RY_KEYFRAMES){if(frame[0]<=p)lo=frame;if(frame[0]>=p){hi=frame;break}}
+  if(lo[0]===hi[0])return lo[1];const t=(p-lo[0])/(hi[0]-lo[0]);return lo[1]+(hi[1]-lo[1])*t;
+}
+function rand(min,max){return min+Math.random()*(max-min)}
+function createBubbleCircle(parent,r,opacity){
+  const c=document.createElementNS(SVG_NS,'circle');c.setAttribute('r',r.toFixed(2));c.setAttribute('fill','#fff');c.setAttribute('opacity',opacity.toFixed(3));parent.appendChild(c);return c;
+}
+function resetRisingBubble(b,initial=false){
+  if(b.type==='stream'){b.baseX=b.streamX+rand(-8,8);b.y=initial?rand(GLASS_TOP,GLASS_BOTTOM):GLASS_BOTTOM+rand(4,150);b.speed=rand(88,160);b.sway=rand(1.5,5.5)}
+  else if(b.type==='micro'){b.baseX=rand(GLASS_INNER_LEFT+b.r+4,GLASS_INNER_RIGHT-b.r-4);b.y=initial?rand(GLASS_TOP,GLASS_BOTTOM):GLASS_BOTTOM+rand(8,170);b.speed=rand(52,94);b.sway=rand(.7,2.7)}
+  else{b.baseX=rand(GLASS_INNER_LEFT+b.r+9,GLASS_INNER_RIGHT-b.r-9);b.y=initial?rand(GLASS_TOP,GLASS_BOTTOM):GLASS_BOTTOM+rand(30,230);b.speed=rand(28,52);b.sway=rand(2,7)}
+  b.phase=rand(0,Math.PI*2);
+}
+function addRisingBubble(fx,type,parent,opts={}){
+  const r=opts.r??rand(1.2,3),opacity=opts.opacity??rand(.12,.28);
+  const b={type,r,streamX:opts.streamX??GLASS_CENTER_X,baseX:GLASS_CENTER_X,y:GLASS_BOTTOM,speed:30,sway:1,phase:0,time:rand(0,20),baseOpacity:opacity,el:createBubbleCircle(parent,r,opacity)};
+  resetRisingBubble(b,true);fx.rising.push(b);
+}
+function addSurfaceBubble(fx,parent){
+  const r=rand(1.1,4.7),opacity=rand(.22,.62);
+  fx.surface.push({r,baseOpacity:opacity,xNorm:Math.random(),depth:rand(5,34),life:rand(0,1),ttl:rand(.38,1.0),drift:rand(-18,18),wobble:rand(.4,2.8),phase:rand(0,Math.PI*2),el:createBubbleCircle(parent,r,0)});
+}
+function initGlassBubbles(key,col){
+  const fx=glassFx[key];if(!fx)return;
+  const streams=col.querySelector('[data-role="stream-bubbles"]'),micro=col.querySelector('[data-role="micro-bubbles"]'),large=col.querySelector('[data-role="large-bubbles"]'),surface=col.querySelector('[data-role="surface-bubbles"]');
+  for(const x of [320,384,448,512,576,640,704])for(let i=0;i<5;i++)addRisingBubble(fx,'stream',streams,{streamX:x,r:rand(1.5,3.6),opacity:rand(.2,.46)});
+  for(let i=0;i<22;i++)addRisingBubble(fx,'micro',micro,{r:rand(.9,2.1),opacity:rand(.09,.18)});
+  for(let i=0;i<7;i++)addRisingBubble(fx,'large',large,{r:rand(4.2,8.5),opacity:rand(.1,.23)});
+  for(let i=0;i<28;i++)addSurfaceBubble(fx,surface);
+}
+function buildGlasses(){
+  stage.innerHTML='';
+  for(const n of NOTES){
+    const flavor=FLAVORS[n.key],clip=`juiceClip-${n.key}`,levelClip=`levelClip-${n.key}`;
+    const col=document.createElement('section');col.className='note-column';col.dataset.note=n.key;
+    col.innerHTML=`<div class="note-label">${n.label}</div><div class="glass-wrap"><div class="glass-scene"><img class="glass-back" src="glass-empty.webp" alt=""><svg class="glass-juice" viewBox="0 0 1024 1536" aria-hidden="true"><defs><clipPath id="${clip}"><path d="M 268 154 L 756 154 L 756 1110 C 756 1200 741 1255 694 1293 C 650 1329 374 1329 330 1293 C 283 1255 268 1200 268 1110 Z"/></clipPath><clipPath id="${levelClip}"><rect data-role="level-rect" x="250" y="1330" width="524" height="0"/></clipPath></defs><g clip-path="url(#${clip})"><rect data-role="juice-fill" x="250" y="1330" width="524" height="0" fill="${flavor.juice}"/><g data-role="bubbles-layer" clip-path="url(#${levelClip})" opacity="0"><g data-role="micro-bubbles"></g><g data-role="stream-bubbles"></g><g data-role="large-bubbles"></g><g data-role="surface-bubbles"></g></g><ellipse data-role="juice-surface" cx="512" cy="1330" rx="236" ry="30" fill="${flavor.surface}" opacity="0"/></g></svg><img class="glass-front" src="glass-front.png" alt=""><div class="live-ring"></div></div></div><div class="percent">0 %</div><div class="flavor-label">${flavor.name}</div>`;
+    stage.appendChild(col);
+    glassFx[n.key]={col,rising:[],surface:[],surfaceFizz:0,currentSurfaceY:GLASS_BOTTOM,currentVisualFill:0};
+    initGlassBubbles(n.key,col);
+  }
+  renderAll();
+}
+function updateGlassVisual(key,logicalFill){
+  const fx=glassFx[key];if(!fx)return;
+  const visual=clamp(logicalFill,0,100)*(GLASS_VISUAL_MAX/100),height=(GLASS_BOTTOM-GLASS_TOP)*(visual/100),y=GLASS_BOTTOM-height,ry=surfaceRyAt(visual);
+  const delta=visual-fx.currentVisualFill;if(delta>.001)fx.surfaceFizz=clamp(fx.surfaceFizz+.045+delta*.42,0,1);
+  fx.currentVisualFill=visual;fx.currentSurfaceY=y;
+  const col=fx.col,fill=col.querySelector('[data-role="juice-fill"]'),level=col.querySelector('[data-role="level-rect"]'),surface=col.querySelector('[data-role="juice-surface"]'),layer=col.querySelector('[data-role="bubbles-layer"]');
+  fill.setAttribute('y',y.toFixed(2));fill.setAttribute('height',height.toFixed(2));level.setAttribute('y',y.toFixed(2));level.setAttribute('height',height.toFixed(2));surface.setAttribute('cy',y.toFixed(2));surface.setAttribute('ry',ry.toFixed(2));surface.setAttribute('opacity',visual>0?'1':'0');layer.setAttribute('opacity',visual>0?'1':'0');
+}
+function innerHalfWidthAtY(y){const t=clamp((GLASS_BOTTOM-y)/(GLASS_BOTTOM-GLASS_TOP),0,1);return 170+(226-170)*Math.pow(t,.82)}
+function animateGlassEffects(now){
+  const dt=Math.min(.05,(now-bubbleAnimationLast)/1000||.016);bubbleAnimationLast=now;
+  for(const key of Object.keys(glassFx)){
+    const fx=glassFx[key],active=fx.currentVisualFill>.1;
+    fx.surfaceFizz=clamp(fx.surfaceFizz-dt*.42,0,1);
+    const boost=1+fx.surfaceFizz*.35;
+    for(const b of fx.rising){
+      if(active){b.time+=dt;b.y-=b.speed*boost*dt;if(b.y<fx.currentSurfaceY-b.r*2.2)resetRisingBubble(b,false)}
+      let drift=b.type==='stream'?Math.sin(b.time*4.8+b.phase)*b.sway:b.type==='micro'?Math.sin(b.time*3.2+b.phase)*b.sway:Math.sin(b.time*2.3+b.phase)*b.sway+Math.sin(b.time*1.1+b.phase*.7)*1.7;
+      const x=clamp(b.baseX+drift,GLASS_INNER_LEFT+b.r,GLASS_INNER_RIGHT-b.r);b.el.setAttribute('cx',x.toFixed(2));b.el.setAttribute('cy',b.y.toFixed(2));b.el.setAttribute('opacity',(active?b.baseOpacity*(.88+fx.surfaceFizz*.28):0).toFixed(3));
+    }
+    for(const b of fx.surface){
+      if(!active||fx.surfaceFizz<.002){b.el.setAttribute('opacity','0');continue}
+      b.life+=dt;if(b.life>=b.ttl){b.xNorm=Math.random();b.depth=rand(5,34);b.life=0;b.ttl=rand(.35,.95);b.drift=rand(-20,20);b.wobble=rand(.5,3);b.phase=rand(0,Math.PI*2);b.r=rand(1,4.8);b.baseOpacity=rand(.24,.68);b.el.setAttribute('r',b.r.toFixed(2))}
+      const p=b.life/b.ttl,depth=b.depth*(1-p),half=Math.max(18,innerHalfWidthAtY(fx.currentSurfaceY+depth)-b.r-6),wave=Math.sin(b.life*10+b.phase)*b.wobble,x=GLASS_CENTER_X+(b.xNorm*2-1)*half+wave+b.drift*p*.35,y=fx.currentSurfaceY+Math.max(1,depth),fade=Math.sin(p*Math.PI),op=b.baseOpacity*fade*fx.surfaceFizz;
+      b.el.setAttribute('cx',clamp(x,GLASS_INNER_LEFT+b.r,GLASS_INNER_RIGHT-b.r).toFixed(2));b.el.setAttribute('cy',y.toFixed(2));b.el.setAttribute('opacity',op.toFixed(3));
+    }
+  }
+  requestAnimationFrame(animateGlassEffects);
+}
+function renderAll(activeKey=null,match=null){
+  let sum=0;
+  for(const n of NOTES){
+    const col=stage.querySelector(`[data-note="${n.key}"]`),pct=col.querySelector('.percent');
+    const v=clamp(fills[n.key]||0,0,100);sum+=v;updateGlassVisual(n.key,v);pct.textContent=Math.round(v)+' %';
+    col.classList.toggle('active',activeKey===n.key);col.classList.toggle('good',activeKey===n.key&&match>=80);
+  }
+  const avg=sum/NOTES.length;overallFill.style.width=avg+'%';overallText.textContent=Math.round(avg)+' %';
+  if(avg>=99.9){statusMain.textContent='Kaikki viisi lasia ovat täynnä!';statusSub.textContent='G, A, H, C ja D valmiina.'}
+  renderRefs();
+}
+function renderRefs(){
+  const box=$('#refList');box.innerHTML='';
+  for(const n of NOTES){
+    const r=refs[n.key],w=stabilityWeights(r);
+    const a=document.createElement('strong');a.textContent=n.label;
+    const b=document.createElement('code');
+    b.textContent=r.fingerprint.map((v,i)=>`H${i+1} ${(v*100).toFixed(1)}% · w ${(w[i]*100).toFixed(0)}%`).join('  ');
+    const c=document.createElement('span');c.textContent=`${r.f0.toFixed(1)} Hz`;
+    box.append(a,b,c);
+  }
+}
+function clearLiveUi(){
+  liveF0History=[];liveMatchHistory=[];dev.f0.textContent='–';dev.note.textContent='–';dev.cents.textContent='–';dev.harmonics.forEach(el=>el.textContent='–');dev.weights.textContent='–';dev.match.textContent='–';dev.rate.textContent='–';renderAll();
+}
+
+function processFrame(){
+  if(!analyser)return;
+  const now=performance.now(),dt=Math.min(.08,Math.max(0,(now-lastProcessAt)/1000));lastProcessAt=now;
+  analyser.getFloatTimeDomainData(timeData);const level=rmsDb(timeData);dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
+  const loud=level.db>dbThreshold;
+  if(!loud){soundStartedAt=null;dev.duration.textContent='–';clearLiveUi();return}
+  if(soundStartedAt===null)soundStartedAt=now;dev.duration.textContent=((now-soundStartedAt)/1000).toFixed(2)+' s';
+  analyser.getFloatFrequencyData(freqData);const f0=yin(timeData,ctx.sampleRate);if(!f0)return;
+  const fp=harmonicH1H8(f0);if(!fp)return;
+  pushLimited(liveF0History,f0,YIN_HISTORY);const smoothF0=median(liveF0History);const note=nearestNote(smoothF0);
+  dev.f0.textContent=smoothF0.toFixed(1)+' Hz';dev.harmonics.forEach((el,i)=>el.textContent=((fp[i]||0)*100).toFixed(1)+' %');
+
+  if(!note){dev.note.textContent='–';dev.cents.textContent='–';dev.match.textContent='–';dev.rate.textContent='–';renderAll();statusMain.textContent='Sävel ei kuulu G–D-alueeseen';statusSub.textContent='Soita G, A, H, C tai D.';return}
+  dev.note.textContent=note.label;dev.cents.textContent=(note.cents>=0?'+':'')+note.cents.toFixed(0);
+  const ref=refs[note.key],weights=stabilityWeights(ref);
+  dev.weights.textContent=weights.map((w,i)=>`H${i+1} ${Math.round(w*100)}`).join(' · ');
+  const score=similarity({f0:smoothF0,fp},ref);pushLimited(liveMatchHistory,score,MATCH_HISTORY);const smoothMatch=mean(liveMatchHistory);const rate=fillRate(smoothMatch);
+  fills[note.key]=clamp(fills[note.key]+rate*dt,0,100);
+  dev.match.textContent=smoothMatch.toFixed(1)+' %';dev.rate.textContent=rate.toFixed(1)+' %/s';renderAll(note.key,smoothMatch);
+  statusMain.textContent=`${note.label} · osuma ${Math.round(smoothMatch)} %`;
+  statusSub.textContent=smoothMatch>=85?'Lasi täyttyy nopeasti.':smoothMatch>=60?'Lasi täyttyy keskinopeasti.':'Lasi täyttyy hitaasti.';
+}
+
+function sleepMs(ms){return new Promise(r=>setTimeout(r,ms))}
+function updateCalibrationVisual(db,progress){const shown=Number.isFinite(db)?clamp(db,-90,-30):-90,ratio=(shown+90)/60,angle=-90+ratio*180;calNeedleGroup.setAttribute('transform',`rotate(${angle.toFixed(2)} 559 365)`);calDbValue.textContent=Number.isFinite(db)?`${Math.round(db)} dB`:'– dB';calProgressFill.setAttribute('width',(414*clamp(progress,0,1)).toFixed(1))}
+async function calibrateMicrophoneNoiseFloor(){
+  if(!analyser||!timeData)return false;if(timer){clearInterval(timer);timer=null}clearLiveUi();calOverlay.classList.add('show');updateCalibrationVisual(-90,0);
+  const total=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS,start=performance.now();
+  while(performance.now()-start<MIC_CAL_WARMUP_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);updateCalibrationVisual(l.db,(performance.now()-start)/total);await sleepMs(33)}
+  const samples=[],mstart=performance.now();
+  while(performance.now()-mstart<MIC_CAL_MEASURE_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);if(Number.isFinite(l.db))samples.push(l.db);updateCalibrationVisual(l.db,(MIC_CAL_WARMUP_MS+performance.now()-mstart)/total);await sleepMs(33)}
+  if(!samples.length)dbThreshold=-70;else{samples.sort((a,b)=>a-b);const nf=median(samples);dbThreshold=clamp(Math.round(nf+MIC_CAL_MARGIN_DB),-70,-20)}
+  dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';updateCalibrationVisual(median(samples),1);await sleepMs(180);lastProcessAt=performance.now();timer=setInterval(processFrame,FRAME_MS);calOverlay.classList.remove('show');return true;
+}
+async function startMic(){
+  if(stream)return true;if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state!=='running')await ctx.resume();
+  const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};const constraints={echoCancellation:false,noiseSuppression:false,autoGainControl:false};if(supported.voiceIsolation)constraints.voiceIsolation=false;
+  stream=await navigator.mediaDevices.getUserMedia({audio:constraints});const src=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.08;analyser.minDecibels=-110;analyser.maxDecibels=-10;src.connect(analyser);timeData=new Float32Array(analyser.fftSize);freqData=new Float32Array(analyser.frequencyBinCount);await calibrateMicrophoneNoiseFloor();return true;
+}
+
+$('#startBtn').addEventListener('click',async()=>{startError.textContent='';$('#startBtn').disabled=true;startOverlay.style.display='none';try{await startMic();statusMain.textContent='Soita G, A, H, C tai D';statusSub.textContent='Lasi täyttyy automaattisesti. Vakauspainotettu H1–H8-osuma määrää nopeuden.'}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';$('#startBtn').disabled=false;calOverlay.classList.remove('show')}});
+$('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
+$('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
+$('#resetFills').addEventListener('click',()=>{for(const n of NOTES)fills[n.key]=0;renderAll();statusMain.textContent='Lasit tyhjennetty';statusSub.textContent='JSON-referenssit pysyvät käytössä.'});
+
+buildGlasses();renderRefs();requestAnimationFrame(animateGlassEffects);
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Service workerin rekisteröinti epäonnistui:',err)))}
+</script>
+</body>
+</html>
