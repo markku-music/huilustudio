@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.0-external-object-fx-20';
+const CACHE_NAME = 'lentokone-pwa-base-3.0-object-fx-preset-19';
 const APP_SHELL = [
   './',
   './index.html',
@@ -13,11 +13,6 @@ const APP_SHELL = [
   './kerattava_aarrearkku.webp',
   './este_lehma.webp',
   './este_kivi.webp',
-  './sounds/kolikko.mp3',
-  './sounds/timantti.mp3',
-  './sounds/aarrearkku.mp3',
-  './sounds/lehma.mp3',
-  './sounds/kivi.mp3',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
