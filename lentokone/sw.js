@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-3.0-object-fx-preset-19';
+const CACHE_NAME = 'lentokone-pwa-base-4.0-huilu-pasuuna-cal-safe-3';
 const APP_SHELL = [
   './',
   './index.html',
