@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.0-huilu-pasuuna-calibration-master-mute-2';
+const CACHE_NAME = 'lentokone-pwa-base-4.0-flute-trombone-1';
 const APP_SHELL = [
   './',
   './index.html',
