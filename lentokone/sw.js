@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.0-flute-trombone-1';
+const CACHE_NAME = 'lentokone-pwa-base-3.0-object-fx-preset-19';
 const APP_SHELL = [
   './',
   './index.html',
