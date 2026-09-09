@@ -1,5 +1,6 @@
-const CACHE_NAME='juomalasipeli-scoreboard-1-4-3-isolated';
-const APP_SHELL=['./','./index.html','./manifest.webmanifest','./kalibrointi_tausta.webp','./glass-empty.webp','./glass-front.png','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
+const CACHE_PREFIX='juomalasipeli-mehulasit-';
+const CACHE_NAME=CACHE_PREFIX+'1-4-3-iconfix-v1';
+const APP_SHELL=['./','./index.html','./manifest.webmanifest','./kalibrointi_tausta.webp','./glass-empty.webp','./glass-front.png','./icons/juomalasipeli-icon-192.png','./icons/juomalasipeli-icon-512.png','./icons/juomalasipeli-maskable-512.png','./icons/juomalasipeli-apple-180.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request,{cache:'no-store'}).then(r=>{if(r&&r.status===200){const copy=r.clone();caches.open(CACHE_NAME).then(c=>c.put('./index.html',copy))}return r}).catch(()=>caches.match('./index.html')));return}event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request,{cache:'no-store'}).then(r=>{if(r&&r.status===200&&r.type!=='opaque'){const copy=r.clone();caches.open(CACHE_NAME).then(c=>c.put(event.request,copy))}return r}))) });
