@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#eef7fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ääninäyte">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Ääninäyte DEV 0.3.21 UI LAB</title>
+<style>
+:root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+body{display:flex;justify-content:center}
+button,input{font:inherit}
+button{cursor:pointer}
+#app{width:min(1240px,100%);min-height:100vh;padding:18px 18px 28px}.analysis-layout{display:grid;grid-template-columns:minmax(320px,42%) minmax(0,58%);gap:18px;align-items:stretch}.analysis-side{min-width:0;display:flex;flex-direction:column;gap:14px}.instrument-side{min-width:0;background:var(--card);border-radius:28px;box-shadow:0 12px 34px rgba(21,56,79,.10);padding:22px;display:flex;align-items:center;justify-content:center;min-height:620px;overflow:hidden}
+.topline{display:flex;align-items:center;gap:10px;min-height:46px}
+.mini{border:0;background:#fff;border-radius:12px;padding:10px 12px;font-weight:900;color:var(--ink);box-shadow:0 3px 12px rgba(21,56,79,.08)}.top-profile-menu{position:relative;min-width:250px;max-width:360px}.top-profile-trigger{width:100%;border:0;background:#fff;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:900;color:var(--ink);box-shadow:0 3px 12px rgba(21,56,79,.08);text-align:left}.top-profile-caret{color:var(--muted);font-size:14px}.top-profile-panel{position:absolute;z-index:45;left:0;top:calc(100% + 7px);width:min(360px,90vw);border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(21,56,79,.16);padding:8px}.top-profile-panel[hidden]{display:none}.top-profile-list{display:grid;gap:6px;max-height:270px;overflow:auto}.top-profile-row{display:grid;grid-template-columns:1fr 40px;gap:6px}.top-profile-open,.top-profile-delete,.top-profile-new{border:0;border-radius:11px}.top-profile-open{background:#f7fbfd;color:var(--ink);padding:9px 10px;text-align:left;font-weight:900}.top-profile-open.active{background:#edf6fb}.top-profile-open:hover{background:#edf6fb}.top-profile-delete{background:#f8eeee;color:#a33434;font-size:21px;font-weight:900}.top-profile-delete:hover{background:#f3dddd}.top-profile-new{width:100%;margin-top:7px;background:#e3eef4;color:var(--ink);padding:10px 12px;font-weight:950}
+.live-card{background:var(--card);border-radius:28px;padding:24px 22px 20px;box-shadow:0 12px 34px rgba(21,56,79,.10);display:flex;flex-direction:column;align-items:center;gap:14px}
+.note{font-size:clamp(72px,13vw,132px);line-height:.9;font-weight:1000;letter-spacing:-.055em;min-height:118px;display:flex;align-items:center;justify-content:center}
+.hz{margin-top:-8px;font-size:18px;font-weight:850;color:var(--muted);font-variant-numeric:tabular-nums;min-height:24px}
+.bars{width:100%;height:250px;display:grid;grid-template-columns:repeat(8,1fr);gap:10px;align-items:end;padding:8px 4px 0}
+.bar-item{height:100%;display:grid;grid-template-rows:1fr 27px;gap:6px;align-items:end;justify-items:center}
+.bar-track{height:100%;width:100%;display:flex;align-items:flex-end;justify-content:center;border-radius:15px;background:linear-gradient(to top,#f5f9fb,#fbfdfe);overflow:hidden;border:1px solid #edf4f7}
+.bar-fill{width:70%;height:0%;min-height:0;border-radius:11px 11px 6px 6px;background:var(--accent);transition:height .07s linear}
+.bar-label{font-size:13px;font-weight:950;color:var(--muted)}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.primary{border:0;border-radius:16px;padding:15px 23px;background:var(--accent);color:#fff;font-size:18px;font-weight:1000;min-width:190px}
+.secondary{border:0;border-radius:16px;padding:15px 20px;background:#e3eef4;color:var(--ink);font-size:16px;font-weight:950}
+.secondary:disabled,.primary:disabled{opacity:.45;cursor:default}
+.bottom{display:grid;grid-template-columns:1fr;gap:14px}
+.panel{background:#fff;border-radius:20px;padding:15px 16px;box-shadow:0 6px 22px rgba(21,56,79,.07);min-height:110px}
+.panel h2{font-size:14px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.055em;color:var(--muted)}
+#profileList{display:grid;gap:10px;font-size:13px;color:var(--ink)}
+.sample-empty{padding:14px 4px;color:var(--muted);font-weight:800;text-align:center}
+.sample-note-card{border:1px solid var(--line);border-radius:16px;background:#f9fcfd;overflow:hidden}
+.sample-note-summary{width:100%;border:0;background:transparent;color:var(--ink);display:grid;grid-template-columns:minmax(72px,auto) 1fr auto auto;align-items:center;gap:12px;padding:12px 14px;text-align:left}
+.sample-note-summary:hover{background:#f2f8fb}.sample-note-name{font-size:26px;font-weight:1000;letter-spacing:-.03em}.sample-note-count{font-size:14px;font-weight:850;color:var(--muted)}
+.sample-note-status{min-width:24px;text-align:center;font-size:18px;font-weight:1000}.sample-note-status.ready{color:var(--ok)}.sample-note-status.warn{color:var(--warn)}
+.sample-note-chevron{color:var(--muted);font-size:15px;transition:transform .12s ease}.sample-note-card.open .sample-note-chevron{transform:rotate(180deg)}
+.sample-note-details{display:none;border-top:1px solid var(--line);background:#fff;padding:6px 10px 10px}.sample-note-card.open .sample-note-details{display:grid;gap:5px}
+.sample-detail-row{display:grid;grid-template-columns:minmax(72px,1fr) auto 28px 34px;align-items:center;gap:10px;padding:8px 6px;border-radius:10px}.sample-detail-row:hover{background:#f7fafc}
+.sample-detail-label{font-weight:900}.sample-detail-hz{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:800}.sample-detail-status{text-align:center;font-weight:1000}.sample-detail-status.warn{color:var(--warn)}.sample-detail-status.ok{color:var(--ok)}
+.sample-delete-one,.sample-delete-note{border:0;background:#f8eeee;color:#a33434;border-radius:9px;font-weight:1000}.sample-delete-one{width:32px;height:30px;font-size:19px}.sample-delete-note{padding:7px 10px;font-size:12px;white-space:nowrap}.sample-delete-one:hover,.sample-delete-note:hover{background:#f3dddd}
+.sample-note-tools{display:flex;justify-content:flex-end;padding:4px 6px 2px}
+#startOverlay,#calOverlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(111,180,219,.42);backdrop-filter:blur(8px)}
+.start-card{width:min(760px,96vw);max-height:calc(100vh - 30px);overflow:auto;background:#fff;border-radius:25px;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(21,56,79,.19)}
+.start-card h1,.start-card p{display:none}.error{min-height:20px;margin-top:12px;color:#a33;font-size:13px;font-weight:850}
+.profile-form{display:block;margin-top:0;padding-top:0;border-top:0;text-align:left}.profile-form.show{display:block}.profile-form input[type="text"]{display:block;width:100%;margin:0 0 14px;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:#fff;color:var(--ink);font-weight:850}.instrument-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.instrument-choice{border:2px solid transparent;background:#f7fbfd;border-radius:16px;padding:8px 7px 9px;min-width:0;color:var(--ink);font-weight:950;transition:transform .08s ease,border-color .08s ease,background .08s ease,box-shadow .08s ease}.instrument-choice:hover{background:#f1f8fb}.instrument-choice:active{transform:scale(.98)}.instrument-choice.selected{border-color:var(--accent);background:#edf6fb;box-shadow:0 0 0 2px rgba(23,63,97,.08)}.instrument-choice img{display:block;width:100%;height:92px;object-fit:contain;margin:0 auto 5px;pointer-events:none}.instrument-choice span{display:block;font-size:12px;line-height:1.15;text-align:center;overflow-wrap:anywhere}.instrument-selected{display:none}.profile-form .actions{margin-top:18px;justify-content:center}.recent-profiles{position:relative;margin-top:18px}.recent-profiles-trigger{width:100%;border:1px solid var(--line);border-radius:14px;background:#f7fbfd;color:var(--ink);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:950;text-align:left}.recent-profiles-trigger:hover{background:#f0f7fb}.recent-profiles-caret{font-size:15px;color:var(--muted)}.recent-profiles-panel{margin-top:7px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(21,56,79,.12);padding:10px;overflow:hidden}.recent-profiles-panel[hidden]{display:none}.recent-profiles-heading{padding:2px 5px 8px;color:var(--muted);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.recent-profiles-list{display:grid;gap:6px;max-height:238px;overflow:auto}.recent-profile-row{display:grid;grid-template-columns:1fr 42px;gap:6px;align-items:stretch}.recent-profile-open,.recent-profile-delete,.recent-open-file{border:0;border-radius:12px}.recent-profile-open{background:#f7fbfd;color:var(--ink);padding:9px 11px;text-align:left;min-width:0}.recent-profile-open:hover{background:#edf6fb}.recent-profile-title{display:block;font-size:15px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-profile-meta{display:block;margin-top:2px;color:var(--muted);font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-profile-delete{background:#f8eeee;color:#a33434;font-size:22px;font-weight:800}.recent-profile-delete:hover{background:#f3dddd}.recent-profile-empty{padding:12px 8px;color:var(--muted);font-size:13px;font-weight:800;text-align:center}.recent-open-file{width:100%;margin-top:8px;background:#e3eef4;color:var(--ink);padding:11px 13px;font-weight:950}.recent-open-file:hover{background:#d9e9f1}.hero-instrument{width:100%;height:100%;padding:0;margin:0;background:transparent;border:0;display:flex;align-items:center;justify-content:center}.hero-instrument.hidden{visibility:hidden}.hero-instrument img{display:block;width:100%;height:min(72vh,560px);max-height:100%;object-fit:contain}
+#calOverlay{display:none;background:rgba(20,54,78,.58)}#calOverlay.show{display:flex}
+#reviewOverlay{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,54,78,.62);backdrop-filter:blur(9px)}
+#reviewOverlay.show{display:flex}
+.review-card{width:min(520px,94vw);background:#fff;border-radius:26px;padding:25px 24px 22px;box-shadow:0 22px 70px rgba(9,37,57,.28);text-align:center}
+.review-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;background:#fff1df;color:#a85b13;font-size:32px;font-weight:1000}
+.review-card h2{margin:0 0 9px;font-size:26px}.review-main{font-size:19px;font-weight:950;line-height:1.4}.review-detail{margin:9px auto 18px;color:var(--muted);font-weight:800;line-height:1.5;max-width:440px}.review-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.retry{background:#b54b33;color:#fff}
+.cal-panel{position:relative;width:min(608px,92vw);aspect-ratio:1118/714;border-radius:24px;overflow:hidden;filter:drop-shadow(0 18px 34px rgba(9,37,57,.34))}
+.cal-panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}.cal-live{position:absolute;inset:0;width:100%;height:100%}
+.cal-db{font:950 60px system-ui;fill:#fff}.cal-tick{stroke:#173f61;stroke-width:6;stroke-linecap:round}.cal-scale{font:850 21px system-ui;fill:#173f61}.cal-needle{stroke:#e84d2f;stroke-width:15;stroke-linecap:round}.cal-needle-tip{fill:#e84d2f}.cal-hub{fill:#24313d;stroke:#0e1820;stroke-width:5}.cal-progress-track{fill:rgba(36,59,76,.24)}
+@media(max-width:860px){#app{padding:10px}.analysis-layout{grid-template-columns:1fr;gap:10px}.instrument-side{min-height:210px;padding:12px}.hero-instrument{height:auto}.hero-instrument img{height:190px;max-height:190px}.live-card{padding:18px 10px}.bars{height:190px;gap:5px}.bar-fill{width:74%}.bottom{grid-template-columns:1fr}.note{min-height:100px}.topline{flex-wrap:wrap}.top-profile-menu{min-width:190px;max-width:100%;flex:1}.start-card{padding:20px 14px}.instrument-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.instrument-choice img{height:102px}}
+
+
+/* ===== UI LAB 0.3.21: kaikki tärkeimmät käyttöliittymän mitat CSS-muuttujina ===== */
+:root{
+  --ui-app-max-width:1240px;--ui-app-pad-top:18px;--ui-app-pad-x:18px;--ui-app-pad-bottom:28px;
+  --ui-layout-left:42%;--ui-layout-gap:18px;--ui-analysis-gap:14px;
+  --ui-instrument-pad:22px;--ui-instrument-min-height:620px;--ui-instrument-radius:28px;
+  --ui-instrument-img-height:560px;--ui-instrument-img-width:100%;--ui-instrument-img-scale:1;--ui-instrument-img-x:0px;--ui-instrument-img-y:0px;--ui-instrument-img-rotate:0deg;
+  --ui-top-gap:10px;--ui-top-min-height:46px;--ui-profile-min-width:250px;--ui-profile-max-width:360px;
+  --ui-mini-pad-y:10px;--ui-mini-pad-x:12px;--ui-mini-radius:12px;--ui-mini-font:16px;
+  --ui-card-radius:28px;--ui-card-pad-top:24px;--ui-card-pad-x:22px;--ui-card-pad-bottom:20px;--ui-card-gap:14px;
+  --ui-bars-height:250px;--ui-bars-gap:10px;--ui-bars-pad-top:8px;--ui-bars-pad-x:4px;--ui-bar-label-row:27px;--ui-bar-item-gap:6px;
+  --ui-bar-fill-width:70%;--ui-bar-track-radius:15px;--ui-bar-fill-radius:11px;--ui-bar-label-size:13px;
+  --ui-note-max-size:132px;--ui-note-min-height:118px;--ui-hz-size:18px;
+  --ui-action-gap:10px;--ui-button-radius:16px;--ui-button-pad-y:15px;--ui-primary-pad-x:23px;--ui-secondary-pad-x:20px;--ui-primary-font:18px;--ui-secondary-font:16px;--ui-primary-min-width:190px;
+  --ui-bottom-gap:14px;--ui-panel-radius:20px;--ui-panel-pad-y:15px;--ui-panel-pad-x:16px;--ui-panel-min-height:110px;--ui-panel-title-size:14px;--ui-panel-text-size:18px;--ui-profile-list-size:13px;--ui-sample-card-gap:10px;--ui-sample-card-radius:16px;--ui-sample-note-size:18px;--ui-sample-meta-size:18px;
+  --ui-start-width:760px;--ui-start-pad:28px;--ui-start-radius:25px;--ui-start-input-size:16px;--ui-start-input-pad-y:11px;--ui-start-input-pad-x:12px;--ui-start-input-radius:13px;
+  --ui-instrument-grid-cols:5;--ui-instrument-grid-gap:9px;--ui-instrument-choice-img-height:92px;--ui-instrument-choice-radius:16px;--ui-instrument-choice-pad:8px;--ui-instrument-choice-font:12px;
+  --ui-review-width:520px;--ui-review-pad:25px;--ui-review-radius:26px;--ui-review-title-size:26px;--ui-review-main-size:19px;--ui-review-detail-size:16px;
+  --ui-cal-width:608px;--ui-overlay-blur:8px;--ui-overlay-alpha:.42;--ui-card-shadow-alpha:.10;--ui-panel-shadow-alpha:.07;
+  --ui-mobile-pad:10px;--ui-mobile-layout-gap:10px;--ui-mobile-instrument-height:210px;--ui-mobile-image-height:190px;--ui-mobile-bars-height:190px;--ui-mobile-grid-cols:2;
+}
+#app{width:min(var(--ui-app-max-width),100%);padding:var(--ui-app-pad-top) var(--ui-app-pad-x) var(--ui-app-pad-bottom)}
+.analysis-layout{grid-template-columns:minmax(260px,var(--ui-layout-left)) minmax(0,1fr);gap:var(--ui-layout-gap);align-items:start}
+.analysis-side{gap:var(--ui-analysis-gap)}
+.instrument-side{padding:var(--ui-instrument-pad);min-height:var(--ui-instrument-min-height);border-radius:var(--ui-instrument-radius);box-shadow:0 12px 34px rgba(21,56,79,var(--ui-card-shadow-alpha));align-self:start}
+.hero-instrument img{width:var(--ui-instrument-img-width);height:var(--ui-instrument-img-height);transform:translate(var(--ui-instrument-img-x),var(--ui-instrument-img-y)) rotate(var(--ui-instrument-img-rotate)) scale(var(--ui-instrument-img-scale));transform-origin:center;max-height:none}
+.topline{gap:var(--ui-top-gap);min-height:var(--ui-top-min-height)}
+.top-profile-menu{min-width:var(--ui-profile-min-width);max-width:var(--ui-profile-max-width)}
+.mini,.top-profile-trigger{border-radius:var(--ui-mini-radius);font-size:var(--ui-mini-font);padding:var(--ui-mini-pad-y) var(--ui-mini-pad-x)}
+.live-card{border-radius:var(--ui-card-radius);padding:var(--ui-card-pad-top) var(--ui-card-pad-x) var(--ui-card-pad-bottom);gap:var(--ui-card-gap);box-shadow:0 12px 34px rgba(21,56,79,var(--ui-card-shadow-alpha))}
+.bars{height:var(--ui-bars-height);gap:var(--ui-bars-gap);padding:var(--ui-bars-pad-top) var(--ui-bars-pad-x) 0}
+.bar-item{grid-template-rows:1fr var(--ui-bar-label-row);gap:var(--ui-bar-item-gap)}
+.bar-track{border-radius:var(--ui-bar-track-radius)}
+.bar-fill{width:var(--ui-bar-fill-width);border-radius:var(--ui-bar-fill-radius) var(--ui-bar-fill-radius) 6px 6px}
+.bar-label{font-size:var(--ui-bar-label-size)}
+.note{font-size:clamp(52px,13vw,var(--ui-note-max-size));min-height:var(--ui-note-min-height)}
+.hz{font-size:var(--ui-hz-size)}
+.actions{gap:var(--ui-action-gap)}
+.primary,.secondary{border-radius:var(--ui-button-radius);padding-top:var(--ui-button-pad-y);padding-bottom:var(--ui-button-pad-y)}
+.primary{padding-left:var(--ui-primary-pad-x);padding-right:var(--ui-primary-pad-x);font-size:var(--ui-primary-font);min-width:var(--ui-primary-min-width)}
+.secondary{padding-left:var(--ui-secondary-pad-x);padding-right:var(--ui-secondary-pad-x);font-size:var(--ui-secondary-font)}
+.bottom{gap:var(--ui-bottom-gap)}
+.panel{border-radius:var(--ui-panel-radius);padding:var(--ui-panel-pad-y) var(--ui-panel-pad-x);min-height:var(--ui-panel-min-height);box-shadow:0 6px 22px rgba(21,56,79,var(--ui-panel-shadow-alpha))}
+.panel h2{font-size:var(--ui-panel-title-size)}#profileList{font-size:var(--ui-profile-list-size);gap:var(--ui-sample-card-gap)}.sample-empty{font-size:var(--ui-panel-text-size)}.sample-note-card{border-radius:var(--ui-sample-card-radius)}.sample-note-name{font-size:var(--ui-sample-note-size)}.sample-note-count{font-size:var(--ui-sample-meta-size)}
+#startOverlay{backdrop-filter:blur(var(--ui-overlay-blur));background:rgba(111,180,219,var(--ui-overlay-alpha))}
+.start-card{width:min(var(--ui-start-width),96vw);padding:var(--ui-start-pad);border-radius:var(--ui-start-radius)}
+.profile-form input[type="text"]{font-size:var(--ui-start-input-size);padding:var(--ui-start-input-pad-y) var(--ui-start-input-pad-x);border-radius:var(--ui-start-input-radius)}
+.instrument-grid{grid-template-columns:repeat(var(--ui-instrument-grid-cols),minmax(0,1fr));gap:var(--ui-instrument-grid-gap)}
+.instrument-choice{border-radius:var(--ui-instrument-choice-radius);padding:var(--ui-instrument-choice-pad)}.instrument-choice img{height:var(--ui-instrument-choice-img-height)}.instrument-choice span{font-size:var(--ui-instrument-choice-font)}
+.review-card{width:min(var(--ui-review-width),94vw);padding:var(--ui-review-pad);border-radius:var(--ui-review-radius)}.review-card h2{font-size:var(--ui-review-title-size)}.review-main{font-size:var(--ui-review-main-size)}.review-detail{font-size:var(--ui-review-detail-size)}
+.cal-panel{width:min(var(--ui-cal-width),92vw)}
+body.ui-hide-instrument #instrumentSide{display:none}body.ui-hide-instrument .analysis-layout{grid-template-columns:1fr}
+body.ui-hide-bottom .bottom{display:none}body.ui-hide-hz #hzValue{display:none}body.ui-hide-bar-labels .bar-label{display:none}body.ui-hide-bar-labels .bar-item{grid-template-rows:1fr}
+body.ui-hide-profile #topProfileMenu{display:none}body.ui-hide-recal #recalBtn{display:none}body.ui-hide-clear #clearBtn{display:none}body.ui-hide-sample #sampleBtn{display:none}body.ui-hide-export #exportBtn{display:none}body.ui-hide-panel-titles .panel h2{display:none}
+@media(max-width:860px){
+  #app{padding:var(--ui-mobile-pad)}.analysis-layout{grid-template-columns:1fr;gap:var(--ui-mobile-layout-gap)}.instrument-side{min-height:var(--ui-mobile-instrument-height);padding:12px}.hero-instrument img{height:var(--ui-mobile-image-height);max-height:none}.bars{height:var(--ui-mobile-bars-height)}.instrument-grid{grid-template-columns:repeat(var(--ui-mobile-grid-cols),minmax(0,1fr))}
+}
+
+/* UI LAB -paneeli pidetään tarkoituksella erillään säädettävästä käyttöliittymästä. */
+#uiDevToggle{position:fixed;right:14px;bottom:14px;z-index:998;border:0;border-radius:999px;background:#142b3a;color:#fff;padding:11px 15px;font:800 13px/1 system-ui;box-shadow:0 8px 24px rgba(0,0,0,.24)}
+#uiDevPanel{position:fixed;right:12px;top:12px;bottom:12px;z-index:999;width:min(430px,94vw);overflow:auto;background:#f7fafc;color:#162f41;border:1px solid #b8ccd8;border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.28);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#uiDevPanel[hidden]{display:none}.ui-dev-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;padding:12px;background:#e9f2f6;border-bottom:1px solid #cbdbe3}.ui-dev-head strong{flex:1;font-size:14px}.ui-dev-head button{border:0;border-radius:9px;padding:8px 10px;background:#173f61;color:#fff;font-weight:850}
+.ui-dev-body{padding:10px}.ui-dev-group{margin:0 0 9px;border:1px solid #d4e0e6;border-radius:12px;background:#fff;overflow:hidden}.ui-dev-group summary{cursor:pointer;padding:10px 11px;font-size:13px;font-weight:900;background:#f0f6f8}.ui-dev-group-inner{padding:8px 10px 10px}.ui-dev-row{display:grid;grid-template-columns:minmax(120px,1fr) 1.2fr 78px;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid #edf3f5}.ui-dev-row:last-child{border-bottom:0}.ui-dev-row label{font-size:11px;font-weight:800;line-height:1.2}.ui-dev-row input[type="range"]{width:100%}.ui-dev-row input[type="number"],.ui-dev-row input[type="text"]{width:100%;border:1px solid #b9cbd5;border-radius:8px;padding:6px 7px;font:700 12px system-ui}.ui-dev-row.ui-dev-color{grid-template-columns:minmax(120px,1fr) 52px 1fr}.ui-dev-row input[type="color"]{width:48px;height:30px;border:1px solid #b9cbd5;border-radius:7px;padding:2px;background:#fff}.ui-dev-select{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,2fr);gap:7px;align-items:center;padding:7px 0 10px;border-bottom:1px solid #dce8ed}.ui-dev-select label{font-size:11px;font-weight:900}.ui-dev-select select{width:100%;border:1px solid #b9cbd5;border-radius:8px;padding:7px;background:#fff;color:#17384f;font:700 12px system-ui}.ui-dev-check{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #edf3f5}.ui-dev-check:last-child{border-bottom:0}.ui-dev-check label{font-size:11px;font-weight:800}.ui-dev-text{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;padding:6px 0}.ui-dev-text label{font-size:11px;font-weight:800}.ui-dev-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}.ui-dev-actions button{border:0;border-radius:10px;padding:9px 8px;background:#173f61;color:#fff;font-weight:850;font-size:11px}.ui-dev-actions button.alt{background:#dfeaf0;color:#17384f}.ui-dev-json{width:100%;min-height:170px;resize:vertical;border:1px solid #b9cbd5;border-radius:10px;padding:9px;font:11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;color:#18384d}.ui-dev-note{font-size:10px;line-height:1.35;color:#607785;margin:6px 2px 10px}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="analysis-layout">
+    <aside id="instrumentSide" class="instrument-side">
+      <div id="heroInstrument" class="hero-instrument hidden" aria-live="polite">
+        <img id="heroInstrumentImg" alt="">
+      </div>
+    </aside>
+
+    <main class="analysis-side">
+      <div class="topline">
+        <div id="topProfileMenu" class="top-profile-menu">
+          <button id="topProfileTrigger" class="top-profile-trigger" type="button" aria-expanded="false" aria-controls="topProfilePanel">
+            <span id="topProfileLabel">+ Uusi profiili</span><span class="top-profile-caret" aria-hidden="true">▾</span>
+          </button>
+          <div id="topProfilePanel" class="top-profile-panel" hidden>
+            <div id="topProfileList" class="top-profile-list"></div>
+            <button id="topProfileNew" class="top-profile-new" type="button">+ Uusi profiili</button>
+            <button id="topProfileFile" class="top-profile-new" type="button">Avaa tiedostosta…</button>
+            <input id="profileFileInput" type="file" accept=".json,application/json" hidden>
+          </div>
+        </div>
+        <button id="recalBtn" class="mini" type="button">Kalibroi</button>
+        <button id="clearBtn" class="mini" type="button">Tyhjennä näytteet</button>
+      </div>
+
+      <section class="live-card">
+        <div id="bars" class="bars"></div>
+        <div id="noteName" class="note">–</div>
+        <div id="hzValue" class="hz"></div>
+        <div class="actions">
+          <button id="sampleBtn" class="primary" type="button">ALOITA NÄYTE</button>
+          <button id="exportBtn" class="secondary" type="button" disabled>VIE JSON</button>
+        </div>
+      </section>
+
+      <div class="bottom">
+        <section class="panel">
+          <h2 id="samplesPanelTitle">Tallennetut näytteet</h2>
+          <div id="profileList"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="startOverlay">
+  <div class="start-card">
+    <div id="profileForm" class="profile-form show">
+      <input id="profileName" autocomplete="off" spellcheck="false" placeholder="Kirjoita oppilaan nimi">
+      <input id="profileInstrument" type="hidden" value="">
+      <div id="instrumentGrid" class="instrument-grid" role="radiogroup" aria-label="Valitse soitin"></div>
+      <div id="instrumentSelected" class="instrument-selected" aria-hidden="true"></div>
+      <div class="actions">
+        <button id="createProfileBtn" class="primary" type="button">ALOITA</button>
+      </div>
+    </div>
+    <div id="startError" class="error"></div>
+  </div>
+</div>
+
+<div id="calOverlay" aria-live="polite">
+  <div class="cal-panel" role="status" aria-label="Mikrofonin kalibrointi">
+    <img class="cal-panel-bg" src="kalibrointi_tausta.webp" alt="">
+    <svg class="cal-live" viewBox="0 0 1118 714" aria-hidden="true">
+      <defs>
+        <linearGradient id="calGaugeGradient" x1="319" y1="0" x2="799" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#32a65a"/><stop offset=".5" stop-color="#ffcf35"/><stop offset=".82" stop-color="#ff8a29"/><stop offset="1" stop-color="#e74a35"/></linearGradient>
+        <linearGradient id="calProgressGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2e9af1"/><stop offset="1" stop-color="#40c85a"/></linearGradient>
+      </defs>
+      <circle cx="559" cy="365" r="257" fill="#f7f4ed" opacity=".985"/>
+      <path d="M319 365 A240 240 0 0 1 799 365" fill="none" stroke="url(#calGaugeGradient)" stroke-width="48"/>
+      <g><line class="cal-tick" x1="335" y1="365" x2="363" y2="365"/><line class="cal-tick" x1="365" y1="245" x2="390" y2="260"/><line class="cal-tick" x1="440" y1="170" x2="454" y2="195"/><line class="cal-tick" x1="559" y1="142" x2="559" y2="174"/><line class="cal-tick" x1="678" y1="170" x2="664" y2="195"/><line class="cal-tick" x1="753" y1="245" x2="728" y2="260"/><line class="cal-tick" x1="783" y1="365" x2="755" y2="365"/></g>
+      <g class="cal-scale" text-anchor="middle"><text x="320" y="407">-90</text><text x="365" y="223">-80</text><text x="445" y="148">-70</text><text x="559" y="119">-60</text><text x="673" y="148">-50</text><text x="753" y="223">-40</text><text x="798" y="407">-30</text></g>
+      <g id="calNeedleGroup" transform="rotate(-90 559 365)"><line class="cal-needle" x1="559" y1="365" x2="559" y2="178"/><circle class="cal-needle-tip" cx="559" cy="178" r="7"/></g>
+      <circle class="cal-hub" cx="559" cy="365" r="30"/>
+      <rect x="428" y="423" width="262" height="82" rx="30" fill="#243b4c" stroke="#8ba5b7" stroke-width="5"/>
+      <text id="calDbValue" class="cal-db" x="559" y="483" text-anchor="middle">– dB</text>
+      <rect class="cal-progress-track" x="352" y="612" width="414" height="18" rx="9"/>
+      <rect id="calProgressFill" x="352" y="612" width="0" height="18" rx="9" fill="url(#calProgressGradient)"/>
+    </svg>
+  </div>
+</div>
+
+<div id="reviewOverlay" aria-live="assertive">
+  <div class="review-card" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+    <div class="review-icon">!</div>
+    <h2 id="reviewTitle">Tarkista näyte</h2>
+    <div id="reviewMain" class="review-main"></div>
+    <div id="reviewDetail" class="review-detail"></div>
+    <div class="review-actions">
+      <button id="acceptSampleBtn" class="secondary" type="button">HYVÄKSY SILTI</button>
+      <button id="retrySampleBtn" class="primary retry" type="button">UUDELLEEN</button>
+    </div>
+  </div>
+</div>
+
+
+
+<button id="uiDevToggle" type="button">UI DEV</button>
+<aside id="uiDevPanel" hidden aria-label="UI-kehittäjäpaneeli">
+  <div class="ui-dev-head"><strong>Ääninäyte UI LAB 0.3.21</strong><button id="uiDevClose" type="button">Sulje</button></div>
+  <div class="ui-dev-body">
+    <div class="ui-dev-note">UI-säädöt eivät muuta äänianalyysin dataa. H1–H8-osiossa voi nyt valita kiinteän headroom-asteikon tai vanhan automaattiskaalan sekä säätää ylärajaa ja näyttökäyrää.</div>
+    <div id="uiDevControls"></div>
+    <div class="ui-dev-actions">
+      <button id="uiDevExport" type="button">VIE UI JSON</button>
+      <button id="uiDevImport" type="button">TUO UI JSON</button>
+      <button id="uiDevApplyJson" type="button">KÄYTÄ JSON</button>
+      <button id="uiDevCopy" type="button">KOPIOI JSON</button>
+      <button id="uiDevReset" class="alt" type="button">OLETUKSET</button>
+      <button id="uiDevRefresh" class="alt" type="button">PÄIVITÄ KENTÄT</button>
+    </div>
+    <textarea id="uiDevJson" class="ui-dev-json" spellcheck="false" aria-label="UI JSON"></textarea>
+    <input id="uiDevFile" type="file" accept=".json,application/json" hidden>
+  </div>
+</aside>
+
+<script>
+(()=>{
+'use strict';
+const HARMONICS=8;
+// Täsmälleen juomalasipelin 1.4.3 kalibrointiarvot.
+const MIC_CAL_WARMUP_MS=250;
+const MIC_CAL_MEASURE_MS=1500;
+const MIC_CAL_MARGIN_DB=10;
+const FRAME_MS=32;
+const END_SILENCE_MS=420;
+const MIN_SAMPLE_MS=280;
+const MAX_SAMPLE_MS=12000;
+const DB_MIN=-70, DB_MAX=-20;
+const FALLBACK_KEY='aaninaeyte.profiles.v1';
+// Näytteen jälkitarkistus. Profiilia arvioidaan vasta, kun omasta sävelestä on vähintään 2 hyväksyttyä referenssinäytettä.
+const REVIEW_MIN_OWN_SAMPLES=2;
+const REVIEW_MIN_OTHER_SAMPLES=2;
+const REVIEW_MISMATCH_MIN_SIM=70;
+const REVIEW_MISMATCH_MARGIN=6;
+const REVIEW_OWN_LOW_SIM=62;
+const PC=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','B','H'];
+const $=s=>document.querySelector(s);
+const barsEl=$('#bars'),noteName=$('#noteName'),hzValue=$('#hzValue');
+const sampleBtn=$('#sampleBtn'),exportBtn=$('#exportBtn');
+const profileList=$('#profileList');
+const calOverlay=$('#calOverlay'),calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
+const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
+const reviewOverlay=$('#reviewOverlay'),reviewMain=$('#reviewMain'),reviewDetail=$('#reviewDetail'),acceptSampleBtn=$('#acceptSampleBtn'),retrySampleBtn=$('#retrySampleBtn');
+const INSTRUMENTS=[
+  {name:'Huilu',src:'instruments/huilu.png'},
+  {name:'Klarinetti',src:'instruments/klarinetti.png'},
+  {name:'Alttosaksofoni',src:'instruments/saksofoni.png'},
+  {name:'Oboe',src:'instruments/oboe.png'},
+  {name:'Fagotti',src:'instruments/fagotti.png'},
+  {name:'Trumpetti',src:'instruments/trumpetti.png'},
+  {name:'Alttotorvi',src:'instruments/alttotorvi.png'},
+  {name:'Käyrätorvi',src:'instruments/kayratorvi.png'},
+  {name:'Pasuuna',src:'instruments/pasuuna.png'},
+  {name:'Tuuba',src:'instruments/tuuba.png'}
+];
+const instrumentByName=name=>INSTRUMENTS.find(i=>i.name===name)||null;
+for(let i=0;i<8;i++)barsEl.insertAdjacentHTML('beforeend',`<div class="bar-item"><div class="bar-track"><div class="bar-fill" data-bar="${i}"></div></div><div class="bar-label">H${i+1}</div></div>`);
+const barEls=[...document.querySelectorAll('.bar-fill')];
+
+let ctx=null,stream=null,analyser=null,timeData=null,freqData=null,timer=null,dbThreshold=-70;
+let yinDiffBuffer=null,yinCmndBuffer=null;
+let live={f0:null,db:-120,fp:null,label:null,midi:null};
+let armed=false,recording=false,soundWasLoud=false,silenceSince=null,sampleStartedAt=0;
+let recorder=null,recordedChunks=[],sampleFrames=[],finalizingRecording=false;
+let pendingSample=null,pendingCheck=null;
+let samples=[],profiles=[],activeProfileId=null;
+let expandedSampleNotes=new Set();
+let db=null;
+
+
+// ===== UI LAB 0.3.21 =====
+const UI_DEV_KEY='aaninaeyte.ui.dev.0.3.21';
+const UI_DEV_PREVIOUS_KEY='aaninaeyte.ui.dev.0.3.20';
+const UI_DEFAULTS={"appMaxWidth":1240,"appPadTop":18,"appPadX":18,"appPadBottom":28,"layoutLeft":46,"layoutGap":18,"analysisGap":14,"instrumentPad":0,"instrumentMinHeight":120,"instrumentRadius":28,"instrumentImageHeight":560,"instrumentImageWidth":100,"instrumentImageScale":96,"instrumentImageX":0,"instrumentImageY":0,"instrumentImageRotate":0,"topGap":50,"topMinHeight":24,"profileMinWidth":260,"profileMaxWidth":360,"miniPadY":10,"miniPadX":12,"miniRadius":12,"miniFont":16,"cardRadius":28,"cardPadTop":25,"cardPadX":80,"cardPadBottom":30,"cardGap":0,"barsHeight":190,"barsGap":40,"barsPadTop":0,"barsPadX":0,"barLabelRow":27,"barItemGap":0,"barFillWidth":70,"barTrackRadius":0,"barFillRadius":11,"barLabelSize":13,"barScaleMode":"fixed","barFixedMax":100,"barCurve":0.2,"noteMaxSize":40,"noteMinHeight":64,"hzSize":16,"actionGap":10,"buttonRadius":16,"buttonPadY":7,"primaryPadX":5,"secondaryPadX":20,"primaryFont":13,"secondaryFont":13,"primaryMinWidth":145,"bottomGap":14,"panelRadius":20,"panelPadY":15,"panelPadX":16,"panelMinHeight":110,"panelTitleSize":14,"panelTextSize":18,"profileListSize":13,"startWidth":890,"startPad":18,"startRadius":25,"startInputSize":16,"startInputPadY":11,"startInputPadX":12,"startInputRadius":13,"instrumentGridCols":5,"instrumentGridGap":11,"instrumentChoiceImgHeight":220,"instrumentChoiceRadius":16,"instrumentChoicePad":0,"instrumentChoiceFont":12,"reviewWidth":520,"reviewPad":25,"reviewRadius":26,"reviewTitleSize":26,"reviewMainSize":19,"reviewDetailSize":16,"calWidth":608,"overlayBlur":8,"overlayAlpha":0.42,"cardShadowAlpha":0.1,"panelShadowAlpha":0.07,"mobilePad":10,"mobileLayoutGap":10,"mobileInstrumentHeight":210,"mobileImageHeight":190,"mobileBarsHeight":190,"mobileGridCols":2,"bg":"#eef7fb","card":"#ffffff","ink":"#15384f","muted":"#668092","line":"#d7e7ef","accent":"#173f61","ok":"#18784c","warn":"#b66316","showInstrument":true,"showBottom":true,"showHz":true,"showBarLabels":true,"showProfile":true,"showRecal":true,"showClear":true,"showSample":true,"showExport":true,"showPanelTitles":true,"sampleLabel":"ALOITA NÄYTE","exportLabel":"VIE JSON","recalLabel":"Kalibroi","clearLabel":"Tyhjennä näytteet","samplesTitle":"Tallennetut näytteet","profilePlaceholder":"Nimi","sampleCardGap":10,"sampleCardRadius":16,"sampleNoteSize":18,"sampleMetaSize":18};
+let uiSettings={...UI_DEFAULTS};
+const UI_GROUPS=[
+  {name:'Rakenne',items:[
+    ['appMaxWidth','Sovelluksen max leveys',700,1800,10,'px','--ui-app-max-width'],['appPadTop','App padding ylä',0,80,1,'px','--ui-app-pad-top'],['appPadX','App padding sivut',0,80,1,'px','--ui-app-pad-x'],['appPadBottom','App padding ala',0,100,1,'px','--ui-app-pad-bottom'],['layoutLeft','Vasemman palstan leveys',20,70,1,'%','--ui-layout-left'],['layoutGap','Palstojen väli',0,80,1,'px','--ui-layout-gap'],['analysisGap','Oikean palstan elementtiväli',0,60,1,'px','--ui-analysis-gap']
+  ]},
+  {name:'Soitinalue ja kuva',items:[
+    ['instrumentPad','Soitinalue padding',0,80,1,'px','--ui-instrument-pad'],['instrumentMinHeight','Soitinalue min korkeus',120,1000,10,'px','--ui-instrument-min-height'],['instrumentRadius','Soitinalue kulmat',0,60,1,'px','--ui-instrument-radius'],['instrumentImageHeight','Kuvan korkeus',80,900,5,'px','--ui-instrument-img-height'],['instrumentImageWidth','Kuvan leveys',20,160,1,'%','--ui-instrument-img-width'],['instrumentImageScale','Kuvan skaala',25,220,1,'factor','--ui-instrument-img-scale'],['instrumentImageX','Kuvan X',-300,300,1,'px','--ui-instrument-img-x'],['instrumentImageY','Kuvan Y',-300,300,1,'px','--ui-instrument-img-y'],['instrumentImageRotate','Kuvan kierto',-180,180,1,'deg','--ui-instrument-img-rotate']
+  ]},
+  {name:'Yläpalkki',items:[
+    ['topGap','Yläpalkin väli',0,50,1,'px','--ui-top-gap'],['topMinHeight','Yläpalkin min korkeus',24,100,1,'px','--ui-top-min-height'],['profileMinWidth','Profiilivalikon min leveys',120,500,5,'px','--ui-profile-min-width'],['profileMaxWidth','Profiilivalikon max leveys',160,700,5,'px','--ui-profile-max-width'],['miniPadY','Pikkunappien padding Y',2,30,1,'px','--ui-mini-pad-y'],['miniPadX','Pikkunappien padding X',2,40,1,'px','--ui-mini-pad-x'],['miniRadius','Pikkunappien kulmat',0,30,1,'px','--ui-mini-radius'],['miniFont','Pikkunappien fontti',9,28,1,'px','--ui-mini-font']
+  ]},
+  {name:'Analyysikortti',items:[
+    ['cardRadius','Kortin kulmat',0,60,1,'px','--ui-card-radius'],['cardPadTop','Kortin padding ylä',0,80,1,'px','--ui-card-pad-top'],['cardPadX','Kortin padding sivut',0,80,1,'px','--ui-card-pad-x'],['cardPadBottom','Kortin padding ala',0,80,1,'px','--ui-card-pad-bottom'],['cardGap','Kortin elementtiväli',0,50,1,'px','--ui-card-gap'],['cardShadowAlpha','Kortin varjon voimakkuus',0,.4,.01,'raw','--ui-card-shadow-alpha']
+  ]},
+  {name:'H1–H8 mittarit',items:[
+    ['barsHeight','Mittarien korkeus',80,600,5,'px','--ui-bars-height'],['barsGap','Palkkien väli',0,40,1,'px','--ui-bars-gap'],['barsPadTop','Mittarien padding ylä',0,60,1,'px','--ui-bars-pad-top'],['barsPadX','Mittarien padding sivut',0,60,1,'px','--ui-bars-pad-x'],['barLabelRow','H1–H8 tekstirivin korkeus',0,60,1,'px','--ui-bar-label-row'],['barItemGap','Palkki/tekstiväli',0,30,1,'px','--ui-bar-item-gap'],['barFillWidth','Täyttöpalkin leveys',10,100,1,'%','--ui-bar-fill-width'],['barTrackRadius','Mittaritaustan kulmat',0,40,1,'px','--ui-bar-track-radius'],['barFillRadius','Täytön kulmat',0,40,1,'px','--ui-bar-fill-radius'],['barLabelSize','H1–H8 fontti',7,26,1,'px','--ui-bar-label-size'],['barFixedMax','Kiinteän asteikon yläraja',30,100,1,'%','--ui-bar-fixed-max'],['barCurve','Näyttökäyrä',0.2,2,0.01,'raw','--ui-bar-curve']
+  ]},
+  {name:'Sävelnäyttö',items:[
+    ['noteMaxSize','Sävelen max fontti',40,220,2,'px','--ui-note-max-size'],['noteMinHeight','Sävelalueen min korkeus',0,260,2,'px','--ui-note-min-height'],['hzSize','Hz fontti',8,40,1,'px','--ui-hz-size']
+  ]},
+  {name:'Toimintanapit',items:[
+    ['actionGap','Nappien väli',0,40,1,'px','--ui-action-gap'],['buttonRadius','Nappien kulmat',0,40,1,'px','--ui-button-radius'],['buttonPadY','Nappien padding Y',2,35,1,'px','--ui-button-pad-y'],['primaryPadX','Päänapin padding X',5,60,1,'px','--ui-primary-pad-x'],['secondaryPadX','Muiden padding X',5,60,1,'px','--ui-secondary-pad-x'],['primaryFont','Päänapin fontti',9,30,1,'px','--ui-primary-font'],['secondaryFont','Muiden fontti',9,28,1,'px','--ui-secondary-font'],['primaryMinWidth','Päänapin min leveys',80,360,5,'px','--ui-primary-min-width']
+  ]},
+  {name:'Alapaneelit',items:[
+    ['bottomGap','Paneelien väli',0,50,1,'px','--ui-bottom-gap'],['panelRadius','Paneelien kulmat',0,50,1,'px','--ui-panel-radius'],['panelPadY','Paneelien padding Y',0,50,1,'px','--ui-panel-pad-y'],['panelPadX','Paneelien padding X',0,50,1,'px','--ui-panel-pad-x'],['panelMinHeight','Paneelien min korkeus',40,400,5,'px','--ui-panel-min-height'],['panelTitleSize','Paneeliotsikon fontti',8,28,1,'px','--ui-panel-title-size'],['panelTextSize','Paneelitekstin fontti',8,36,1,'px','--ui-panel-text-size'],['profileListSize','Näytteen lisätietojen fontti',7,26,1,'px','--ui-profile-list-size'],['sampleCardGap','Sävelkorttien väli',0,30,1,'px','--ui-sample-card-gap'],['sampleCardRadius','Sävelkorttien kulmat',0,30,1,'px','--ui-sample-card-radius'],['sampleNoteSize','Sävelnimen fontti',14,50,1,'px','--ui-sample-note-size'],['sampleMetaSize','Näytemäärän fontti',8,26,1,'px','--ui-sample-meta-size'],['panelShadowAlpha','Paneelivarjon voimakkuus',0,.35,.01,'raw','--ui-panel-shadow-alpha']
+  ]},
+  {name:'Aloitusikkuna',items:[
+    ['startWidth','Aloitusikkunan leveys',280,1100,10,'px','--ui-start-width'],['startPad','Aloitusikkunan padding',0,70,1,'px','--ui-start-pad'],['startRadius','Aloitusikkunan kulmat',0,50,1,'px','--ui-start-radius'],['startInputSize','Nimikentän fontti',9,30,1,'px','--ui-start-input-size'],['startInputPadY','Nimikentän padding Y',2,30,1,'px','--ui-start-input-pad-y'],['startInputPadX','Nimikentän padding X',2,40,1,'px','--ui-start-input-pad-x'],['startInputRadius','Nimikentän kulmat',0,30,1,'px','--ui-start-input-radius'],['instrumentGridCols','Soitinkortteja / rivi',1,8,1,'raw','--ui-instrument-grid-cols'],['instrumentGridGap','Soitinkorttien väli',0,30,1,'px','--ui-instrument-grid-gap'],['instrumentChoiceImgHeight','Soitinkortin kuvan korkeus',40,220,2,'px','--ui-instrument-choice-img-height'],['instrumentChoiceRadius','Soitinkortin kulmat',0,40,1,'px','--ui-instrument-choice-radius'],['instrumentChoicePad','Soitinkortin padding',0,30,1,'px','--ui-instrument-choice-pad'],['instrumentChoiceFont','Soitinkortin fontti',7,24,1,'px','--ui-instrument-choice-font'],['overlayBlur','Taustan blur',0,30,1,'px','--ui-overlay-blur'],['overlayAlpha','Aloitus-overlay opacity',0,1,.01,'raw','--ui-overlay-alpha']
+  ]},
+  {name:'Tarkistusikkuna ja kalibrointi',items:[
+    ['reviewWidth','Tarkistusikkunan leveys',260,900,10,'px','--ui-review-width'],['reviewPad','Tarkistusikkunan padding',0,70,1,'px','--ui-review-pad'],['reviewRadius','Tarkistusikkunan kulmat',0,60,1,'px','--ui-review-radius'],['reviewTitleSize','Tarkistusotsikon fontti',12,50,1,'px','--ui-review-title-size'],['reviewMainSize','Tarkistuspäätekstin fontti',10,40,1,'px','--ui-review-main-size'],['reviewDetailSize','Tarkistuslisätekstin fontti',8,32,1,'px','--ui-review-detail-size'],['calWidth','Kalibrointimittarin leveys',260,1000,10,'px','--ui-cal-width']
+  ]},
+  {name:'Mobiili',items:[
+    ['mobilePad','Mobiilin app padding',0,40,1,'px','--ui-mobile-pad'],['mobileLayoutGap','Mobiilin palstaväli',0,40,1,'px','--ui-mobile-layout-gap'],['mobileInstrumentHeight','Mobiilin soitinalue korkeus',80,500,5,'px','--ui-mobile-instrument-height'],['mobileImageHeight','Mobiilin soitinkuvan korkeus',50,420,5,'px','--ui-mobile-image-height'],['mobileBarsHeight','Mobiilin mittarikorkeus',60,420,5,'px','--ui-mobile-bars-height'],['mobileGridCols','Mobiilin soitinkortit/rivi',1,5,1,'raw','--ui-mobile-grid-cols']
+  ]}
+];
+const UI_COLORS=[['bg','Tausta','--bg'],['card','Kortit','--card'],['ink','Pääteksti','--ink'],['muted','Himmeä teksti','--muted'],['line','Reunaviiva','--line'],['accent','Korostus','--accent'],['ok','OK-väri','--ok'],['warn','Varoitusväri','--warn']];
+const UI_CHECKS=[['showInstrument','Näytä soitinalue','ui-hide-instrument'],['showBottom','Näytä alapaneelit','ui-hide-bottom'],['showHz','Näytä Hz','ui-hide-hz'],['showBarLabels','Näytä H1–H8 tekstit','ui-hide-bar-labels'],['showProfile','Näytä profiilivalikko','ui-hide-profile'],['showRecal','Näytä Kalibroi','ui-hide-recal'],['showClear','Näytä Tyhjennä näytteet','ui-hide-clear'],['showSample','Näytä Aloita näyte','ui-hide-sample'],['showExport','Näytä Vie JSON','ui-hide-export'],['showPanelTitles','Näytä alapaneelien otsikot','ui-hide-panel-titles']];
+const UI_TEXTS=[['sampleLabel','ALOITA NÄYTE -teksti','#sampleBtn'],['exportLabel','VIE JSON -teksti','#exportBtn'],['recalLabel','Kalibroi-teksti','#recalBtn'],['clearLabel','Tyhjennä-teksti','#clearBtn'],['samplesTitle','Näytepaneelin otsikko','#samplesPanelTitle'],['profilePlaceholder','Nimikentän placeholder','#profileName']];
+function uiCssValue(item,value){const unit=item[5];if(unit==='factor')return String(Number(value)/100);if(unit==='raw')return String(value);return String(value)+unit}
+function applyUiSettings(){
+  const root=document.documentElement;
+  for(const g of UI_GROUPS)for(const item of g.items){const [key,,,,,,cssVar]=item;root.style.setProperty(cssVar,uiCssValue(item,uiSettings[key]))}
+  for(const [key,,cssVar] of UI_COLORS)root.style.setProperty(cssVar,uiSettings[key]);
+  for(const [key,,hideClass] of UI_CHECKS)document.body.classList.toggle(hideClass,!uiSettings[key]);
+  for(const [key,,selector] of UI_TEXTS){const el=document.querySelector(selector);if(!el)continue;if(key==='profilePlaceholder')el.placeholder=uiSettings[key]??'';else el.textContent=uiSettings[key]??''}
+  try{localStorage.setItem(UI_DEV_KEY,JSON.stringify(uiSettings))}catch(_){ }
+  updateUiJsonBox();
+}
+function loadUiSettings(){try{const raw=JSON.parse(localStorage.getItem(UI_DEV_KEY)||localStorage.getItem(UI_DEV_PREVIOUS_KEY)||'null');if(raw&&typeof raw==='object')uiSettings={...UI_DEFAULTS,...raw}}catch(_){uiSettings={...UI_DEFAULTS}}}
+function uiPayload(){return {format:'aaninaeyte-ui-dev-0.3.21',exportedAt:new Date().toISOString(),settings:{...uiSettings}}}
+function updateUiJsonBox(){const box=document.querySelector('#uiDevJson');if(box)box.value=JSON.stringify(uiPayload(),null,2)}
+function setUiSetting(key,value){uiSettings[key]=value;applyUiSettings();if(live?.fp)setBars(live.fp)}
+function buildUiDevControls(){
+  const host=document.querySelector('#uiDevControls');if(!host)return;host.innerHTML='';
+  for(const group of UI_GROUPS){const d=document.createElement('details');d.className='ui-dev-group';if(['Rakenne','Soitinalue ja kuva','H1–H8 mittarit'].includes(group.name))d.open=true;const s=document.createElement('summary');s.textContent=group.name;d.appendChild(s);const inner=document.createElement('div');inner.className='ui-dev-group-inner';
+    for(const item of group.items){const [key,label,min,max,step]=item;const row=document.createElement('div');row.className='ui-dev-row';const lab=document.createElement('label');lab.textContent=label;const range=document.createElement('input');range.type='range';range.min=min;range.max=max;range.step=step;range.value=uiSettings[key];range.dataset.uiKey=key;const num=document.createElement('input');num.type='number';num.min=min;num.max=max;num.step=step;num.value=uiSettings[key];num.dataset.uiKey=key;const commit=v=>{let n=Number(v);if(!Number.isFinite(n))return;n=Math.max(Number(min),Math.min(Number(max),n));range.value=n;num.value=n;setUiSetting(key,n)};range.addEventListener('input',()=>commit(range.value));num.addEventListener('input',()=>commit(num.value));row.append(lab,range,num);inner.appendChild(row)}
+    if(group.name==='H1–H8 mittarit'){const row=document.createElement('div');row.className='ui-dev-select';const lab=document.createElement('label');lab.textContent='Mittarien skaala';const sel=document.createElement('select');sel.innerHTML='<option value="fixed">Kiinteä (headroom)</option><option value="auto">Automaattinen (voimakkain = 100 %)</option>';sel.value=uiSettings.barScaleMode||'fixed';sel.dataset.uiKey='barScaleMode';sel.addEventListener('change',()=>setUiSetting('barScaleMode',sel.value));row.append(lab,sel);inner.insertBefore(row,inner.firstChild)}
+    d.appendChild(inner);host.appendChild(d)
+  }
+  const colors=document.createElement('details');colors.className='ui-dev-group';const cs=document.createElement('summary');cs.textContent='Värit';colors.appendChild(cs);const ci=document.createElement('div');ci.className='ui-dev-group-inner';for(const [key,label] of UI_COLORS){const row=document.createElement('div');row.className='ui-dev-row ui-dev-color';const lab=document.createElement('label');lab.textContent=label;const col=document.createElement('input');col.type='color';col.value=uiSettings[key];const txt=document.createElement('input');txt.type='text';txt.value=uiSettings[key];const commit=v=>{if(!/^#[0-9a-f]{6}$/i.test(v))return;col.value=v;txt.value=v;setUiSetting(key,v)};col.addEventListener('input',()=>commit(col.value));txt.addEventListener('change',()=>commit(txt.value.trim()));row.append(lab,col,txt);ci.appendChild(row)}colors.appendChild(ci);host.appendChild(colors);
+  const vis=document.createElement('details');vis.className='ui-dev-group';const vs=document.createElement('summary');vs.textContent='Näytä / piilota';vis.appendChild(vs);const vi=document.createElement('div');vi.className='ui-dev-group-inner';for(const [key,label] of UI_CHECKS){const row=document.createElement('div');row.className='ui-dev-check';const lab=document.createElement('label');lab.textContent=label;const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!uiSettings[key];cb.addEventListener('change',()=>setUiSetting(key,cb.checked));row.append(lab,cb);vi.appendChild(row)}vis.appendChild(vi);host.appendChild(vis);
+  const texts=document.createElement('details');texts.className='ui-dev-group';const ts=document.createElement('summary');ts.textContent='Tekstit';texts.appendChild(ts);const ti=document.createElement('div');ti.className='ui-dev-group-inner';for(const [key,label] of UI_TEXTS){const row=document.createElement('div');row.className='ui-dev-text';const lab=document.createElement('label');lab.textContent=label;const inp=document.createElement('input');inp.type='text';inp.value=uiSettings[key];inp.addEventListener('input',()=>setUiSetting(key,inp.value));row.append(lab,inp);ti.appendChild(row)}texts.appendChild(ti);host.appendChild(texts);
+}
+function syncUiDevFields(){buildUiDevControls();updateUiJsonBox()}
+function exportUiJson(){const blob=new Blob([JSON.stringify(uiPayload(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`aaninaeyte_UI_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)}
+function importUiObject(raw){const settings=raw?.settings&&typeof raw.settings==='object'?{...raw.settings}:{...raw};if(!settings||typeof settings!=='object')throw new Error('UI JSON ei sisällä settings-objektia.');delete settings.stateSize;delete settings.showState;delete settings.gameTargetSize;delete settings.showTest;delete settings.testLabel;delete settings.gameTitle;uiSettings={...UI_DEFAULTS,...settings};applyUiSettings();syncUiDevFields()}
+function initUiDev(){
+  loadUiSettings();applyUiSettings();buildUiDevControls();
+  const panel=document.querySelector('#uiDevPanel'),toggle=document.querySelector('#uiDevToggle'),file=document.querySelector('#uiDevFile');
+  toggle.addEventListener('click',()=>{panel.hidden=false;syncUiDevFields()});document.querySelector('#uiDevClose').addEventListener('click',()=>panel.hidden=true);
+  document.querySelector('#uiDevExport').addEventListener('click',exportUiJson);document.querySelector('#uiDevImport').addEventListener('click',()=>file.click());
+  file.addEventListener('change',async()=>{const f=file.files?.[0];file.value='';if(!f)return;try{importUiObject(JSON.parse(await f.text()))}catch(e){alert(e?.message||'UI JSON ei kelpaa.')}});
+  document.querySelector('#uiDevApplyJson').addEventListener('click',()=>{try{importUiObject(JSON.parse(document.querySelector('#uiDevJson').value))}catch(e){alert(e?.message||'UI JSON ei kelpaa.')}});
+  document.querySelector('#uiDevCopy').addEventListener('click',async()=>{updateUiJsonBox();const t=document.querySelector('#uiDevJson').value;try{await navigator.clipboard.writeText(t)}catch(_){document.querySelector('#uiDevJson').select();document.execCommand('copy')}});
+  document.querySelector('#uiDevReset').addEventListener('click',()=>{if(!confirm('Palautetaanko kaikki UI-säädöt tämän 0.3.21-version JSON-oletuksiin?'))return;uiSettings={...UI_DEFAULTS};applyUiSettings();syncUiDevFields()});
+  document.querySelector('#uiDevRefresh').addEventListener('click',syncUiDevFields);
+}
+
+function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
+function median(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
+function sleepMs(ms){return new Promise(r=>setTimeout(r,ms))}
+function rmsDb(buf){let s=0;for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}const rms=Math.sqrt(s/buf.length)||1e-12;return 20*Math.log10(rms)}
+function centsDiff(a,b){return 1200*Math.log2(a/b)}
+function freqToNote(f){if(!f||!Number.isFinite(f))return null;const midi=Math.round(69+12*Math.log2(f/440));const ref=440*Math.pow(2,(midi-69)/12);const pc=((midi%12)+12)%12;const oct=Math.floor(midi/12)-1;return {midi,label:`${PC[pc]}${oct}`,ref,cents:centsDiff(f,ref)}}
+
+function yin(buf,sr){
+  const n=Math.min(buf.length,4096),minF=65,maxF=1600;
+  const minTau=Math.max(2,Math.floor(sr/maxF));
+  const maxTau=Math.min(Math.floor(sr/minF),Math.floor(n/2));
+  const needed=maxTau+1;
+  if(!yinDiffBuffer||yinDiffBuffer.length<needed){yinDiffBuffer=new Float32Array(needed);yinCmndBuffer=new Float32Array(needed)}
+  const d=yinDiffBuffer,cmnd=yinCmndBuffer;
+  for(let tau=1;tau<=maxTau;tau++){let sum=0;for(let i=0;i<n-tau;i++){const x=buf[i]-buf[i+tau];sum+=x*x}d[tau]=sum}
+  cmnd[0]=1;let run=0;
+  for(let tau=1;tau<=maxTau;tau++){run+=d[tau];cmnd[tau]=d[tau]*tau/(run||1)}
+  let tau=-1;
+  for(let t=minTau;t<=maxTau;t++){if(cmnd[t]<0.13){while(t+1<=maxTau&&cmnd[t+1]<cmnd[t])t++;tau=t;break}}
+  if(tau<0)return null;
+  const x0=Math.max(minTau,tau-1),x2=Math.min(maxTau,tau+1),s0=cmnd[x0],s1=cmnd[tau],s2=cmnd[x2],den=2*s1-s2-s0;
+  const better=den?tau+(s2-s0)/(2*den):tau;const f=sr/better;
+  return (f>=minF&&f<=maxF)?f:null;
+}
+function harmonicH1H8(f0){
+  if(!f0)return null;
+  const ny=ctx.sampleRate/2,binHz=ny/freqData.length,amps=[];
+  for(let h=1;h<=HARMONICS;h++){
+    const target=f0*h;if(target>=ny){amps.push(0);continue}
+    const idx=Math.round(target/binHz),radius=Math.max(1,Math.round(12/binHz));let best=-Infinity;
+    for(let j=Math.max(1,idx-radius);j<=Math.min(freqData.length-1,idx+radius);j++)if(freqData[j]>best)best=freqData[j];
+    amps.push(Math.pow(10,best/20));
+  }
+  const total=amps.reduce((s,x)=>s+x,0);if(total<=0)return null;
+  return amps.map(x=>x/total);
+}
+function setBars(fp){
+  if(!fp){barEls.forEach(b=>b.style.height='0%');return}
+  const mode=uiSettings.barScaleMode||'fixed';
+  const fixedMax=clamp((Number(uiSettings.barFixedMax)||85)/100,.05,1);
+  const curve=clamp(Number(uiSettings.barCurve)||.65,.2,2);
+  const autoMax=Math.max(...fp,1e-9);
+  for(let i=0;i<8;i++){
+    const value=Math.max(0,fp[i]||0);
+    let visual=0;
+    if(value>0){
+      if(mode==='auto'){
+        const rel=clamp(value/autoMax,0,1);
+        visual=clamp(16+84*Math.pow(rel,.42),0,100);
+      }else{
+        const rel=clamp(value/fixedMax,0,1);
+        visual=clamp(100*Math.pow(rel,curve),0,100);
+      }
+    }
+    barEls[i].style.height=`${visual.toFixed(1)}%`;
+  }
+}
+function setState(){/* Tilateksti poistettu käyttöliittymästä kokonaan. */}
+function renderLive(){
+  if(live.f0&&live.label){noteName.textContent=live.label;hzValue.textContent=`${live.f0.toFixed(1)} Hz`;setBars(live.fp)}
+  else{noteName.textContent='–';hzValue.textContent='';setBars(null)}
+}
+function sampleProfileId(s){return s.profileId||s.studentId||''}
+function currentProfile(){return profiles.find(p=>p.id===activeProfileId)||null}
+function profileId(){return activeProfileId||''}
+function renderInstrumentHero(){const p=currentProfile();const inst=instrumentByName(p?.instrument);if(!p||!inst){heroInstrument.classList.add('hidden');heroInstrumentImg.removeAttribute('src');heroInstrumentImg.alt='';return}heroInstrument.classList.remove('hidden');heroInstrumentImg.src=inst.src;heroInstrumentImg.alt=inst.name}
+function renderActiveProfile(){renderInstrumentHero();renderTopProfileMenu()}
+function updateButtons(){
+  const pid=profileId(),count=samples.filter(s=>sampleProfileId(s)===pid).length;
+  const reviewing=!!pendingSample,hasProfile=!!currentProfile();
+  exportBtn.disabled=!hasProfile||count<1||reviewing;
+  sampleBtn.disabled=!hasProfile||recording||reviewing;
+}
+function aggregateProfile(pid,label){
+  const ss=samples.filter(s=>sampleProfileId(s)===pid&&s.note===label);if(!ss.length)return null;
+  const fp=Array(8).fill(0);for(const s of ss)for(let i=0;i<8;i++)fp[i]+=s.harmonics[i]||0;for(let i=0;i<8;i++)fp[i]/=ss.length;
+  return {label,count:ss.length,f0:median(ss.map(s=>s.frequencyHz)),harmonics:fp};
+}
+function currentProfiles(){
+  const pid=profileId(),labels=[...new Set(samples.filter(s=>sampleProfileId(s)===pid).map(s=>s.note))];return labels.map(l=>aggregateProfile(pid,l)).filter(Boolean).sort((a,b)=>a.f0-b.f0);
+}
+function sampleHasWarning(s){return !!s?.qualityCheck?.warning}
+function sampleStatusClass(s){return sampleHasWarning(s)?'warn':s?.qualityCheck?.status==='ok'?'ok':''}
+function sampleStatusMark(s){return sampleHasWarning(s)?'⚠':s?.qualityCheck?.status==='ok'?'✓':''}
+function sampleGroupKey(pid,note){return `${pid}|${note}`}
+function renderSamples(){
+  const pid=profileId(),ss=samples.filter(s=>sampleProfileId(s)===pid),ps=currentProfiles();
+  profileList.replaceChildren();
+  if(!currentProfile()){
+    const empty=document.createElement('div');empty.className='sample-empty';empty.textContent='Valitse tai luo profiili.';profileList.appendChild(empty);renderActiveProfile();updateButtons();return;
+  }
+  if(!ss.length){
+    const empty=document.createElement('div');empty.className='sample-empty';empty.textContent='Ei tallennettuja näytteitä.';profileList.appendChild(empty);renderActiveProfile();updateButtons();return;
+  }
+  for(const p of ps){
+    const groupSamples=ss.filter(s=>s.note===p.label).sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
+    const hasWarning=groupSamples.some(sampleHasWarning),ready=groupSamples.length>=REVIEW_MIN_OWN_SAMPLES;
+    const key=sampleGroupKey(pid,p.label),open=expandedSampleNotes.has(key);
+    const card=document.createElement('div');card.className='sample-note-card'+(open?' open':'');card.dataset.note=p.label;
+    const summary=document.createElement('button');summary.type='button';summary.className='sample-note-summary';summary.dataset.toggleNote=p.label;summary.setAttribute('aria-expanded',open?'true':'false');
+    const name=document.createElement('span');name.className='sample-note-name';name.textContent=p.label;
+    const count=document.createElement('span');count.className='sample-note-count';count.textContent=`${groupSamples.length} ${groupSamples.length===1?'näyte':'näytettä'}`;
+    const status=document.createElement('span');status.className='sample-note-status '+(hasWarning?'warn':ready?'ready':'');status.textContent=hasWarning?'⚠':ready?'✓':'';status.title=hasWarning?'Jossakin näytteessä on varoitus':ready?'Vertailupohja valmis':'';
+    const chev=document.createElement('span');chev.className='sample-note-chevron';chev.textContent='▾';
+    summary.append(name,count,status,chev);
+    const details=document.createElement('div');details.className='sample-note-details';
+    groupSamples.forEach((s,index)=>{
+      const row=document.createElement('div');row.className='sample-detail-row';
+      const label=document.createElement('span');label.className='sample-detail-label';label.textContent=`Näyte ${index+1}`;
+      const hz=document.createElement('span');hz.className='sample-detail-hz';hz.textContent=Number.isFinite(s.frequencyHz)?`${s.frequencyHz.toFixed(1)} Hz`:'–';
+      const st=document.createElement('span');st.className=`sample-detail-status ${sampleStatusClass(s)}`;st.textContent=sampleStatusMark(s);st.title=sampleHasWarning(s)?'Näytteessä on varoitus':s?.qualityCheck?.status==='ok'?'Näyte vastaa referenssiä':'';
+      const del=document.createElement('button');del.type='button';del.className='sample-delete-one';del.dataset.deleteSample=s.id;del.textContent='×';del.setAttribute('aria-label',`Poista ${p.label}, näyte ${index+1}`);del.title='Poista näyte';
+      row.append(label,hz,st,del);details.appendChild(row);
+    });
+    const tools=document.createElement('div');tools.className='sample-note-tools';const delNote=document.createElement('button');delNote.type='button';delNote.className='sample-delete-note';delNote.dataset.deleteNote=p.label;delNote.textContent='Poista kaikki tästä sävelestä';tools.appendChild(delNote);details.appendChild(tools);
+    card.append(summary,details);profileList.appendChild(card);
+  }
+  renderActiveProfile();updateButtons();
+}
+function selectInstrument(name){
+  profileInstrumentInput.value=name||'';
+  for(const b of instrumentGrid.querySelectorAll('.instrument-choice')){const selected=b.dataset.instrument===name;b.classList.toggle('selected',selected);b.setAttribute('aria-checked',selected?'true':'false')}
+  if(instrumentSelected)instrumentSelected.textContent='';
+}
+function renderInstrumentGrid(){
+  instrumentGrid.innerHTML='';
+  for(const inst of INSTRUMENTS){
+    const b=document.createElement('button');b.type='button';b.className='instrument-choice';b.dataset.instrument=inst.name;b.setAttribute('role','radio');b.setAttribute('aria-checked','false');b.setAttribute('aria-label',inst.name);
+    b.innerHTML=`<img src="${inst.src}" alt=""><span>${escapeHtml(inst.name)}</span>`;
+    b.addEventListener('click',()=>selectInstrument(inst.name));instrumentGrid.appendChild(b);
+  }
+  selectInstrument(profileInstrumentInput.value);
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function formatRecentDate(value){
+  const date=new Date(value||'');if(Number.isNaN(date.getTime()))return '';
+  try{return new Intl.DateTimeFormat('fi-FI',{day:'numeric',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(date)}catch(_){return date.toLocaleString()}
+}
+function renderTopProfileMenu(){
+  if(!topProfileList)return;
+  const current=currentProfile();topProfileLabel.textContent=current?`${current.name} • ${current.instrument}`:'+ Uusi profiili';
+  topProfileList.replaceChildren();
+  const sorted=[...profiles].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fi',{sensitivity:'base'}));
+  if(!sorted.length){const empty=document.createElement('div');empty.className='recent-profile-empty';empty.textContent='Ei tallennettuja profiileja.';topProfileList.appendChild(empty)}
+  for(const p of sorted){
+    const row=document.createElement('div');row.className='top-profile-row';
+    const open=document.createElement('button');open.type='button';open.className='top-profile-open'+(p.id===activeProfileId?' active':'');open.dataset.topOpenProfile=p.id;open.textContent=`${p.name} • ${p.instrument}`;
+    const del=document.createElement('button');del.type='button';del.className='top-profile-delete';del.dataset.topDeleteProfile=p.id;del.textContent='×';del.setAttribute('aria-label',`Poista profiili ${p.name||''}`);del.title='Poista profiili';
+    row.append(open,del);topProfileList.appendChild(row);
+  }
+}
+function closeTopProfileMenu(){if(!topProfilePanel)return;topProfilePanel.hidden=true;topProfileTrigger.setAttribute('aria-expanded','false')}
+function toggleTopProfileMenu(){const opening=topProfilePanel.hidden;if(opening){renderTopProfileMenu();topProfilePanel.hidden=false;topProfileTrigger.setAttribute('aria-expanded','true')}else closeTopProfileMenu()}
+async function handleTopProfileClick(ev){
+  const del=ev.target.closest('[data-top-delete-profile]');if(del){ev.preventDefault();ev.stopPropagation();await deleteProfileById(del.dataset.topDeleteProfile);renderTopProfileMenu();return}
+  const open=ev.target.closest('[data-top-open-profile]');if(open){ev.preventDefault();closeTopProfileMenu();await activateProfile(open.dataset.topOpenProfile)}
+}
+function renderProfileSelects(){renderTopProfileMenu()}
+function openProfileChooser(){armed=false;if(recording)stopRecording();pendingSample=null;pendingCheck=null;closeSampleReview();startError.textContent='';profileNameInput.value='';renderInstrumentGrid();selectInstrument('');renderProfileSelects();startOverlay.style.display='flex';requestAnimationFrame(()=>profileNameInput.focus())}
+async function activateProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return;activeProfileId=id;renderSamples();renderProfileSelects();startOverlay.style.display='none';startError.textContent='';try{if(stream)await calibrateMicrophoneNoiseFloor();else await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}}
+function fpSimilarity(a,b){
+  if(!a||!b)return 0;let sum=0;for(let i=0;i<8;i++){const da=20*Math.log10((a[i]||0)+1e-5),dbb=20*Math.log10((b[i]||0)+1e-5);const d=(da-dbb)/18;sum+=d*d}return clamp(100*Math.exp(-.78*Math.sqrt(sum/8)),0,100)
+}
+function evaluateSampleConsistency(s){
+  const sid=sampleProfileId(s);
+  const labels=[...new Set(samples.filter(x=>sampleProfileId(x)===sid).map(x=>x.note))];
+  const profiles=labels.map(label=>aggregateProfile(sid,label)).filter(Boolean);
+  const own=profiles.find(p=>p.label===s.note)||null;
+  if(!own||own.count<REVIEW_MIN_OWN_SAMPLES){
+    return {warning:false,status:'learning',pitchLabel:s.note,ownCount:own?.count||0,sameSimilarity:null,bestHarmonicLabel:null,bestHarmonicSimilarity:null,margin:null};
+  }
+  const sameSimilarity=fpSimilarity(s.harmonics,own.harmonics);
+  const others=profiles.filter(p=>p.label!==s.note&&p.count>=REVIEW_MIN_OTHER_SAMPLES).map(p=>({label:p.label,count:p.count,similarity:fpSimilarity(s.harmonics,p.harmonics)})).sort((a,b)=>b.similarity-a.similarity);
+  const bestOther=others[0]||null;
+  const mismatch=!!bestOther&&bestOther.similarity>=REVIEW_MISMATCH_MIN_SIM&&bestOther.similarity>=sameSimilarity+REVIEW_MISMATCH_MARGIN;
+  const ownOutlier=sameSimilarity<REVIEW_OWN_LOW_SIM;
+  if(mismatch){
+    return {warning:true,status:'harmonic_mismatch',pitchLabel:s.note,ownCount:own.count,sameSimilarity,bestHarmonicLabel:bestOther.label,bestHarmonicSimilarity:bestOther.similarity,margin:bestOther.similarity-sameSimilarity};
+  }
+  if(ownOutlier){
+    return {warning:true,status:'harmonic_outlier',pitchLabel:s.note,ownCount:own.count,sameSimilarity,bestHarmonicLabel:bestOther?.label||null,bestHarmonicSimilarity:bestOther?.similarity??null,margin:bestOther?bestOther.similarity-sameSimilarity:null};
+  }
+  return {warning:false,status:'ok',pitchLabel:s.note,ownCount:own.count,sameSimilarity,bestHarmonicLabel:bestOther?.label||null,bestHarmonicSimilarity:bestOther?.similarity??null,margin:bestOther?bestOther.similarity-sameSimilarity:null};
+}
+function qualityCheckForExport(check,acceptedDespiteWarning=false){
+  return {status:check.status,warning:!!check.warning,acceptedDespiteWarning:!!acceptedDespiteWarning,pitchLabel:check.pitchLabel,ownReferenceSamples:check.ownCount,sameNoteHarmonicSimilarity:check.sameSimilarity,bestOtherHarmonicLabel:check.bestHarmonicLabel,bestOtherHarmonicSimilarity:check.bestHarmonicSimilarity,otherVsSameMargin:check.margin,thresholds:{minOwnSamples:REVIEW_MIN_OWN_SAMPLES,minOtherSamples:REVIEW_MIN_OTHER_SAMPLES,mismatchMinSimilarity:REVIEW_MISMATCH_MIN_SIM,mismatchMargin:REVIEW_MISMATCH_MARGIN,ownLowSimilarity:REVIEW_OWN_LOW_SIM}};
+}
+async function commitSample(s,check,acceptedDespiteWarning=false){
+  s.qualityCheck=qualityCheckForExport(check,acceptedDespiteWarning);
+  // Näytä ja hyväksy näyte heti muistissa. IndexedDB ei saa jumittaa käyttöliittymää.
+  samples.push(s);renderSamples();touchProfile(sampleProfileId(s));
+  const suffix=acceptedDespiteWarning?' • hyväksytty varoituksesta huolimatta':'';
+  setState(`Tallennettu: ${s.note}${suffix}`,'ok');
+  // Pysyvä tallennus tehdään taustalla tämän saman ajokerran aikana.
+  persistSample(s).catch(e=>console.warn('Näytteen pysyvä tallennus epäonnistui',e));
+}
+function showSampleReview(s,check){
+  pendingSample=s;pendingCheck=check;updateButtons();
+  if(check.status==='harmonic_mismatch'){
+    reviewMain.textContent=`Pohjasävel: ${s.note} • H1–H8 muistuttaa enemmän säveltä ${check.bestHarmonicLabel}`;
+    reviewDetail.textContent=`Oman ${s.note}-profiilin samankaltaisuus ${Math.round(check.sameSimilarity)} %. ${check.bestHarmonicLabel}-profiili ${Math.round(check.bestHarmonicSimilarity)} %. Näytettä ei ole vielä tallennettu.`;
+  }else{
+    reviewMain.textContent=`Pohjasävel: ${s.note} • yläsävelprofiili poikkeaa aiemmista ${s.note}-näytteistä`;
+    const other=check.bestHarmonicLabel?` Lähin muu profiili: ${check.bestHarmonicLabel} ${Math.round(check.bestHarmonicSimilarity)} %.`:'';
+    reviewDetail.textContent=`Oman ${s.note}-profiilin samankaltaisuus on ${Math.round(check.sameSimilarity)} %.${other} Näytettä ei ole vielä tallennettu.`;
+  }
+  reviewOverlay.classList.add('show');
+  retrySampleBtn.focus({preventScroll:true});
+}
+function closeSampleReview(){reviewOverlay.classList.remove('show')}
+async function acceptPendingSample(){
+  if(!pendingSample||!pendingCheck)return;
+  const s=pendingSample,check=pendingCheck;pendingSample=null;pendingCheck=null;closeSampleReview();await commitSample(s,check,true);updateButtons();
+}
+function retryPendingSample(){
+  if(!pendingSample)return;
+  pendingSample=null;pendingCheck=null;closeSampleReview();updateButtons();
+  armed=true;silenceSince=null;
+  setState('Uudelleen • seuraava puhallus tallentuu.','armed');
+}
+
+function cleanSampleForJson(s){const {audioBlob,...clean}=s;return clean}
+function writeFallbackSnapshot(){
+  try{localStorage.setItem(FALLBACK_KEY,JSON.stringify({profiles:profiles.map(p=>({...p})),samples:samples.map(cleanSampleForJson)}));return true}catch(_){return false}
+}
+function readFallbackSnapshot(){
+  try{const raw=localStorage.getItem(FALLBACK_KEY);if(!raw)return {profiles:[],samples:[]};const data=JSON.parse(raw);return {profiles:Array.isArray(data?.profiles)?data.profiles:[],samples:Array.isArray(data?.samples)?data.samples:[]}}catch(_){return {profiles:[],samples:[]}}
+}
+async function touchProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return;p.updatedAt=new Date().toISOString();renderProfileSelects();persistProfile(p).catch(()=>{});writeFallbackSnapshot()}
+
+async function openDb(){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    const r=indexedDB.open('aaninaeyte-dev-01',2);
+    r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('samples'))d.createObjectStore('samples',{keyPath:'id'});if(!d.objectStoreNames.contains('profiles'))d.createObjectStore('profiles',{keyPath:'id'})};
+    r.onsuccess=()=>{if(settled){try{r.result.close()}catch(_){ }return}settled=true;const d=r.result;d.onversionchange=()=>{try{d.close()}catch(_){ }};resolve(d)};
+    r.onerror=()=>{if(!settled){settled=true;reject(r.error)}};
+    r.onblocked=()=>{if(!settled){settled=true;reject(new Error('Tietokannan päivitys on estynyt toisessa avoimessa välilehdessä.'))}};
+  })
+}
+async function readStore(name){return new Promise((resolve,reject)=>{const r=db.transaction(name,'readonly').objectStore(name).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+async function rewriteSingleProfileData(keepProfile,keepSamples){
+  if(!db)try{db=await openDb()}catch(_){return}
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(['profiles','samples'],'readwrite');
+    const profileStore=tx.objectStore('profiles');
+    const sampleStore=tx.objectStore('samples');
+    profileStore.clear();
+    sampleStore.clear();
+    if(keepProfile)profileStore.put(keepProfile);
+    for(const s of keepSamples||[])sampleStore.put(s);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+    tx.onabort=()=>reject(tx.error||new Error('Tietokannan päivitys keskeytyi.'));
+  })
+}
+async function loadStored(){
+  try{
+    db=await openDb();samples=await readStore('samples');profiles=await readStore('profiles');
+    if(!profiles.length&&!samples.length){const fb=readFallbackSnapshot();if(fb.profiles.length||fb.samples.length){profiles=fb.profiles;samples=fb.samples;for(const p of profiles)await persistProfile(p);for(const s of samples)await persistSample(s)}}
+    if(!profiles.length&&samples.length){
+      const legacy=[...new Set(samples.map(s=>sampleProfileId(s)).filter(Boolean))];
+      for(const id of legacy){const any=samples.find(s=>sampleProfileId(s)===id);const p={id,name:any?.studentName||id,instrument:any?.instrument||'Ei määritelty',createdAt:any?.createdAt||new Date().toISOString(),updatedAt:any?.createdAt||new Date().toISOString(),legacy:true};profiles.push(p);await persistProfile(p)}
+    }
+    for(const p of profiles)if(!p.updatedAt)p.updatedAt=p.createdAt||new Date().toISOString();
+    activeProfileId=null;writeFallbackSnapshot();renderSamples();renderProfileSelects();openProfileChooser();
+  }catch(e){console.warn('IndexedDB ei käytettävissä',e);const fb=readFallbackSnapshot();profiles=fb.profiles;samples=fb.samples;for(const p of profiles)if(!p.updatedAt)p.updatedAt=p.createdAt||new Date().toISOString();activeProfileId=null;renderSamples();renderProfileSelects();openProfileChooser()}
+}
+async function persistSample(s){
+  if(!db)try{db=await openDb()}catch(_){writeFallbackSnapshot();return}
+  try{await new Promise((resolve,reject)=>{const r=db.transaction('samples','readwrite').objectStore('samples').put(s);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}catch(e){console.warn('Tallennus epäonnistui',e)}finally{writeFallbackSnapshot()}
+}
+async function persistProfile(p){
+  if(!db)try{db=await openDb()}catch(_){writeFallbackSnapshot();return}
+  try{await new Promise((resolve,reject)=>{const r=db.transaction('profiles','readwrite').objectStore('profiles').put(p);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}catch(e){console.warn('Profiilin tallennus epäonnistui',e)}finally{writeFallbackSnapshot()}
+}
+async function createProfile(){
+  const name=profileNameInput.value.trim(),instrument=profileInstrumentInput.value.trim();
+  // Tyhjänä ALOITA toimii pelkkänä sisäänkäyntinä analysaattoriin.
+  // Jos uuden profiilin tekoa on jo aloitettu, nimi ja soitin täytetään yhdessä.
+  if(name&&!instrument){startError.textContent='Valitse myös soitin tai tyhjennä nimikenttä.';instrumentGrid.querySelector('.instrument-choice')?.focus();return}
+  if(!name&&instrument){startError.textContent='Kirjoita myös oppilaan nimi tai poista soitinvalinta.';profileNameInput.focus();return}
+  let saveProfile=Promise.resolve();
+  if(name&&instrument){
+    const p={id:`profile_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,name,instrument,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    profiles.push(p);activeProfileId=p.id;saveProfile=persistProfile(p);
+  }
+  renderSamples();renderProfileSelects();profileNameInput.value='';selectInstrument('');startError.textContent='';startOverlay.style.display='none';
+  const micStart=stream?calibrateMicrophoneNoiseFloor():startMic();
+  try{await micStart;await saveProfile}
+  catch(err){await saveProfile.catch(()=>{});startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}
+}
+async function deleteSamplesForProfile(pid){
+  if(!db)try{db=await openDb()}catch(_){writeFallbackSnapshot();return}const ids=samples.filter(s=>sampleProfileId(s)===pid).map(s=>s.id);if(!ids.length){writeFallbackSnapshot();return}
+  await new Promise(resolve=>{const tx=db.transaction('samples','readwrite'),store=tx.objectStore('samples');for(const id of ids)store.delete(id);tx.oncomplete=tx.onerror=()=>resolve()});writeFallbackSnapshot();
+}
+async function deleteProfileRecord(pid){
+  if(!db)try{db=await openDb()}catch(_){writeFallbackSnapshot();return}await new Promise(resolve=>{const tx=db.transaction('profiles','readwrite');tx.objectStore('profiles').delete(pid);tx.oncomplete=tx.onerror=()=>resolve()});writeFallbackSnapshot();
+}
+async function deleteProfileById(id){
+  const p=profiles.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`Poistetaanko profiili ${p.name} ja kaikki sen tallennetut näytteet?`))return;
+  const wasActive=activeProfileId===p.id;await deleteSamplesForProfile(p.id);await deleteProfileRecord(p.id);
+  samples=samples.filter(s=>sampleProfileId(s)!==p.id);profiles=profiles.filter(x=>x.id!==p.id);
+  if(wasActive){
+    const remaining=[...profiles].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fi',{sensitivity:'base'}));
+    activeProfileId=remaining[0]?.id||null;
+  }
+  writeFallbackSnapshot();
+  renderSamples();renderProfileSelects();
+  setState('Profiili poistettu.');
+}
+async function deleteActiveProfile(){const p=currentProfile();if(p)await deleteProfileById(p.id)}
+async function deleteSampleIds(ids){
+  const idSet=new Set(ids||[]);if(!idSet.size)return;
+  if(!db)try{db=await openDb()}catch(_){db=null}
+  if(db)await new Promise(resolve=>{const tx=db.transaction('samples','readwrite'),store=tx.objectStore('samples');for(const id of idSet)store.delete(id);tx.oncomplete=tx.onerror=()=>resolve()});
+  samples=samples.filter(s=>!idSet.has(s.id));const pid=profileId();if(pid)await touchProfile(pid);writeFallbackSnapshot();renderSamples();
+}
+async function deleteOneSample(id){
+  const s=samples.find(x=>x.id===id);if(!s)return;
+  if(!confirm(`Poistetaanko näyte ${s.note}?`))return;
+  await deleteSampleIds([id]);
+}
+async function deleteNoteSamples(note){
+  const pid=profileId();if(!pid)return;const ids=samples.filter(s=>sampleProfileId(s)===pid&&s.note===note).map(s=>s.id);if(!ids.length)return;
+  if(!confirm(`Poistetaanko kaikki sävelen ${note} näytteet?`))return;
+  expandedSampleNotes.delete(sampleGroupKey(pid,note));await deleteSampleIds(ids);
+}
+function handleSampleListClick(ev){
+  const delOne=ev.target.closest('[data-delete-sample]');if(delOne){ev.preventDefault();ev.stopPropagation();deleteOneSample(delOne.dataset.deleteSample);return}
+  const delNote=ev.target.closest('[data-delete-note]');if(delNote){ev.preventDefault();ev.stopPropagation();deleteNoteSamples(delNote.dataset.deleteNote);return}
+  const toggle=ev.target.closest('[data-toggle-note]');if(!toggle)return;const note=toggle.dataset.toggleNote,key=sampleGroupKey(profileId(),note);if(expandedSampleNotes.has(key))expandedSampleNotes.delete(key);else expandedSampleNotes.add(key);renderSamples();
+}
+async function clearAll(){
+  const p=currentProfile();if(!p)return;
+  if(!confirm(`Tyhjennetäänkö oppilaan ${p.name} kaikki tallennetut näytteet? Profiili säilyy.`))return;
+  const pid=p.id;await deleteSamplesForProfile(pid);samples=samples.filter(s=>sampleProfileId(s)!==pid);await touchProfile(pid);writeFallbackSnapshot();
+  renderSamples();setState('Oppilaan näytteet tyhjennetty.')
+}
+
+function mimeType(){const types=['audio/webm;codecs=opus','audio/mp4','audio/webm'];return types.find(t=>window.MediaRecorder?.isTypeSupported?.(t))||''}
+function beginRecording(){
+  if(recording||!stream)return;
+  recording=true;armed=false;finalizingRecording=false;sampleStartedAt=performance.now();sampleFrames=[];recordedChunks=[];silenceSince=null;recorder=null;
+  // Raaka-audio on hyödyllinen lisä, mutta analyysinäytteen tallennus ei saa riippua MediaRecorderista.
+  try{
+    if(window.MediaRecorder){
+      const type=mimeType();recorder=new MediaRecorder(stream,type?{mimeType:type}:undefined);
+      recorder.ondataavailable=e=>{if(e.data&&e.data.size)recordedChunks.push(e.data)};
+      recorder.onstop=()=>finalizeRecording();
+      recorder.onerror=e=>console.warn('MediaRecorder-virhe',e);
+      recorder.start(100);
+    }
+  }catch(e){console.warn('Raaka-audion tallennus ei käynnistynyt, analyysidata tallennetaan silti.',e);recorder=null}
+  setState('TALLENNUS • soita sävel','recording');updateButtons();
+}
+function stopRecording(){
+  if(!recording)return;
+  recording=false;updateButtons();
+  if(recorder&&recorder.state!=='inactive'){
+    try{recorder.stop();return}catch(e){console.warn('MediaRecorderin pysäytys epäonnistui',e)}
+  }
+  finalizeRecording();
+}
+async function finalizeRecording(){
+  if(finalizingRecording)return;finalizingRecording=true;
+  const dur=Math.round(performance.now()-sampleStartedAt);
+  if(dur<MIN_SAMPLE_MS||sampleFrames.length<3){finalizingRecording=false;setState('Näyte oli liian lyhyt. Paina ALOITA NÄYTE uudelleen.');return}
+  const f0s=sampleFrames.map(f=>f.f0).filter(Boolean),dbs=sampleFrames.map(f=>f.db).filter(Number.isFinite);if(!f0s.length){finalizingRecording=false;setState('Sävelkorkeutta ei saatu näytteestä.');return}
+  const f0=median(f0s),note=freqToNote(f0);const fp=Array(8).fill(0);let fpCount=0;
+  for(const fr of sampleFrames){if(!fr.fp)continue;for(let i=0;i<8;i++)fp[i]+=fr.fp[i]||0;fpCount++}if(fpCount)for(let i=0;i<8;i++)fp[i]/=fpCount;
+  const blob=recordedChunks.length?new Blob(recordedChunks,{type:recorder?.mimeType||'audio/webm'}):null;
+  const p=currentProfile();if(!p){finalizingRecording=false;setState('Valitse ensin oppilasprofiili.');return}const s={id:`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,profileId:p.id,studentId:p.id,studentName:p.name,instrument:p.instrument,note:note?.label||'?',midi:note?.midi??null,frequencyHz:f0,durationMs:dur,medianDb:median(dbs),harmonics:fp,frames:sampleFrames.length,createdAt:new Date().toISOString(),audioType:blob?.type||null,audioBlob:blob};
+  const check=evaluateSampleConsistency(s);
+  if(check.warning){finalizingRecording=false;setState('Näyte odottaa tarkistusta.','armed');showSampleReview(s,check);return}
+  await commitSample(s,check,false);finalizingRecording=false;
+}
+function armSample(){
+  if(recording||pendingSample)return;armed=true;silenceSince=null;
+  setState(live.label?`Valmis. ${live.label} näkyy nyt • seuraava puhallus tallentuu.`:'Valmis. Seuraava puhallus tallentuu.','armed')
+}
+
+function processFrame(){
+  if(!analyser)return;
+  analyser.getFloatTimeDomainData(timeData);const dbNow=rmsDb(timeData);const loud=dbNow>dbThreshold;
+  if(loud){
+    analyser.getFloatFrequencyData(freqData);const f0=yin(timeData,ctx.sampleRate);const fp=f0?harmonicH1H8(f0):null;const n=freqToNote(f0);
+    live={f0,db:dbNow,fp,label:n?.label||null,midi:n?.midi??null};renderLive();
+    if(armed&&!recording)beginRecording();
+    if(recording&&f0&&fp){sampleFrames.push({t:Math.round(performance.now()-sampleStartedAt),f0,db:dbNow,fp:[...fp]});silenceSince=null}
+    soundWasLoud=true;
+  }else{
+    live={f0:null,db:dbNow,fp:null,label:null,midi:null};renderLive();
+    if(recording){if(silenceSince===null)silenceSince=performance.now();const elapsed=performance.now()-sampleStartedAt;if((performance.now()-silenceSince)>END_SILENCE_MS||elapsed>MAX_SAMPLE_MS)stopRecording()}
+    soundWasLoud=false;
+  }
+}
+
+function updateCalibrationVisual(dbv,progress){const shown=Number.isFinite(dbv)?clamp(dbv,-90,-30):-90,ratio=(shown+90)/60,angle=-90+ratio*180;calNeedleGroup.setAttribute('transform',`rotate(${angle.toFixed(2)} 559 365)`);calDbValue.textContent=Number.isFinite(dbv)?`${Math.round(dbv)} dB`:'– dB';calProgressFill.setAttribute('width',(414*clamp(progress,0,1)).toFixed(1))}
+async function calibrateMicrophoneNoiseFloor(){
+  if(!analyser||!timeData)return false;if(timer){clearInterval(timer);timer=null}
+  armed=false;if(recording)stopRecording();pendingSample=null;pendingCheck=null;closeSampleReview();setBars(null);noteName.textContent='–';hzValue.textContent='';
+  calOverlay.classList.add('show');updateCalibrationVisual(-90,0);
+  const total=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS,start=performance.now();
+  while(performance.now()-start<MIC_CAL_WARMUP_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);updateCalibrationVisual(l,(performance.now()-start)/total);await sleepMs(33)}
+  const vals=[],mstart=performance.now();
+  while(performance.now()-mstart<MIC_CAL_MEASURE_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);if(Number.isFinite(l))vals.push(l);updateCalibrationVisual(l,(MIC_CAL_WARMUP_MS+performance.now()-mstart)/total);await sleepMs(33)}
+  if(!vals.length)dbThreshold=-70;else{vals.sort((a,b)=>a-b);const nf=median(vals);dbThreshold=clamp(Math.round(nf+MIC_CAL_MARGIN_DB),DB_MIN,DB_MAX)}
+  updateCalibrationVisual(median(vals),1);await sleepMs(180);timer=setInterval(processFrame,FRAME_MS);calOverlay.classList.remove('show');setState('');return true;
+}
+async function startMic(){
+  if(stream)return true;if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');
+  ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state!=='running')await ctx.resume();
+  const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};const c={echoCancellation:false,noiseSuppression:false,autoGainControl:false};if(supported.voiceIsolation)c.voiceIsolation=false;
+  stream=await navigator.mediaDevices.getUserMedia({audio:c});const src=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.08;analyser.minDecibels=-110;analyser.maxDecibels=-10;src.connect(analyser);timeData=new Float32Array(analyser.fftSize);freqData=new Float32Array(analyser.frequencyBinCount);await calibrateMicrophoneNoiseFloor();return true;
+}
+function exportJson(){
+  const p=currentProfile();if(!p)return;const selected=samples.filter(s=>sampleProfileId(s)===p.id);const clean=selected.map(cleanSampleForJson);
+  const payload={format:'aaninaeyte-dev-0.3.21-ui-lab',exportedAt:new Date().toISOString(),activeProfileId:p.id,profiles:[{...p}],calibration:{thresholdDb:dbThreshold,warmupMs:MIC_CAL_WARMUP_MS,measureMs:MIC_CAL_MEASURE_MS,marginDb:MIC_CAL_MARGIN_DB},samples:clean};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);const safe=String(p.name||'profiili').replace(/[^a-z0-9åäö_-]+/gi,'_');a.download=`aaninaeyte_${safe}_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)
+}
+
+function normalizeImportedProfilePayload(raw){
+  if(!raw||typeof raw!=='object')throw new Error('Virheellinen JSON-tiedosto.');
+  let p=null;
+  if(Array.isArray(raw.profiles)&&raw.profiles.length){
+    const wanted=raw.activeProfileId?raw.profiles.find(x=>x?.id===raw.activeProfileId):null;p=wanted||raw.profiles[0];
+  }else if(raw.profile&&typeof raw.profile==='object')p=raw.profile;
+  if(!p||!p.id||!p.name)throw new Error('Tiedostossa ei ole kelvollista oppilasprofiilia.');
+  const profile={...p,id:String(p.id),name:String(p.name).trim(),instrument:String(p.instrument||'').trim(),updatedAt:new Date().toISOString()};
+  if(!profile.createdAt)profile.createdAt=profile.updatedAt;
+  const sourceSamples=Array.isArray(raw.samples)?raw.samples:[];
+  const importedSamples=sourceSamples.filter(Boolean).filter(s=>{const sid=sampleProfileId(s);return !sid||sid===String(p.id)}).map(s=>({...s,profileId:profile.id,studentId:profile.id,studentName:profile.name,instrument:profile.instrument,audioBlob:undefined}));
+  return {profile,samples:importedSamples};
+}
+async function replaceProfileData(profile,importedSamples){
+  if(!db)try{db=await openDb()}catch(_){db=null}
+  if(db){
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(['profiles','samples'],'readwrite'),ps=tx.objectStore('profiles'),ss=tx.objectStore('samples');
+      ps.put(profile);
+      const req=ss.getAll();
+      req.onsuccess=()=>{for(const old of req.result||[])if(sampleProfileId(old)===profile.id)ss.delete(old.id);for(const s of importedSamples)ss.put(s)};
+      req.onerror=()=>reject(req.error);
+      tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Tuonti keskeytyi.'));
+    });
+  }
+  profiles=profiles.filter(x=>x.id!==profile.id);profiles.push(profile);
+  samples=samples.filter(s=>sampleProfileId(s)!==profile.id);samples.push(...importedSamples);writeFallbackSnapshot();renderProfileSelects();
+}
+async function openProfileFromFile(file){
+  const raw=JSON.parse(await file.text());const imported=normalizeImportedProfilePayload(raw);const existing=profiles.find(p=>p.id===imported.profile.id);
+  if(existing&&!confirm(`Profiili ${existing.name} on jo tallennettu. Korvataanko se tiedoston versiolla?`))return;
+  await replaceProfileData(imported.profile,imported.samples);await activateProfile(imported.profile.id);setState(`Profiili ladattu tiedostosta: ${imported.profile.name}`,'ok');
+}
+async function handleProfileFileInput(){
+  const file=profileFileInput.files&&profileFileInput.files[0];profileFileInput.value='';if(!file)return;
+  try{startError.textContent='';await openProfileFromFile(file)}catch(err){console.error(err);const msg=err?.message||'Profiilitiedostoa ei voitu avata.';startError.textContent=msg;setState(msg)}
+}
+$('#createProfileBtn').addEventListener('click',createProfile);
+profileNameInput.addEventListener('keydown',e=>{if(e.key==='Enter')instrumentGrid.querySelector('.instrument-choice')?.focus()});
+topProfileTrigger.addEventListener('click',e=>{e.preventDefault();toggleTopProfileMenu()});
+topProfileList.addEventListener('click',handleTopProfileClick);
+topProfileNew.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();openProfileChooser()});
+topProfileFile.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();profileFileInput.click()});
+profileFileInput.addEventListener('change',handleProfileFileInput);
+profileList.addEventListener('click',handleSampleListClick);
+document.addEventListener('pointerdown',e=>{if(!topProfilePanel.hidden&&!e.target.closest('#topProfileMenu'))closeTopProfileMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!topProfilePanel.hidden)closeTopProfileMenu()});
+$('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
+sampleBtn.addEventListener('click',armSample);exportBtn.addEventListener('click',exportJson);acceptSampleBtn.addEventListener('click',acceptPendingSample);retrySampleBtn.addEventListener('click',retryPendingSample);$('#clearBtn').addEventListener('click',clearAll);
+initUiDev();renderInstrumentGrid();loadStored();updateButtons();
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+})();
+</script>
+</body>
+</html>
