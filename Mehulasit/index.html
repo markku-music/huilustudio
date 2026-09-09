@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#d8f2ff">
-<meta name="application-name" content="Juomalasipeli H1–H8">
+<meta name="application-name" content="Juomalasipeli">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,97 +12,159 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-<title>Viiden mehulasin peli H1–H8 PLAY 0.6</title>
+<title>Viiden mehulasin peli – Scoreboard 1.4.2</title>
 <style>
 :root{
-  --ink:#173f61;--muted:#52728a;--panel:rgba(255,255,255,.94);--line:#b9d7e8;
-  --sky1:#8dd7ff;--sky2:#e9f8ff;--water:#3ca9ef;--water2:#89d9ff;--good:#27a65e;--warn:#e7a824;
+  --sky1:#8dd7ff;--sky2:#e9f8ff;--ink:#173f61;--panel:rgba(255,255,255,.92);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#cfefff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#cfefff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button,input{font:inherit}
 button{cursor:pointer}
 #app{position:fixed;inset:0;overflow:hidden;background:linear-gradient(180deg,var(--sky1),var(--sky2) 80%,#f7fbff)}
-.topbar{position:absolute;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.title{font-weight:950;font-size:clamp(18px,2.3vw,30px);text-shadow:0 1px 0 rgba(255,255,255,.5)}
-.top-actions{display:flex;gap:8px;align-items:center}
-.pill,.iconbtn{border:0;background:rgba(255,255,255,.86);color:var(--ink);box-shadow:0 4px 14px rgba(24,77,113,.12);font-weight:850}
-.pill{height:38px;padding:0 13px;border-radius:999px;font-size:12px}
-.iconbtn{width:38px;height:38px;border-radius:50%;font-size:20px}
-.stage{position:absolute;inset:64px 16px 104px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(8px,2vw,28px);align-items:end;justify-items:center}
-.note-column{width:100%;height:100%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
-.note-label{font-size:clamp(22px,3.4vw,44px);font-weight:1000;margin-bottom:6px}
-.glass-wrap{position:relative;width:min(17vw,180px);min-width:72px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center}
-.glass-scene{position:relative;width:100%;height:100%;filter:drop-shadow(0 12px 18px rgba(35,100,139,.16))}
-.glass-scene>img,.glass-scene>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#designViewport{
+  position:absolute;
+  left:50%;top:50%;
+  width:1366px;height:768px;
+  transform-origin:center center;
+  --glass-user-scale:1;
+  --label-user-scale:1;
+  --score-width:620px;
+  --score-chart-height:240px;
+  --score-bar-width:42px;
+  --score-gap:14px;
+}
+.controls{position:absolute;top:14px;right:18px;z-index:25;display:flex;gap:8px}
+.iconbtn{width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.88);color:var(--ink);box-shadow:0 4px 14px rgba(24,77,113,.12);font-size:20px;font-weight:900}
+.stage{position:absolute;left:16px;right:16px;top:24px;bottom:18px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;align-items:end;justify-items:center}
+.note-column{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;min-width:0;--accent:#ffffff}
+.glass-wrap{position:relative;width:182px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center}
+.glass-scene{position:relative;width:100%;height:100%;filter:drop-shadow(0 12px 18px rgba(35,100,139,.16));border-radius:14% 14% 17% 17%;transition:transform .08s ease,filter .08s ease;transform:scale(var(--glass-user-scale));transform-origin:50% 100%}
+.glass-scene>img,.glass-scene>svg,.glass-sticker-wrap{position:absolute;inset:0;width:100%;height:100%;display:block}
 .glass-back{z-index:1;object-fit:contain}
 .glass-juice{z-index:2;pointer-events:none;overflow:visible}
-.glass-front{z-index:3;object-fit:contain;pointer-events:none}
-.percent{font-weight:900;font-size:clamp(12px,1.6vw,17px);margin-top:6px;min-height:20px}
-.flavor-label{font-size:clamp(9px,1.05vw,12px);font-weight:850;color:rgba(23,63,97,.72);margin-top:1px;min-height:16px}
-.live-ring{position:absolute;z-index:5;inset:2.5% 1.5%;border:4px solid transparent;border-radius:12% 12% 18% 18%;pointer-events:none;transition:border-color .1s,box-shadow .1s}
-.note-column.active .live-ring{border-color:rgba(23,63,97,.52);box-shadow:0 0 0 4px rgba(255,255,255,.28)}
-.note-column.good .live-ring{border-color:rgba(39,166,94,.82)}
-.bottom{position:absolute;left:16px;right:16px;bottom:max(12px,env(safe-area-inset-bottom));z-index:15;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.77);backdrop-filter:blur(8px);padding:10px 14px;border-radius:18px;box-shadow:0 7px 24px rgba(24,77,113,.12)}
-.status{font-weight:900;min-width:160px;flex:1}.status small{display:block;color:var(--muted);font-weight:700;margin-top:2px}.progress-track{height:12px;flex:1.2;background:#d7e8f2;border-radius:999px;overflow:hidden}.progress-fill{height:100%;width:0;background:#34a86a;transition:width .15s linear}
-#devPanel{position:absolute;right:max(12px,env(safe-area-inset-right));top:58px;z-index:40;width:min(440px,54vw);max-height:calc(100% - 78px);overflow:auto;background:rgba(18,47,68,.94);color:white;border-radius:16px;padding:13px;display:none;box-shadow:0 12px 32px rgba(0,0,0,.22)}
-#devPanel.open{display:block}.dev-grid{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:center;font-size:12px}.dev-grid strong{text-align:right}.dev-section{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18)}.refs{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px 8px;font-size:11px;align-items:start}.refs code{white-space:normal;line-height:1.35}.refs code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#c6efff}.dev-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.dev-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:850}
-#startOverlay,#calOverlay,#trainOverlay,#rotateOverlay{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(92,177,227,.48);backdrop-filter:blur(7px)}
-.overlay-card{width:min(500px,90vw);border-radius:24px;padding:22px;background:rgba(255,255,255,.96);text-align:center;box-shadow:0 18px 55px rgba(27,81,116,.2)}
-.primary{border:0;border-radius:15px;padding:12px 24px;background:#173f61;color:white;font-weight:950;font-size:18px}.error{color:#a13c3c;font-size:13px;font-weight:800;min-height:18px;margin:8px 0 0}
-#calOverlay,#trainOverlay{display:none;background:rgba(20,54,78,.58)}
-#calOverlay.show,#trainOverlay.show{display:flex}
-.cal-panel{position:relative;width:min(608px,73.6vw,calc(70.4vh * 1.5658));aspect-ratio:1118/714;border-radius:24px;overflow:hidden;filter:drop-shadow(0 18px 34px rgba(9,37,57,.34))}.cal-panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}.cal-live{position:absolute;inset:0;width:100%;height:100%}.cal-db{font:950 60px system-ui;fill:#fff}.cal-tick{stroke:#173f61;stroke-width:6;stroke-linecap:round}.cal-scale{font:850 21px system-ui;fill:#173f61}.cal-needle{stroke:#e84d2f;stroke-width:15;stroke-linecap:round}.cal-needle-tip{fill:#e84d2f}.cal-hub{fill:#24313d;stroke:#0e1820;stroke-width:5}.cal-progress-track{fill:rgba(36,59,76,.24)}
-.train-card h1{font-size:clamp(34px,7vw,72px);margin:0 0 6px}.train-card p{margin:6px 0;font-weight:800}.countdown{font-size:clamp(48px,10vw,96px);font-weight:1000;line-height:1;margin:14px 0}.meter{height:16px;background:#dcebf4;border-radius:999px;overflow:hidden;margin-top:14px}.meter>div{height:100%;width:0;background:#36a86a;transition:width .06s linear}
-#rotateOverlay{display:none;z-index:90;background:#87cff8}#rotateOverlay .overlay-card{max-width:360px}#rotateIcon{font-size:48px}
+.glass-sticker-wrap{z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:30% 15% 24%}
+.glass-sticker{width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.10));transform:scale(var(--label-user-scale));transform-origin:center center}
+.glass-front{z-index:4;object-fit:contain;pointer-events:none}
+.live-ring{display:none}
+.note-column.active .glass-scene{transform:scale(var(--glass-user-scale))}
+.settings-panel{position:absolute;top:66px;right:18px;z-index:95;width:330px;max-height:680px;overflow:auto;padding:16px;border-radius:18px;background:var(--panel);box-shadow:0 14px 34px rgba(24,77,113,.19);display:none;color:var(--ink)}
+.settings-panel.open{display:block}
+.setting{display:grid;gap:6px;margin-bottom:15px}
+.setting:last-of-type{margin-bottom:10px}
+.setting-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:850}
+.setting-value{font-variant-numeric:tabular-nums;min-width:46px;text-align:right}
+.settings-panel input[type=range]{width:100%;accent-color:#2879ad}
+.settings-reset{width:100%;border:0;border-radius:11px;padding:9px 10px;background:#e8f2f8;color:var(--ink);font-weight:850}
+.settings-section-title{margin:4px 0 10px;padding-top:10px;border-top:1px solid rgba(23,63,97,.13);font-size:13px;font-weight:950;letter-spacing:.04em;text-transform:uppercase;color:rgba(23,63,97,.72)}
+.settings-json{width:100%;height:92px;margin:8px 0 7px;padding:8px 9px;resize:vertical;border:1px solid rgba(23,63,97,.18);border-radius:10px;background:#f7fbfe;color:var(--ink);font:700 11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+.settings-json-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.settings-json-btn{border:0;border-radius:10px;padding:8px 8px;background:#e8f2f8;color:var(--ink);font-weight:900}
+.settings-json-status{min-height:16px;margin:0 0 8px;font-size:11px;font-weight:800;color:rgba(23,63,97,.72)}
+.run-clock{position:absolute;top:14px;left:50%;z-index:24;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:7px 16px;border-radius:18px;background:rgba(255,255,255,.88);box-shadow:0 4px 14px rgba(24,77,113,.12);color:var(--ink);font-weight:950;font-size:20px;font-variant-numeric:tabular-nums}
+.run-clock.show{display:flex}
+#scoreOverlay{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(59,137,188,.52);backdrop-filter:blur(8px)}
+#scoreOverlay.show{display:flex}
+.score-card{position:relative;width:var(--score-width);max-width:92vw;padding:12px 18px 14px;border-radius:22px;background:rgba(255,255,255,.97);box-shadow:0 20px 55px rgba(23,63,97,.25);color:var(--ink);text-align:center}
+.score-settings-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(232,242,248,.96);color:var(--ink);font-size:15px;font-weight:950;z-index:2}
+.score-title,.score-ideal-label,.score-feedback,.score-sub{display:none}
+.score-total{margin:0 32px 2px;font-size:22px;font-weight:1000;font-variant-numeric:tabular-nums}
+.score-chart{position:relative;height:var(--score-chart-height);margin:0 4px 2px;padding:8px 16px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:var(--score-gap);align-items:end;border-bottom:3px solid rgba(23,63,97,.18)}
+.score-ideal-line{position:absolute;left:10px;right:10px;height:0;border-top:3px dashed rgba(23,63,97,.44);pointer-events:none}
+.score-bar-item{height:100%;display:grid;grid-template-rows:24px 1fr 30px;align-items:end;justify-items:center;min-width:0}
+.score-bar-time{font-size:15px;font-weight:950;font-variant-numeric:tabular-nums;white-space:nowrap}
+.score-bar-area{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center}
+.score-bar-shell{width:var(--score-bar-width);max-width:88%;min-height:8px;border-radius:13px 13px 6px 6px;background:var(--bar-color);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2),0 6px 14px rgba(23,63,97,.13);transition:height .35s ease}
+.score-bar-item.practice .score-bar-shell{box-shadow:inset 0 0 0 3px rgba(255,255,255,.55),0 0 0 4px rgba(23,63,97,.14),0 7px 18px rgba(23,63,97,.2)}
+.score-bar-note{margin-top:5px;font-size:21px;font-weight:1000}
+.score-feedback{margin:12px 0 4px;font-size:20px;font-weight:950}
+.score-sub{margin:0;color:rgba(23,63,97,.72);font-size:13px;font-weight:750}
+.score-actions{display:flex;justify-content:center;gap:8px;margin-top:8px}
+.score-action{border:0;border-radius:11px;padding:8px 15px;font-weight:950;font-size:14px}
+.score-action.primary-action{background:#173f61;color:#fff}
+.score-action.secondary-action{background:#e8f2f8;color:#173f61}
+#startOverlay,#calOverlay{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(92,177,227,.48);backdrop-filter:blur(7px)}
+.overlay-card{width:420px;border-radius:24px;padding:22px;background:rgba(255,255,255,.96);text-align:center;box-shadow:0 18px 55px rgba(27,81,116,.2)}
+.primary{border:0;border-radius:15px;padding:14px 26px;background:#173f61;color:white;font-weight:950;font-size:20px}
+.error{color:#a13c3c;font-size:13px;font-weight:800;min-height:18px;margin:10px 0 0}
+#calOverlay{display:none;background:rgba(20,54,78,.58)}
+#calOverlay.show{display:flex}
+.cal-panel{position:relative;width:608px;aspect-ratio:1118/714;border-radius:24px;overflow:hidden;filter:drop-shadow(0 18px 34px rgba(9,37,57,.34))}
+.cal-panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}.cal-live{position:absolute;inset:0;width:100%;height:100%}
+.cal-db{font:950 60px system-ui;fill:#fff}.cal-tick{stroke:#173f61;stroke-width:6;stroke-linecap:round}.cal-scale{font:850 21px system-ui;fill:#173f61}.cal-needle{stroke:#e84d2f;stroke-width:15;stroke-linecap:round}.cal-needle-tip{fill:#e84d2f}.cal-hub{fill:#24313d;stroke:#0e1820;stroke-width:5}.cal-progress-track{fill:rgba(36,59,76,.24)}
+#rotateOverlay{position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:20px;background:#87cff8}
+#rotateOverlay .overlay-card{width:min(360px,88vw)}
+#rotateIcon{font-size:48px}
 @media(orientation:portrait){#rotateOverlay{display:flex}}
-@media(max-width:800px){.stage{gap:5px}.glass-wrap{min-width:58px;width:min(17.5vw,150px)}.bottom{font-size:12px}.status{min-width:110px}.note-label{font-size:22px}}
-@media(max-height:470px){.stage{inset:54px 14px 78px}.glass-wrap{width:min(14.5vw,122px);min-width:58px}.bottom{padding:7px 10px}.percent{margin-top:2px}.flavor-label{display:none}.note-label{margin-bottom:2px}}
 </style>
 </head>
 <body>
 <div id="app">
-  <div class="topbar">
-    <div class="title">Mehulasipeli <span style="font-size:.55em;font-weight:800">H1–H8 PLAY 0.6</span></div>
-    <div class="top-actions">
-      <button id="recalBtn" class="pill" type="button">Kalibroi</button>
-      <button id="gear" class="iconbtn" type="button" aria-label="Kehittäjätila">⚙</button>
+  <div id="designViewport">
+    <div class="controls">
+      <button id="recalBtn" class="iconbtn" type="button" aria-label="Kalibroi" title="Kalibroi">🎙</button>
+      <button id="resetFills" class="iconbtn" type="button" aria-label="Tyhjennä" title="Tyhjennä">↺</button>
+      <button id="settingsBtn" class="iconbtn" type="button" aria-label="Asetukset" title="Asetukset">⚙</button>
     </div>
-  </div>
 
-  <main class="stage" id="stage" aria-label="Viisi täytettävää lasia"></main>
+    <div id="runClock" class="run-clock" aria-live="off">⏱ <span id="runClockValue">0,0 s</span></div>
 
-  <div class="bottom">
-    <div class="status"><span id="statusMain">Valmiina</span><small id="statusSub">Soita G, A, H, C tai D. Oikea mehulasisi täyttyy automaattisesti.</small></div>
-    <div class="progress-track" aria-label="Kokonaisedistyminen"><div id="overallFill" class="progress-fill"></div></div>
-    <strong id="overallText">0 %</strong>
-  </div>
-
-  <aside id="devPanel">
-    <div class="dev-grid">
-      <span>dBFS</span><strong id="devDb">–</strong>
-      <span>Kynnys</span><strong id="devThreshold">–</strong>
-      <span>F0</span><strong id="devF0">–</strong>
-      <span>Tunnistettu</span><strong id="devNote">–</strong>
-      <span>cent</span><strong id="devCents">–</strong>
-      <span>H1</span><strong id="devH1">–</strong>
-      <span>H2</span><strong id="devH2">–</strong>
-      <span>H3</span><strong id="devH3">–</strong>
-      <span>H4</span><strong id="devH4">–</strong>
-      <span>H5</span><strong id="devH5">–</strong>
-      <span>H6</span><strong id="devH6">–</strong>
-      <span>H7</span><strong id="devH7">–</strong>
-      <span>H8</span><strong id="devH8">–</strong>
-      <span>H1–H8 painot</span><strong id="devWeights">–</strong>
-      <span>Osuma</span><strong id="devMatch">–</strong>
-      <span>Täyttönopeus</span><strong id="devRate">–</strong>
-      <span>Puhallus</span><strong id="devDuration">–</strong>
+    <div id="settingsPanel" class="settings-panel">
+      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">BUILD 1.4.3 • ERISTETTY</div>
+      <div class="setting">
+        <div class="setting-head"><label for="glassScaleSlider">Lasien koko</label><span id="glassScaleValue" class="setting-value">250 %</span></div>
+        <input id="glassScaleSlider" type="range" min="70" max="250" step="1" value="250">
+      </div>
+      <div class="setting">
+        <div class="setting-head"><label for="labelScaleSlider">Etikettien koko</label><span id="labelScaleValue" class="setting-value">50 %</span></div>
+        <input id="labelScaleSlider" type="range" min="50" max="150" step="1" value="50">
+      </div>
+      <div class="setting">
+        <div class="setting-head"><label for="fillRateSlider">Täyttönopeus</label><span id="fillRateValue" class="setting-value">20.0 %/s</span></div>
+        <input id="fillRateSlider" type="range" min="1" max="20" step="0.5" value="20">
+      </div>
+      <div class="settings-section-title">Scoreboard</div>
+      <div class="setting">
+        <div class="setting-head"><label for="scoreWidthSlider">Taulun leveys</label><span id="scoreWidthValue" class="setting-value">620 px</span></div>
+        <input id="scoreWidthSlider" type="range" min="440" max="820" step="10" value="620">
+      </div>
+      <div class="setting">
+        <div class="setting-head"><label for="scoreHeightSlider">Palkkialueen korkeus</label><span id="scoreHeightValue" class="setting-value">240 px</span></div>
+        <input id="scoreHeightSlider" type="range" min="160" max="360" step="10" value="240">
+      </div>
+      <div class="setting">
+        <div class="setting-head"><label for="scoreBarWidthSlider">Palkkien leveys</label><span id="scoreBarWidthValue" class="setting-value">42 px</span></div>
+        <input id="scoreBarWidthSlider" type="range" min="24" max="80" step="2" value="42">
+      </div>
+      <div class="setting">
+        <div class="setting-head"><label for="scoreGapSlider">Palkkien väli</label><span id="scoreGapValue" class="setting-value">14 px</span></div>
+        <input id="scoreGapSlider" type="range" min="4" max="40" step="2" value="14">
+      </div>
+      <div class="settings-section-title">JSON</div>
+      <textarea id="settingsJson" class="settings-json" spellcheck="false" aria-label="Asetusten JSON"></textarea>
+      <div class="settings-json-actions">
+        <button id="exportJsonBtn" class="settings-json-btn" type="button">Vie JSON</button>
+        <button id="importJsonBtn" class="settings-json-btn" type="button">Tuo JSON</button>
+      </div>
+      <p id="settingsJsonStatus" class="settings-json-status"></p>
+      <button id="resetUiSettings" class="settings-reset" type="button">Palauta asetukset</button>
     </div>
-    <div class="dev-section"><strong>H1–H8 JSON-referenssit</strong><div id="refList" class="refs" style="margin-top:7px"></div></div>
-    <div class="dev-actions">
-      <button id="resetFills" type="button">Tyhjennä lasit</button>
+
+    <main class="stage" id="stage" aria-label="Viisi täytettävää lasia"></main>
+
+    <div id="scoreOverlay" aria-live="polite">
+      <section class="score-card" role="dialog" aria-modal="true" aria-label="Tulokset">
+        <button id="scoreSettingsBtn" class="score-settings-btn" type="button" aria-label="Scoreboardin asetukset" title="Scoreboardin asetukset">⚙</button>
+        <div class="score-total">Kokonaisaika <span id="scoreTotal">0,0 s</span></div>
+        <div id="scoreChart" class="score-chart">
+          <div id="scoreIdealLine" class="score-ideal-line"></div>
+        </div>
+        <div class="score-actions">
+          <button id="playAgainBtn" class="score-action primary-action" type="button">Pelaa uudestaan</button>
+          <button id="closeScoreBtn" class="score-action secondary-action" type="button">Sulje tulokset</button>
+        </div>
+      </section>
     </div>
-  </aside>
 
   <div id="startOverlay">
     <div class="overlay-card">
@@ -116,27 +178,42 @@ button{cursor:pointer}
       <img class="cal-panel-bg" src="kalibrointi_tausta.webp" alt="">
       <svg class="cal-live" viewBox="0 0 1118 714" aria-hidden="true">
         <defs>
-          <linearGradient id="calGaugeGradient" x1="319" y1="0" x2="799" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#32a65a"/><stop offset=".45" stop-color="#b7d936"/><stop offset=".62" stop-color="#ffd13f"/><stop offset=".82" stop-color="#ff8a29"/><stop offset="1" stop-color="#e74a35"/></linearGradient>
+          <linearGradient id="calGaugeGradient" x1="319" y1="0" x2="799" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#32a65a"/><stop offset=".5" stop-color="#ffcf35"/><stop offset=".82" stop-color="#ff8a29"/><stop offset="1" stop-color="#e74a35"/></linearGradient>
           <linearGradient id="calProgressGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2e9af1"/><stop offset="1" stop-color="#40c85a"/></linearGradient>
         </defs>
-        <circle cx="559" cy="365" r="257" fill="#f7f4ed" opacity=".985"/><path d="M319 365 A240 240 0 0 1 799 365" fill="none" stroke="url(#calGaugeGradient)" stroke-width="48"/>
-        <g><line class="cal-tick" x1="335" y1="365" x2="363" y2="365"/><line class="cal-tick" x1="365" y1="245" x2="390" y2="260"/><line class="cal-tick" x1="440" y1="170" x2="454" y2="195"/><line class="cal-tick" x1="559" y1="142" x2="559" y2="174"/><line class="cal-tick" x1="678" y1="170" x2="664" y2="195"/><line class="cal-tick" x1="753" y1="245" x2="728" y2="260"/><line class="cal-tick" x1="783" y1="365" x2="755" y2="365"/></g>
+        <circle cx="559" cy="365" r="257" fill="#f7f4ed" opacity=".985"/>
+        <path d="M319 365 A240 240 0 0 1 799 365" fill="none" stroke="url(#calGaugeGradient)" stroke-width="48"/>
+        <g>
+          <line class="cal-tick" x1="335" y1="365" x2="363" y2="365"/>
+          <line class="cal-tick" x1="365" y1="245" x2="390" y2="260"/>
+          <line class="cal-tick" x1="440" y1="170" x2="454" y2="195"/>
+          <line class="cal-tick" x1="559" y1="142" x2="559" y2="174"/>
+          <line class="cal-tick" x1="678" y1="170" x2="664" y2="195"/>
+          <line class="cal-tick" x1="753" y1="245" x2="728" y2="260"/>
+          <line class="cal-tick" x1="783" y1="365" x2="755" y2="365"/>
+        </g>
         <g class="cal-scale" text-anchor="middle"><text x="320" y="407">-90</text><text x="365" y="223">-80</text><text x="445" y="148">-70</text><text x="559" y="119">-60</text><text x="673" y="148">-50</text><text x="753" y="223">-40</text><text x="798" y="407">-30</text></g>
-        <g id="calNeedleGroup" transform="rotate(-90 559 365)"><line class="cal-needle" x1="559" y1="365" x2="559" y2="178"/><circle class="cal-needle-tip" cx="559" cy="178" r="7"/></g><circle class="cal-hub" cx="559" cy="365" r="30"/>
-        <rect x="428" y="423" width="262" height="82" rx="30" fill="#243b4c" stroke="#8ba5b7" stroke-width="5"/><text id="calDbValue" class="cal-db" x="559" y="483" text-anchor="middle">– dB</text>
-        <rect class="cal-progress-track" x="352" y="612" width="414" height="18" rx="9"/><rect id="calProgressFill" x="352" y="612" width="0" height="18" rx="9" fill="url(#calProgressGradient)"/>
+        <g id="calNeedleGroup" transform="rotate(-90 559 365)"><line class="cal-needle" x1="559" y1="365" x2="559" y2="178"/><circle class="cal-needle-tip" cx="559" cy="178" r="7"/></g>
+        <circle class="cal-hub" cx="559" cy="365" r="30"/>
+        <rect x="428" y="423" width="262" height="82" rx="30" fill="#243b4c" stroke="#8ba5b7" stroke-width="5"/>
+        <text id="calDbValue" class="cal-db" x="559" y="483" text-anchor="middle">– dB</text>
+        <rect class="cal-progress-track" x="352" y="612" width="414" height="18" rx="9"/>
+        <rect id="calProgressFill" x="352" y="612" width="0" height="18" rx="9" fill="url(#calProgressGradient)"/>
       </svg>
     </div>
   </div>
 
-  <div id="rotateOverlay"><div class="overlay-card"><div id="rotateIcon">↻</div><h1>Käännä vaakatasoon</h1></div></div>
+  </div>
+  <div id="rotateOverlay"><div class="overlay-card"><div id="rotateIcon">↻</div></div></div>
 </div>
 
 <script>
 (()=>{
 'use strict';
-
-// === Lentokone PWA BASE 3.0 -moottorin ydinasetukset säilytetty ===
+const DESIGN_W=1366;
+const DESIGN_H=768;
+const UI_SETTINGS_KEY='juomalasipeli-ui-scoreboard-1-4-3-isolated';
+const SETTINGS_VERSION='scoreboard-1.4.3-isolated';
 const FRAME_MS=16;
 const HARMONICS=8;
 const MIC_CAL_WARMUP_MS=250;
@@ -144,49 +221,212 @@ const MIC_CAL_MEASURE_MS=1500;
 const MIC_CAL_MARGIN_DB=10;
 const YIN_HISTORY=6;
 const MATCH_HISTORY=6;
-
-// Juomalasipelin kiinteä H1–H8 JSON-referenssiversio
 const PITCH_TOLERANCE_CENTS=55;
-// F0 valitsee vain aktiivisen lasin. H1–H8 ja niiden koulutuksessa mitattu vakaus määräävät täyttönopeuden.
-const refs={"G":{"f0":390.9783096102657,"fingerprint":[0.6968125850503348,0.06190136325397965,0.10392596913479042,0.08234756834348872,0.037112973543821565,0.007183174325794377,0.008035015360104997,0.0026813509876854997],"spreadDb":[0.2855835213898579,1.4220993765039456,1.2901192921887237,0.6522317907224249,1.8828661396292325,1.375611136671317,1.461428729118687,2.4179057751678243],"samples":94,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:17:45.328Z"},"A":{"f0":435.9136184358308,"fingerprint":[0.592678306469251,0.05180991696935879,0.2782239488816018,0.02469784225715715,0.03788261669021051,0.006974871232316328,0.005706136432825304,0.0020263610672791683],"spreadDb":[0.3659320157949253,0.7821213400877092,0.6547206624323838,1.4039516562694132,1.2311598909813846,1.5142376807330535,1.9052777942240624,3.200122038781636],"samples":99,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:17:51.236Z"},"H":{"f0":493.27278117625264,"fingerprint":[0.7367972916798017,0.03198383645063645,0.18741400303082892,0.026121779787410673,0.00832444476493863,0.004234846271999569,0.0029003420925652243,0.0022234559218188583],"spreadDb":[0.23813580382215882,0.9646313779444,0.7518052937507367,1.5561054458220234,0.8676198430842632,1.2413472652157012,0.9074552974340548,3.263744098328175],"samples":93,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:17:57.276Z"},"C":{"f0":521.7425815931465,"fingerprint":[0.6776314329271602,0.09776480219973635,0.17070999779628698,0.028675280511233282,0.01553202776758606,0.005389803404332016,0.0023892046727490663,0.001907450720915998],"spreadDb":[0.19137588050923204,0.35967165241865473,0.6808091432584824,1.0162234845957272,0.7741647558665363,2.145557643781224,0.9341312441310237,2.4859526785472923],"samples":107,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:18:03.687Z"},"D":{"f0":590.9565023710167,"fingerprint":[0.5561066823567657,0.2922646227707547,0.10799993473358771,0.009502453453150242,0.01859730964748468,0.005934018507956832,0.0072979143231053445,0.0022970642071947216],"spreadDb":[0.3892942467831606,0.4576288097261152,0.6355864456450888,1.317976804404033,0.6475089040560604,1.3763829752426133,1.1348403747392197,2.5951718203994716],"samples":105,"pitchToleranceCents":55,"trainedAt":"2026-09-07T05:18:09.957Z"}};
+const refs={"G":{"f0":390.9783096102657,"fingerprint":[0.6968125850503348,0.06190136325397965,0.10392596913479042,0.08234756834348872,0.037112973543821565,0.007183174325794377,0.008035015360104997,0.0026813509876854997],"spreadDb":[0.2855835213898579,1.4220993765039456,1.2901192921887237,0.6522317907224249,1.8828661396292325,1.375611136671317,1.461428729118687,2.4179057751678243]},"A":{"f0":435.9136184358308,"fingerprint":[0.592678306469251,0.05180991696935879,0.2782239488816018,0.02469784225715715,0.03788261669021051,0.006974871232316328,0.005706136432825304,0.0020263610672791683],"spreadDb":[0.3659320157949253,0.7821213400877092,0.6547206624323838,1.4039516562694132,1.2311598909813846,1.5142376807330535,1.9052777942240624,3.200122038781636]},"H":{"f0":493.27278117625264,"fingerprint":[0.7367972916798017,0.03198383645063645,0.18741400303082892,0.026121779787410673,0.00832444476493863,0.004234846271999569,0.0029003420925652243,0.0022234559218188583],"spreadDb":[0.23813580382215882,0.9646313779444,0.7518052937507367,1.5561054458220234,0.8676198430842632,1.2413472652157012,0.9074552974340548,3.263744098328175]},"C":{"f0":521.7425815931465,"fingerprint":[0.6776314329271602,0.09776480219973635,0.17070999779628698,0.028675280511233282,0.01553202776758606,0.005389803404332016,0.0023892046727490663,0.001907450720915998],"spreadDb":[0.19137588050923204,0.35967165241865473,0.6808091432584824,1.0162234845957272,0.7741647558665363,2.145557643781224,0.9341312441310237,2.4859526785472923]},"D":{"f0":590.9565023710167,"fingerprint":[0.5561066823567657,0.2922646227707547,0.10799993473358771,0.009502453453150242,0.01859730964748468,0.005934018507956832,0.0072979143231053445,0.0022970642071947216],"spreadDb":[0.3892942467831606,0.4576288097261152,0.6355864456450888,1.317976804404033,0.6475089040560604,1.3763829752426133,1.1348403747392197,2.5951718203994716]}};
 const NOTES=[
-  {key:'G',label:'G',target:refs.G.f0},
-  {key:'A',label:'A',target:refs.A.f0},
-  {key:'H',label:'H',target:refs.H.f0},
-  {key:'C',label:'C',target:refs.C.f0},
-  {key:'D',label:'D',target:refs.D.f0}
+  {key:'G',target:refs.G.f0,sticker:'stickers/g.webp'},
+  {key:'A',target:refs.A.f0,sticker:'stickers/a.webp'},
+  {key:'H',target:refs.H.f0,sticker:'stickers/h.webp'},
+  {key:'C',target:refs.C.f0,sticker:'stickers/c.webp'},
+  {key:'D',target:refs.D.f0,sticker:'stickers/d.webp'}
 ];
-
-// Viisi yhtenäistä limonadimakua, yksi jokaiselle sävelelle.
 const FLAVORS={
-  G:{name:'Mansikka',juice:'#DD2C4A',surface:'#EF6179'},
-  A:{name:'Päärynä',juice:'#96DD2C',surface:'#B7EF61'},
-  H:{name:'Appelsiini',juice:'#DD852C',surface:'#EFA861'},
-  C:{name:'Mustikka',juice:'#2C3BDD',surface:'#616DEF'},
-  D:{name:'Vadelma',juice:'#DD2C85',surface:'#EF61A8'}
+  G:{juice:'#DD2C4A',surface:'#EF6179',accent:'#ef6179'},
+  A:{juice:'#96DD2C',surface:'#B7EF61',accent:'#96dd2c'},
+  H:{juice:'#DD852C',surface:'#EFA861',accent:'#efa861'},
+  C:{juice:'#2C3BDD',surface:'#616DEF',accent:'#616def'},
+  D:{juice:'#DD2C85',surface:'#EF61A8',accent:'#ef61a8'}
 };
 const SVG_NS='http://www.w3.org/2000/svg';
+const BUBBLE_SCALE=2;
 const GLASS_TOP=154,GLASS_BOTTOM=1330,GLASS_VISUAL_MAX=98;
 const GLASS_INNER_LEFT=286,GLASS_INNER_RIGHT=738,GLASS_CENTER_X=512;
 const SURFACE_RY_KEYFRAMES=[[0,30],[1,36],[3,20],[4,20],[6,23],[98,30],[100,30]];
 const glassFx={};
 let bubbleAnimationLast=performance.now();
-
-
 const $=s=>document.querySelector(s);
 const stage=$('#stage');
-const devPanel=$('#devPanel');
-const statusMain=$('#statusMain'),statusSub=$('#statusSub');
-const overallFill=$('#overallFill'),overallText=$('#overallText');
+const designViewport=$('#designViewport');
+const settingsPanel=$('#settingsPanel');
+const glassScaleSlider=$('#glassScaleSlider'),labelScaleSlider=$('#labelScaleSlider'),fillRateSlider=$('#fillRateSlider');
+const glassScaleValue=$('#glassScaleValue'),labelScaleValue=$('#labelScaleValue'),fillRateValue=$('#fillRateValue');
+const scoreWidthSlider=$('#scoreWidthSlider'),scoreHeightSlider=$('#scoreHeightSlider'),scoreBarWidthSlider=$('#scoreBarWidthSlider'),scoreGapSlider=$('#scoreGapSlider');
+const scoreWidthValue=$('#scoreWidthValue'),scoreHeightValue=$('#scoreHeightValue'),scoreBarWidthValue=$('#scoreBarWidthValue'),scoreGapValue=$('#scoreGapValue');
+const settingsJson=$('#settingsJson'),settingsJsonStatus=$('#settingsJsonStatus');
 const startOverlay=$('#startOverlay'),startError=$('#startError');
+const runClock=$('#runClock'),runClockValue=$('#runClockValue');
+const scoreOverlay=$('#scoreOverlay'),scoreChart=$('#scoreChart'),scoreTotal=$('#scoreTotal'),scoreIdealLine=$('#scoreIdealLine'),scoreIdealLabel=$('#scoreIdealLabel'),scoreFeedback=$('#scoreFeedback');
 const calOverlay=$('#calOverlay'),calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
-const dev={db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),note:$('#devNote'),cents:$('#devCents'),harmonics:[1,2,3,4,5,6,7,8].map(i=>$('#devH'+i)),weights:$('#devWeights'),match:$('#devMatch'),rate:$('#devRate'),duration:$('#devDuration')};
-
 let ctx=null,stream=null,analyser=null,timer=null,timeData=null,freqData=null;
 let dbThreshold=-70,yinDiffBuffer=null,yinCmndBuffer=null;
 let liveF0History=[],liveMatchHistory=[];
 let soundStartedAt=null,lastProcessAt=performance.now();
 let fills={G:0,A:0,H:0,C:0,D:0};
+let currentActiveKey=null,currentActiveMatch=0;
+let uiSettings={glassScale:250,labelScale:50,fillRate:20,scoreWidth:620,scoreChartHeight:240,scoreBarWidth:42,scoreGap:14};
+let runStartedAt=null,runEndedAt=null,activeAttemptKey=null,activeAttemptStartedAt=null;
+let noteTimes={G:0,A:0,H:0,C:0,D:0};
+let completedNotes={G:false,A:false,H:false,C:false,D:false};
+let runIdealSeconds=5,scoreShown=false;
+
+function formatSeconds(v){return `${Math.max(0,Number(v)||0).toFixed(1).replace('.',',')} s`}
+function resetPerformanceTracking(){
+  runStartedAt=null;runEndedAt=null;activeAttemptKey=null;activeAttemptStartedAt=null;
+  noteTimes={G:0,A:0,H:0,C:0,D:0};completedNotes={G:false,A:false,H:false,C:false,D:false};
+  runIdealSeconds=100/Math.max(1,uiSettings.fillRate);scoreShown=false;
+  runClock.classList.remove('show');runClockValue.textContent='0,0 s';scoreOverlay.classList.remove('show');
+}
+function startRunIfNeeded(key,now){
+  if(runStartedAt!==null)return;
+  runStartedAt=now;runIdealSeconds=100/Math.max(1,uiSettings.fillRate);
+  runClockValue.textContent='0,0 s';runClock.classList.add('show');
+  activeAttemptKey=key;activeAttemptStartedAt=now;
+}
+function commitActiveAttempt(now){
+  if(!activeAttemptKey||activeAttemptStartedAt===null)return;
+  if(!completedNotes[activeAttemptKey])noteTimes[activeAttemptKey]+=Math.max(0,(now-activeAttemptStartedAt)/1000);
+  activeAttemptStartedAt=now;
+}
+function switchActiveAttempt(key,now){
+  if(!key||completedNotes[key])return;
+  if(activeAttemptKey===key){if(activeAttemptStartedAt===null)activeAttemptStartedAt=now;return}
+  if(activeAttemptKey)commitActiveAttempt(now);
+  activeAttemptKey=key;activeAttemptStartedAt=now;
+}
+function completeAttempt(key,now){
+  if(completedNotes[key])return;
+  if(activeAttemptKey===key){commitActiveAttempt(now);activeAttemptKey=null;activeAttemptStartedAt=null}
+  completedNotes[key]=true;
+}
+function liveNoteTime(key,now){
+  let t=noteTimes[key]||0;
+  if(activeAttemptKey===key&&activeAttemptStartedAt!==null&&!completedNotes[key])t+=Math.max(0,(now-activeAttemptStartedAt)/1000);
+  return t;
+}
+function updateRunClock(now=performance.now()){
+  if(runStartedAt===null||runEndedAt!==null)return;
+  runClockValue.textContent=formatSeconds((now-runStartedAt)/1000);
+}
+function buildScoreboard(){
+  const times=NOTES.map(n=>({key:n.key,time:noteTimes[n.key]||0,flavor:FLAVORS[n.key]}));
+  const maxTime=Math.max(runIdealSeconds*2,...times.map(x=>x.time*1.12),1);
+  const worst=times.reduce((a,b)=>(b.time-runIdealSeconds)>(a.time-runIdealSeconds)?b:a,times[0]),worstExcess=Math.max(0,worst.time-runIdealSeconds),hasPractice=worstExcess>.35;
+  if(scoreTotal)scoreTotal.textContent=formatSeconds(runEndedAt!==null&&runStartedAt!==null?(runEndedAt-runStartedAt)/1000:0);
+  if(scoreIdealLabel)scoreIdealLabel.textContent=`Ihanne ${formatSeconds(runIdealSeconds)}`;
+  const bottomPct=clamp(runIdealSeconds/maxTime*100,0,100),plotHeight=Math.max(80,uiSettings.scoreChartHeight-66),plotBottom=30,idealBottom=plotBottom+(bottomPct/100)*plotHeight;
+  scoreIdealLine.style.bottom=`${idealBottom.toFixed(1)}px`;if(scoreIdealLabel)scoreIdealLabel.style.bottom=`${idealBottom.toFixed(1)}px`;
+  scoreChart.querySelectorAll('.score-bar-item').forEach(el=>el.remove());
+  for(const item of times){
+    const el=document.createElement('div');el.className='score-bar-item'+(item.key===worst.key?' practice':'');
+    el.style.setProperty('--bar-color',item.flavor.accent);
+    const h=clamp(item.time/maxTime*100,2,100);
+    el.innerHTML=`<div class="score-bar-time">${formatSeconds(item.time)}</div><div class="score-bar-area"><div class="score-bar-shell" style="height:${h.toFixed(2)}%"></div></div><div class="score-bar-note">${item.key}</div>`;
+    scoreChart.appendChild(el);
+  }
+  if(scoreFeedback)scoreFeedback.textContent=hasPractice?`Harjoittele seuraavaksi: ${worst.key}`:'Kaikki äänet olivat tasaisia!';
+}
+function finishRun(now=performance.now()){
+  if(runStartedAt===null||runEndedAt!==null)return;
+  if(activeAttemptKey)commitActiveAttempt(now);
+  runEndedAt=now;activeAttemptKey=null;activeAttemptStartedAt=null;
+  updateRunClock(now);runClock.classList.remove('show');
+  buildScoreboard();scoreShown=true;scoreOverlay.classList.add('show');
+}
+function resetGame(){
+  for(const n of NOTES)fills[n.key]=0;
+  currentActiveKey=null;currentActiveMatch=0;liveF0History=[];liveMatchHistory=[];soundStartedAt=null;
+  resetPerformanceTracking();renderAll();
+}
+
+function clearLegacySettings(){
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const key=localStorage.key(i);
+      if(key&&key!==UI_SETTINGS_KEY&&key.startsWith('juomalasipeli-ui-'))localStorage.removeItem(key);
+    }
+  }catch(_){}
+}
+function loadUiSettings(){
+  try{
+    const raw=localStorage.getItem(UI_SETTINGS_KEY);
+    if(!raw)return;
+    const saved=JSON.parse(raw);
+    if(Number.isFinite(saved.glassScale))uiSettings.glassScale=clamp(saved.glassScale,70,250);
+    if(Number.isFinite(saved.labelScale))uiSettings.labelScale=clamp(saved.labelScale,50,150);
+    if(Number.isFinite(saved.fillRate))uiSettings.fillRate=clamp(saved.fillRate,1,20);
+    if(Number.isFinite(saved.scoreWidth))uiSettings.scoreWidth=clamp(saved.scoreWidth,440,820);
+    if(Number.isFinite(saved.scoreChartHeight))uiSettings.scoreChartHeight=clamp(saved.scoreChartHeight,160,360);
+    if(Number.isFinite(saved.scoreBarWidth))uiSettings.scoreBarWidth=clamp(saved.scoreBarWidth,24,80);
+    if(Number.isFinite(saved.scoreGap))uiSettings.scoreGap=clamp(saved.scoreGap,4,40);
+  }catch(_){}
+}
+function saveUiSettings(){
+  try{localStorage.setItem(UI_SETTINGS_KEY,JSON.stringify(currentSettingsJson()))}catch(_){}
+}
+function applyUiSettings(){
+  designViewport.style.setProperty('--glass-user-scale',(uiSettings.glassScale/100).toFixed(3));
+  designViewport.style.setProperty('--label-user-scale',(uiSettings.labelScale/100).toFixed(3));
+  glassScaleSlider.value=String(Math.round(uiSettings.glassScale));
+  labelScaleSlider.value=String(Math.round(uiSettings.labelScale));
+  fillRateSlider.value=String(uiSettings.fillRate);
+  scoreWidthSlider.value=String(Math.round(uiSettings.scoreWidth));
+  scoreHeightSlider.value=String(Math.round(uiSettings.scoreChartHeight));
+  scoreBarWidthSlider.value=String(Math.round(uiSettings.scoreBarWidth));
+  scoreGapSlider.value=String(Math.round(uiSettings.scoreGap));
+  glassScaleValue.textContent=Math.round(uiSettings.glassScale)+' %';
+  labelScaleValue.textContent=Math.round(uiSettings.labelScale)+' %';
+  fillRateValue.textContent=Number(uiSettings.fillRate).toFixed(1)+' %/s';
+  scoreWidthValue.textContent=Math.round(uiSettings.scoreWidth)+' px';
+  scoreHeightValue.textContent=Math.round(uiSettings.scoreChartHeight)+' px';
+  scoreBarWidthValue.textContent=Math.round(uiSettings.scoreBarWidth)+' px';
+  scoreGapValue.textContent=Math.round(uiSettings.scoreGap)+' px';
+  designViewport.style.setProperty('--score-width',Math.round(uiSettings.scoreWidth)+'px');
+  designViewport.style.setProperty('--score-chart-height',Math.round(uiSettings.scoreChartHeight)+'px');
+  designViewport.style.setProperty('--score-bar-width',Math.round(uiSettings.scoreBarWidth)+'px');
+  designViewport.style.setProperty('--score-gap',Math.round(uiSettings.scoreGap)+'px');
+  if(scoreOverlay.classList.contains('show'))buildScoreboard();
+}
+function currentSettingsJson(){
+  return {
+    settingsVersion:SETTINGS_VERSION,
+    glassScale:Number(uiSettings.glassScale),
+    labelScale:Number(uiSettings.labelScale),
+    fillRate:Number(uiSettings.fillRate),
+    scoreWidth:Number(uiSettings.scoreWidth),
+    scoreChartHeight:Number(uiSettings.scoreChartHeight),
+    scoreBarWidth:Number(uiSettings.scoreBarWidth),
+    scoreGap:Number(uiSettings.scoreGap)
+  };
+}
+function exportSettingsJson(){
+  settingsJson.value=JSON.stringify(currentSettingsJson(),null,2);
+  settingsJsonStatus.textContent='JSON '+SETTINGS_VERSION+' päivitetty nykyisistä asetuksista.';
+  settingsJson.focus();settingsJson.select();
+}
+function importSettingsJson(){
+  try{
+    const data=JSON.parse(settingsJson.value);
+    if(!data||typeof data!=='object')throw new Error();
+    const next={...uiSettings};
+    if(Number.isFinite(data.glassScale))next.glassScale=clamp(data.glassScale,70,250);
+    if(Number.isFinite(data.labelScale))next.labelScale=clamp(data.labelScale,50,150);
+    if(Number.isFinite(data.fillRate))next.fillRate=clamp(data.fillRate,1,20);
+    if(Number.isFinite(data.scoreWidth))next.scoreWidth=clamp(data.scoreWidth,440,820);
+    if(Number.isFinite(data.scoreChartHeight))next.scoreChartHeight=clamp(data.scoreChartHeight,160,360);
+    if(Number.isFinite(data.scoreBarWidth))next.scoreBarWidth=clamp(data.scoreBarWidth,24,80);
+    if(Number.isFinite(data.scoreGap))next.scoreGap=clamp(data.scoreGap,4,40);
+    uiSettings=next;applyUiSettings();saveUiSettings();exportSettingsJson();
+    settingsJsonStatus.textContent='JSON tuotu.';
+  }catch(_){settingsJsonStatus.textContent='JSON ei kelpaa.'}
+}
+
+function fitDesignToViewport(){
+  const vv=window.visualViewport;
+  const w=vv?.width||window.innerWidth||DESIGN_W;
+  const h=vv?.height||window.innerHeight||DESIGN_H;
+  const scale=Math.min(w/DESIGN_W,h/DESIGN_H);
+  designViewport.style.transform=`translate(-50%,-50%) scale(${scale.toFixed(5)})`;
+}
 
 function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
 function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
@@ -194,6 +434,9 @@ function median(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y),m=b.len
 function pushLimited(arr,val,max=6){arr.push(val);if(arr.length>max)arr.shift()}
 function centsDiff(a,b){return 1200*Math.log2(a/b)}
 function rmsDb(buf){let s=0;for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}const rms=Math.sqrt(s/buf.length)||1e-12;return {rms,db:20*Math.log10(rms)}}
+function sleepMs(ms){return new Promise(r=>setTimeout(r,ms))}
+function rand(min,max){return min+Math.random()*(max-min)}
+function surfaceRyAt(percent){const p=clamp(Number(percent),0,100);let lo=SURFACE_RY_KEYFRAMES[0],hi=SURFACE_RY_KEYFRAMES.at(-1);for(const frame of SURFACE_RY_KEYFRAMES){if(frame[0]<=p)lo=frame;if(frame[0]>=p){hi=frame;break}}if(lo[0]===hi[0])return lo[1];const t=(p-lo[0])/(hi[0]-lo[0]);return lo[1]+(hi[1]-lo[1])*t;}
 
 function yin(buf,sr){
   const n=Math.min(buf.length,4096),minF=75,maxF=1300;
@@ -212,8 +455,6 @@ function yin(buf,sr){
   const better=den?tau+(s2-s0)/(2*den):tau;const f=sr/better;
   return (f>=minF&&f<=maxF)?f:null;
 }
-
-// Sama FFT-harmonisten poiminta kuin lentokoneessa. Tässä käytetään koko H1–H8-jakaumaa.
 function harmonicH1H8(f0){
   if(!f0)return null;
   const ny=ctx.sampleRate/2,binHz=ny/freqData.length,amps=[];
@@ -227,81 +468,34 @@ function harmonicH1H8(f0){
   if(total<=0)return null;
   return amps.map(x=>x/total);
 }
+function stabilityWeights(ref){const floorDb=.35;const raw=ref.spreadDb.map(s=>1/Math.max(floorDb,s));const total=raw.reduce((s,x)=>s+x,0)||1;return raw.map(x=>x/total)}
+function weightedFpDistance(a,b,weights){let sum=0,wSum=0;for(let i=0;i<HARMONICS;i++){const da=20*Math.log10((a[i]||0)+1e-5),db=20*Math.log10((b[i]||0)+1e-5);const d=(da-db)/16,w=weights[i]||0;sum+=w*d*d;wSum+=w}return Math.sqrt(sum/(wSum||1))}
+function similarity(take,ref){const weights=stabilityWeights(ref);const spectralPenalty=weightedFpDistance(take.fp,ref.fingerprint,weights);return clamp(100*Math.exp(-.82*spectralPenalty),0,100)}
+function nearestNote(f0){if(!f0)return null;let best=null;for(const n of NOTES){const cents=centsDiff(f0,n.target),abs=Math.abs(cents);if(!best||abs<best.abs)best={...n,cents,abs}}return best&&best.abs<=PITCH_TOLERANCE_CENTS?best:null}
 
-// Vakauspainotus: pienempi koulutuksen spreadDb => suurempi paino.
-// 0.35 dB lattia estää yksittäistä erittäin vakaata harmonista kaappaamasta koko pisteytystä.
-function stabilityWeights(ref){
-  const floorDb=.35;
-  const raw=ref.spreadDb.map(s=>1/Math.max(floorDb,s));
-  const total=raw.reduce((s,x)=>s+x,0)||1;
-  return raw.map(x=>x/total);
-}
-function weightedFpDistance(a,b,weights){
-  let sum=0,wSum=0;
-  for(let i=0;i<HARMONICS;i++){
-    const da=20*Math.log10((a[i]||0)+1e-5),db=20*Math.log10((b[i]||0)+1e-5);
-    const d=(da-db)/16,w=weights[i]||0;
-    sum+=w*d*d;wSum+=w;
-  }
-  return Math.sqrt(sum/(wSum||1));
-}
-function similarity(take,ref){
-  // F0 on vain säveltunnistuksen portti. Pisteet tulevat kokonaan H1–H8-rakenteesta.
-  const weights=stabilityWeights(ref);
-  const spectralPenalty=weightedFpDistance(take.fp,ref.fingerprint,weights);
-  return clamp(100*Math.exp(-.82*spectralPenalty),0,100);
-}
-function nearestNote(f0){
-  if(!f0)return null;let best=null;
-  for(const n of NOTES){const cents=centsDiff(f0,n.target),abs=Math.abs(cents);if(!best||abs<best.abs)best={...n,cents,abs}}
-  return best&&best.abs<=PITCH_TOLERANCE_CENTS?best:null;
-}
-function fillRate(match){
-  // Oikea sävel täyttää aina hieman. Hyvä vakauspainotettu H1–H8-osuma nopeuttaa selvästi.
-  const x=clamp(match,0,100)/100;
-  return 1.2+11.8*Math.pow(x,1.55); // prosenttiyksikköä / sekunti
-}
-
-function surfaceRyAt(percent){
-  const p=clamp(Number(percent),0,100);let lo=SURFACE_RY_KEYFRAMES[0],hi=SURFACE_RY_KEYFRAMES.at(-1);
-  for(const frame of SURFACE_RY_KEYFRAMES){if(frame[0]<=p)lo=frame;if(frame[0]>=p){hi=frame;break}}
-  if(lo[0]===hi[0])return lo[1];const t=(p-lo[0])/(hi[0]-lo[0]);return lo[1]+(hi[1]-lo[1])*t;
-}
-function rand(min,max){return min+Math.random()*(max-min)}
-function createBubbleCircle(parent,r,opacity){
-  const c=document.createElementNS(SVG_NS,'circle');c.setAttribute('r',r.toFixed(2));c.setAttribute('fill','#fff');c.setAttribute('opacity',opacity.toFixed(3));parent.appendChild(c);return c;
-}
+function createBubbleCircle(parent,r,opacity){const c=document.createElementNS(SVG_NS,'circle');c.setAttribute('r',r.toFixed(2));c.setAttribute('fill','#fff');c.setAttribute('opacity',opacity.toFixed(3));parent.appendChild(c);return c;}
 function resetRisingBubble(b,initial=false){
   if(b.type==='stream'){b.baseX=b.streamX+rand(-8,8);b.y=initial?rand(GLASS_TOP,GLASS_BOTTOM):GLASS_BOTTOM+rand(4,150);b.speed=rand(88,160);b.sway=rand(1.5,5.5)}
   else if(b.type==='micro'){b.baseX=rand(GLASS_INNER_LEFT+b.r+4,GLASS_INNER_RIGHT-b.r-4);b.y=initial?rand(GLASS_TOP,GLASS_BOTTOM):GLASS_BOTTOM+rand(8,170);b.speed=rand(52,94);b.sway=rand(.7,2.7)}
   else{b.baseX=rand(GLASS_INNER_LEFT+b.r+9,GLASS_INNER_RIGHT-b.r-9);b.y=initial?rand(GLASS_TOP,GLASS_BOTTOM):GLASS_BOTTOM+rand(30,230);b.speed=rand(28,52);b.sway=rand(2,7)}
   b.phase=rand(0,Math.PI*2);
 }
-function addRisingBubble(fx,type,parent,opts={}){
-  const r=opts.r??rand(1.2,3),opacity=opts.opacity??rand(.12,.28);
-  const b={type,r,streamX:opts.streamX??GLASS_CENTER_X,baseX:GLASS_CENTER_X,y:GLASS_BOTTOM,speed:30,sway:1,phase:0,time:rand(0,20),baseOpacity:opacity,el:createBubbleCircle(parent,r,opacity)};
-  resetRisingBubble(b,true);fx.rising.push(b);
-}
-function addSurfaceBubble(fx,parent){
-  const r=rand(1.1,4.7),opacity=rand(.22,.62);
-  fx.surface.push({r,baseOpacity:opacity,xNorm:Math.random(),depth:rand(5,34),life:rand(0,1),ttl:rand(.38,1.0),drift:rand(-18,18),wobble:rand(.4,2.8),phase:rand(0,Math.PI*2),el:createBubbleCircle(parent,r,0)});
-}
-function initGlassBubbles(key,col){
-  const fx=glassFx[key];if(!fx)return;
-  const streams=col.querySelector('[data-role="stream-bubbles"]'),micro=col.querySelector('[data-role="micro-bubbles"]'),large=col.querySelector('[data-role="large-bubbles"]'),surface=col.querySelector('[data-role="surface-bubbles"]');
-  for(const x of [320,384,448,512,576,640,704])for(let i=0;i<5;i++)addRisingBubble(fx,'stream',streams,{streamX:x,r:rand(1.5,3.6),opacity:rand(.2,.46)});
-  for(let i=0;i<22;i++)addRisingBubble(fx,'micro',micro,{r:rand(.9,2.1),opacity:rand(.09,.18)});
-  for(let i=0;i<7;i++)addRisingBubble(fx,'large',large,{r:rand(4.2,8.5),opacity:rand(.1,.23)});
-  for(let i=0;i<28;i++)addSurfaceBubble(fx,surface);
-}
+function addRisingBubble(fx,type,parent,opts={}){const r=(opts.r??rand(1.2,3))*BUBBLE_SCALE,opacity=opts.opacity??rand(.12,.28);const b={type,r,streamX:opts.streamX??GLASS_CENTER_X,baseX:GLASS_CENTER_X,y:GLASS_BOTTOM,speed:30,sway:1,phase:0,time:rand(0,20),baseOpacity:opacity,el:createBubbleCircle(parent,r,opacity)};resetRisingBubble(b,true);fx.rising.push(b)}
+function addSurfaceBubble(fx,parent){const r=rand(1.1,4.7)*BUBBLE_SCALE,opacity=rand(.22,.62);fx.surface.push({r,baseOpacity:opacity,xNorm:Math.random(),depth:rand(5,34),life:rand(0,1),ttl:rand(.38,1.0),drift:rand(-18,18),wobble:rand(.4,2.8),phase:rand(0,Math.PI*2),el:createBubbleCircle(parent,r,0)})}
+function addTopBubble(fx,parent){const r=rand(1.3,4.6)*BUBBLE_SCALE,opacity=rand(.18,.48);fx.top.push({r,baseOpacity:opacity,xNorm:Math.random(),rise:rand(8,30),life:rand(0,1),ttl:rand(.42,1.15),drift:rand(-16,16),wobble:rand(.4,2.3),phase:rand(0,Math.PI*2),el:createBubbleCircle(parent,r,0)})}
+function initGlassBubbles(key,col){const fx=glassFx[key];if(!fx)return;const streams=col.querySelector('[data-role="stream-bubbles"]'),micro=col.querySelector('[data-role="micro-bubbles"]'),large=col.querySelector('[data-role="large-bubbles"]'),surface=col.querySelector('[data-role="surface-bubbles"]'),top=col.querySelector('[data-role="top-bubbles"]');for(const x of [320,384,448,512,576,640,704])for(let i=0;i<5;i++)addRisingBubble(fx,'stream',streams,{streamX:x,r:rand(1.5,3.6),opacity:rand(.2,.46)});for(let i=0;i<22;i++)addRisingBubble(fx,'micro',micro,{r:rand(.9,2.1),opacity:rand(.09,.18)});for(let i=0;i<7;i++)addRisingBubble(fx,'large',large,{r:rand(4.2,8.5),opacity:rand(.1,.23)});for(let i=0;i<28;i++)addSurfaceBubble(fx,surface);for(let i=0;i<18;i++)addTopBubble(fx,top)}
+
 function buildGlasses(){
   stage.innerHTML='';
   for(const n of NOTES){
     const flavor=FLAVORS[n.key],clip=`juiceClip-${n.key}`,levelClip=`levelClip-${n.key}`;
-    const col=document.createElement('section');col.className='note-column';col.dataset.note=n.key;
-    col.innerHTML=`<div class="note-label">${n.label}</div><div class="glass-wrap"><div class="glass-scene"><img class="glass-back" src="glass-empty.webp" alt=""><svg class="glass-juice" viewBox="0 0 1024 1536" aria-hidden="true"><defs><clipPath id="${clip}"><path d="M 268 154 L 756 154 L 756 1110 C 756 1200 741 1255 694 1293 C 650 1329 374 1329 330 1293 C 283 1255 268 1200 268 1110 Z"/></clipPath><clipPath id="${levelClip}"><rect data-role="level-rect" x="250" y="1330" width="524" height="0"/></clipPath></defs><g clip-path="url(#${clip})"><rect data-role="juice-fill" x="250" y="1330" width="524" height="0" fill="${flavor.juice}"/><g data-role="bubbles-layer" clip-path="url(#${levelClip})" opacity="0"><g data-role="micro-bubbles"></g><g data-role="stream-bubbles"></g><g data-role="large-bubbles"></g><g data-role="surface-bubbles"></g></g><ellipse data-role="juice-surface" cx="512" cy="1330" rx="236" ry="30" fill="${flavor.surface}" opacity="0"/></g></svg><img class="glass-front" src="glass-front.png" alt=""><div class="live-ring"></div></div></div><div class="percent">0 %</div><div class="flavor-label">${flavor.name}</div>`;
+    const col=document.createElement('section');
+    col.className='note-column';
+    col.dataset.note=n.key;
+    col.style.setProperty('--accent',flavor.accent);
+    col.innerHTML=`<div class="glass-wrap"><div class="glass-scene"><img class="glass-back" src="glass-empty.webp" alt=""><svg class="glass-juice" viewBox="0 0 1024 1536" aria-hidden="true"><defs><clipPath id="${clip}"><path d="M 268 154 L 756 154 L 756 1110 C 756 1200 741 1255 694 1293 C 650 1329 374 1329 330 1293 C 283 1255 268 1200 268 1110 Z"/></clipPath><clipPath id="${levelClip}"><rect data-role="level-rect" x="250" y="1330" width="524" height="0"/></clipPath></defs><g clip-path="url(#${clip})"><rect data-role="juice-fill" x="250" y="1330" width="524" height="0" fill="${flavor.juice}"/><g data-role="bubbles-layer" clip-path="url(#${levelClip})" opacity="0"><g data-role="micro-bubbles"></g><g data-role="stream-bubbles"></g><g data-role="large-bubbles"></g><g data-role="surface-bubbles"></g></g><ellipse data-role="juice-surface" cx="512" cy="1330" rx="236" ry="30" fill="${flavor.surface}" opacity="0"/><g data-role="top-bubbles"></g></g></svg><div class="glass-sticker-wrap"><img class="glass-sticker" src="${n.sticker}" alt=""></div><img class="glass-front" src="glass-front.png" alt=""><div class="live-ring"></div></div></div>`;
     stage.appendChild(col);
-    glassFx[n.key]={col,rising:[],surface:[],surfaceFizz:0,currentSurfaceY:GLASS_BOTTOM,currentVisualFill:0};
+    glassFx[n.key]={col,rising:[],surface:[],top:[],surfaceFizz:0,currentSurfaceY:GLASS_BOTTOM,currentVisualFill:0};
     initGlassBubbles(n.key,col);
   }
   renderAll();
@@ -328,89 +522,82 @@ function animateGlassEffects(now){
     }
     for(const b of fx.surface){
       if(!active||fx.surfaceFizz<.002){b.el.setAttribute('opacity','0');continue}
-      b.life+=dt;if(b.life>=b.ttl){b.xNorm=Math.random();b.depth=rand(5,34);b.life=0;b.ttl=rand(.35,.95);b.drift=rand(-20,20);b.wobble=rand(.5,3);b.phase=rand(0,Math.PI*2);b.r=rand(1,4.8);b.baseOpacity=rand(.24,.68);b.el.setAttribute('r',b.r.toFixed(2))}
+      b.life+=dt;if(b.life>=b.ttl){b.xNorm=Math.random();b.depth=rand(5,34);b.life=0;b.ttl=rand(.35,.95);b.drift=rand(-20,20);b.wobble=rand(.5,3);b.phase=rand(0,Math.PI*2);b.r=rand(1,4.8)*BUBBLE_SCALE;b.baseOpacity=rand(.24,.68);b.el.setAttribute('r',b.r.toFixed(2))}
       const p=b.life/b.ttl,depth=b.depth*(1-p),half=Math.max(18,innerHalfWidthAtY(fx.currentSurfaceY+depth)-b.r-6),wave=Math.sin(b.life*10+b.phase)*b.wobble,x=GLASS_CENTER_X+(b.xNorm*2-1)*half+wave+b.drift*p*.35,y=fx.currentSurfaceY+Math.max(1,depth),fade=Math.sin(p*Math.PI),op=b.baseOpacity*fade*fx.surfaceFizz;
+      b.el.setAttribute('cx',clamp(x,GLASS_INNER_LEFT+b.r,GLASS_INNER_RIGHT-b.r).toFixed(2));b.el.setAttribute('cy',y.toFixed(2));b.el.setAttribute('opacity',op.toFixed(3));
+    }
+    for(const b of fx.top){
+      if(!active||fx.currentVisualFill<.8){b.el.setAttribute('opacity','0');continue}
+      b.life+=dt;if(b.life>=b.ttl){b.xNorm=Math.random();b.r=rand(1.3,4.6)*BUBBLE_SCALE;b.baseOpacity=rand(.18,.48);b.rise=rand(8,30);b.life=0;b.ttl=rand(.42,1.15);b.drift=rand(-16,16);b.wobble=rand(.4,2.3);b.phase=rand(0,Math.PI*2);b.el.setAttribute('r',b.r.toFixed(2))}
+      const p=b.life/b.ttl,half=Math.max(18,innerHalfWidthAtY(fx.currentSurfaceY)-b.r-10),wave=Math.sin(b.life*8+b.phase)*b.wobble,x=GLASS_CENTER_X+(b.xNorm*2-1)*half+wave+b.drift*p*.28,y=fx.currentSurfaceY+2-p*b.rise,fade=Math.sin(p*Math.PI),op=b.baseOpacity*fade*(.35+fx.surfaceFizz*.9);
       b.el.setAttribute('cx',clamp(x,GLASS_INNER_LEFT+b.r,GLASS_INNER_RIGHT-b.r).toFixed(2));b.el.setAttribute('cy',y.toFixed(2));b.el.setAttribute('opacity',op.toFixed(3));
     }
   }
   requestAnimationFrame(animateGlassEffects);
 }
 function renderAll(activeKey=null,match=null){
-  let sum=0;
+  let allFull=true;
   for(const n of NOTES){
-    const col=stage.querySelector(`[data-note="${n.key}"]`),pct=col.querySelector('.percent');
-    const v=clamp(fills[n.key]||0,0,100);sum+=v;updateGlassVisual(n.key,v);pct.textContent=Math.round(v)+' %';
-    col.classList.toggle('active',activeKey===n.key);col.classList.toggle('good',activeKey===n.key&&match>=80);
+    const col=stage.querySelector(`[data-note="${n.key}"]`),v=clamp(fills[n.key]||0,0,100);
+    updateGlassVisual(n.key,v);
+    col.classList.toggle('active',activeKey===n.key);
+    col.classList.toggle('good',activeKey===n.key&&match>=80);
+    if(v<99.9)allFull=false;
   }
-  const avg=sum/NOTES.length;overallFill.style.width=avg+'%';overallText.textContent=Math.round(avg)+' %';
-  if(avg>=99.9){statusMain.textContent='Kaikki viisi lasia ovat täynnä!';statusSub.textContent='G, A, H, C ja D valmiina.'}
-  renderRefs();
-}
-function renderRefs(){
-  const box=$('#refList');box.innerHTML='';
-  for(const n of NOTES){
-    const r=refs[n.key],w=stabilityWeights(r);
-    const a=document.createElement('strong');a.textContent=n.label;
-    const b=document.createElement('code');
-    b.textContent=r.fingerprint.map((v,i)=>`H${i+1} ${(v*100).toFixed(1)}% · w ${(w[i]*100).toFixed(0)}%`).join('  ');
-    const c=document.createElement('span');c.textContent=`${r.f0.toFixed(1)} Hz`;
-    box.append(a,b,c);
+  if(allFull){
+    for(const n of NOTES){const col=stage.querySelector(`[data-note="${n.key}"]`);col.classList.add('good')}
+    if(runStartedAt!==null&&runEndedAt===null)finishRun(performance.now());
   }
 }
-function clearLiveUi(){
-  liveF0History=[];liveMatchHistory=[];dev.f0.textContent='–';dev.note.textContent='–';dev.cents.textContent='–';dev.harmonics.forEach(el=>el.textContent='–');dev.weights.textContent='–';dev.match.textContent='–';dev.rate.textContent='–';renderAll();
-}
-
+function clearLiveUi(){liveF0History=[];liveMatchHistory=[];currentActiveKey=null;currentActiveMatch=0;renderAll()}
 function processFrame(){
   if(!analyser)return;
   const now=performance.now(),dt=Math.min(.08,Math.max(0,(now-lastProcessAt)/1000));lastProcessAt=now;
-  analyser.getFloatTimeDomainData(timeData);const level=rmsDb(timeData);dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
-  const loud=level.db>dbThreshold;
-  if(!loud){soundStartedAt=null;dev.duration.textContent='–';clearLiveUi();return}
-  if(soundStartedAt===null)soundStartedAt=now;dev.duration.textContent=((now-soundStartedAt)/1000).toFixed(2)+' s';
+  updateRunClock(now);
+  analyser.getFloatTimeDomainData(timeData);const level=rmsDb(timeData);const loud=level.db>dbThreshold;
+  if(!loud){soundStartedAt=null;clearLiveUi();return}
+  if(soundStartedAt===null)soundStartedAt=now;
   analyser.getFloatFrequencyData(freqData);const f0=yin(timeData,ctx.sampleRate);if(!f0)return;
   const fp=harmonicH1H8(f0);if(!fp)return;
   pushLimited(liveF0History,f0,YIN_HISTORY);const smoothF0=median(liveF0History);const note=nearestNote(smoothF0);
-  dev.f0.textContent=smoothF0.toFixed(1)+' Hz';dev.harmonics.forEach((el,i)=>el.textContent=((fp[i]||0)*100).toFixed(1)+' %');
-
-  if(!note){dev.note.textContent='–';dev.cents.textContent='–';dev.match.textContent='–';dev.rate.textContent='–';renderAll();statusMain.textContent='Sävel ei kuulu G–D-alueeseen';statusSub.textContent='Soita G, A, H, C tai D.';return}
-  dev.note.textContent=note.label;dev.cents.textContent=(note.cents>=0?'+':'')+note.cents.toFixed(0);
-  const ref=refs[note.key],weights=stabilityWeights(ref);
-  dev.weights.textContent=weights.map((w,i)=>`H${i+1} ${Math.round(w*100)}`).join(' · ');
-  const score=similarity({f0:smoothF0,fp},ref);pushLimited(liveMatchHistory,score,MATCH_HISTORY);const smoothMatch=mean(liveMatchHistory);const rate=fillRate(smoothMatch);
-  fills[note.key]=clamp(fills[note.key]+rate*dt,0,100);
-  dev.match.textContent=smoothMatch.toFixed(1)+' %';dev.rate.textContent=rate.toFixed(1)+' %/s';renderAll(note.key,smoothMatch);
-  statusMain.textContent=`${note.label} · osuma ${Math.round(smoothMatch)} %`;
-  statusSub.textContent=smoothMatch>=85?'Lasi täyttyy nopeasti.':smoothMatch>=60?'Lasi täyttyy keskinopeasti.':'Lasi täyttyy hitaasti.';
+  if(!note){currentActiveKey=null;currentActiveMatch=0;renderAll();return}
+  const ref=refs[note.key];
+  const score=similarity({f0:smoothF0,fp},ref);pushLimited(liveMatchHistory,score,MATCH_HISTORY);const smoothMatch=mean(liveMatchHistory);
+  if(fills[note.key]<99.9){const activityAt=now-dt*1000;startRunIfNeeded(note.key,activityAt);switchActiveAttempt(note.key,activityAt)}
+  const before=fills[note.key];fills[note.key]=clamp(fills[note.key]+uiSettings.fillRate*dt,0,100);
+  if(before<99.9&&fills[note.key]>=99.9)completeAttempt(note.key,now);
+  currentActiveKey=note.key;currentActiveMatch=smoothMatch;renderAll(note.key,smoothMatch);
 }
-
-function sleepMs(ms){return new Promise(r=>setTimeout(r,ms))}
 function updateCalibrationVisual(db,progress){const shown=Number.isFinite(db)?clamp(db,-90,-30):-90,ratio=(shown+90)/60,angle=-90+ratio*180;calNeedleGroup.setAttribute('transform',`rotate(${angle.toFixed(2)} 559 365)`);calDbValue.textContent=Number.isFinite(db)?`${Math.round(db)} dB`:'– dB';calProgressFill.setAttribute('width',(414*clamp(progress,0,1)).toFixed(1))}
-async function calibrateMicrophoneNoiseFloor(){
-  if(!analyser||!timeData)return false;if(timer){clearInterval(timer);timer=null}clearLiveUi();calOverlay.classList.add('show');updateCalibrationVisual(-90,0);
-  const total=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS,start=performance.now();
-  while(performance.now()-start<MIC_CAL_WARMUP_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);updateCalibrationVisual(l.db,(performance.now()-start)/total);await sleepMs(33)}
-  const samples=[],mstart=performance.now();
-  while(performance.now()-mstart<MIC_CAL_MEASURE_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);if(Number.isFinite(l.db))samples.push(l.db);updateCalibrationVisual(l.db,(MIC_CAL_WARMUP_MS+performance.now()-mstart)/total);await sleepMs(33)}
-  if(!samples.length)dbThreshold=-70;else{samples.sort((a,b)=>a-b);const nf=median(samples);dbThreshold=clamp(Math.round(nf+MIC_CAL_MARGIN_DB),-70,-20)}
-  dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';updateCalibrationVisual(median(samples),1);await sleepMs(180);lastProcessAt=performance.now();timer=setInterval(processFrame,FRAME_MS);calOverlay.classList.remove('show');return true;
-}
-async function startMic(){
-  if(stream)return true;if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state!=='running')await ctx.resume();
-  const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};const constraints={echoCancellation:false,noiseSuppression:false,autoGainControl:false};if(supported.voiceIsolation)constraints.voiceIsolation=false;
-  stream=await navigator.mediaDevices.getUserMedia({audio:constraints});const src=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.08;analyser.minDecibels=-110;analyser.maxDecibels=-10;src.connect(analyser);timeData=new Float32Array(analyser.fftSize);freqData=new Float32Array(analyser.frequencyBinCount);await calibrateMicrophoneNoiseFloor();return true;
-}
+async function calibrateMicrophoneNoiseFloor(){if(!analyser||!timeData)return false;if(timer){clearInterval(timer);timer=null}clearLiveUi();calOverlay.classList.add('show');updateCalibrationVisual(-90,0);const total=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS,start=performance.now();while(performance.now()-start<MIC_CAL_WARMUP_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);updateCalibrationVisual(l.db,(performance.now()-start)/total);await sleepMs(33)}const samples=[],mstart=performance.now();while(performance.now()-mstart<MIC_CAL_MEASURE_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);if(Number.isFinite(l.db))samples.push(l.db);updateCalibrationVisual(l.db,(MIC_CAL_WARMUP_MS+performance.now()-mstart)/total);await sleepMs(33)}if(!samples.length)dbThreshold=-70;else{samples.sort((a,b)=>a-b);const nf=median(samples);dbThreshold=clamp(Math.round(nf+MIC_CAL_MARGIN_DB),-70,-20)}updateCalibrationVisual(median(samples),1);await sleepMs(180);lastProcessAt=performance.now();timer=setInterval(processFrame,FRAME_MS);calOverlay.classList.remove('show');return true;}
+async function startMic(){if(stream)return true;if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state!=='running')await ctx.resume();const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};const constraints={echoCancellation:false,noiseSuppression:false,autoGainControl:false};if(supported.voiceIsolation)constraints.voiceIsolation=false;stream=await navigator.mediaDevices.getUserMedia({audio:constraints});const src=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.08;analyser.minDecibels=-110;analyser.maxDecibels=-10;src.connect(analyser);timeData=new Float32Array(analyser.fftSize);freqData=new Float32Array(analyser.frequencyBinCount);await calibrateMicrophoneNoiseFloor();return true;}
 
-$('#startBtn').addEventListener('click',async()=>{startError.textContent='';$('#startBtn').disabled=true;startOverlay.style.display='none';try{await startMic();statusMain.textContent='Soita G, A, H, C tai D';statusSub.textContent='Lasi täyttyy automaattisesti. Vakauspainotettu H1–H8-osuma määrää nopeuden.'}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';$('#startBtn').disabled=false;calOverlay.classList.remove('show')}});
+$('#settingsBtn').addEventListener('click',()=>settingsPanel.classList.toggle('open'));
+glassScaleSlider.addEventListener('input',()=>{uiSettings.glassScale=Number(glassScaleSlider.value);applyUiSettings();saveUiSettings()});
+labelScaleSlider.addEventListener('input',()=>{uiSettings.labelScale=Number(labelScaleSlider.value);applyUiSettings();saveUiSettings()});
+fillRateSlider.addEventListener('input',()=>{uiSettings.fillRate=Number(fillRateSlider.value);applyUiSettings();saveUiSettings()});
+scoreWidthSlider.addEventListener('input',()=>{uiSettings.scoreWidth=Number(scoreWidthSlider.value);applyUiSettings();saveUiSettings()});
+scoreHeightSlider.addEventListener('input',()=>{uiSettings.scoreChartHeight=Number(scoreHeightSlider.value);applyUiSettings();saveUiSettings()});
+scoreBarWidthSlider.addEventListener('input',()=>{uiSettings.scoreBarWidth=Number(scoreBarWidthSlider.value);applyUiSettings();saveUiSettings()});
+scoreGapSlider.addEventListener('input',()=>{uiSettings.scoreGap=Number(scoreGapSlider.value);applyUiSettings();saveUiSettings()});
+$('#exportJsonBtn').addEventListener('click',exportSettingsJson);
+$('#importJsonBtn').addEventListener('click',importSettingsJson);
+$('#scoreSettingsBtn').addEventListener('click',()=>settingsPanel.classList.toggle('open'));
+$('#resetUiSettings').addEventListener('click',()=>{uiSettings={glassScale:250,labelScale:50,fillRate:20,scoreWidth:620,scoreChartHeight:240,scoreBarWidth:42,scoreGap:14};applyUiSettings();saveUiSettings();exportSettingsJson()});
+window.addEventListener('resize',fitDesignToViewport,{passive:true});
+window.addEventListener('orientationchange',fitDesignToViewport,{passive:true});
+if(window.visualViewport)window.visualViewport.addEventListener('resize',fitDesignToViewport,{passive:true});
+
+$('#startBtn').addEventListener('click',async()=>{startError.textContent='';$('#startBtn').disabled=true;startOverlay.style.display='none';try{await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';$('#startBtn').disabled=false;calOverlay.classList.remove('show')}});
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
-$('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
-$('#resetFills').addEventListener('click',()=>{for(const n of NOTES)fills[n.key]=0;renderAll();statusMain.textContent='Lasit tyhjennetty';statusSub.textContent='JSON-referenssit pysyvät käytössä.'});
+$('#resetFills').addEventListener('click',resetGame);
+$('#playAgainBtn').addEventListener('click',resetGame);
+$('#closeScoreBtn').addEventListener('click',()=>scoreOverlay.classList.remove('show'));
 
-buildGlasses();renderRefs();requestAnimationFrame(animateGlassEffects);
+clearLegacySettings();loadUiSettings();applyUiSettings();exportSettingsJson();fitDesignToViewport();resetPerformanceTracking();
+buildGlasses();requestAnimationFrame(animateGlassEffects);
 })();
 </script>
-<script>
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Service workerin rekisteröinti epäonnistui:',err)))}
-</script>
+<script>/* BUILD 1.4.3 ERISTETTY: service worker intentionally disabled to prevent old-cache collisions. */</script>
 </body>
 </html>

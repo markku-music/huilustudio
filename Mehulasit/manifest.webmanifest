@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Viiden mehulasin peli H1–H8",
-  "short_name": "5 mehulasia",
+  "name": "Juomalasipeli",
+  "short_name": "Mehulasit",
   "description": "G, A, H, C ja D täyttävät viisi eriväristä poreilevaa mehulasia vakauspainotetulla H1–H8-äänimoottorilla.",
   "lang": "fi",
   "start_url": "./",
