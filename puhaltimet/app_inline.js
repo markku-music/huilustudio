@@ -532,20 +532,20 @@ function renderSamples(){
     const card=document.createElement('div');card.className='sample-note-card'+(open?' open':'');card.dataset.note=p.label;
     const summary=document.createElement('button');summary.type='button';summary.className='sample-note-summary';summary.dataset.toggleNote=p.label;summary.setAttribute('aria-expanded',open?'true':'false');
     const name=document.createElement('span');name.className='sample-note-name';name.textContent=Number.isFinite(p.midi)?displayNoteFromMidi(p.midi):displayConcertLabel(p.label);
-    const count=document.createElement('span');count.className='sample-note-count';count.textContent=`${groupSamples.length} ${groupSamples.length===1?'näyte':'näytettä'}`;
+    const count=document.createElement('span');count.className='sample-note-count';count.textContent=`${groupSamples.length} kpl`;
     const status=document.createElement('span');status.className='sample-note-status '+(hasWarning?'warn':ready?'ready':'');status.textContent=hasWarning?'⚠':ready?'✓':'';status.title=hasWarning?'Jossakin näytteessä on varoitus':ready?'Vertailupohja valmis':'';
     const chev=document.createElement('span');chev.className='sample-note-chevron';chev.textContent='▾';
     summary.append(name,count,status,chev);
     const details=document.createElement('div');details.className='sample-note-details';
     groupSamples.forEach((s,index)=>{
       const row=document.createElement('div');row.className='sample-detail-row';
-      const label=document.createElement('span');label.className='sample-detail-label';label.textContent=`Näyte ${index+1}`;
+      const label=document.createElement('span');label.className='sample-detail-label';label.textContent=`${index+1}.`;
       const hz=document.createElement('span');hz.className='sample-detail-hz';hz.textContent=Number.isFinite(s.frequencyHz)?`${s.frequencyHz.toFixed(1)} Hz`:'–';
       const st=document.createElement('span');st.className=`sample-detail-status ${sampleStatusClass(s)}`;st.textContent=sampleStatusMark(s);st.title=sampleHasWarning(s)?'Näytteessä on varoitus':s?.qualityCheck?.status==='ok'?'Näyte vastaa referenssiä':'';
       const del=document.createElement('button');del.type='button';del.className='sample-delete-one';del.dataset.deleteSample=s.id;del.textContent='×';del.setAttribute('aria-label',`Poista ${displaySampleNote(s)}, näyte ${index+1}`);del.title='Poista näyte';
       row.append(label,hz,st,del);details.appendChild(row);
     });
-    const tools=document.createElement('div');tools.className='sample-note-tools';const delNote=document.createElement('button');delNote.type='button';delNote.className='sample-delete-note';delNote.dataset.deleteNote=p.label;delNote.textContent='Poista kaikki tästä sävelestä';tools.appendChild(delNote);details.appendChild(tools);
+    const tools=document.createElement('div');tools.className='sample-note-tools';const delNote=document.createElement('button');delNote.type='button';delNote.className='sample-delete-note';delNote.dataset.deleteNote=p.label;delNote.textContent='Poista kaikki';tools.appendChild(delNote);details.appendChild(tools);
     card.append(summary,details);profileList.appendChild(card);
   }
   renderActiveProfile();updateButtons();
@@ -959,7 +959,6 @@ profileFileInput.addEventListener('change',handleProfileFileInput);
 profileList.addEventListener('click',handleSampleListClick);
 document.addEventListener('pointerdown',e=>{if(!topProfilePanel.hidden&&!e.target.closest('#topProfileMenu'))closeTopProfileMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!topProfilePanel.hidden)closeTopProfileMenu()});
-$('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
 sampleBtn.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&e.button!==0)return;
   e.preventDefault();
@@ -972,7 +971,7 @@ sampleBtn.addEventListener('lostpointercapture',e=>{if(isCaptureRecording()&&act
 sampleBtn.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();startHeldSample('keyboard')}});
 sampleBtn.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();endHeldSample('keyboard')}});
 window.addEventListener('blur',()=>{if(isCaptureRecording())endHeldSample(activeSamplePointerId)});
-acceptSampleBtn.addEventListener('click',acceptPendingSample);retrySampleBtn.addEventListener('click',retryPendingSample);$('#clearBtn').addEventListener('click',clearAll);
+acceptSampleBtn.addEventListener('click',acceptPendingSample);retrySampleBtn.addEventListener('click',retryPendingSample);
 renderInstrumentGrid();renderNotation(null);loadStored();updateButtons();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>fetch(OSMD_URL).catch(()=>{})).catch(()=>{}));
 })();
