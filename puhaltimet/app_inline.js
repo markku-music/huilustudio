@@ -222,6 +222,7 @@ function notationMusicXml(info,clef){
         <pitch><step>${pitch.step}</step>${alter}<octave>${pitch.scientificOctave}</octave></pitch>
         <duration>1</duration><type>quarter</type>
       </note>
+      <barline location="right"><bar-style>none</bar-style></barline>
     </measure>
   </part>
 </score-partwise>`;
@@ -343,7 +344,7 @@ let db=null;
 
 
 // Kiinteät käyttöliittymän renderöintiasetukset. Ei kehittäjäpaneelia.
-const UI_DEFAULTS={"appMaxWidth":1240,"appPadTop":18,"appPadX":18,"appPadBottom":28,"layoutLeft":46,"layoutGap":18,"analysisGap":14,"instrumentPad":0,"instrumentMinHeight":120,"instrumentRadius":28,"instrumentImageHeight":560,"instrumentImageWidth":100,"instrumentImageScale":96,"instrumentImageX":0,"instrumentImageY":0,"instrumentImageRotate":0,"topGap":50,"topMinHeight":24,"profileMinWidth":260,"profileMaxWidth":360,"miniPadY":10,"miniPadX":12,"miniRadius":12,"miniFont":16,"cardRadius":28,"cardPadTop":25,"cardPadX":80,"cardPadBottom":30,"cardGap":0,"barsHeight":190,"barsGap":40,"barsPadTop":0,"barsPadX":0,"barLabelRow":27,"barItemGap":0,"barFillWidth":70,"barTrackRadius":0,"barFillRadius":11,"barLabelSize":13,"barScaleMode":"fixed","barFixedMax":100,"barCurve":0.2,"noteMaxSize":40,"noteMinHeight":64,"hzSize":16,"actionGap":10,"buttonRadius":16,"buttonPadY":7,"primaryPadX":5,"secondaryPadX":20,"primaryFont":13,"secondaryFont":13,"primaryMinWidth":145,"bottomGap":14,"panelRadius":20,"panelPadY":15,"panelPadX":16,"panelMinHeight":110,"panelTitleSize":14,"panelTextSize":18,"profileListSize":13,"startWidth":890,"startPad":18,"startRadius":25,"startInputSize":16,"startInputPadY":11,"startInputPadX":12,"startInputRadius":13,"instrumentGridCols":5,"instrumentGridGap":11,"instrumentChoiceImgHeight":220,"instrumentChoiceRadius":16,"instrumentChoicePad":0,"instrumentChoiceFont":12,"reviewWidth":520,"reviewPad":25,"reviewRadius":26,"reviewTitleSize":26,"reviewMainSize":19,"reviewDetailSize":16,"calWidth":608,"overlayBlur":8,"overlayAlpha":0.42,"cardShadowAlpha":0.1,"panelShadowAlpha":0.07,"mobilePad":10,"mobileLayoutGap":10,"mobileInstrumentHeight":210,"mobileImageHeight":190,"mobileBarsHeight":190,"mobileGridCols":2,"bg":"#eef7fb","card":"#ffffff","ink":"#15384f","muted":"#668092","line":"#d7e7ef","accent":"#173f61","ok":"#18784c","warn":"#b66316","showInstrument":true,"showBottom":true,"showHz":true,"showBarLabels":true,"showProfile":true,"showRecal":true,"showClear":true,"showSample":true,"showPanelTitles":true,"showNotation":true,"holdLastNote":true,"notationClefMode":"auto","notationScale":400,"notationX":3,"notationY":127,"notationMeasureWidth":12,"sampleLabel":"ALOITA NÄYTE","recalLabel":"Kalibroi","clearLabel":"Tyhjennä näytteet","samplesTitle":"Tallennetut näytteet","profilePlaceholder":"Nimi","sampleCardGap":10,"sampleCardRadius":16,"sampleNoteSize":18,"sampleMetaSize":18};
+const UI_DEFAULTS={"appMaxWidth":1240,"appPadTop":18,"appPadX":18,"appPadBottom":28,"layoutLeft":46,"layoutGap":18,"analysisGap":14,"instrumentPad":0,"instrumentMinHeight":120,"instrumentRadius":28,"instrumentImageHeight":560,"instrumentImageWidth":100,"instrumentImageScale":96,"instrumentImageX":0,"instrumentImageY":0,"instrumentImageRotate":0,"topGap":50,"topMinHeight":24,"profileMinWidth":260,"profileMaxWidth":360,"miniPadY":10,"miniPadX":12,"miniRadius":12,"miniFont":16,"cardRadius":28,"cardPadTop":25,"cardPadX":80,"cardPadBottom":30,"cardGap":0,"barsHeight":190,"barsGap":40,"barsPadTop":0,"barsPadX":0,"barLabelRow":27,"barItemGap":0,"barFillWidth":70,"barTrackRadius":0,"barFillRadius":11,"barLabelSize":13,"barScaleMode":"fixed","barFixedMax":100,"barCurve":0.2,"noteMaxSize":40,"noteMinHeight":64,"hzSize":16,"actionGap":10,"buttonRadius":16,"buttonPadY":7,"primaryPadX":5,"secondaryPadX":20,"primaryFont":13,"secondaryFont":13,"primaryMinWidth":145,"bottomGap":14,"panelRadius":20,"panelPadY":15,"panelPadX":16,"panelMinHeight":110,"panelTitleSize":14,"panelTextSize":18,"profileListSize":13,"startWidth":890,"startPad":18,"startRadius":25,"startInputSize":16,"startInputPadY":11,"startInputPadX":12,"startInputRadius":13,"instrumentGridCols":5,"instrumentGridGap":11,"instrumentChoiceImgHeight":220,"instrumentChoiceRadius":16,"instrumentChoicePad":0,"instrumentChoiceFont":12,"reviewWidth":520,"reviewPad":25,"reviewRadius":26,"reviewTitleSize":26,"reviewMainSize":19,"reviewDetailSize":16,"calWidth":608,"overlayBlur":8,"overlayAlpha":0.42,"cardShadowAlpha":0.1,"panelShadowAlpha":0.07,"mobilePad":10,"mobileLayoutGap":10,"mobileInstrumentHeight":210,"mobileImageHeight":190,"mobileBarsHeight":190,"mobileGridCols":2,"bg":"#eef7fb","card":"#ffffff","ink":"#15384f","muted":"#668092","line":"#d7e7ef","accent":"#173f61","ok":"#18784c","warn":"#b66316","showInstrument":true,"showBottom":true,"showHz":true,"showBarLabels":true,"showProfile":true,"showRecal":true,"showClear":true,"showSample":true,"showPanelTitles":true,"showNotation":true,"holdLastNote":true,"notationClefMode":"auto","notationScale":400,"notationX":3,"notationY":0,"notationMeasureWidth":12,"sampleLabel":"ALOITA NÄYTE","recalLabel":"Kalibroi","clearLabel":"Tyhjennä näytteet","samplesTitle":"Tallennetut näytteet","profilePlaceholder":"Nimi","sampleCardGap":10,"sampleCardRadius":16,"sampleNoteSize":18,"sampleMetaSize":18};
 let uiSettings={...UI_DEFAULTS};
 function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
 function median(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
@@ -523,7 +524,7 @@ function renderSamples(){
     const empty=document.createElement('div');empty.className='sample-empty';empty.textContent='Valitse tai luo profiili.';profileList.appendChild(empty);renderActiveProfile();updateButtons();return;
   }
   if(!ss.length){
-    const empty=document.createElement('div');empty.className='sample-empty';empty.textContent='Ei tallennettuja näytteitä.';profileList.appendChild(empty);renderActiveProfile();updateButtons();return;
+    renderActiveProfile();updateButtons();return;
   }
   for(const p of ps){
     const groupSamples=ss.filter(s=>s.note===p.label).sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
@@ -533,9 +534,10 @@ function renderSamples(){
     const summary=document.createElement('button');summary.type='button';summary.className='sample-note-summary';summary.dataset.toggleNote=p.label;summary.setAttribute('aria-expanded',open?'true':'false');
     const name=document.createElement('span');name.className='sample-note-name';name.textContent=Number.isFinite(p.midi)?displayNoteFromMidi(p.midi):displayConcertLabel(p.label);
     const count=document.createElement('span');count.className='sample-note-count';count.textContent=`${groupSamples.length} kpl`;
+    const delNote=document.createElement('button');delNote.type='button';delNote.className='sample-delete-note';delNote.dataset.deleteNote=p.label;delNote.textContent='Poista kaikki';
     const status=document.createElement('span');status.className='sample-note-status '+(hasWarning?'warn':ready?'ready':'');status.textContent=hasWarning?'⚠':ready?'✓':'';status.title=hasWarning?'Jossakin näytteessä on varoitus':ready?'Vertailupohja valmis':'';
     const chev=document.createElement('span');chev.className='sample-note-chevron';chev.textContent='▾';
-    summary.append(name,count,status,chev);
+    summary.append(name,count,delNote,status,chev);
     const details=document.createElement('div');details.className='sample-note-details';
     groupSamples.forEach((s,index)=>{
       const row=document.createElement('div');row.className='sample-detail-row';
@@ -545,7 +547,6 @@ function renderSamples(){
       const del=document.createElement('button');del.type='button';del.className='sample-delete-one';del.dataset.deleteSample=s.id;del.textContent='×';del.setAttribute('aria-label',`Poista ${displaySampleNote(s)}, näyte ${index+1}`);del.title='Poista näyte';
       row.append(label,hz,st,del);details.appendChild(row);
     });
-    const tools=document.createElement('div');tools.className='sample-note-tools';const delNote=document.createElement('button');delNote.type='button';delNote.className='sample-delete-note';delNote.dataset.deleteNote=p.label;delNote.textContent='Poista kaikki';tools.appendChild(delNote);details.appendChild(tools);
     card.append(summary,details);profileList.appendChild(card);
   }
   renderActiveProfile();updateButtons();
