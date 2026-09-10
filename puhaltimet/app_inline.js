@@ -551,6 +551,23 @@ function renderSamples(){
   }
   renderActiveProfile();updateButtons();
 }
+function syncStartOverlayToVisualViewport(){
+  if(!startOverlay)return;
+  const vv=window.visualViewport;
+  if(!vv){
+    startOverlay.style.removeProperty('height');
+    startOverlay.style.removeProperty('top');
+    startOverlay.style.removeProperty('bottom');
+    return;
+  }
+  startOverlay.style.height=`${Math.round(vv.height)}px`;
+  startOverlay.style.top=`${Math.round(vv.offsetTop)}px`;
+  startOverlay.style.bottom='auto';
+}
+function releaseProfileKeyboard(){
+  if(document.activeElement===profileNameInput)profileNameInput.blur();
+  requestAnimationFrame(syncStartOverlayToVisualViewport);
+}
 function selectInstrument(name){
   profileInstrumentInput.value=name||'';
   for(const b of instrumentGrid.querySelectorAll('.instrument-choice')){const selected=b.dataset.instrument===name;b.classList.toggle('selected',selected);b.setAttribute('aria-checked',selected?'true':'false')}
@@ -561,7 +578,7 @@ function renderInstrumentGrid(){
   for(const inst of INSTRUMENTS){
     const b=document.createElement('button');b.type='button';b.className='instrument-choice';b.dataset.instrument=inst.name;b.setAttribute('role','radio');b.setAttribute('aria-checked','false');b.setAttribute('aria-label',inst.name);
     b.innerHTML=`<img src="${inst.src}" alt=""><span>${escapeHtml(inst.name)}</span>`;
-    b.addEventListener('click',()=>selectInstrument(inst.name));instrumentGrid.appendChild(b);
+    b.addEventListener('click',()=>{selectInstrument(inst.name);releaseProfileKeyboard()});instrumentGrid.appendChild(b);
   }
   selectInstrument(profileInstrumentInput.value);
 }
@@ -590,7 +607,7 @@ async function handleTopProfileClick(ev){
   const open=ev.target.closest('[data-top-open-profile]');if(open){ev.preventDefault();closeTopProfileMenu();await activateProfile(open.dataset.topOpenProfile)}
 }
 function renderProfileSelects(){renderTopProfileMenu()}
-function openProfileChooser(){cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();updateButtons();startError.textContent='';profileNameInput.value='';renderInstrumentGrid();selectInstrument('');renderProfileSelects();startOverlay.style.display='flex';requestAnimationFrame(()=>profileNameInput.focus())}
+function openProfileChooser(){cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();updateButtons();startError.textContent='';profileNameInput.value='';renderInstrumentGrid();selectInstrument('');renderProfileSelects();startOverlay.style.display='flex';syncStartOverlayToVisualViewport();requestAnimationFrame(()=>{profileNameInput.focus({preventScroll:true});setTimeout(()=>{syncStartOverlayToVisualViewport();profileNameInput.scrollIntoView({block:'start',behavior:'smooth'})},80)})}
 async function activateProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return;activeProfileId=id;renderSamples();renderProfileSelects();startOverlay.style.display='none';startError.textContent='';try{if(stream)await calibrateMicrophoneNoiseFloor();else await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}}
 function fpSimilarity(a,b){
   if(!a||!b)return 0;let sum=0;for(let i=0;i<8;i++){const da=20*Math.log10((a[i]||0)+1e-5),dbb=20*Math.log10((b[i]||0)+1e-5);const d=(da-dbb)/18;sum+=d*d}return clamp(100*Math.exp(-.78*Math.sqrt(sum/8)),0,100)
@@ -951,7 +968,10 @@ async function handleProfileFileInput(){
   try{startError.textContent='';await openProfileFromFile(file)}catch(err){console.error(err);const msg=err?.message||'Profiilitiedostoa ei voitu avata.';startError.textContent=msg;setState(msg)}
 }
 $('#createProfileBtn').addEventListener('click',createProfile);
-profileNameInput.addEventListener('keydown',e=>{if(e.key==='Enter')instrumentGrid.querySelector('.instrument-choice')?.focus()});
+profileNameInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();releaseProfileKeyboard();instrumentGrid.querySelector('.instrument-choice')?.focus()}});
+if(window.visualViewport){visualViewport.addEventListener('resize',syncStartOverlayToVisualViewport);visualViewport.addEventListener('scroll',syncStartOverlayToVisualViewport)}
+window.addEventListener('orientationchange',()=>setTimeout(syncStartOverlayToVisualViewport,120));
+profileNameInput.addEventListener('focus',()=>setTimeout(()=>{syncStartOverlayToVisualViewport();profileNameInput.scrollIntoView({block:'start',behavior:'smooth'})},80));
 topProfileTrigger.addEventListener('click',e=>{e.preventDefault();toggleTopProfileMenu()});
 topProfileList.addEventListener('click',handleTopProfileClick);
 topProfileNew.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();openProfileChooser()});
