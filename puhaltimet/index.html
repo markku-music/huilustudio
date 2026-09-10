@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Puhaltimet 0.3.1</title>
+<title>Puhaltimet 0.3.6</title>
 <style>
 :root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -39,7 +39,7 @@ button{cursor:pointer}
 .tuner-status{text-align:center;margin-top:2px;min-height:22px;font-size:14px;font-weight:950;letter-spacing:.08em;color:var(--muted)}
 .tuner-status.ok{color:var(--ok)}
 .topline{display:flex;align-items:center;gap:10px;min-height:46px}
-.mini{border:0;background:#fff;border-radius:12px;padding:10px 12px;font-weight:900;color:var(--ink);box-shadow:0 3px 12px rgba(21,56,79,.08)}.top-profile-menu{position:relative;min-width:250px;max-width:360px}.top-profile-trigger{width:100%;border:0;background:#fff;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:900;color:var(--ink);box-shadow:0 3px 12px rgba(21,56,79,.08);text-align:left}.top-profile-caret{color:var(--muted);font-size:14px}.top-profile-panel{position:absolute;z-index:45;left:0;top:calc(100% + 7px);width:min(360px,90vw);border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(21,56,79,.16);padding:8px}.top-profile-panel[hidden]{display:none}.top-profile-list{display:grid;gap:6px;max-height:270px;overflow:auto}.top-profile-row{display:grid;grid-template-columns:1fr 40px;gap:6px}.top-profile-open,.top-profile-delete,.top-profile-new{border:0;border-radius:11px}.top-profile-open{background:#f7fbfd;color:var(--ink);padding:9px 10px;text-align:left;font-weight:900}.top-profile-open.active{background:#edf6fb}.top-profile-open:hover{background:#edf6fb}.top-profile-delete{background:#f8eeee;color:#a33434;font-size:21px;font-weight:900}.top-profile-delete:hover{background:#f3dddd}.top-profile-new{width:100%;margin-top:7px;background:#e3eef4;color:var(--ink);padding:10px 12px;font-weight:950}
+.mini{border:0;background:#fff;border-radius:12px;padding:10px 12px;font-weight:900;color:var(--ink);box-shadow:0 3px 12px rgba(21,56,79,.08)}.top-profile-menu{position:relative;min-width:250px;max-width:360px}.top-profile-trigger{width:100%;border:0;background:#fff;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:900;color:var(--ink);box-shadow:0 3px 12px rgba(21,56,79,.08);text-align:left}.top-profile-caret{color:var(--muted);font-size:14px}.top-profile-panel{position:absolute;z-index:45;left:0;top:calc(100% + 7px);width:min(360px,90vw);border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(21,56,79,.16);padding:8px}.top-profile-panel[hidden]{display:none}.top-profile-list{display:grid;gap:6px;max-height:270px;overflow:auto}.top-profile-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 40px;gap:6px}.top-profile-open,.top-profile-export,.top-profile-delete,.top-profile-new{border:0;border-radius:11px}.top-profile-open{background:#f7fbfd;color:var(--ink);padding:9px 10px;text-align:left;font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top-profile-open.active{background:#edf6fb}.top-profile-open:hover{background:#edf6fb}.top-profile-export{background:#edf5fa;color:#173f61;font-size:11px;font-weight:950;padding:0 6px}.top-profile-export:hover{background:#deebf2}.top-profile-delete{background:#f8eeee;color:#a33434;font-size:21px;font-weight:900}.top-profile-delete:hover{background:#f3dddd}.top-profile-new{width:100%;margin-top:7px;background:#e3eef4;color:var(--ink);padding:10px 12px;font-weight:950}
 .live-card{background:var(--card);border-radius:28px;padding:24px 22px 20px;box-shadow:0 12px 34px rgba(21,56,79,.10);display:flex;flex-direction:column;align-items:center;gap:14px}
 .note{font-size:clamp(72px,13vw,132px);line-height:.9;font-weight:1000;letter-spacing:-.055em;min-height:118px;display:flex;align-items:center;justify-content:center}
 .notation-wrap{position:relative;width:100%;height:100%;min-height:0;margin:0;display:block;overflow:hidden}
@@ -78,7 +78,7 @@ button{cursor:pointer}
 #startOverlay,#calOverlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(111,180,219,.42);backdrop-filter:blur(8px)}
 .start-card{width:min(760px,96vw);max-height:calc(100vh - 30px);overflow:auto;background:#fff;border-radius:25px;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(21,56,79,.19)}
 .start-card h1,.start-card p{display:none}.error{min-height:20px;margin-top:12px;color:#a33;font-size:13px;font-weight:850}
-.profile-form{display:block;margin-top:0;padding-top:0;border-top:0;text-align:left}.profile-form.show{display:block}.profile-form input[type="text"]{display:block;width:100%;margin:0 0 14px;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:#fff;color:var(--ink);font-weight:850}.instrument-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.instrument-choice{border:2px solid transparent;background:#f7fbfd;border-radius:16px;padding:8px 7px 9px;min-width:0;color:var(--ink);font-weight:950;transition:transform .08s ease,border-color .08s ease,background .08s ease,box-shadow .08s ease}.instrument-choice:hover{background:#f1f8fb}.instrument-choice:active{transform:scale(.98)}.instrument-choice.selected{border-color:var(--accent);background:#edf6fb;box-shadow:0 0 0 2px rgba(23,63,97,.08)}.instrument-choice img{display:block;width:100%;height:92px;object-fit:contain;margin:0 auto 5px;pointer-events:none}.instrument-choice span{display:block;font-size:12px;line-height:1.15;text-align:center;overflow-wrap:anywhere}.instrument-selected{display:none}.profile-form .actions{margin-top:18px;justify-content:center}.recent-profiles{position:relative;margin-top:18px}.recent-profiles-trigger{width:100%;border:1px solid var(--line);border-radius:14px;background:#f7fbfd;color:var(--ink);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:950;text-align:left}.recent-profiles-trigger:hover{background:#f0f7fb}.recent-profiles-caret{font-size:15px;color:var(--muted)}.recent-profiles-panel{margin-top:7px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(21,56,79,.12);padding:10px;overflow:hidden}.recent-profiles-panel[hidden]{display:none}.recent-profiles-heading{padding:2px 5px 8px;color:var(--muted);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.recent-profiles-list{display:grid;gap:6px;max-height:238px;overflow:auto}.recent-profile-row{display:grid;grid-template-columns:1fr 42px;gap:6px;align-items:stretch}.recent-profile-open,.recent-profile-delete,.recent-open-file{border:0;border-radius:12px}.recent-profile-open{background:#f7fbfd;color:var(--ink);padding:9px 11px;text-align:left;min-width:0}.recent-profile-open:hover{background:#edf6fb}.recent-profile-title{display:block;font-size:15px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-profile-meta{display:block;margin-top:2px;color:var(--muted);font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-profile-delete{background:#f8eeee;color:#a33434;font-size:22px;font-weight:800}.recent-profile-delete:hover{background:#f3dddd}.recent-profile-empty{padding:12px 8px;color:var(--muted);font-size:13px;font-weight:800;text-align:center}.recent-open-file{width:100%;margin-top:8px;background:#e3eef4;color:var(--ink);padding:11px 13px;font-weight:950}.recent-open-file:hover{background:#d9e9f1}.hero-instrument{width:100%;height:100%;padding:0;margin:0;background:transparent;border:0;display:flex;align-items:center;justify-content:center}.hero-instrument.hidden{visibility:hidden}.hero-instrument img{display:block;width:100%;height:min(72vh,560px);max-height:100%;object-fit:contain}
+.profile-form{display:block;margin-top:0;padding-top:0;border-top:0;text-align:left}.profile-form.show{display:block}#profileName{display:block;width:min(520px,88%);margin:0 auto 20px;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:#fff;color:var(--ink);font-weight:850;text-align:center}.instrument-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.instrument-choice{border:2px solid transparent;background:#f7fbfd;border-radius:16px;padding:8px 7px 9px;min-width:0;color:var(--ink);font-weight:950;transition:transform .08s ease,border-color .08s ease,background .08s ease,box-shadow .08s ease}.instrument-choice:hover{background:#f1f8fb}.instrument-choice:active{transform:scale(.98)}.instrument-choice.selected{border-color:var(--accent);background:#edf6fb;box-shadow:0 0 0 2px rgba(23,63,97,.08)}.instrument-choice img{display:block;width:100%;height:92px;object-fit:contain;margin:0 auto 5px;pointer-events:none}.instrument-choice span{display:block;font-size:12px;line-height:1.15;text-align:center;overflow-wrap:anywhere}.instrument-selected{display:none}.profile-form .actions{margin-top:18px;justify-content:center}.recent-profiles{position:relative;margin-top:18px}.recent-profiles-trigger{width:100%;border:1px solid var(--line);border-radius:14px;background:#f7fbfd;color:var(--ink);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:950;text-align:left}.recent-profiles-trigger:hover{background:#f0f7fb}.recent-profiles-caret{font-size:15px;color:var(--muted)}.recent-profiles-panel{margin-top:7px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(21,56,79,.12);padding:10px;overflow:hidden}.recent-profiles-panel[hidden]{display:none}.recent-profiles-heading{padding:2px 5px 8px;color:var(--muted);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.recent-profiles-list{display:grid;gap:6px;max-height:238px;overflow:auto}.recent-profile-row{display:grid;grid-template-columns:1fr 42px;gap:6px;align-items:stretch}.recent-profile-open,.recent-profile-delete,.recent-open-file{border:0;border-radius:12px}.recent-profile-open{background:#f7fbfd;color:var(--ink);padding:9px 11px;text-align:left;min-width:0}.recent-profile-open:hover{background:#edf6fb}.recent-profile-title{display:block;font-size:15px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-profile-meta{display:block;margin-top:2px;color:var(--muted);font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-profile-delete{background:#f8eeee;color:#a33434;font-size:22px;font-weight:800}.recent-profile-delete:hover{background:#f3dddd}.recent-profile-empty{padding:12px 8px;color:var(--muted);font-size:13px;font-weight:800;text-align:center}.recent-open-file{width:100%;margin-top:8px;background:#e3eef4;color:var(--ink);padding:11px 13px;font-weight:950}.recent-open-file:hover{background:#d9e9f1}.hero-instrument{width:100%;height:100%;padding:0;margin:0;background:transparent;border:0;display:flex;align-items:center;justify-content:center}.hero-instrument.hidden{visibility:hidden}.hero-instrument img{display:block;width:100%;height:min(72vh,560px);max-height:100%;object-fit:contain}
 #calOverlay{display:none;background:rgba(20,54,78,.58)}#calOverlay.show{display:flex}
 #reviewOverlay{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,54,78,.62);backdrop-filter:blur(9px)}
 #reviewOverlay.show{display:flex}
@@ -349,7 +349,7 @@ body{display:block;background:#edf5fa}
 .memory-viewbar{flex:0 0 38px;display:flex;align-items:center;justify-content:center;margin:0 0 6px}
 .memory-display-toggle{height:34px;border:1px solid #cfe0e9;border-radius:999px;background:#fff;color:#173f61;padding:0 15px;font-size:13px;font-weight:950;box-shadow:none;white-space:nowrap}
 .memory-display-toggle:active{transform:translateY(1px)}
-.memory-board{flex:1 1 auto;min-height:0;width:100%;height:100%;margin:0;display:grid;gap:10px;align-content:center;justify-content:center;overflow:hidden}
+.memory-board{flex:1 1 auto;min-height:0;width:100%;height:100%;margin:0;display:grid;gap:10px;align-content:center;justify-content:center;overflow:hidden;background-image:url("./memory_background.webp");background-size:cover;background-position:center;background-repeat:no-repeat;border-radius:20px}
 .memory-card{position:relative;width:100%;height:100%;aspect-ratio:1/1;border:0;background:transparent;padding:0;perspective:900px;touch-action:manipulation}
 .memory-card-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 360ms cubic-bezier(.2,.72,.2,1),opacity 300ms ease,scale 300ms ease}
 .memory-card.flipped .memory-card-inner{transform:rotateY(180deg)}
@@ -442,7 +442,7 @@ body{display:block;background:#edf5fa}
 <div id="startOverlay">
   <div class="start-card">
     <div id="profileForm" class="profile-form show">
-      <input id="profileName" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="Kirjoita oppilaan nimi">
+      <input id="profileName" type="text" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="Kirjoita oppilaan nimi">
       <input id="profileInstrument" type="hidden" value="">
       <div id="instrumentGrid" class="instrument-grid" role="radiogroup" aria-label="Valitse soitin"></div>
       <div id="instrumentSelected" class="instrument-selected" aria-hidden="true"></div>
@@ -1128,14 +1128,16 @@ function renderTopProfileMenu(){
   for(const p of sorted){
     const row=document.createElement('div');row.className='top-profile-row';
     const open=document.createElement('button');open.type='button';open.className='top-profile-open'+(p.id===activeProfileId?' active':'');open.dataset.topOpenProfile=p.id;open.textContent=`${p.name} • ${p.instrument}`;
+    const exp=document.createElement('button');exp.type='button';exp.className='top-profile-export';exp.dataset.topExportProfile=p.id;exp.textContent='JSON';exp.setAttribute('aria-label',`Vie profiili ${p.name||''} JSON-tiedostona`);exp.title='Vie profiili JSON-tiedostona';
     const del=document.createElement('button');del.type='button';del.className='top-profile-delete';del.dataset.topDeleteProfile=p.id;del.textContent='×';del.setAttribute('aria-label',`Poista profiili ${p.name||''}`);del.title='Poista profiili';
-    row.append(open,del);topProfileList.appendChild(row);
+    row.append(open,exp,del);topProfileList.appendChild(row);
   }
 }
 function closeTopProfileMenu(){if(!topProfilePanel)return;topProfilePanel.hidden=true;topProfileTrigger.setAttribute('aria-expanded','false')}
 function toggleTopProfileMenu(){const opening=topProfilePanel.hidden;if(opening){renderTopProfileMenu();topProfilePanel.hidden=false;topProfileTrigger.setAttribute('aria-expanded','true')}else closeTopProfileMenu()}
 async function handleTopProfileClick(ev){
   const del=ev.target.closest('[data-top-delete-profile]');if(del){ev.preventDefault();ev.stopPropagation();await deleteProfileById(del.dataset.topDeleteProfile);renderTopProfileMenu();return}
+  const exp=ev.target.closest('[data-top-export-profile]');if(exp){ev.preventDefault();ev.stopPropagation();exportProfileJson(exp.dataset.topExportProfile);return}
   const open=ev.target.closest('[data-top-open-profile]');if(open){ev.preventDefault();closeTopProfileMenu();await activateProfile(open.dataset.topOpenProfile)}
 }
 function renderProfileSelects(){renderTopProfileMenu()}
@@ -1523,6 +1525,31 @@ function retryPendingSample(){
 }
 
 function cleanSampleForJson(s){const {audioBlob,...clean}=s;return clean}
+function safeProfileFileName(value){
+  const base=String(value||'profiili').trim().replace(/[\/:*?"<>|]+/g,'-').replace(/\s+/g,'_').replace(/^[-_.]+|[-_.]+$/g,'');
+  return base||'profiili';
+}
+function exportProfileJson(profileIdToExport){
+  const profile=profiles.find(p=>p.id===profileIdToExport);
+  if(!profile)return;
+  const ownSamples=samples.filter(s=>sampleProfileId(s)===profile.id).map(cleanSampleForJson);
+  const payload={
+    format:'puhaltimet-profile',
+    version:1,
+    exportedAt:new Date().toISOString(),
+    activeProfileId:profile.id,
+    profile:{...profile},
+    samples:ownSamples
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`Puhaltimet_${safeProfileFileName(profile.name)}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  setState(`Profiili viety: ${profile.name}`,'ok');
+}
+
 function writeFallbackSnapshot(){
   try{localStorage.setItem(FALLBACK_KEY,JSON.stringify({profiles:profiles.map(p=>({...p})),samples:samples.map(cleanSampleForJson)}));return true}catch(_){return false}
 }

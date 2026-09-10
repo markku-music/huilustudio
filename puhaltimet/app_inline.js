@@ -624,14 +624,16 @@ function renderTopProfileMenu(){
   for(const p of sorted){
     const row=document.createElement('div');row.className='top-profile-row';
     const open=document.createElement('button');open.type='button';open.className='top-profile-open'+(p.id===activeProfileId?' active':'');open.dataset.topOpenProfile=p.id;open.textContent=`${p.name} • ${p.instrument}`;
+    const exp=document.createElement('button');exp.type='button';exp.className='top-profile-export';exp.dataset.topExportProfile=p.id;exp.textContent='JSON';exp.setAttribute('aria-label',`Vie profiili ${p.name||''} JSON-tiedostona`);exp.title='Vie profiili JSON-tiedostona';
     const del=document.createElement('button');del.type='button';del.className='top-profile-delete';del.dataset.topDeleteProfile=p.id;del.textContent='×';del.setAttribute('aria-label',`Poista profiili ${p.name||''}`);del.title='Poista profiili';
-    row.append(open,del);topProfileList.appendChild(row);
+    row.append(open,exp,del);topProfileList.appendChild(row);
   }
 }
 function closeTopProfileMenu(){if(!topProfilePanel)return;topProfilePanel.hidden=true;topProfileTrigger.setAttribute('aria-expanded','false')}
 function toggleTopProfileMenu(){const opening=topProfilePanel.hidden;if(opening){renderTopProfileMenu();topProfilePanel.hidden=false;topProfileTrigger.setAttribute('aria-expanded','true')}else closeTopProfileMenu()}
 async function handleTopProfileClick(ev){
   const del=ev.target.closest('[data-top-delete-profile]');if(del){ev.preventDefault();ev.stopPropagation();await deleteProfileById(del.dataset.topDeleteProfile);renderTopProfileMenu();return}
+  const exp=ev.target.closest('[data-top-export-profile]');if(exp){ev.preventDefault();ev.stopPropagation();exportProfileJson(exp.dataset.topExportProfile);return}
   const open=ev.target.closest('[data-top-open-profile]');if(open){ev.preventDefault();closeTopProfileMenu();await activateProfile(open.dataset.topOpenProfile)}
 }
 function renderProfileSelects(){renderTopProfileMenu()}
@@ -1019,6 +1021,31 @@ function retryPendingSample(){
 }
 
 function cleanSampleForJson(s){const {audioBlob,...clean}=s;return clean}
+function safeProfileFileName(value){
+  const base=String(value||'profiili').trim().replace(/[\/:*?"<>|]+/g,'-').replace(/\s+/g,'_').replace(/^[-_.]+|[-_.]+$/g,'');
+  return base||'profiili';
+}
+function exportProfileJson(profileIdToExport){
+  const profile=profiles.find(p=>p.id===profileIdToExport);
+  if(!profile)return;
+  const ownSamples=samples.filter(s=>sampleProfileId(s)===profile.id).map(cleanSampleForJson);
+  const payload={
+    format:'puhaltimet-profile',
+    version:1,
+    exportedAt:new Date().toISOString(),
+    activeProfileId:profile.id,
+    profile:{...profile},
+    samples:ownSamples
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`Puhaltimet_${safeProfileFileName(profile.name)}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  setState(`Profiili viety: ${profile.name}`,'ok');
+}
+
 function writeFallbackSnapshot(){
   try{localStorage.setItem(FALLBACK_KEY,JSON.stringify({profiles:profiles.map(p=>({...p})),samples:samples.map(cleanSampleForJson)}));return true}catch(_){return false}
 }
