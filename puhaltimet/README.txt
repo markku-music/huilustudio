@@ -1,8 +1,9 @@
-Ääninäyte 0.3.50 – LOCAL OSMD 2.1.2
+Puhaltimet 0.1.0
 
-Muutos 0.3.49 -> 0.3.50:
-- Lisätty käyttäjän toimittama OpenSheetMusicDisplay 2.1.2-release paikallisena tiedostona: opensheetmusicdisplay.min.js.
-- Appi lataa OSMD:n nyt paikallisesti eikä unpkg/CDN-osoitteesta.
-- OSMD lisätty PWA:n esivälimuistitettaviin tiedostoihin, joten nuottimoottori toimii myös offline-tilassa appin latauduttua.
-- PWA-cache päivitetty 0.3.50-versioon.
-- Muuta sovelluslogiikkaa, analyysimoottoria tai dashboard-layoutia ei muutettu.
+Uusi itsenäinen PWA puhallinopetukseen.
+
+- Oma PWA-nimi ja manifestitunniste: Puhaltimet
+- Oma service worker -cache
+- Oma IndexedDB- ja localStorage-nimiavaruus
+- Punainen painonappi sovellusikonina
+- OSMD 2.1.2 paikallisena

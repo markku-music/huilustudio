@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#eef7fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Ääninäyte">
+<meta name="apple-mobile-web-app-title" content="Puhaltimet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Ääninäyte 0.3.58 HOLD BUTTON</title>
+<title>Puhaltimet 0.1.0</title>
 <style>
 :root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -354,7 +354,7 @@ const END_SILENCE_MS=180;
 const MIN_SAMPLE_MS=280;
 const MAX_SAMPLE_MS=12000;
 const DB_MIN=-70, DB_MAX=-20;
-const FALLBACK_KEY='aaninaeyte.profiles.v1';
+const FALLBACK_KEY='puhaltimet.profiles.v1';
 // Näytteen jälkitarkistus. Profiilia arvioidaan vasta, kun omasta sävelestä on vähintään 2 hyväksyttyä referenssinäytettä.
 const REVIEW_MIN_OWN_SAMPLES=2;
 const REVIEW_MIN_OTHER_SAMPLES=2;
@@ -1000,7 +1000,7 @@ async function touchProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return
 async function openDb(){
   return new Promise((resolve,reject)=>{
     let settled=false;
-    const r=indexedDB.open('aaninaeyte-dev-01',2);
+    const r=indexedDB.open('puhaltimet-01',2);
     r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('samples'))d.createObjectStore('samples',{keyPath:'id'});if(!d.objectStoreNames.contains('profiles'))d.createObjectStore('profiles',{keyPath:'id'})};
     r.onsuccess=()=>{if(settled){try{r.result.close()}catch(_){ }return}settled=true;const d=r.result;d.onversionchange=()=>{try{d.close()}catch(_){ }};resolve(d)};
     r.onerror=()=>{if(!settled){settled=true;reject(r.error)}};
