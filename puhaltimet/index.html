@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Puhaltimet 0.1.11</title>
+<title>Puhaltimet 0.2.9</title>
 <style>
 :root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -337,6 +337,40 @@ body{display:block;background:#edf5fa}
   .start-card{max-height:calc(100% - 12px) !important}
 }
 
+/* ===== ÄÄNIMUISTI 0.2.0 ===== */
+.top-profile-game{background:#173f61 !important;color:#fff !important}
+.top-profile-game:disabled{opacity:.42;cursor:default}
+.memory-game{position:fixed;inset:0;z-index:1200;background:#edf5fa;display:flex;flex-direction:column;overflow:hidden;padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+.memory-game[hidden]{display:none}
+.memory-topbar{flex:0 0 46px;height:46px;display:grid;grid-template-columns:46px 1fr 46px;align-items:center;gap:6px;width:100%;margin:0 0 6px}
+.memory-title{text-align:center;font-size:18px;font-weight:1000;letter-spacing:.02em;color:#173f61}
+.memory-back,.memory-restart{width:42px;height:42px;border:1px solid #d7e7ef;background:#fff;color:#173f61;border-radius:13px;font-size:30px;line-height:1;display:grid;place-items:center;box-shadow:none}
+.memory-restart{font-size:23px;justify-self:end}
+.memory-viewbar{flex:0 0 38px;display:flex;align-items:center;justify-content:center;margin:0 0 6px}
+.memory-display-toggle{height:34px;border:1px solid #cfe0e9;border-radius:999px;background:#fff;color:#173f61;padding:0 15px;font-size:13px;font-weight:950;box-shadow:none;white-space:nowrap}
+.memory-display-toggle:active{transform:translateY(1px)}
+.memory-board{flex:1 1 auto;min-height:0;width:100%;height:100%;margin:0;display:grid;gap:10px;align-content:center;justify-content:center;overflow:hidden}
+.memory-card{position:relative;width:100%;height:100%;aspect-ratio:1/1;border:0;background:transparent;padding:0;perspective:900px;touch-action:manipulation}
+.memory-card-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 360ms cubic-bezier(.2,.72,.2,1),opacity 300ms ease,scale 300ms ease}
+.memory-card.flipped .memory-card-inner{transform:rotateY(180deg)}
+.memory-card.matched .memory-card-inner{opacity:0;scale:.72}
+.memory-card-face{position:absolute;inset:0;border-radius:22px;border:1px solid #d7e7ef;background:#fff;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(21,56,79,.08)}
+.memory-card-back{padding:14px;background:linear-gradient(145deg,#f9fcfe,#edf5f9)}
+.memory-card-back img{width:88%;height:88%;object-fit:contain;pointer-events:none;user-select:none}
+.memory-card-front{transform:rotateY(180deg);padding:0;background:#fff}
+.memory-card-front .memory-note-art{width:100%;height:92%;display:flex;align-items:center;justify-content:center;margin:0;overflow:hidden}
+.memory-card-front .memory-note-scale{width:100%;height:100%;display:flex;align-items:center;justify-content:center}.memory-card-front .memory-note-art svg{display:block;width:100%;height:100%}
+.memory-note-name{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:clamp(34px,7vw,76px);font-weight:1000;letter-spacing:-.035em;color:#173f61;text-align:center}
+#memoryOsmdStage{position:fixed;left:-9999px;top:-9999px;width:220px;height:280px;overflow:hidden;opacity:0;pointer-events:none}
+.memory-card.timbre-miss .memory-card-front{box-shadow:inset 0 0 0 5px #f2a33a}
+.memory-card.wrong-note .memory-card-front{box-shadow:inset 0 0 0 5px #e06b61}
+.memory-card.success .memory-card-front{box-shadow:inset 0 0 0 5px #22c55e}
+.memory-complete{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:rgba(237,245,250,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.memory-complete[hidden]{display:none}
+.memory-complete-mark{width:110px;height:110px;border-radius:50%;display:grid;place-items:center;background:#22c55e;color:#fff;font-size:70px;font-weight:1000;box-shadow:0 16px 40px rgba(34,197,94,.2)}
+.memory-again{border:0;border-radius:999px;background:#173f61;color:#fff;padding:13px 22px;font-size:16px;font-weight:950}
+@media(max-width:700px){.memory-board{gap:8px}.memory-card-face{border-radius:16px}.memory-title{font-size:17px}.memory-viewbar{flex-basis:34px;margin-bottom:4px}.memory-display-toggle{height:31px;font-size:12px;padding:0 13px}}
+
 </style>
 </head>
 <body>
@@ -349,6 +383,7 @@ body{display:block;background:#edf5fa}
         </button>
         <div id="topProfilePanel" class="top-profile-panel" hidden>
           <div id="topProfileList" class="top-profile-list"></div>
+          <button id="topProfileGame" class="top-profile-new top-profile-game" type="button">Äänimuisti</button>
           <button id="topProfileNew" class="top-profile-new" type="button">+ Uusi profiili</button>
           <button id="topProfileFile" class="top-profile-new" type="button">Avaa tiedostosta…</button>
           <input id="profileFileInput" type="file" accept=".json,application/json" hidden>
@@ -419,6 +454,24 @@ body{display:block;background:#edf5fa}
   </div>
 </div>
 
+<div id="memoryGame" class="memory-game" hidden aria-label="Äänimuisti">
+  <div class="memory-topbar">
+    <button id="memoryBackBtn" class="memory-back" type="button" aria-label="Takaisin">‹</button>
+    <div class="memory-title">Äänimuisti</div>
+    <button id="memoryRestartBtn" class="memory-restart" type="button" aria-label="Uusi peli">↻</button>
+  </div>
+  <div class="memory-viewbar">
+    <button id="memoryDisplayToggle" class="memory-display-toggle" type="button" aria-pressed="false">Nuotti</button>
+  </div>
+  <div id="memoryBoard" class="memory-board" aria-live="polite"></div>
+  <div id="memoryComplete" class="memory-complete" hidden>
+    <div class="memory-complete-mark">✓</div>
+    <button id="memoryAgainBtn" class="memory-again" type="button">Uusi peli</button>
+  </div>
+</div>
+
+<div id="memoryOsmdStage" aria-hidden="true"></div>
+
 <div id="calOverlay" aria-live="polite">
   <div class="cal-ring-stage" role="status" aria-label="Mikrofonin kalibrointi">
     <div class="cal-ring-wrap">
@@ -478,7 +531,8 @@ const tunerScale=$('#tunerScale'),tunerNeedle=$('#tunerNeedle'),tunerBulbFill=$(
 const sampleBtn=$('#sampleBtn');
 const profileList=$('#profileList');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
-const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
+const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileGame=$('#topProfileGame'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
+const memoryGame=$('#memoryGame'),memoryBoard=$('#memoryBoard'),memoryBackBtn=$('#memoryBackBtn'),memoryRestartBtn=$('#memoryRestartBtn'),memoryComplete=$('#memoryComplete'),memoryAgainBtn=$('#memoryAgainBtn'),memoryOsmdStage=$('#memoryOsmdStage'),memoryDisplayToggle=$('#memoryDisplayToggle');
 const reviewOverlay=$('#reviewOverlay'),reviewMain=$('#reviewMain'),reviewDetail=$('#reviewDetail'),acceptSampleBtn=$('#acceptSampleBtn'),retrySampleBtn=$('#retrySampleBtn');
 function refreshAppFromInstrument(){
   window.location.reload();
@@ -793,6 +847,25 @@ let samples=[],profiles=[],activeProfileId=null;
 let expandedSampleNotes=new Set();
 let db=null;
 
+// Äänimuisti käyttää Lentokone_PWA_BASE_4_0:n tunnistusperiaatetta:
+// YIN-pohjasävel + H2–H8-sormenjälki, 42 % pitch / 58 % spektri.
+const MEMORY_ACCEPT=50;
+const MEMORY_HISTORY=6;
+const MEMORY_MIN_STABLE_FRAMES=5;
+const MEMORY_RESOLVE_DELAY=760;
+let memoryActive=false;
+let memoryCards=[];
+let memorySelectedId=null;
+let memoryListening=false;
+let memoryResolving=false;
+let memoryF0History=[];
+let memorySimilarityHistory=[];
+let memoryMidiHistory=[];
+let memoryCardArtCache=new Map();
+let memoryOsmdInstance=null;
+let memoryCardArtToken=0;
+let memoryDisplayMode='notation';
+
 
 // Kiinteät käyttöliittymän renderöintiasetukset. Ei kehittäjäpaneelia.
 const UI_DEFAULTS={"appMaxWidth":1240,"appPadTop":18,"appPadX":18,"appPadBottom":28,"layoutLeft":46,"layoutGap":18,"analysisGap":14,"instrumentPad":0,"instrumentMinHeight":120,"instrumentRadius":28,"instrumentImageHeight":560,"instrumentImageWidth":100,"instrumentImageScale":96,"instrumentImageX":0,"instrumentImageY":0,"instrumentImageRotate":0,"topGap":50,"topMinHeight":24,"profileMinWidth":260,"profileMaxWidth":360,"miniPadY":10,"miniPadX":12,"miniRadius":12,"miniFont":16,"cardRadius":28,"cardPadTop":25,"cardPadX":80,"cardPadBottom":30,"cardGap":0,"barsHeight":190,"barsGap":40,"barsPadTop":0,"barsPadX":0,"barLabelRow":27,"barItemGap":0,"barFillWidth":70,"barTrackRadius":0,"barFillRadius":11,"barLabelSize":13,"barScaleMode":"fixed","barFixedMax":100,"barCurve":0.2,"noteMaxSize":40,"noteMinHeight":64,"hzSize":16,"actionGap":10,"buttonRadius":16,"buttonPadY":7,"primaryPadX":5,"secondaryPadX":20,"primaryFont":13,"secondaryFont":13,"primaryMinWidth":145,"bottomGap":14,"panelRadius":20,"panelPadY":15,"panelPadX":16,"panelMinHeight":110,"panelTitleSize":14,"panelTextSize":18,"profileListSize":13,"startWidth":890,"startPad":18,"startRadius":25,"startInputSize":16,"startInputPadY":11,"startInputPadX":12,"startInputRadius":13,"instrumentGridCols":5,"instrumentGridGap":11,"instrumentChoiceImgHeight":220,"instrumentChoiceRadius":16,"instrumentChoicePad":0,"instrumentChoiceFont":12,"reviewWidth":520,"reviewPad":25,"reviewRadius":26,"reviewTitleSize":26,"reviewMainSize":19,"reviewDetailSize":16,"calWidth":608,"overlayBlur":8,"overlayAlpha":0.42,"cardShadowAlpha":0.1,"panelShadowAlpha":0.07,"mobilePad":10,"mobileLayoutGap":10,"mobileInstrumentHeight":210,"mobileImageHeight":190,"mobileBarsHeight":190,"mobileGridCols":2,"bg":"#eef7fb","card":"#ffffff","ink":"#15384f","muted":"#668092","line":"#d7e7ef","accent":"#173f61","ok":"#18784c","warn":"#b66316","showInstrument":true,"showBottom":true,"showHz":true,"showBarLabels":true,"showProfile":true,"showRecal":true,"showClear":true,"showSample":true,"showPanelTitles":true,"showNotation":true,"holdLastNote":true,"notationClefMode":"auto","notationScale":400,"notationX":3,"notationY":0,"notationMeasureWidth":12,"sampleLabel":"ALOITA NÄYTE","recalLabel":"Kalibroi","clearLabel":"Tyhjennä näytteet","samplesTitle":"Tallennetut näytteet","profilePlaceholder":"Nimi","sampleCardGap":10,"sampleCardRadius":16,"sampleNoteSize":18,"sampleMetaSize":18};
@@ -1042,6 +1115,7 @@ function renderTopProfileMenu(){
   if(!topProfileList)return;
   const current=currentProfile();topProfileLabel.textContent=current?`${current.name} • ${current.instrument}`:'+ Uusi profiili';
   topProfileList.replaceChildren();
+  updateMemoryGameButton();
   const sorted=[...profiles].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fi',{sensitivity:'base'}));
   if(!sorted.length){const empty=document.createElement('div');empty.className='recent-profile-empty';empty.textContent='Ei tallennettuja profiileja.';topProfileList.appendChild(empty)}
   for(const p of sorted){
@@ -1060,6 +1134,326 @@ async function handleTopProfileClick(ev){
 function renderProfileSelects(){renderTopProfileMenu()}
 function openProfileChooser(){cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();updateButtons();startError.textContent='';profileNameInput.value='';renderInstrumentGrid();selectInstrument('');renderProfileSelects();startOverlay.style.display='flex';syncStartOverlayToVisualViewport();requestAnimationFrame(()=>{profileNameInput.focus({preventScroll:true});setTimeout(()=>{syncStartOverlayToVisualViewport();profileNameInput.scrollIntoView({block:'start',behavior:'smooth'})},80)})}
 async function activateProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return;activeProfileId=id;renderSamples();renderProfileSelects();startOverlay.style.display='none';startError.textContent='';try{if(stream)await calibrateMicrophoneNoiseFloor();else await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}}
+function memoryH2H8FromH1H8(fp8){
+  if(!fp8||fp8.length<8)return null;
+  const vals=fp8.slice(1,8).map(v=>Math.max(0,Number(v)||0));
+  const total=vals.reduce((s,v)=>s+v,0);
+  return total>0?vals.map(v=>v/total):null;
+}
+function memoryFpDistance(a,b){
+  if(!a||!b||a.length!==b.length||!a.length)return Infinity;
+  let s=0;
+  for(let i=0;i<a.length;i++){
+    const da=20*Math.log10((a[i]||0)+1e-5),dbb=20*Math.log10((b[i]||0)+1e-5),d=(da-dbb)/16;
+    s+=d*d;
+  }
+  return Math.sqrt(s/a.length);
+}
+function memorySimilarity(take,ref){
+  if(!take?.f0||!take?.fp||!ref?.f0||!ref?.fingerprint)return 0;
+  const cents=Math.abs(centsDiff(take.f0,ref.f0));
+  const pitchPenalty=Math.min(3,cents/110);
+  const spectralPenalty=memoryFpDistance(take.fp,ref.fingerprint);
+  const combined=Math.sqrt(.42*pitchPenalty*pitchPenalty+.58*spectralPenalty*spectralPenalty);
+  return clamp(100*Math.exp(-.82*combined),0,100);
+}
+function memoryReference(label){
+  const ss=samples.filter(s=>sampleProfileId(s)===profileId()&&s.note===label&&Number.isFinite(s.frequencyHz)&&Array.isArray(s.harmonics));
+  if(!ss.length)return null;
+  const fps=ss.map(s=>memoryH2H8FromH1H8(s.harmonics)).filter(Boolean);
+  if(!fps.length)return null;
+  const fingerprint=Array(7).fill(0);
+  for(const fp of fps)for(let i=0;i<7;i++)fingerprint[i]+=fp[i];
+  for(let i=0;i<7;i++)fingerprint[i]/=fps.length;
+  const total=fingerprint.reduce((s,v)=>s+v,0)||1;
+  for(let i=0;i<7;i++)fingerprint[i]/=total;
+  return {f0:median(ss.map(s=>s.frequencyHz)),fingerprint};
+}
+function memoryAvailableNotes(){
+  const pid=profileId();
+  const labels=[...new Set(samples.filter(s=>sampleProfileId(s)===pid).map(s=>s.note))];
+  return labels.map(label=>({label,ref:memoryReference(label),midi:concertLabelToMidi(label)})).filter(x=>x.ref&&Number.isFinite(x.midi)).sort((a,b)=>a.midi-b.midi);
+}
+function memoryShuffle(arr){
+  const a=[...arr];
+  const rand=max=>{
+    if(window.crypto?.getRandomValues){
+      const buf=new Uint32Array(1);window.crypto.getRandomValues(buf);return buf[0]%max;
+    }
+    return Math.floor(Math.random()*max);
+  };
+  for(let i=a.length-1;i>0;i--){const j=rand(i+1);[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+function ensureMemoryOsmd(){
+  if(memoryOsmdInstance)return memoryOsmdInstance;
+  const lib=window.opensheetmusicdisplay;
+  if(!lib?.OpenSheetMusicDisplay||!memoryOsmdStage)return null;
+  memoryOsmdInstance=new lib.OpenSheetMusicDisplay(memoryOsmdStage,{autoResize:false,backend:'svg',drawTitle:false,drawingParameters:'compacttight'});
+  try{
+    memoryOsmdInstance.EngravingRules.RenderMeasureNumbers=false;
+    memoryOsmdInstance.EngravingRules.RenderPartNames=false;
+    memoryOsmdInstance.EngravingRules.RenderPartAbbreviations=false;
+    memoryOsmdInstance.EngravingRules.SnapStafflinesToCrispPixels=true;
+    memoryOsmdInstance.EngravingRules.StaffLineWidth=0.10;
+    memoryOsmdInstance.EngravingRules.FixedMeasureWidth=true;
+    memoryOsmdInstance.EngravingRules.FixedMeasureWidthFixedValue=24;
+    memoryOsmdInstance.EngravingRules.FixedMeasureWidthUseForPickupMeasures=true;
+    memoryOsmdInstance.Zoom=2.04;
+  }catch(_){ }
+  return memoryOsmdInstance;
+}
+function widenMemoryStaff(svg){
+  if(!svg)return null;
+  const vb=(svg.getAttribute('viewBox')||'').trim().split(/\s+/).map(Number);
+  if(vb.length!==4||!vb.every(Number.isFinite))return null;
+  const [, , width]=vb;
+  const left=width*0.025;
+  const right=width*0.975;
+  const ys=[];
+  const simpleLine=/^M\s*([\d.+-]+)\s+([\d.+-]+)L\s*([\d.+-]+)\s+([\d.+-]+)$/i;
+  for(const path of svg.querySelectorAll('g.staffline g.vf-measure > path')){
+    const d=path.getAttribute('d')||'';
+    const m=d.match(simpleLine);
+    if(!m)continue;
+    const x1=Number(m[1]),y1=Number(m[2]),x2=Number(m[3]),y2=Number(m[4]);
+    if(![x1,y1,x2,y2].every(Number.isFinite))continue;
+    if(Math.abs(y1-y2)>0.01||Math.abs(x2-x1)<20)continue;
+    ys.push(y1);
+    path.setAttribute('d',`M${left} ${y1}L${right} ${y2}`);
+  }
+  ys.sort((a,b)=>a-b);
+  return {left,right,top:ys[0]??0,bottom:ys[ys.length-1]??0};
+}
+function shiftElementX(el,dx){
+  if(!el||!Number.isFinite(dx)||Math.abs(dx)<0.5)return;
+  const prev=el.getAttribute('transform')||'';
+  el.setAttribute('transform',`translate(${dx.toFixed(2)} 0) ${prev}`.trim());
+}
+function alignMemoryClefLeft(svg,staffInfo){
+  if(!svg||!staffInfo)return;
+  const staffHeight=Math.max(1,staffInfo.bottom-staffInfo.top);
+  const desiredLeft=staffInfo.left+staffHeight*0.12;
+  let noteX=Infinity;
+  for(const n of svg.querySelectorAll('.vf-notehead')){
+    try{const b=n.getBBox();if(Number.isFinite(b.x))noteX=Math.min(noteX,b.x);}catch(_){ }
+  }
+  if(!Number.isFinite(noteX))noteX=staffInfo.right;
+  let best=null;
+  const candidates=[...svg.querySelectorAll('g')];
+  for(const el of candidates){
+    if(el.classList?.contains('staffline')||el.classList?.contains('vf-measure'))continue;
+    let b;try{b=el.getBBox();}catch(_){continue}
+    if(!b||!Number.isFinite(b.x)||!Number.isFinite(b.width)||!Number.isFinite(b.height))continue;
+    if(b.width<1||b.height<1)continue;
+    if(b.x>=noteX-4)continue;
+    if(b.height<staffHeight*1.55)continue;
+    if(b.width>staffHeight*1.45)continue;
+    if(b.x>staffInfo.left+staffHeight*2.2)continue;
+    if(!best||b.x<best.box.x)best={el,box:b};
+  }
+  if(best){
+    const dx=desiredLeft-best.box.x;
+    shiftElementX(best.el,dx);
+  }
+}
+async function memoryCardSvgMarkup(card){
+  const instrument=currentProfile()?.instrument||'Huilu';
+  const info=writtenPitchInfo(card?.midi,instrument);
+  const clef=clefForInstrument(instrument);
+  if(!info)return `<div class="memory-note-art"><div class="memory-note-scale" style="font-size:clamp(42px,8vw,88px);font-weight:1000;color:#173f61;">${displayNoteFromMidi(card?.midi,instrument)}</div></div>`;
+  const key=`${instrument}|${clef}|${info.step}|${info.accidental}|${info.scientificOctave}`;
+  if(memoryCardArtCache.has(key))return memoryCardArtCache.get(key);
+  const osmd=ensureMemoryOsmd();
+  if(!osmd)return `<div class="memory-note-art"><div class="memory-note-scale" style="font-size:clamp(42px,8vw,88px);font-weight:1000;color:#173f61;">${displayNoteFromMidi(card?.midi,instrument)}</div></div>`;
+  try{
+    await osmd.load(notationMusicXml(info,clef));
+    osmd.Zoom=2.04;
+    osmd.render();
+    const svg=memoryOsmdStage.querySelector('svg');
+    if(!svg)throw new Error('OSMD SVG puuttuu');
+    const staffInfo=widenMemoryStaff(svg);
+    alignMemoryClefLeft(svg,staffInfo);
+    const clone=svg.cloneNode(true);
+    clone.removeAttribute('width');clone.removeAttribute('height');
+    clone.setAttribute('preserveAspectRatio','xMidYMid meet');
+    clone.setAttribute('aria-hidden','true');
+    clone.style.maxWidth='100%';clone.style.maxHeight='100%';
+    for(const notehead of clone.querySelectorAll('.vf-notehead')){
+      if(notehead.children.length){for(const el of notehead.children){el.setAttribute('fill','#173f61');el.setAttribute('stroke','#173f61')}}
+      else{notehead.setAttribute('fill','#173f61');notehead.setAttribute('stroke','#173f61')}
+    }
+    for(const stem of clone.querySelectorAll('[id$="-stem"]')){
+      stem.setAttribute('stroke','#173f61');
+      for(const el of stem.children){el.setAttribute('stroke','#173f61');el.setAttribute('fill','#173f61')}
+    }
+    for(const flag of clone.querySelectorAll('.vf-flag')){
+      flag.setAttribute('fill','#173f61');
+      for(const el of flag.children){el.setAttribute('fill','#173f61');el.setAttribute('stroke','#173f61')}
+    }
+    const markup=`<div class="memory-note-art"><div class="memory-note-scale">${clone.outerHTML}</div></div>`;
+    memoryCardArtCache.set(key,markup);
+    memoryOsmdStage.innerHTML='';
+    return markup;
+  }catch(err){
+    console.warn('Äänimuisti-kortin OSMD-renderöinti epäonnistui.',err);
+    const fallback=`<div class="memory-note-art">${displayNoteFromMidi(card?.midi,instrument)}</div>`;
+    memoryCardArtCache.set(key,fallback);
+    memoryOsmdStage.innerHTML='';
+    return fallback;
+  }
+}
+function memoryResetRecognition(){
+  memoryF0History.length=0;memorySimilarityHistory.length=0;memoryMidiHistory.length=0;
+}
+function memoryCardById(id){return memoryCards.find(c=>c.id===id)||null}
+function memoryElement(id){return memoryBoard.querySelector(`[data-memory-id="${CSS.escape(String(id))}"]`)}
+function layoutMemoryBoard(){
+  if(!memoryActive||memoryGame.hidden||!memoryCards.length)return;
+  const rect=memoryBoard.getBoundingClientRect();
+  const count=memoryCards.filter(c=>!c.matched).length||memoryCards.length;
+  const total=memoryCards.length;
+  if(rect.width<40||rect.height<40||!total)return;
+  const gap=window.innerWidth<=700?8:10;
+  let best={cols:1,rows:total,size:0};
+  for(let cols=1;cols<=total;cols++){
+    const rows=Math.ceil(total/cols);
+    const w=(rect.width-gap*(cols-1))/cols;
+    const h=(rect.height-gap*(rows-1))/rows;
+    const size=Math.floor(Math.min(w,h));
+    if(size>best.size)best={cols,rows,size};
+  }
+  const size=Math.max(44,best.size);
+  memoryBoard.style.gridTemplateColumns=`repeat(${best.cols}, ${size}px)`;
+  memoryBoard.style.gridAutoRows=`${size}px`;
+}
+function updateMemoryDisplayToggle(){
+  if(!memoryDisplayToggle)return;
+  const names=memoryDisplayMode==='name';
+  memoryDisplayToggle.textContent=names?'Sävelnimi':'Nuotti';
+  memoryDisplayToggle.setAttribute('aria-pressed',names?'true':'false');
+}
+async function renderMemoryBoard(){
+  memoryBoard.replaceChildren();
+  const inst=instrumentByName(currentProfile()?.instrument);
+  const token=++memoryCardArtToken;
+  const fronts=[];
+  for(const c of memoryCards){
+    const card=document.createElement('button');card.type='button';card.className='memory-card';card.dataset.memoryId=c.id;card.setAttribute('aria-label','Muistikortti');
+    if(c.faceUp)card.classList.add('flipped');if(c.matched)card.classList.add('matched');
+    const inner=document.createElement('span');inner.className='memory-card-inner';
+    const back=document.createElement('span');back.className='memory-card-face memory-card-back';
+    const img=document.createElement('img');img.src=inst?.src||heroInstrumentImg.src||'';img.alt='';back.appendChild(img);
+    const front=document.createElement('span');front.className='memory-card-face memory-card-front';
+    if(memoryDisplayMode==='name'){
+      front.innerHTML=`<div class="memory-note-name">${displayNoteFromMidi(c.midi)}</div>`;
+    }else{
+      front.innerHTML='<div class="memory-note-art"><div class="memory-note-scale"></div></div>';
+      fronts.push({front,cardData:c});
+    }
+    inner.append(back,front);card.appendChild(inner);memoryBoard.appendChild(card);
+  }
+  updateMemoryDisplayToggle();
+  requestAnimationFrame(layoutMemoryBoard);
+  if(memoryDisplayMode==='notation'){
+    for(const item of fronts){
+      const markup=await memoryCardSvgMarkup(item.cardData);
+      if(token!==memoryCardArtToken)return;
+      item.front.innerHTML=markup;
+    }
+  }
+  requestAnimationFrame(layoutMemoryBoard);
+}
+function updateMemoryGameButton(){
+  if(!topProfileGame)return;
+  const count=currentProfile()?memoryAvailableNotes().length:0;
+  topProfileGame.disabled=count<1;
+}
+async function startMemoryGame(){
+  const notes=memoryAvailableNotes();
+  if(!notes.length)return;
+  cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();closeTopProfileMenu();
+  memoryCards=[];
+  let n=0;
+  for(const note of notes){
+    memoryCards.push({id:`m${++n}`,label:note.label,midi:note.midi,ref:note.ref,faceUp:false,matched:false});
+    memoryCards.push({id:`m${++n}`,label:note.label,midi:note.midi,ref:note.ref,faceUp:false,matched:false});
+  }
+  memoryCards=memoryShuffle(memoryCards);
+  memorySelectedId=null;memoryListening=false;memoryResolving=false;memoryActive=true;memoryResetRecognition();
+  memoryComplete.hidden=true;memoryGame.hidden=false;await renderMemoryBoard();
+}
+function closeMemoryGame(){
+  memoryActive=false;memoryListening=false;memoryResolving=false;memorySelectedId=null;memoryResetRecognition();memoryCardArtToken++;memoryGame.hidden=true;memoryComplete.hidden=true;
+}
+function memoryStartListening(card){
+  if(!card||card.matched||card.faceUp||memoryResolving)return;
+  memorySelectedId=card.id;card.faceUp=true;memoryListening=true;memoryResolving=false;memoryResetRecognition();
+  memoryElement(card.id)?.classList.add('flipped');
+}
+function memoryHiddenPartner(label,excludeId){
+  return memoryCards.find(c=>!c.matched&&!c.faceUp&&c.id!==excludeId&&c.label===label)||null;
+}
+function memoryStableMidi(){
+  if(memoryMidiHistory.length<MEMORY_MIN_STABLE_FRAMES)return null;
+  const counts=new Map();for(const m of memoryMidiHistory)counts.set(m,(counts.get(m)||0)+1);
+  let best=null,bestN=0;for(const [m,n] of counts)if(n>bestN){best=m;bestN=n}
+  return bestN>=MEMORY_MIN_STABLE_FRAMES?best:null;
+}
+function memoryMarkClass(id,cls,on=true){const el=memoryElement(id);if(el)el.classList.toggle(cls,on)}
+async function memoryResolveWrong(playedMidi){
+  memoryListening=false;memoryResolving=true;
+  const selected=memoryCardById(memorySelectedId);if(!selected){memoryResolving=false;return}
+  const playedLabel=freqToNote(440*Math.pow(2,(playedMidi-69)/12))?.label||null;
+  const other=playedLabel?memoryHiddenPartner(playedLabel,selected.id):null;
+  memoryMarkClass(selected.id,'wrong-note',true);
+  if(other){other.faceUp=true;memoryElement(other.id)?.classList.add('flipped');memoryMarkClass(other.id,'wrong-note',true)}
+  await sleepMs(MEMORY_RESOLVE_DELAY);
+  selected.faceUp=false;memoryElement(selected.id)?.classList.remove('flipped','wrong-note');
+  if(other){other.faceUp=false;memoryElement(other.id)?.classList.remove('flipped','wrong-note')}
+  memorySelectedId=null;memoryResolving=false;memoryResetRecognition();
+}
+async function memoryResolveTimbreMiss(){
+  memoryListening=false;memoryResolving=true;
+  const selected=memoryCardById(memorySelectedId);if(!selected){memoryResolving=false;return}
+  const other=memoryHiddenPartner(selected.label,selected.id);
+  if(other){other.faceUp=true;memoryElement(other.id)?.classList.add('flipped')}
+  memoryMarkClass(selected.id,'timbre-miss',true);if(other)memoryMarkClass(other.id,'timbre-miss',true);
+  await sleepMs(MEMORY_RESOLVE_DELAY);
+  selected.faceUp=false;memoryElement(selected.id)?.classList.remove('flipped','timbre-miss');
+  if(other){other.faceUp=false;memoryElement(other.id)?.classList.remove('flipped','timbre-miss')}
+  memorySelectedId=null;memoryResolving=false;memoryResetRecognition();
+}
+async function memoryResolveSuccess(){
+  memoryListening=false;memoryResolving=true;
+  const selected=memoryCardById(memorySelectedId);if(!selected){memoryResolving=false;return}
+  const other=memoryHiddenPartner(selected.label,selected.id);
+  if(!other){memoryResolving=false;return}
+  other.faceUp=true;memoryElement(other.id)?.classList.add('flipped');
+  memoryMarkClass(selected.id,'success',true);memoryMarkClass(other.id,'success',true);
+  await sleepMs(520);
+  selected.matched=true;other.matched=true;
+  memoryElement(selected.id)?.classList.add('matched');memoryElement(other.id)?.classList.add('matched');
+  await sleepMs(330);
+  memorySelectedId=null;memoryResolving=false;memoryResetRecognition();
+  if(memoryCards.every(c=>c.matched))memoryComplete.hidden=false;
+}
+function handleMemoryFrame(frame){
+  if(!memoryActive||!memoryListening||memoryResolving||!frame.validTone)return;
+  const selected=memoryCardById(memorySelectedId);if(!selected)return;
+  const note=freqToNote(frame.f0);if(!note)return;
+  const fp=memoryH2H8FromH1H8(frame.fp);if(!fp)return;
+  memoryF0History.push(frame.f0);if(memoryF0History.length>MEMORY_HISTORY)memoryF0History.shift();
+  memoryMidiHistory.push(note.midi);if(memoryMidiHistory.length>MEMORY_HISTORY)memoryMidiHistory.shift();
+  const score=memorySimilarity({f0:median(memoryF0History),fp},selected.ref);
+  memorySimilarityHistory.push(score);if(memorySimilarityHistory.length>MEMORY_HISTORY)memorySimilarityHistory.shift();
+  const stableMidi=memoryStableMidi();
+  if(stableMidi===null||memorySimilarityHistory.length<MEMORY_MIN_STABLE_FRAMES)return;
+  if(stableMidi!==selected.midi){memoryResolveWrong(stableMidi);return}
+  const avg=mean(memorySimilarityHistory.slice(-MEMORY_MIN_STABLE_FRAMES));
+  if(avg>=MEMORY_ACCEPT)memoryResolveSuccess();else memoryResolveTimbreMiss();
+}
+
 function fpSimilarity(a,b){
   if(!a||!b)return 0;let sum=0;for(let i=0;i<8;i++){const da=20*Math.log10((a[i]||0)+1e-5),dbb=20*Math.log10((b[i]||0)+1e-5);const d=(da-dbb)/18;sum+=d*d}return clamp(100*Math.exp(-.78*Math.sqrt(sum/8)),0,100)
 }
@@ -1346,6 +1740,7 @@ function processFrame(){
   if(!analyser)return;
   const frame=analyzeLiveFrame();
   handleCaptureFrame(frame);
+  handleMemoryFrame(frame);
 }
 
 function updateCalibrationVisual(dbv,progress){
@@ -1425,7 +1820,20 @@ window.addEventListener('orientationchange',()=>setTimeout(syncStartOverlayToVis
 profileNameInput.addEventListener('focus',()=>setTimeout(()=>{syncStartOverlayToVisualViewport();profileNameInput.scrollIntoView({block:'start',behavior:'smooth'})},80));
 topProfileTrigger.addEventListener('click',e=>{e.preventDefault();toggleTopProfileMenu()});
 topProfileList.addEventListener('click',handleTopProfileClick);
+topProfileGame.addEventListener('click',e=>{e.preventDefault();if(!topProfileGame.disabled)startMemoryGame()});
 topProfileNew.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();openProfileChooser()});
+memoryDisplayToggle.addEventListener('click',async()=>{
+  if(!memoryActive||memoryResolving)return;
+  memoryDisplayMode=memoryDisplayMode==='notation'?'name':'notation';
+  memoryCardArtToken++;
+  await renderMemoryBoard();
+});
+memoryBoard.addEventListener('click',e=>{const el=e.target.closest('[data-memory-id]');if(!el||!memoryActive||memoryListening||memoryResolving)return;const card=memoryCardById(el.dataset.memoryId);memoryStartListening(card)});
+memoryBackBtn.addEventListener('click',closeMemoryGame);
+memoryRestartBtn.addEventListener('click',startMemoryGame);
+memoryAgainBtn.addEventListener('click',startMemoryGame);
+window.addEventListener('resize',()=>{if(memoryActive)requestAnimationFrame(layoutMemoryBoard)});
+window.visualViewport?.addEventListener('resize',()=>{if(memoryActive)requestAnimationFrame(layoutMemoryBoard)});
 topProfileFile.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();profileFileInput.click()});
 profileFileInput.addEventListener('change',handleProfileFileInput);
 profileList.addEventListener('click',handleSampleListClick);

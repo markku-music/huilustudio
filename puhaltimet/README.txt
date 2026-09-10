@@ -1,9 +1,3 @@
-Puhaltimet 0.1.1
+Puhaltimet 0.2.0
 
-Uusi itsenäinen PWA puhallinopetukseen.
-
-- Oma PWA-nimi ja manifestitunniste: Puhaltimet
-- Oma service worker -cache
-- Oma IndexedDB- ja localStorage-nimiavaruus
-- Punainen painonappi sovellusikonina
-- OSMD 2.1.2 paikallisena
+Äänimuisti-peli lisätty. Peli käyttää Lentokone_PWA_BASE_4_0 -tyyppistä YIN + H2–H8 -tunnistusta ja oppilaan omia tallennettuja ääninäytteitä referensseinä.
