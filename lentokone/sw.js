@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.0-huilu-pasuuna-cal-safe-3';
+const CACHE_NAME = 'lentokone-pwa-base-4.10-info-guides';
 const APP_SHELL = [
   './',
   './index.html',
@@ -13,6 +13,11 @@ const APP_SHELL = [
   './kerattava_aarrearkku.webp',
   './este_lehma.webp',
   './este_kivi.webp',
+  './este_pyorre.webp',
+  './soitin_huilu.webp',
+  './soitin_pasuuna.webp',
+  './ohje_huilu.png',
+  './ohje_pasuuna.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',

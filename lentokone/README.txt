@@ -167,3 +167,20 @@ BASE 3.0 cow+rock -lisäys:
 - Lentävä lehmä: osuma vähentää 1 pisteen (ei alle nollan) ja lehmä kieppuu kaartuen pois ruudulta.
 - Kivi: osuma ponnauttaa koneen vastakkaiselle lentokorkeudelle ja lukitsee korkeusohjauksen hyvin lyhyesti, jotta isku näkyy.
 - Esteet eivät muuta äänentunnistusmoottorin referenssejä tai analyysilogiikkaa.
+
+
+BASE 4.1 – PYÖRRE / YLÖSALAISIN
+- Lisätty este_pyorre.webp käyttäjän hyväksymästä turkoosista pyörrekuvasta.
+- Pyörteeseen osuminen kieräyttää lentokoneen pehmeästi 180°.
+- Ohjaus vaihtuu päinvastaiseksi vasta kierähdyksen valmistuttua.
+- Ylösalaisin lennettäessä positiiviset kerättävät pisteet ovat kaksinkertaiset.
+- Ylösalaisin-tila kestää 15 sekuntia, minkä jälkeen kone oikaisee automaattisesti.
+- Jos ylösalaisin oleva kone osuu toiseen pyörteeseen ennen ajan loppua, oikaisu alkaa heti.
+- Lehmä- ja kivirangaistukset eivät tuplaannu.
+- Äänentunnistusmoottorin analyysilogiikkaa ei muutettu.
+
+4.2 PYÖRRE ROLL MATKAN MUKAAN
+- Pyörteeseen osuminen aloittaa pitkittäisakselin rollin, nokka pysyy menosuuntaan.
+- Roll valmistuu seuraavan peliobjektin kohdalla, ei kiinteällä aikakestolla.
+- Ohjaus vaihtuu vasta kun kone on täysin ylösalaisin.
+- Ylösalaisin ×2-pisteet 15 s; toinen pyörre tai 15 s käynnistää paluurullauksen seuraavaan objektiin mennessä.

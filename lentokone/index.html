@@ -154,6 +154,21 @@ button{font:inherit}
 }
 .obstacle.cow{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * 1.48)}
 .obstacle.rock{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * .90)}
+.obstacle.vortex{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * 1.18)}
+.obstacle.vortex img{
+  animation:vortexAlive 2.1s ease-in-out infinite;
+  transform-origin:50% 50%;
+  filter:drop-shadow(0 0 11px rgba(87,231,255,.52)) drop-shadow(0 4px 10px rgba(55,76,94,.20));
+  will-change:transform,filter,opacity;
+}
+@keyframes vortexAlive{
+  0%{transform:translateY(0px) scale(.97,1.03) rotate(-7deg);opacity:.96;filter:drop-shadow(0 0 9px rgba(87,231,255,.46)) drop-shadow(0 4px 10px rgba(55,76,94,.18)) brightness(.98)}
+  18%{transform:translateY(-2px) scale(1.01,.99) rotate(2deg);opacity:1;filter:drop-shadow(0 0 12px rgba(87,231,255,.58)) drop-shadow(0 5px 11px rgba(55,76,94,.20)) brightness(1.03)}
+  36%{transform:translateY(-5px) scale(1.05,.95) rotate(8deg);opacity:1;filter:drop-shadow(0 0 14px rgba(87,231,255,.62)) drop-shadow(0 6px 12px rgba(55,76,94,.22)) brightness(1.07)}
+  54%{transform:translateY(-3px) scale(1.02,.98) rotate(3deg);opacity:.99;filter:drop-shadow(0 0 12px rgba(87,231,255,.56)) drop-shadow(0 5px 11px rgba(55,76,94,.20)) brightness(1.02)}
+  72%{transform:translateY(-1px) scale(.99,1.04) rotate(-4deg);opacity:.97;filter:drop-shadow(0 0 10px rgba(87,231,255,.50)) drop-shadow(0 4px 10px rgba(55,76,94,.19)) brightness(.99)}
+  100%{transform:translateY(0px) scale(.97,1.03) rotate(-7deg);opacity:.96;filter:drop-shadow(0 0 9px rgba(87,231,255,.46)) drop-shadow(0 4px 10px rgba(55,76,94,.18)) brightness(.98)}
+}
 .obstacle.cow.hit{z-index:10}
 .obstacle.rock.hit img{animation:rockHit .22s ease-out}
 @keyframes rockHit{0%{transform:scale(1)}45%{transform:scale(1.18)}100%{transform:scale(1)}}
@@ -193,6 +208,33 @@ button{font:inherit}
   text-align:center;
   backdrop-filter:blur(6px);
 }
+#bonus{
+  display:none;
+  margin-left:8px;
+  padding:2px 7px 3px;
+  border-radius:999px;
+  background:rgba(33,183,218,.16);
+  font-size:.55em;
+  font-weight:950;
+  vertical-align:middle;
+  white-space:nowrap;
+}
+#bonus.active{display:inline-block}
+#gameTimer{
+  display:inline-block;
+  margin-left:10px;
+  padding:2px 8px 3px;
+  border-radius:999px;
+  background:rgba(23,63,97,.08);
+  font-size:.72em;
+  font-weight:950;
+  font-variant-numeric:tabular-nums;
+  vertical-align:middle;
+  white-space:nowrap;
+  transition:transform .18s ease,background .18s ease,color .18s ease;
+}
+#gameTimer.warning{background:rgba(255,184,53,.24);color:#8a4d00}
+#gameTimer.urgent{background:rgba(232,74,74,.18);color:#a12626;transform:scale(1.08)}
 #gear,#refreshBtn,#recalBtn{
   position:absolute;
   top:max(8px,env(safe-area-inset-top));
@@ -283,7 +325,7 @@ button{font:inherit}
 }
 .dev-json-actions button:hover{background:rgba(255,255,255,.21)}
 #jsonStatus{display:block;min-height:16px;margin-top:5px;font-weight:750;color:#ffd65a}
-#startOverlay,#calOverlay,#rotateOverlay{
+#startOverlay,#calOverlay,#rotateOverlay,#finishOverlay{
   position:absolute;
   inset:0;
   z-index:50;
@@ -303,46 +345,124 @@ button{font:inherit}
   box-shadow:0 18px 55px rgba(27,81,116,.20);
 }
 #startOverlay .start-minimal{
-  width:auto;
+  width:min(760px,95vw);
   min-width:0;
-  padding:0;
+  padding:10px 0 0;
   background:transparent;
   border-radius:0;
   box-shadow:none;
 }
 .instrument-picker{
   display:flex;
-  gap:10px;
+  gap:18px;
   justify-content:center;
   flex-wrap:wrap;
-  margin:0 0 10px;
+  margin:0;
+}
+.instrument-choice{
+  position:relative;
+  width:min(280px,40vw);
+  min-width:180px;
+}
+.instrument-choice .instrument-btn{
+  width:100%;
+  min-width:0;
+}
+.instrument-info-btn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:2;
+  width:40px;
+  height:40px;
+  border:3px solid #fff;
+  border-radius:50%;
+  background:#173f61;
+  color:#fff;
+  display:grid;
+  place-items:center;
+  padding:0;
+  font:900 22px/1 Georgia,serif;
+  box-shadow:0 5px 12px rgba(20,57,82,.28);
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.instrument-info-btn:hover,.instrument-info-btn:focus-visible{
+  transform:scale(1.06);
+  outline:none;
+}
+.instrument-info-btn:disabled{opacity:.55;cursor:wait;transform:none}
+#helpOverlay{
+  position:absolute;
+  inset:0;
+  z-index:80;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  background:rgba(12,41,61,.76);
+  backdrop-filter:blur(5px);
+  cursor:pointer;
+  touch-action:manipulation;
+}
+#helpOverlay.show{display:flex}
+#helpImage{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:calc(100vw - 20px);
+  max-height:calc(100vh - 20px);
+  object-fit:contain;
+  border-radius:18px;
+  box-shadow:0 18px 48px rgba(0,0,0,.30);
+  user-select:none;
+  -webkit-user-drag:none;
 }
 .instrument-title{
-  margin:0 0 10px;
-  font-size:clamp(16px,3vw,20px);
+  margin:0 0 16px;
+  font-size:clamp(18px,3vw,24px);
   font-weight:950;
   color:#173f61;
 }
 .instrument-btn{
-  min-width:120px;
-  border:2px solid rgba(23,63,97,.24);
-  border-radius:15px;
-  padding:11px 16px;
-  background:rgba(255,255,255,.92);
+  border:3px solid rgba(23,63,97,.22);
+  border-radius:26px;
+  padding:16px 16px 14px;
+  background:rgba(255,255,255,.96);
   color:#173f61;
-  font:900 clamp(15px,2.8vw,18px) system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   cursor:pointer;
-  transition:transform .12s ease,background .12s ease,border-color .12s ease;
+  transition:transform .14s ease,background .14s ease,border-color .14s ease,box-shadow .14s ease;
+  box-shadow:0 10px 22px rgba(24,82,117,.14);
+}
+.instrument-btn:hover,.instrument-btn:focus-visible{
+  transform:translateY(-2px) scale(1.01);
+  border-color:#173f61;
+  box-shadow:0 14px 28px rgba(24,82,117,.20);
+  outline:none;
 }
 .instrument-btn[aria-pressed="true"]{
   background:#dff3ff;
   border-color:#173f61;
-  transform:translateY(-1px);
 }
-.primary:disabled{opacity:.42;cursor:not-allowed}
+.instrument-btn[disabled]{opacity:.55;cursor:wait;transform:none}
+.instrument-btn img{
+  display:block;
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:contain;
+  margin:0 auto 10px;
+  user-select:none;
+  -webkit-user-drag:none;
+  filter:drop-shadow(0 8px 12px rgba(37,66,84,.16));
+}
+.instrument-label{
+  display:block;
+  font:900 clamp(18px,3vw,24px) system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  letter-spacing:.01em;
+}
 #startError{
-  margin:8px 0 0;
-  min-height:0;
+  margin:12px 0 0;
+  min-height:1.2em;
   font-size:13px;
   font-weight:700;
   color:#9b3f3f;
@@ -362,6 +482,14 @@ button{font:inherit}
   font-weight:950;
   font-size:clamp(15px,2.8vw,18px);
 }
+#finishOverlay{display:none;z-index:58;background:rgba(74,151,198,.50);backdrop-filter:blur(8px)}
+#finishOverlay .finish-card{width:min(430px,88vw);padding:24px 28px}
+#finishOverlay .finish-title{margin:0 0 7px;font-size:clamp(26px,5vw,40px);font-weight:950;color:#173f61}
+#finishOverlay .finish-score-label{margin:0;font-size:clamp(13px,2.5vw,17px);font-weight:850;color:#557188}
+#finishOverlay .finish-score{margin:3px 0 14px;font-size:clamp(50px,10vw,82px);line-height:1;font-weight:1000;color:#173f61;font-variant-numeric:tabular-nums}
+#finishOverlay .finish-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+#finishOverlay .finish-actions button{min-width:120px}
+#finishOverlay .secondary{border:2px solid rgba(23,63,97,.25);border-radius:15px;padding:9px 20px;margin-top:8px;background:rgba(255,255,255,.9);color:#173f61;font-weight:950;font-size:clamp(15px,2.8vw,18px);cursor:pointer}
 #calOverlay{display:flex;z-index:51;background:rgba(20,54,78,.54);backdrop-filter:blur(5px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .32s ease, visibility 0s linear .32s}
 #calOverlay.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .18s ease}
 #calOverlay.fade-out{opacity:0;visibility:visible;pointer-events:none;transition:opacity .34s ease}
@@ -435,7 +563,7 @@ button{font:inherit}
       </svg>
     </div>
   </div>
-  <div id="score"><span id="scoreNum">0</span></div>
+  <div id="score"><span id="scoreNum">0</span><span id="gameTimer">1:30</span><span id="bonus">NOPEUS ×2 · PISTEET ×2 · 10 s</span></div>
   <div id="flash">+1</div>
 
   <button id="recalBtn" aria-label="Kalibroi mikrofoni" title="Kalibroi mikrofoni">Kalibroi</button>
@@ -521,11 +649,38 @@ button{font:inherit}
     <div class="overlay-card start-minimal">
       <p class="instrument-title">Valitse soitin</p>
       <div class="instrument-picker" role="group" aria-label="Soitin">
-        <button id="instrumentFluteBtn" class="instrument-btn" type="button" aria-pressed="false">Huilu</button>
-        <button id="instrumentTromboneBtn" class="instrument-btn" type="button" aria-pressed="false">Pasuuna</button>
+        <div class="instrument-choice">
+          <button id="instrumentFluteBtn" class="instrument-btn" type="button" aria-pressed="false" aria-label="Huilu – aloita peli">
+            <img src="soitin_huilu.webp" alt="Huilu">
+            <span class="instrument-label">Huilu</span>
+          </button>
+          <button id="instrumentFluteInfoBtn" class="instrument-info-btn" type="button" aria-label="Näytä huilun peliohje">i</button>
+        </div>
+        <div class="instrument-choice">
+          <button id="instrumentTromboneBtn" class="instrument-btn" type="button" aria-pressed="false" aria-label="Pasuuna – aloita peli">
+            <img src="soitin_pasuuna.webp" alt="Pasuuna">
+            <span class="instrument-label">Pasuuna</span>
+          </button>
+          <button id="instrumentTromboneInfoBtn" class="instrument-info-btn" type="button" aria-label="Näytä pasuunan peliohje">i</button>
+        </div>
       </div>
-      <button id="startBtn" class="primary" disabled>Aloita peli</button>
       <p id="startError"></p>
+    </div>
+  </div>
+
+  <div id="helpOverlay" role="dialog" aria-modal="true" aria-label="Peliohje">
+    <img id="helpImage" src="" alt="">
+  </div>
+
+  <div id="finishOverlay" aria-live="polite">
+    <div class="overlay-card finish-card">
+      <p class="finish-title">Aika!</p>
+      <p class="finish-score-label">PISTEET</p>
+      <div id="finishScore" class="finish-score">0</div>
+      <div class="finish-actions">
+        <button id="replayBtn" class="primary" type="button">Uudestaan</button>
+        <button id="finishBtn" class="secondary" type="button">Valmis</button>
+      </div>
     </div>
   </div>
 
@@ -656,9 +811,10 @@ const MIC_CAL_MARGIN_DB=10;
 const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
-const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),flash=$('#flash');
-const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),startError=$('#startError');
-const startBtn=$('#startBtn'),instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentTromboneBtn=$('#instrumentTromboneBtn');
+const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),gameTimer=$('#gameTimer'),bonus=$('#bonus'),flash=$('#flash');
+const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),finishOverlay=$('#finishOverlay'),startError=$('#startError');
+const helpOverlay=$('#helpOverlay'),helpImage=$('#helpImage');
+const instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentTromboneBtn=$('#instrumentTromboneBtn'),instrumentFluteInfoBtn=$('#instrumentFluteInfoBtn'),instrumentTromboneInfoBtn=$('#instrumentTromboneInfoBtn'),replayBtn=$('#replayBtn'),finishBtn=$('#finishBtn'),finishScore=$('#finishScore');
 const calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
 const devPanel=$('#devPanel');
 const objectSizeSlider=$('#objectSizeSlider'),objectSizeValue=$('#objectSizeValue');
@@ -685,6 +841,13 @@ let soundStartedAt=null;
 
 // Pelitila
 let gameRunning=false;
+let gameFinishing=false;
+let gameStartedAt=0;
+let gameEndsAt=0;
+let finishStartedAt=0;
+let lastCountdownTickSecond=null;
+const GAME_DURATION_MS=90000;
+const GAME_FINISH_EASE_MS=500;
 let currentRoute='center';
 let planeY=50;
 let routeTransitionStartY=50;
@@ -968,6 +1131,23 @@ let spawnClock=0;
 let controlLockUntil=0;
 let lastSpawnLane=null;
 let sameLaneCount=0;
+// Pyörre: 10 sekunnin turbo. Pelimaailma kiihtyy pehmeästi 1× -> 2×
+// ja hidastuu pehmeästi takaisin. Soiton tunnistus ja mikrofonimoottori
+// pysyvät täysin ennallaan.
+const VORTEX_SPEED_EFFECT_MS=10000;
+const VORTEX_SPEED_EASE_MS=1000;
+let vortexTurboActive=false;
+let vortexSpeedUntil=0;
+let vortexSpeedFrom=1;
+let vortexSpeedTo=1;
+let vortexSpeedTransitionStartedAt=0;
+const VORTEX_SCHEDULE_WINDOWS_MS=[
+  [12000,28000],
+  [38000,58000],
+  [65000,82000]
+];
+let scheduledVortexTimes=[];
+let scheduledVortexIndex=0;
 // Yksi yhteinen spawn-kello kaikille peliobjekteille.
 // 70/30-jako säilyttää suunnilleen aiemman kerättävä/este-rytmin,
 // mutta samalla tickillä syntyy aina vain yksi objekti.
@@ -998,6 +1178,18 @@ function pushLimited(arr,val,max=6){arr.push(val);if(arr.length>max)arr.shift()}
 function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
 function rand(min,max){return min+Math.random()*(max-min)}
 function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function planGuaranteedVortexes(){
+  scheduledVortexTimes=VORTEX_SCHEDULE_WINDOWS_MS.map(([start,end])=>Math.round(rand(start,end)));
+  scheduledVortexIndex=0;
+}
+function shouldSpawnGuaranteedVortex(now=performance.now()){
+  if(scheduledVortexIndex>=scheduledVortexTimes.length)return false;
+  const elapsed=now-gameStartedAt;
+  return elapsed>=scheduledVortexTimes[scheduledVortexIndex];
+}
+function markGuaranteedVortexSpawned(){
+  if(scheduledVortexIndex<scheduledVortexTimes.length)scheduledVortexIndex++;
+}
 function centsDiff(a,b){return 1200*Math.log2(a/b)}
 function rmsDb(buf){
   let s=0;
@@ -1076,7 +1268,33 @@ function similarity(take,ref){
 
 function routeY(route){return route==='high'?31:route==='low'?69:50}
 function planeXPosition(){return window.innerWidth*.22}
-function objectSpeedPxPerSec(){return Math.max(116,window.innerWidth*.19)}
+function vortexEaseInOut(t){
+  t=clamp(t,0,1);
+  return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+}
+function vortexTransitionValue(now=performance.now()){
+  if(!vortexSpeedTransitionStartedAt)return vortexSpeedTo;
+  const t=clamp((now-vortexSpeedTransitionStartedAt)/VORTEX_SPEED_EASE_MS,0,1);
+  return vortexSpeedFrom+(vortexSpeedTo-vortexSpeedFrom)*vortexEaseInOut(t);
+}
+function setVortexSpeedTarget(target,now=performance.now()){
+  const current=vortexTransitionValue(now);
+  vortexSpeedFrom=current;
+  vortexSpeedTo=target;
+  vortexSpeedTransitionStartedAt=now;
+}
+function updateVortexTurboState(now=performance.now()){
+  if(vortexTurboActive&&vortexSpeedUntil<=now){
+    vortexTurboActive=false;
+    vortexSpeedUntil=0;
+    setVortexSpeedTarget(1,now);
+  }
+}
+function gameSpeedMultiplier(now=performance.now()){
+  updateVortexTurboState(now);
+  return vortexTransitionValue(now);
+}
+function objectSpeedPxPerSec(now=performance.now()){return Math.max(116,window.innerWidth*.19)*gameSpeedMultiplier(now)}
 function minimumRouteTimeMs(fromY,toY){
   return ROUTE_TRANSITION_MS*(Math.abs(toY-fromY)/FULL_ROUTE_DISTANCE);
 }
@@ -1090,6 +1308,7 @@ function nextTargetOnLane(lane){
   return target;
 }
 function setRoute(name){
+  if(!gameRunning||gameFinishing)return;
   const next=name==='KORKEA'?'high':name==='MATALA'?'low':null;
   if(!next||next===currentRoute)return;
 
@@ -1123,7 +1342,6 @@ function setInstrument(key){
   REFS=instrument.refs;
   instrumentFluteBtn.setAttribute('aria-pressed',key==='flute'?'true':'false');
   instrumentTromboneBtn.setAttribute('aria-pressed',key==='trombone'?'true':'false');
-  startBtn.disabled=false;
   dev.instrument.textContent=instrument.name;
   dev.notes.textContent=instrument.notes;
   clearRecognition();
@@ -1455,10 +1673,12 @@ function chooseCollectibleType(){
   }
   return COLLECTIBLE_TYPES[0];
 }
-const OBSTACLE_TYPES=[
-  {key:'cow',src:'este_lehma.webp',weight:56},
-  {key:'rock',src:'este_kivi.webp',weight:44}
-];
+const OBSTACLE_TYPE_MAP={
+  cow:{key:'cow',src:'este_lehma.webp',weight:50},
+  rock:{key:'rock',src:'este_kivi.webp',weight:40},
+  vortex:{key:'vortex',src:'este_pyorre.webp',weight:18}
+};
+const OBSTACLE_TYPES=[OBSTACLE_TYPE_MAP.cow,OBSTACLE_TYPE_MAP.rock];
 const TOTAL_OBSTACLE_WEIGHT=OBSTACLE_TYPES.reduce((sum,type)=>sum+type.weight,0);
 function chooseObstacleType(){
   let roll=Math.random()*TOTAL_OBSTACLE_WEIGHT;
@@ -1468,9 +1688,9 @@ function chooseObstacleType(){
   }
   return OBSTACLE_TYPES[0];
 }
-function spawnObstacle(){
+function spawnObstacle(forcedTypeKey=null){
   const lane=chooseLane();
-  const type=chooseObstacleType();
+  const type=forcedTypeKey?OBSTACLE_TYPE_MAP[forcedTypeKey]:chooseObstacleType();
   const el=document.createElement('div');
   el.className=`obstacle ${type.key}`;
   const img=document.createElement('img');
@@ -1559,10 +1779,47 @@ function bouncePlaneFromRock(){
   controlLockUntil=now+ROCK_CONTROL_LOCK_MS;
   setEngineFlightState(routeTransitionTargetY<planeY?'climb':'descend');
 }
+function updateBonusIndicator(now=performance.now()){
+  updateVortexTurboState(now);
+  if(!vortexTurboActive){
+    bonus.classList.remove('active');
+    bonus.textContent='NOPEUS ×2 · PISTEET ×2 · 10 s';
+    return;
+  }
+  const remaining=Math.max(0,vortexSpeedUntil-now);
+  const seconds=Math.max(0,Math.ceil(remaining/1000));
+  bonus.textContent=`NOPEUS ×2 · PISTEET ×2 · ${seconds} s`;
+  bonus.classList.add('active');
+}
+function hitVortex(){
+  const now=performance.now();
+  updateVortexTurboState(now);
+  // Pyörre toimii toggle-tyyppisesti. Ensimmäinen osuma käynnistää 10 s turbon
+  // pehmeällä ease-inillä. Uusi pyörre turbon aikana katkaisee bonuksen heti,
+  // mutta pelinopeus liukuu takaisin normaaliksi ease-outilla.
+  if(vortexTurboActive){
+    vortexTurboActive=false;
+    vortexSpeedUntil=0;
+    setVortexSpeedTarget(1,now);
+  }else{
+    vortexTurboActive=true;
+    vortexSpeedUntil=now+VORTEX_SPEED_EFFECT_MS;
+    setVortexSpeedTarget(2,now);
+  }
+  updateBonusIndicator(now);
+}
+
 function hitObstacle(item,speed){
   if(item.hit)return;
   item.hit=true;
   item.el.classList.add('hit');
+
+  if(item.type.key==='vortex'){
+    hitVortex();
+    item.dead=true;
+    item.opacity=0;
+    return;
+  }
 
   if(item.type.key==='rock'){
     playGameFx('rock');
@@ -1609,17 +1866,93 @@ function spawnCollectible(){
 function collectCollectible(item){
   if(item.collected)return;
   item.collected=true;
-  score+=item.points;
+  const now=performance.now();
+  updateVortexTurboState(now);
+  const pointMultiplier=vortexTurboActive?2:1;
+  const gained=item.points*pointMultiplier;
+  score+=gained;
   scoreNum.textContent=score;
   item.el.classList.add('collected');
-  showScoreFlash('+'+item.points,false);
+  showScoreFlash('+'+gained,false);
   if(item.type.key==='coin')playGameFx('coin');
   else if(item.type.key==='diamond')playGameFx('diamond');
   else if(item.type.key==='chest')playGameFx('chest');
 }
+function formatGameTime(ms){
+  const totalSeconds=Math.max(0,Math.ceil(ms/1000));
+  const minutes=Math.floor(totalSeconds/60);
+  const seconds=totalSeconds%60;
+  return `${minutes}:${String(seconds).padStart(2,'0')}`;
+}
+function playCountdownTick(){
+  if(gameAudioMuted||!ctx||ctx.state!=='running')return;
+  try{
+    const now=ctx.currentTime;
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(720,now);
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.exponentialRampToValueAtTime(.045,now+.008);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+.075);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(now);osc.stop(now+.085);
+    osc.onended=()=>{try{osc.disconnect()}catch{}try{gain.disconnect()}catch{}};
+  }catch{}
+}
+function updateGameTimer(now=performance.now()){
+  if(!gameEndsAt){
+    gameTimer.textContent='1:30';
+    gameTimer.classList.remove('warning','urgent');
+    return;
+  }
+  const remaining=Math.max(0,gameEndsAt-now);
+  const seconds=Math.max(0,Math.ceil(remaining/1000));
+  gameTimer.textContent=formatGameTime(remaining);
+  gameTimer.classList.toggle('warning',seconds<=10&&seconds>5);
+  gameTimer.classList.toggle('urgent',seconds<=5);
+  if(!gameFinishing&&seconds<=5&&seconds>0&&seconds!==lastCountdownTickSecond){
+    lastCountdownTickSecond=seconds;
+    playCountdownTick();
+  }
+}
+function startGameFinish(now=performance.now()){
+  if(gameFinishing)return;
+  gameFinishing=true;
+  finishStartedAt=now;
+  vortexTurboActive=false;
+  vortexSpeedUntil=0;
+  setVortexSpeedTarget(1,now);
+  bonus.classList.remove('active');
+  gameTimer.textContent='0:00';
+  gameTimer.classList.remove('warning');
+  gameTimer.classList.add('urgent');
+  if(ctx&&engineGain){
+    try{
+      const audioNow=ctx.currentTime;
+      const current=Math.max(.0001,engineGain.gain.value||.0001);
+      engineGain.gain.cancelScheduledValues(audioNow);
+      engineGain.gain.setValueAtTime(current,audioNow);
+      engineGain.gain.linearRampToValueAtTime(0,audioNow+GAME_FINISH_EASE_MS/1000);
+    }catch{}
+  }
+}
+function completeGameFinish(){
+  if(!gameRunning)return;
+  gameRunning=false;
+  gameFinishing=false;
+  stopEngineAudio();
+  finishScore.textContent=String(score);
+  finishOverlay.style.display='flex';
+}
 function resetScore(){score=0;scoreNum.textContent='0'}
 function clearCollectibles(){for(const item of collectibles)item.el.remove();collectibles=[]}
-function spawnGameObject(){
+function spawnGameObject(now=performance.now()){
+  if(shouldSpawnGuaranteedVortex(now)){
+    markGuaranteedVortexSpawned();
+    spawnObstacle('vortex');
+    return;
+  }
   if(Math.random()<COLLECTIBLE_SPAWN_CHANCE)spawnCollectible();
   else spawnObstacle();
 }
@@ -1628,6 +1961,16 @@ function beginGame(){
   clearObstacles();
   initClouds();
   resetScore();
+  vortexTurboActive=false;
+  vortexSpeedUntil=0;
+  vortexSpeedFrom=1;
+  vortexSpeedTo=1;
+  vortexSpeedTransitionStartedAt=0;
+  updateBonusIndicator();
+  finishOverlay.style.display='none';
+  gameFinishing=false;
+  finishStartedAt=0;
+  lastCountdownTickSecond=null;
   currentRoute='center';planeY=50;
   routeTransitionStartY=50;
   routeTransitionTargetY=50;
@@ -1638,13 +1981,21 @@ function beginGame(){
   spawnClock=0;
   controlLockUntil=0;
   gameRunning=true;
-  lastFrame=performance.now();
+  gameStartedAt=performance.now();
+  planGuaranteedVortexes();
+  gameEndsAt=gameStartedAt+GAME_DURATION_MS;
+  lastFrame=gameStartedAt;
+  updateGameTimer(gameStartedAt);
   requestAnimationFrame(gameLoop);
 }
 function gameLoop(now){
   if(!gameRunning)return;
   const dt=Math.min(40,Math.max(0,now-lastFrame));
   lastFrame=now;
+  if(!gameFinishing&&now>=gameEndsAt)startGameFinish(now);
+  updateGameTimer(now);
+  const finishT=gameFinishing?clamp((now-finishStartedAt)/GAME_FINISH_EASE_MS,0,1):0;
+  const finishSpeedScale=gameFinishing?1-vortexEaseInOut(finishT):1;
 
   let routeTilt=0;
   if(routeTransitionStartedAt){
@@ -1665,6 +2016,11 @@ function gameLoop(now){
   }else{
     planeY=routeTransitionTargetY;
   }
+
+  const speedMultiplier=gameSpeedMultiplier(now)*finishSpeedScale;
+  const speed=objectSpeedPxPerSec(now)*finishSpeedScale; // px/s
+  updateBonusIndicator(now);
+
   const swayPeriod=PLANE_SWAY_BASE_PERIOD_MS/(planeSwaySpeedPercent/100);
   const swayPhase=(now%swayPeriod)/swayPeriod*Math.PI*2;
   // Pääaalto + pieni toinen harmoninen tekee keinunnasta piirroselokuvamaisen,
@@ -1677,21 +2033,20 @@ function gameLoop(now){
   plane.style.top=planeTopPercent+'%';
   plane.style.transform=`translate(-50%,-50%) translateY(${swayBob.toFixed(1)}px) rotate(${tilt.toFixed(1)}deg)`;
   const planeX=planeXPosition();
-  updateClouds(dt);
+  updateClouds(dt*speedMultiplier);
 
-  spawnClock+=dt;
-  if(spawnClock>=SPAWN_INTERVAL){
+  if(!gameFinishing)spawnClock+=dt*speedMultiplier;
+  if(!gameFinishing&&spawnClock>=SPAWN_INTERVAL){
     spawnClock-=SPAWN_INTERVAL;
-    spawnGameObject();
+    spawnGameObject(now);
   }
-  const speed=objectSpeedPxPerSec(); // px/s
   for(let i=collectibles.length-1;i>=0;i--){
     const s=collectibles[i];
     if(!s.collected)s.x-=speed*(dt/1000);
     s.el.style.left=s.x+'px';
     const horizontalHit=Math.abs(s.x-planeX)<Math.max(34,window.innerWidth*.035);
     const verticalHit=Math.abs(planeY-routeY(s.lane))<=ROUTE_HIT_TOLERANCE;
-    if(!s.collected&&horizontalHit&&verticalHit){
+    if(!gameFinishing&&!s.collected&&horizontalHit&&verticalHit){
       collectCollectible(s);
     }
     if(s.x<-80||s.collected&&s.x<planeX-30){
@@ -1748,7 +2103,7 @@ function gameLoop(now){
     o.el.style.opacity=o.opacity.toFixed(2);
     o.el.style.transform=`translate(-50%,-50%) rotate(${o.rotation.toFixed(1)}deg)`;
 
-    if(!o.hit){
+    if(!gameFinishing&&!o.hit){
       const obstacleHalfWidth=Math.max(22,o.el.offsetWidth*.34);
       const planeHalfWidth=Math.max(30,plane.offsetWidth*.32);
       const horizontalHit=Math.abs(o.x-planeX)<obstacleHalfWidth+planeHalfWidth;
@@ -1770,19 +2125,24 @@ function gameLoop(now){
       obstacles.splice(i,1);
     }
   }
+  if(gameFinishing&&finishT>=1){
+    completeGameFinish();
+    return;
+  }
   requestAnimationFrame(gameLoop);
 }
 
-instrumentFluteBtn.addEventListener('click',()=>setInstrument('flute'));
-instrumentTromboneBtn.addEventListener('click',()=>setInstrument('trombone'));
-
-startBtn.addEventListener('click',async()=>{
+function setInstrumentButtonsDisabled(disabled){
+  instrumentFluteBtn.disabled=disabled;
+  instrumentTromboneBtn.disabled=disabled;
+  instrumentFluteInfoBtn.disabled=disabled;
+  instrumentTromboneInfoBtn.disabled=disabled;
+}
+async function startSelectedInstrument(key){
   startError.textContent='';
-  if(!selectedInstrument){
-    startError.textContent='Valitse ensin soitin.';
-    return;
-  }
-  startBtn.disabled=true;
+  if(!INSTRUMENTS[key])return;
+  setInstrument(key);
+  setInstrumentButtonsDisabled(true);
   startOverlay.style.display='none';
   try{
     await startMic();
@@ -1793,9 +2153,50 @@ startBtn.addEventListener('click',async()=>{
     stopEngineAudio();
     startOverlay.style.display='flex';
     startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';
-    startBtn.disabled=false;
     calOverlay.classList.remove('show','fade-out');
+  }finally{
+    setInstrumentButtonsDisabled(false);
   }
+}
+function openInstrumentHelp(kind){
+  const isFlute=kind==='flute';
+  helpImage.src=isFlute?'ohje_huilu.png':'ohje_pasuuna.png';
+  helpImage.alt=isFlute?'Huilun peliohje':'Pasuunan peliohje';
+  helpOverlay.classList.add('show');
+}
+function closeInstrumentHelp(){
+  helpOverlay.classList.remove('show');
+}
+instrumentFluteInfoBtn.addEventListener('click',(event)=>{
+  event.preventDefault();
+  event.stopPropagation();
+  openInstrumentHelp('flute');
+});
+instrumentTromboneInfoBtn.addEventListener('click',(event)=>{
+  event.preventDefault();
+  event.stopPropagation();
+  openInstrumentHelp('trombone');
+});
+helpOverlay.addEventListener('click',closeInstrumentHelp);
+document.addEventListener('keydown',(event)=>{
+  if(event.key==='Escape'&&helpOverlay.classList.contains('show'))closeInstrumentHelp();
+});
+instrumentFluteBtn.addEventListener('click',()=>startSelectedInstrument('flute'));
+instrumentTromboneBtn.addEventListener('click',()=>startSelectedInstrument('trombone'));
+replayBtn.addEventListener('click',async()=>{
+  finishOverlay.style.display='none';
+  beginGame();
+  await startEngineAudioFromBeginning();
+});
+finishBtn.addEventListener('click',()=>{
+  finishOverlay.style.display='none';
+  clearCollectibles();
+  clearObstacles();
+  startOverlay.style.display='flex';
+  startError.textContent='';
+  setInstrumentButtonsDisabled(false);
+  gameTimer.textContent='1:30';
+  gameTimer.classList.remove('warning','urgent');
 });
 function currentSettingsObject(){
   return {
