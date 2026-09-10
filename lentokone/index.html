@@ -354,15 +354,15 @@ button{font:inherit}
 }
 .instrument-picker{
   display:flex;
-  gap:18px;
+  gap:12px;
   justify-content:center;
   flex-wrap:wrap;
   margin:0;
 }
 .instrument-choice{
   position:relative;
-  width:min(280px,40vw);
-  min-width:180px;
+  width:min(140px,20vw);
+  min-width:90px;
 }
 .instrument-choice .instrument-btn{
   width:100%;
@@ -370,19 +370,19 @@ button{font:inherit}
 }
 .instrument-info-btn{
   position:absolute;
-  top:10px;
-  right:10px;
+  top:6px;
+  right:6px;
   z-index:2;
-  width:40px;
-  height:40px;
-  border:3px solid #fff;
+  width:34px;
+  height:34px;
+  border:2px solid #fff;
   border-radius:50%;
   background:#173f61;
   color:#fff;
   display:grid;
   place-items:center;
   padding:0;
-  font:900 22px/1 Georgia,serif;
+  font:900 19px/1 Georgia,serif;
   box-shadow:0 5px 12px rgba(20,57,82,.28);
   cursor:pointer;
   touch-action:manipulation;
@@ -426,8 +426,8 @@ button{font:inherit}
 }
 .instrument-btn{
   border:3px solid rgba(23,63,97,.22);
-  border-radius:26px;
-  padding:16px 16px 14px;
+  border-radius:16px;
+  padding:8px 8px 7px;
   background:rgba(255,255,255,.96);
   color:#173f61;
   cursor:pointer;
@@ -450,14 +450,14 @@ button{font:inherit}
   width:100%;
   aspect-ratio:1/1;
   object-fit:contain;
-  margin:0 auto 10px;
+  margin:0 auto 5px;
   user-select:none;
   -webkit-user-drag:none;
   filter:drop-shadow(0 8px 12px rgba(37,66,84,.16));
 }
 .instrument-label{
   display:block;
-  font:900 clamp(18px,3vw,24px) system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font:900 clamp(13px,1.8vw,17px) system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   letter-spacing:.01em;
 }
 #startError{

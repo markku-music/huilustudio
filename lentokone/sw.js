@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.10-info-guides';
+const CACHE_NAME = 'lentokone-pwa-base-4.11-start-icons-half';
 const APP_SHELL = [
   './',
   './index.html',
