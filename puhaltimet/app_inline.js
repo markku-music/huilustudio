@@ -28,7 +28,7 @@ const sampleBtn=$('#sampleBtn');
 const profileList=$('#profileList');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
 const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileGame=$('#topProfileGame'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
-const memoryGame=$('#memoryGame'),memoryBoard=$('#memoryBoard'),memoryBackBtn=$('#memoryBackBtn'),memoryRestartBtn=$('#memoryRestartBtn'),memoryComplete=$('#memoryComplete'),memoryAgainBtn=$('#memoryAgainBtn'),memoryOsmdStage=$('#memoryOsmdStage'),memoryDisplayToggle=$('#memoryDisplayToggle');
+const memoryGame=$('#memoryGame'),memoryBoard=$('#memoryBoard'),memoryBackBtn=$('#memoryBackBtn'),memoryRestartBtn=$('#memoryRestartBtn'),memoryComplete=$('#memoryComplete'),memoryAgainBtn=$('#memoryAgainBtn'),memoryReturnBtn=$('#memoryReturnBtn'),memoryOsmdStage=$('#memoryOsmdStage'),memoryDisplayToggle=$('#memoryDisplayToggle');
 const reviewOverlay=$('#reviewOverlay'),reviewMain=$('#reviewMain'),reviewDetail=$('#reviewDetail'),acceptSampleBtn=$('#acceptSampleBtn'),retrySampleBtn=$('#retrySampleBtn');
 function refreshAppFromInstrument(){
   window.location.reload();
@@ -886,10 +886,10 @@ async function startMemoryGame(){
   }
   memoryCards=memoryShuffle(memoryCards);
   memorySelectedId=null;memoryListening=false;memoryResolving=false;memoryActive=true;memoryResetRecognition();
-  memoryComplete.hidden=true;memoryGame.hidden=false;await renderMemoryBoard();
+  memoryComplete.hidden=true;memoryGame.classList.remove('complete-mode');memoryGame.hidden=false;await renderMemoryBoard();
 }
 function closeMemoryGame(){
-  memoryActive=false;memoryListening=false;memoryResolving=false;memorySelectedId=null;memoryResetRecognition();memoryCardArtToken++;memoryGame.hidden=true;memoryComplete.hidden=true;
+  memoryActive=false;memoryListening=false;memoryResolving=false;memorySelectedId=null;memoryResetRecognition();memoryCardArtToken++;memoryGame.classList.remove('complete-mode');memoryGame.hidden=true;memoryComplete.hidden=true;
 }
 function memoryStartListening(card){
   if(!card||card.matched||card.faceUp||memoryResolving)return;
@@ -941,7 +941,7 @@ async function memoryResolveSuccess(){
   memoryElement(selected.id)?.classList.add('matched');memoryElement(other.id)?.classList.add('matched');
   await sleepMs(330);
   memorySelectedId=null;memoryResolving=false;memoryResetRecognition();
-  if(memoryCards.every(c=>c.matched))memoryComplete.hidden=false;
+  if(memoryCards.every(c=>c.matched)){memoryGame.classList.add('complete-mode');memoryComplete.hidden=false;}
 }
 function handleMemoryFrame(frame){
   if(!memoryActive||!memoryListening||memoryResolving||!frame.validTone)return;
@@ -1362,6 +1362,7 @@ memoryBoard.addEventListener('click',e=>{const el=e.target.closest('[data-memory
 memoryBackBtn.addEventListener('click',closeMemoryGame);
 memoryRestartBtn.addEventListener('click',startMemoryGame);
 memoryAgainBtn.addEventListener('click',startMemoryGame);
+memoryReturnBtn.addEventListener('click',closeMemoryGame);
 window.addEventListener('resize',()=>{if(memoryActive)requestAnimationFrame(layoutMemoryBoard)});
 window.visualViewport?.addEventListener('resize',()=>{if(memoryActive)requestAnimationFrame(layoutMemoryBoard)});
 topProfileFile.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();profileFileInput.click()});

@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Puhaltimet 0.3.6</title>
+<title>Puhaltimet 0.3.8</title>
 <style>
 :root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -365,10 +365,13 @@ body{display:block;background:#edf5fa}
 .memory-card.timbre-miss .memory-card-front{box-shadow:inset 0 0 0 5px #f2a33a}
 .memory-card.wrong-note .memory-card-front{box-shadow:inset 0 0 0 5px #e06b61}
 .memory-card.success .memory-card-front{box-shadow:inset 0 0 0 5px #22c55e}
-.memory-complete{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:rgba(237,245,250,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.memory-complete{flex:0 0 90px;height:90px;display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 6px;background:transparent}
 .memory-complete[hidden]{display:none}
-.memory-complete-mark{width:110px;height:110px;border-radius:50%;display:grid;place-items:center;background:#22c55e;color:#fff;font-size:70px;font-weight:1000;box-shadow:0 16px 40px rgba(34,197,94,.2)}
-.memory-again{border:0;border-radius:999px;background:#173f61;color:#fff;padding:13px 22px;font-size:16px;font-weight:950}
+.memory-game.complete-mode .memory-topbar,.memory-game.complete-mode .memory-viewbar{display:none}
+.memory-complete-actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.memory-again,.memory-return{border:1px solid #cfe0e9;border-radius:999px;background:#173f61;color:#fff;padding:11px 20px;font-size:15px;font-weight:900;box-shadow:none}
+.memory-return{background:#fff;color:#173f61}
+.memory-again:active,.memory-return:active{transform:translateY(1px)}
 @media(max-width:700px){.memory-board{gap:8px}.memory-card-face{border-radius:16px}.memory-title{font-size:17px}.memory-viewbar{flex-basis:34px;margin-bottom:4px}.memory-display-toggle{height:31px;font-size:12px;padding:0 13px}}
 
 </style>
@@ -463,11 +466,13 @@ body{display:block;background:#edf5fa}
   <div class="memory-viewbar">
     <button id="memoryDisplayToggle" class="memory-display-toggle" type="button" aria-pressed="false">Nuotti</button>
   </div>
-  <div id="memoryBoard" class="memory-board" aria-live="polite"></div>
   <div id="memoryComplete" class="memory-complete" hidden>
-    <div class="memory-complete-mark">✓</div>
-    <button id="memoryAgainBtn" class="memory-again" type="button">Uusi peli</button>
+    <div class="memory-complete-actions">
+      <button id="memoryAgainBtn" class="memory-again" type="button">Uusi peli</button>
+      <button id="memoryReturnBtn" class="memory-return" type="button">Takaisin analyysiin</button>
+    </div>
   </div>
+  <div id="memoryBoard" class="memory-board" aria-live="polite"></div>
 </div>
 
 <div id="memoryOsmdStage" aria-hidden="true"></div>
@@ -532,7 +537,7 @@ const sampleBtn=$('#sampleBtn');
 const profileList=$('#profileList');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
 const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileGame=$('#topProfileGame'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
-const memoryGame=$('#memoryGame'),memoryBoard=$('#memoryBoard'),memoryBackBtn=$('#memoryBackBtn'),memoryRestartBtn=$('#memoryRestartBtn'),memoryComplete=$('#memoryComplete'),memoryAgainBtn=$('#memoryAgainBtn'),memoryOsmdStage=$('#memoryOsmdStage'),memoryDisplayToggle=$('#memoryDisplayToggle');
+const memoryGame=$('#memoryGame'),memoryBoard=$('#memoryBoard'),memoryBackBtn=$('#memoryBackBtn'),memoryRestartBtn=$('#memoryRestartBtn'),memoryComplete=$('#memoryComplete'),memoryAgainBtn=$('#memoryAgainBtn'),memoryReturnBtn=$('#memoryReturnBtn'),memoryOsmdStage=$('#memoryOsmdStage'),memoryDisplayToggle=$('#memoryDisplayToggle');
 const reviewOverlay=$('#reviewOverlay'),reviewMain=$('#reviewMain'),reviewDetail=$('#reviewDetail'),acceptSampleBtn=$('#acceptSampleBtn'),retrySampleBtn=$('#retrySampleBtn');
 function refreshAppFromInstrument(){
   window.location.reload();
@@ -1390,10 +1395,10 @@ async function startMemoryGame(){
   }
   memoryCards=memoryShuffle(memoryCards);
   memorySelectedId=null;memoryListening=false;memoryResolving=false;memoryActive=true;memoryResetRecognition();
-  memoryComplete.hidden=true;memoryGame.hidden=false;await renderMemoryBoard();
+  memoryComplete.hidden=true;memoryGame.classList.remove('complete-mode');memoryGame.hidden=false;await renderMemoryBoard();
 }
 function closeMemoryGame(){
-  memoryActive=false;memoryListening=false;memoryResolving=false;memorySelectedId=null;memoryResetRecognition();memoryCardArtToken++;memoryGame.hidden=true;memoryComplete.hidden=true;
+  memoryActive=false;memoryListening=false;memoryResolving=false;memorySelectedId=null;memoryResetRecognition();memoryCardArtToken++;memoryGame.classList.remove('complete-mode');memoryGame.hidden=true;memoryComplete.hidden=true;
 }
 function memoryStartListening(card){
   if(!card||card.matched||card.faceUp||memoryResolving)return;
@@ -1445,7 +1450,7 @@ async function memoryResolveSuccess(){
   memoryElement(selected.id)?.classList.add('matched');memoryElement(other.id)?.classList.add('matched');
   await sleepMs(330);
   memorySelectedId=null;memoryResolving=false;memoryResetRecognition();
-  if(memoryCards.every(c=>c.matched))memoryComplete.hidden=false;
+  if(memoryCards.every(c=>c.matched)){memoryGame.classList.add('complete-mode');memoryComplete.hidden=false;}
 }
 function handleMemoryFrame(frame){
   if(!memoryActive||!memoryListening||memoryResolving||!frame.validTone)return;
@@ -1866,6 +1871,7 @@ memoryBoard.addEventListener('click',e=>{const el=e.target.closest('[data-memory
 memoryBackBtn.addEventListener('click',closeMemoryGame);
 memoryRestartBtn.addEventListener('click',startMemoryGame);
 memoryAgainBtn.addEventListener('click',startMemoryGame);
+memoryReturnBtn.addEventListener('click',closeMemoryGame);
 window.addEventListener('resize',()=>{if(memoryActive)requestAnimationFrame(layoutMemoryBoard)});
 window.visualViewport?.addEventListener('resize',()=>{if(memoryActive)requestAnimationFrame(layoutMemoryBoard)});
 topProfileFile.addEventListener('click',e=>{e.preventDefault();closeTopProfileMenu();profileFileInput.click()});
