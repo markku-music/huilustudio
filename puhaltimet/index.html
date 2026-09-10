@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Ääninäyte DEV 0.3.46 VIRITYSMITTARI</title>
+<title>Ääninäyte 0.3.58 HOLD BUTTON</title>
 <style>
 :root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -45,7 +45,6 @@ button{cursor:pointer}
 .notation-wrap{position:relative;width:100%;height:100%;min-height:0;margin:0;display:block;overflow:hidden}
 #osmdContainer{position:absolute;inset:0;width:100%;height:100%;min-height:0;display:flex;align-items:flex-start;justify-content:center;overflow:visible;transform-origin:center top}
 #osmdContainer svg{display:block;max-width:none}
-#osmdContainer .fallback-staff{width:100%!important;height:138px;display:block}
 .hz{margin-top:-8px;font-size:18px;font-weight:850;color:var(--muted);font-variant-numeric:tabular-nums;min-height:24px}
 .bars{width:100%;height:250px;display:grid;grid-template-columns:repeat(8,1fr);gap:10px;align-items:end;padding:8px 4px 0}
 .bar-item{height:100%;display:grid;grid-template-rows:1fr 27px;gap:6px;align-items:end;justify-items:center}
@@ -150,99 +149,142 @@ button{cursor:pointer}
 .cal-panel{width:min(var(--ui-cal-width),92vw)}
 body.ui-hide-instrument #instrumentSide{display:none}body.ui-hide-notation #notationCard{display:none}body.ui-hide-instrument.ui-hide-notation .analysis-layout{grid-template-columns:1fr}
 body.ui-hide-bottom .bottom{display:none}body.ui-hide-hz #hzValue{display:none}body.ui-hide-bar-labels .bar-label{display:none}body.ui-hide-bar-labels .bar-item{grid-template-rows:1fr}
-body.ui-hide-profile #topProfileMenu{display:none}body.ui-hide-recal #recalBtn{display:none}body.ui-hide-clear #clearBtn{display:none}body.ui-hide-sample #sampleBtn{display:none}body.ui-hide-export #exportBtn{display:none}body.ui-hide-panel-titles .panel h2{display:none}
+body.ui-hide-profile #topProfileMenu{display:none}body.ui-hide-recal #recalBtn{display:none}body.ui-hide-clear #clearBtn{display:none}body.ui-hide-sample #sampleBtn{display:none}body.ui-hide-panel-titles .panel h2{display:none}
 @media(max-width:860px){
   #app{padding:var(--ui-mobile-pad)}.analysis-layout{grid-template-columns:1fr;gap:var(--ui-mobile-layout-gap)}.visual-side{gap:var(--ui-mobile-layout-gap)}.instrument-side,.notation-card{width:100%;aspect-ratio:1 / 1;min-height:0;height:auto}.instrument-side{padding:12px}.notation-card{padding:0}.tuner-card{height:190px;padding:14px 14px 12px}.hero-instrument img{height:var(--ui-mobile-image-height);max-height:none}.bars{height:var(--ui-mobile-bars-height)}.instrument-grid{grid-template-columns:repeat(var(--ui-mobile-grid-cols),minmax(0,1fr))}
 }
 
-/* UI LAB -paneeli pidetään tarkoituksella erillään säädettävästä käyttöliittymästä. */
-#uiDevToggle{position:fixed;right:14px;bottom:14px;z-index:998;border:0;border-radius:999px;background:#142b3a;color:#fff;padding:11px 15px;font:800 13px/1 system-ui;box-shadow:0 8px 24px rgba(0,0,0,.24)}
-#uiDevPanel{position:fixed;right:12px;top:12px;bottom:12px;z-index:999;width:min(430px,94vw);overflow:auto;background:#f7fafc;color:#162f41;border:1px solid #b8ccd8;border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.28);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-#uiDevPanel[hidden]{display:none}.ui-dev-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;padding:12px;background:#e9f2f6;border-bottom:1px solid #cbdbe3}.ui-dev-head strong{flex:1;font-size:14px}.ui-dev-head button{border:0;border-radius:9px;padding:8px 10px;background:#173f61;color:#fff;font-weight:850}
-.ui-dev-body{padding:10px}.ui-dev-group{margin:0 0 9px;border:1px solid #d4e0e6;border-radius:12px;background:#fff;overflow:hidden}.ui-dev-group summary{cursor:pointer;padding:10px 11px;font-size:13px;font-weight:900;background:#f0f6f8}.ui-dev-group-inner{padding:8px 10px 10px}.ui-dev-row{display:grid;grid-template-columns:minmax(120px,1fr) 1.2fr 78px;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid #edf3f5}.ui-dev-row:last-child{border-bottom:0}.ui-dev-row label{font-size:11px;font-weight:800;line-height:1.2}.ui-dev-row input[type="range"]{width:100%}.ui-dev-row input[type="number"],.ui-dev-row input[type="text"]{width:100%;border:1px solid #b9cbd5;border-radius:8px;padding:6px 7px;font:700 12px system-ui}.ui-dev-row.ui-dev-color{grid-template-columns:minmax(120px,1fr) 52px 1fr}.ui-dev-row input[type="color"]{width:48px;height:30px;border:1px solid #b9cbd5;border-radius:7px;padding:2px;background:#fff}.ui-dev-select{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,2fr);gap:7px;align-items:center;padding:7px 0 10px;border-bottom:1px solid #dce8ed}.ui-dev-select label{font-size:11px;font-weight:900}.ui-dev-select select{width:100%;border:1px solid #b9cbd5;border-radius:8px;padding:7px;background:#fff;color:#17384f;font:700 12px system-ui}.ui-dev-check{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #edf3f5}.ui-dev-check:last-child{border-bottom:0}.ui-dev-check label{font-size:11px;font-weight:800}.ui-dev-text{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;padding:6px 0}.ui-dev-text label{font-size:11px;font-weight:800}.ui-dev-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}.ui-dev-actions button{border:0;border-radius:10px;padding:9px 8px;background:#173f61;color:#fff;font-weight:850;font-size:11px}.ui-dev-actions button.alt{background:#dfeaf0;color:#17384f}.ui-dev-json{width:100%;min-height:170px;resize:vertical;border:1px solid #b9cbd5;border-radius:10px;padding:9px;font:11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;color:#18384d}.ui-dev-note{font-size:10px;line-height:1.35;color:#607785;margin:6px 2px 10px}
+/* ===== DASHBOARD LAYOUT 0.3.58 HOLD BUTTON ===== */
+body{display:block;background:#edf5fa}
+#app{width:100%;max-width:none;min-height:100vh;padding:14px}
+.topline{display:grid;grid-template-columns:minmax(260px,260px) 120px 170px 1fr;gap:14px;align-items:center;margin:0 0 14px}
+.mini,.top-profile-trigger{height:38px;border-radius:14px;box-shadow:none;border:1px solid var(--line);background:#fff}
+.top-profile-menu{min-width:0;max-width:none}.top-profile-trigger{padding:8px 14px}.top-profile-panel{z-index:1300}
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:
+  "instrument notation"
+  "samples analysis";gap:14px;align-items:start}
+.dashboard-card,.panel,.instrument-side,.notation-card,.analysis-card{background:#fff;border:1px solid var(--line);border-radius:28px;box-shadow:none}
+.instrument-side{grid-area:instrument;aspect-ratio:auto;height:44vh;min-height:350px;max-height:560px;padding:18px}
+.notation-card{grid-area:notation;aspect-ratio:auto;height:44vh;min-height:350px;max-height:560px;padding:0;overflow:hidden}
+.samples-card{grid-area:samples;min-height:calc(44vh + 14px + 300px);padding:14px 18px 18px}
+#profileList{min-height:180px;max-height:none;display:grid;align-content:start;gap:10px}
+.tuner-card{display:none !important}
+.analysis-card{grid-area:analysis;min-height:340px;padding:16px 18px 18px;display:flex;flex-direction:column;justify-content:space-between}
+.panel h2{font-size:14px;letter-spacing:.1em;color:#1c425f;font-weight:1000;margin:0 0 12px}
+.hero-instrument{width:100%;height:100%;display:flex;align-items:center;justify-content:center}.hero-instrument.hidden{display:none}.hero-instrument img{max-width:100%;max-height:100%;object-fit:contain}
+.notation-shell{display:grid;grid-template-columns:minmax(0,1fr) 82px;gap:8px;align-items:stretch;width:100%;height:100%;padding:16px 14px 16px 18px}
+.notation-main{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.notation-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:0}
+.vtuner-wrap{display:flex;align-items:center;justify-content:center}
+.vtuner-scale{position:relative;width:62px;height:min(84%,430px);opacity:1;transition:opacity 180ms ease}
+.vtuner-track{position:absolute;left:2px;top:6px;bottom:18px;width:22px;border:1px solid #bfd2df;border-radius:999px;background:linear-gradient(to right,#f9fcfe 0%,#eef5f9 44%,#f8fbfd 100%);box-shadow:inset 0 0 0 4px rgba(255,255,255,.82), inset 0 8px 16px rgba(177,197,211,.18);overflow:hidden}
+.vtuner-mercury{position:absolute;left:5px;right:5px;bottom:0;height:50%;border-radius:999px;background:var(--accent);box-shadow:inset 0 0 10px rgba(255,255,255,.22);opacity:.94;transition:height 90ms linear,opacity 140ms ease,background 140ms ease}
+.vtuner-bulb{position:absolute;left:13px;bottom:0;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;background:#f7fbfd;border:1px solid #bfd2df;box-shadow:inset 0 0 0 4px rgba(255,255,255,.84), inset 0 8px 16px rgba(177,197,211,.16)}
+.vtuner-bulb-fill{position:absolute;inset:5px;border-radius:50%;background:var(--accent);opacity:.94;box-shadow:inset 0 0 10px rgba(255,255,255,.24);transition:opacity 140ms ease,background 140ms ease}
+.vtuner-labels{position:absolute;left:34px;top:6px;bottom:18px;width:30px;color:#6f8697;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;pointer-events:none}
+.vtuner-labels span{position:absolute;left:0;transform:translateY(-50%)}
+.vtuner-scale.in-tune .vtuner-mercury,.vtuner-scale.in-tune .vtuner-bulb-fill{background:var(--ok)}
+.bars{height:128px;padding:4px 12px 0;gap:16px}.bar-track{background:#fbfdfe;border-color:#e8f0f4}.bar-fill{width:58%;border-radius:8px 8px 4px 4px}.bar-label{font-size:13px;color:#5e788c}
+.analysis-readout{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:74px}.note{font-size:42px;min-height:40px;line-height:1;font-weight:1000;color:#173f61;letter-spacing:-.03em}.hz{margin-top:0;min-height:18px;font-size:14px;color:#88a0b1}.actions{justify-content:center;gap:12px;padding-top:2px}
+.sample-image-btn{width:118px;height:118px;padding:0;border:0;background:transparent;border-radius:50%;display:grid;place-items:center;touch-action:none;user-select:none;-webkit-user-select:none;outline:none;cursor:pointer;transition:transform 70ms ease,filter 100ms ease,opacity 120ms ease}
+.sample-image-btn img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 8px 9px rgba(21,56,79,.16));transition:transform 70ms ease,filter 100ms ease}
+.sample-image-btn.sample-recording,.sample-image-btn:active{transform:translateY(4px) scale(.965)}
+.sample-image-btn.sample-recording img,.sample-image-btn:active img{filter:brightness(.88) saturate(1.15) drop-shadow(0 3px 4px rgba(21,56,79,.12))}
+.sample-image-btn.sample-error{animation:sampleButtonNudge .28s ease 0s 2}
+.sample-image-btn:disabled{opacity:.35;cursor:default;transform:none}
+.sample-image-btn:focus-visible{box-shadow:0 0 0 4px rgba(47,140,255,.24)}
+@keyframes sampleButtonNudge{0%,100%{transform:translateX(0)}35%{transform:translateX(-6px)}70%{transform:translateX(6px)}}
+.primary,.secondary{padding:11px 20px;border-radius:999px;font-size:15px;min-width:146px;box-shadow:none}.secondary{background:#e9eff3;color:#748896}
+.sample-empty{padding:18px 4px;font-size:17px;color:#647c8f}.sample-note-card{background:#f9fcfd}.sample-note-summary{padding:12px 14px}.sample-note-name{font-size:24px}
+.analysis-layout,.visual-side,.analysis-side,.live-card,.bottom{display:contents}
+@media (max-width: 960px){
+  #app{padding:12px}
+  .topline{grid-template-columns:1fr 1fr;grid-template-areas:
+    "profile profile"
+    "recal clear";gap:10px}
+  .top-profile-menu{grid-area:profile}.topline #recalBtn{grid-area:recal}.topline #clearBtn{grid-area:clear}
+  .dashboard-grid{grid-template-columns:1fr;grid-template-areas:
+    "instrument"
+    "notation"
+    "analysis"
+    "samples"}
+  .instrument-side,.notation-card{height:min(58vw,420px);min-height:280px}
+  .notation-shell{grid-template-columns:minmax(0,1fr) 74px;gap:6px;padding:12px 10px 12px 14px}
+  .vtuner-scale{height:min(78vw,360px)}
+  .sample-image-btn{width:106px;height:106px}
+  .samples-card{min-height:260px}
+}
+
 
 </style>
 </head>
 <body>
 <div id="app">
-  <div class="analysis-layout">
-    <div id="visualSide" class="visual-side">
-      <aside id="instrumentSide" class="instrument-side">
-        <div id="heroInstrument" class="hero-instrument hidden" aria-live="polite">
-          <img id="heroInstrumentImg" alt="">
-        </div>
-      </aside>
-
-      <section id="notationCard" class="notation-card" aria-label="Tunnistettu sävel nuottiviivastolla">
-        <div class="notation-wrap">
-          <div id="osmdContainer"></div>
-        </div>
-      </section>
-
-
-      <section id="tunerCard" class="tuner-card" aria-label="Viritysmittari">
-        <div class="tuner-head">
-          <div class="tuner-title">VIRITYS</div>
-          <div id="tunerReadout" class="tuner-readout">–</div>
-        </div>
-        <div class="tuner-meter">
-          <div id="tunerScale" class="tuner-scale inactive">
-            <div class="tuner-center-zone" aria-hidden="true"></div>
-            <span class="tuner-tick major" style="left:0%"></span>
-            <span class="tuner-tick" style="left:10%"></span>
-            <span class="tuner-tick" style="left:20%"></span>
-            <span class="tuner-tick" style="left:30%"></span>
-            <span class="tuner-tick" style="left:40%"></span>
-            <span class="tuner-tick major center" style="left:50%"></span>
-            <span class="tuner-tick" style="left:60%"></span>
-            <span class="tuner-tick" style="left:70%"></span>
-            <span class="tuner-tick" style="left:80%"></span>
-            <span class="tuner-tick" style="left:90%"></span>
-            <span class="tuner-tick major" style="left:100%"></span>
-            <div id="tunerNeedle" class="tuner-needle" aria-hidden="true"></div>
-          </div>
-          <div class="tuner-labels" aria-hidden="true">
-            <span style="left:0%">−50</span><span style="left:25%">−25</span><span style="left:50%">0</span><span style="left:75%">+25</span><span style="left:100%">+50</span>
-          </div>
-          <div id="tunerStatus" class="tuner-status">KUUNTELEE</div>
-        </div>
-      </section>
-    </div>
-
-    <main class="analysis-side">
-      <div class="topline">
-        <div id="topProfileMenu" class="top-profile-menu">
-          <button id="topProfileTrigger" class="top-profile-trigger" type="button" aria-expanded="false" aria-controls="topProfilePanel">
-            <span id="topProfileLabel">+ Uusi profiili</span><span class="top-profile-caret" aria-hidden="true">▾</span>
-          </button>
-          <div id="topProfilePanel" class="top-profile-panel" hidden>
-            <div id="topProfileList" class="top-profile-list"></div>
-            <button id="topProfileNew" class="top-profile-new" type="button">+ Uusi profiili</button>
-            <button id="topProfileFile" class="top-profile-new" type="button">Avaa tiedostosta…</button>
-            <input id="profileFileInput" type="file" accept=".json,application/json" hidden>
-          </div>
-        </div>
-        <button id="recalBtn" class="mini" type="button">Kalibroi</button>
-        <button id="clearBtn" class="mini" type="button">Tyhjennä näytteet</button>
+  <div class="topline">
+    <div id="topProfileMenu" class="top-profile-menu">
+      <button id="topProfileTrigger" class="top-profile-trigger" type="button" aria-expanded="false" aria-controls="topProfilePanel">
+        <span id="topProfileLabel">+ Uusi profiili</span><span class="top-profile-caret" aria-hidden="true">▾</span>
+      </button>
+      <div id="topProfilePanel" class="top-profile-panel" hidden>
+        <div id="topProfileList" class="top-profile-list"></div>
+        <button id="topProfileNew" class="top-profile-new" type="button">+ Uusi profiili</button>
+        <button id="topProfileFile" class="top-profile-new" type="button">Avaa tiedostosta…</button>
+        <input id="profileFileInput" type="file" accept=".json,application/json" hidden>
       </div>
+    </div>
+    <button id="recalBtn" class="mini" type="button">Kalibroi</button>
+    <button id="clearBtn" class="mini" type="button">Tyhjennä näytteet</button>
+  </div>
 
-      <section class="live-card">
-        <div id="bars" class="bars"></div>
+  <div class="dashboard-grid">
+    <section id="instrumentSide" class="instrument-side dashboard-card" aria-label="Soitinkuva">
+      <div id="heroInstrument" class="hero-instrument hidden" aria-live="polite">
+        <img id="heroInstrumentImg" alt="">
+      </div>
+    </section>
+
+    <section id="notationCard" class="notation-card dashboard-card" aria-label="Tunnistettu sävel nuottiviivastolla">
+      <div class="notation-shell">
+        <div class="notation-main">
+          <div class="notation-wrap">
+            <div id="osmdContainer"></div>
+          </div>
+        </div>
+        <aside class="vtuner-wrap" aria-label="Viritysmittari">
+          <div id="tunerScale" class="vtuner-scale" aria-hidden="true">
+            <div class="vtuner-track">
+              <div id="tunerNeedle" class="vtuner-mercury"></div>
+            </div>
+            <div class="vtuner-bulb"><div id="tunerBulbFill" class="vtuner-bulb-fill"></div></div>
+            <div class="vtuner-labels">
+              <span style="top:0%">+50</span>
+              <span style="top:25%">+25</span>
+              <span style="top:50%">0</span>
+              <span style="top:75%">−25</span>
+              <span style="top:100%">−50</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel samples-card dashboard-card" aria-label="Tallennetut näytteet">
+      <h2 id="samplesPanelTitle">Tallennetut näytteet</h2>
+      <div id="profileList"></div>
+    </section>
+
+    <section class="analysis-card dashboard-card" aria-label="H1–H8 analyysi ja näytteenotto">
+      <div id="bars" class="bars"></div>
+      <div class="analysis-readout">
         <div id="noteName" class="note">–</div>
         <div id="hzValue" class="hz"></div>
-        <div class="actions">
-          <button id="sampleBtn" class="primary" type="button">ALOITA NÄYTE</button>
-          <button id="exportBtn" class="secondary" type="button" disabled>VIE JSON</button>
-        </div>
-      </section>
-
-      <div class="bottom">
-        <section class="panel">
-          <h2 id="samplesPanelTitle">Tallennetut näytteet</h2>
-          <div id="profileList"></div>
-        </section>
       </div>
-    </main>
+      <div class="actions">
+        <button id="sampleBtn" class="sample-image-btn" type="button" aria-label="Tallenna näyte pitämällä painettuna" aria-pressed="false">
+          <img src="sample_button.webp" alt="">
+        </button>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -298,25 +340,7 @@ body.ui-hide-profile #topProfileMenu{display:none}body.ui-hide-recal #recalBtn{d
 
 
 
-<button id="uiDevToggle" type="button">UI DEV</button>
-<aside id="uiDevPanel" hidden aria-label="UI-kehittäjäpaneeli">
-  <div class="ui-dev-head"><strong>Ääninäyte UI LAB 0.3.27</strong><button id="uiDevClose" type="button">Sulje</button></div>
-  <div class="ui-dev-body">
-    <div class="ui-dev-note">UI-säädöt eivät muuta äänianalyysin dataa. H1–H8-osiossa voi nyt valita kiinteän headroom-asteikon tai vanhan automaattiskaalan sekä säätää ylärajaa ja näyttökäyrää.</div>
-    <div id="uiDevControls"></div>
-    <div class="ui-dev-actions">
-      <button id="uiDevExport" type="button">VIE UI JSON</button>
-      <button id="uiDevImport" type="button">TUO UI JSON</button>
-      <button id="uiDevApplyJson" type="button">KÄYTÄ JSON</button>
-      <button id="uiDevCopy" type="button">KOPIOI JSON</button>
-      <button id="uiDevReset" class="alt" type="button">OLETUKSET</button>
-      <button id="uiDevRefresh" class="alt" type="button">PÄIVITÄ KENTÄT</button>
-    </div>
-    <textarea id="uiDevJson" class="ui-dev-json" spellcheck="false" aria-label="UI JSON"></textarea>
-    <input id="uiDevFile" type="file" accept=".json,application/json" hidden>
-  </div>
-</aside>
-
+<script src="./opensheetmusicdisplay.min.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -343,8 +367,8 @@ const PC=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','B','H'];
 const FINNISH_PC=['c','cis','d','es','e','f','fis','g','as','a','b','h'];
 const $=s=>document.querySelector(s);
 const barsEl=$('#bars'),noteName=$('#noteName'),hzValue=$('#hzValue'),osmdContainer=$('#osmdContainer');
-const tunerScale=$('#tunerScale'),tunerNeedle=$('#tunerNeedle'),tunerReadout=$('#tunerReadout'),tunerStatus=$('#tunerStatus');
-const sampleBtn=$('#sampleBtn'),exportBtn=$('#exportBtn');
+const tunerScale=$('#tunerScale'),tunerNeedle=$('#tunerNeedle'),tunerBulbFill=$('#tunerBulbFill');
+const sampleBtn=$('#sampleBtn');
 const profileList=$('#profileList');
 const calOverlay=$('#calOverlay'),calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
 const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
@@ -445,6 +469,70 @@ function clefForInstrument(instrumentName){
   if(mode==='bass'||mode==='treble')return mode;
   return BASS_CLEF_INSTRUMENTS.has(instrumentName)?'bass':'treble'
 }
+
+// OSMD:n tuotantokäytön apufunktiot. Nämä eivät kuulu kehittäjätyökaluihin.
+function normalizeNotationScalePercent(value){
+  const n=Number(value);
+  if(!Number.isFinite(n))return 200;
+  return Math.max(100,Math.min(400,Math.ceil(n/100)*100));
+}
+function notationScaleFactor(){
+  return normalizeNotationScalePercent(uiSettings?.notationScale)/100;
+}
+function applyNotationCrispRules(osmd){
+  if(!osmd?.EngravingRules)return;
+  try{
+    osmd.EngravingRules.SnapStafflinesToCrispPixels=true;
+    osmd.EngravingRules.StaffLineWidth=0.10;
+  }catch(_){ }
+}
+function applyNotationMeasureWidth(osmd){
+  if(!osmd)return;
+  const width=Number(uiSettings?.notationMeasureWidth||0);
+  try{
+    const fixed=Number.isFinite(width)&&width>0;
+    osmd.EngravingRules.FixedMeasureWidth=fixed;
+    osmd.EngravingRules.FixedMeasureWidthFixedValue=fixed?width:undefined;
+    osmd.EngravingRules.FixedMeasureWidthUseForPickupMeasures=fixed;
+  }catch(_){ }
+}
+function applyNotationNoteX(osmd){
+  const x=Number(uiSettings?.notationX||0);
+  if(!osmd?.GraphicSheet)return false;
+  const candidates=[];
+  try{
+    const measures=osmd.GraphicSheet.MeasureList||[];
+    for(const staffMeasures of measures){
+      for(const measure of (staffMeasures||[])){
+        for(const staffEntry of (measure?.staffEntries||[])){
+          for(const voiceEntry of (staffEntry?.graphicalVoiceEntries||[])){
+            for(const note of (voiceEntry?.notes||[])){
+              const add=el=>{if(el&&el instanceof Element)candidates.push(el)};
+              try{add(note.getSVGGElement?.())}catch(_){}
+              try{for(const el of (note.getLedgerLineSVGs?.()||[]))add(el)}catch(_){}
+              try{for(const el of (note.getModifierSVGs?.()||[]))add(el)}catch(_){}
+            }
+          }
+        }
+      }
+    }
+    const unique=[...new Set(candidates)];
+    const topLevel=unique.filter(el=>!unique.some(parent=>parent!==el&&parent.contains(el)));
+    for(const el of topLevel){
+      let wrapper=el.parentElement?.dataset?.osmdNoteXWrapper==='1'?el.parentElement:null;
+      if(!wrapper){
+        wrapper=document.createElementNS('http://www.w3.org/2000/svg','g');
+        wrapper.dataset.osmdNoteXWrapper='1';
+        el.parentNode?.insertBefore(wrapper,el);
+        wrapper.appendChild(el);
+      }
+      wrapper.setAttribute('transform',`translate(${x} 0)`);
+    }
+    return topLevel.length>0;
+  }catch(_){
+    return false;
+  }
+}
 function notationMusicXml(info,clef){
   // Tyhjä tila renderöidään samalla OSMD-rakenteella kuin varsinainen nuotti.
   // Näkymätön paikkanuotti pitää viivaston, avaimen ja vaakasommittelun samoina.
@@ -474,38 +562,9 @@ function notationMusicXml(info,clef){
   </part>
 </score-partwise>`;
 }
-function fallbackStaffSvg(info,clef){
-  const W=440,H=138,left=72,right=420,lineGap=14,bottomY=96;
-  const lines=Array.from({length:5},(_,i)=>`<line x1="${left}" y1="${bottomY-i*lineGap}" x2="${right}" y2="${bottomY-i*lineGap}" stroke="#15384f" stroke-width="1.8"/>`).join('');
-  const clefGlyph=clef==='bass'?'𝄢':'𝄞';
-  let note='';
-  if(info){
-    const bottomIndex=clef==='bass'?(2*7+4):(4*7+2);
-    const noteIndex=info.scientificOctave*7+info.letterIndex;
-    const y=bottomY-(noteIndex-bottomIndex)*(lineGap/2);
-    const ledger=[];
-    if(y>bottomY+1){
-      for(let ly=bottomY+lineGap;ly<=y+1;ly+=lineGap)ledger.push(`<line x1="226" y1="${ly}" x2="270" y2="${ly}" stroke="#15384f" stroke-width="1.8"/>`);
-    }else if(y<bottomY-4*lineGap-1){
-      for(let ly=bottomY-5*lineGap;ly>=y-1;ly-=lineGap)ledger.push(`<line x1="226" y1="${ly}" x2="270" y2="${ly}" stroke="#15384f" stroke-width="1.8"/>`);
-    }
-    const acc=info.accidental===1?'♯':info.accidental===-1?'♭':'';
-    const noteX=Number(uiSettings?.notationX||0);
-    note=`<g transform="translate(${noteX} 0)">${ledger.join('')}${acc?`<text x="212" y="${y+8}" text-anchor="middle" font-size="28" font-family="serif" fill="#15384f">${acc}</text>`:''}<ellipse cx="248" cy="${y}" rx="13" ry="9" transform="rotate(-18 248 ${y})" fill="#15384f"/><line x1="260" y1="${y-2}" x2="260" y2="${y-47}" stroke="#15384f" stroke-width="3"/></g>`;
-  }
-  return `<svg class="fallback-staff" viewBox="0 0 ${W} ${H}" role="img" aria-label="${info?info.display:'Tyhjä nuottiviivasto'}" xmlns="http://www.w3.org/2000/svg"><text x="34" y="${clef==='bass'?91:99}" font-size="${clef==='bass'?54:68}" font-family="serif" fill="#15384f">${clefGlyph}</text>${lines}${note}</svg>`;
-}
-const OSMD_CDN_URL='https://unpkg.com/opensheetmusicdisplay@2.1.2/build/opensheetmusicdisplay.min.js';
-let osmdInstance=null,lastNotationKey='',notationRenderToken=0,notationRenderQueue=Promise.resolve(),osmdLibraryRequested=false;
-function loadOsmdLibrary(){
-  if(window.opensheetmusicdisplay?.OpenSheetMusicDisplay||osmdLibraryRequested)return;
-  osmdLibraryRequested=true;
-  const script=document.createElement('script');
-  script.src=OSMD_CDN_URL;script.async=true;
-  script.onload=()=>{osmdInstance=null;lastNotationKey='';renderNotation(heldNotationMidi)};
-  script.onerror=()=>{console.warn('OSMD-kirjastoa ei saatu ladattua. Paikallinen viivasto jää käyttöön.')};
-  document.head.appendChild(script);
-}
+const OSMD_URL='./opensheetmusicdisplay.min.js';
+let osmdInstance=null,lastNotationKey='',notationRenderToken=0,notationRenderQueue=Promise.resolve();
+let heldNotationColor='#000000';
 function ensureOsmd(){
   if(osmdInstance)return osmdInstance;
   const lib=window.opensheetmusicdisplay;
@@ -526,6 +585,23 @@ function ensureOsmd(){
   }catch(_){}
   return osmdInstance;
 }
+function applyNotationPitchColor(color=heldNotationColor){
+  heldNotationColor=color||'#000000';
+  // Väritä vain varsinainen nuotti. Viivasto, avain ja tahtiviivat jäävät mustiksi.
+  for(const notehead of osmdContainer.querySelectorAll('.vf-notehead')){
+    if(notehead.children.length){
+      for(const el of notehead.children){el.setAttribute('fill',heldNotationColor);el.setAttribute('stroke',heldNotationColor)}
+    }else{notehead.setAttribute('fill',heldNotationColor);notehead.setAttribute('stroke',heldNotationColor)}
+  }
+  for(const stem of osmdContainer.querySelectorAll('[id$="-stem"]')){
+    stem.setAttribute('stroke',heldNotationColor);
+    for(const el of stem.children){el.setAttribute('stroke',heldNotationColor);el.setAttribute('fill',heldNotationColor)}
+  }
+  for(const flag of osmdContainer.querySelectorAll('.vf-flag')){
+    flag.setAttribute('fill',heldNotationColor);
+    for(const el of flag.children){el.setAttribute('fill',heldNotationColor);el.setAttribute('stroke',heldNotationColor)}
+  }
+}
 async function renderNotation(midi){
   const instrument=currentProfile()?.instrument||'Huilu';
   const clef=clefForInstrument(instrument);
@@ -535,10 +611,11 @@ async function renderNotation(midi){
   lastNotationKey=key;
   const token=++notationRenderToken;
 
-  // Ennen OSMD:n latautumista näytetään nopea varaviivasto. Kun OSMD on
-  // käytettävissä, sekä tyhjä että nuotillinen tila piirretään aina OSMD:llä.
+  // Nuottialue piirretään vain OSMD:llä. Ei erillistä fallback-viivastoa.
   if(!window.opensheetmusicdisplay?.OpenSheetMusicDisplay){
-    osmdContainer.innerHTML=fallbackStaffSvg(info,clef);
+    osmdContainer.innerHTML='';
+    console.warn('OSMD 2.1.2 ei ole käytettävissä.');
+    return;
   }
 
   notationRenderQueue=notationRenderQueue.then(async()=>{
@@ -556,6 +633,7 @@ async function renderNotation(midi){
       applyNotationMeasureWidth(osmd);
       osmd.render();
       applyNotationNoteX(osmd);
+      applyNotationPitchColor();
       const svg=osmdContainer.querySelector('svg');
       if(svg){
         // TÄRKEÄ: älä pakota width:100% tai height:auto tähän.
@@ -563,8 +641,8 @@ async function renderNotation(midi){
         svg.setAttribute('aria-label',info?`${info.display} nuottiviivastolla`:'Tyhjä nuottiviivasto');
       }
     }catch(err){
-      console.warn('OSMD-renderöinti epäonnistui, käytetään paikallista viivastoa.',err);
-      if(token===notationRenderToken)osmdContainer.innerHTML=fallbackStaffSvg(info,clef);
+      console.warn('OSMD-renderöinti epäonnistui.',err);
+      if(token===notationRenderToken)osmdContainer.innerHTML='';
     }
   });
 }
@@ -600,199 +678,9 @@ let expandedSampleNotes=new Set();
 let db=null;
 
 
-// ===== UI LAB 0.3.38 =====
-const UI_DEV_KEY='aaninaeyte.ui.dev.0.3.38';
-const UI_DEV_PREVIOUS_KEY='aaninaeyte.ui.dev.0.3.36';
-const UI_DEFAULTS={"appMaxWidth":1240,"appPadTop":18,"appPadX":18,"appPadBottom":28,"layoutLeft":46,"layoutGap":18,"analysisGap":14,"instrumentPad":0,"instrumentMinHeight":120,"instrumentRadius":28,"instrumentImageHeight":560,"instrumentImageWidth":100,"instrumentImageScale":96,"instrumentImageX":0,"instrumentImageY":0,"instrumentImageRotate":0,"topGap":50,"topMinHeight":24,"profileMinWidth":260,"profileMaxWidth":360,"miniPadY":10,"miniPadX":12,"miniRadius":12,"miniFont":16,"cardRadius":28,"cardPadTop":25,"cardPadX":80,"cardPadBottom":30,"cardGap":0,"barsHeight":190,"barsGap":40,"barsPadTop":0,"barsPadX":0,"barLabelRow":27,"barItemGap":0,"barFillWidth":70,"barTrackRadius":0,"barFillRadius":11,"barLabelSize":13,"barScaleMode":"fixed","barFixedMax":100,"barCurve":0.2,"noteMaxSize":40,"noteMinHeight":64,"hzSize":16,"actionGap":10,"buttonRadius":16,"buttonPadY":7,"primaryPadX":5,"secondaryPadX":20,"primaryFont":13,"secondaryFont":13,"primaryMinWidth":145,"bottomGap":14,"panelRadius":20,"panelPadY":15,"panelPadX":16,"panelMinHeight":110,"panelTitleSize":14,"panelTextSize":18,"profileListSize":13,"startWidth":890,"startPad":18,"startRadius":25,"startInputSize":16,"startInputPadY":11,"startInputPadX":12,"startInputRadius":13,"instrumentGridCols":5,"instrumentGridGap":11,"instrumentChoiceImgHeight":220,"instrumentChoiceRadius":16,"instrumentChoicePad":0,"instrumentChoiceFont":12,"reviewWidth":520,"reviewPad":25,"reviewRadius":26,"reviewTitleSize":26,"reviewMainSize":19,"reviewDetailSize":16,"calWidth":608,"overlayBlur":8,"overlayAlpha":0.42,"cardShadowAlpha":0.1,"panelShadowAlpha":0.07,"mobilePad":10,"mobileLayoutGap":10,"mobileInstrumentHeight":210,"mobileImageHeight":190,"mobileBarsHeight":190,"mobileGridCols":2,"bg":"#eef7fb","card":"#ffffff","ink":"#15384f","muted":"#668092","line":"#d7e7ef","accent":"#173f61","ok":"#18784c","warn":"#b66316","showInstrument":true,"showBottom":true,"showHz":true,"showBarLabels":true,"showProfile":true,"showRecal":true,"showClear":true,"showSample":true,"showExport":true,"showPanelTitles":true,"showNotation":true,"holdLastNote":true,"notationClefMode":"auto","notationScale":400,"notationX":3,"notationY":127,"notationMeasureWidth":12,"sampleLabel":"ALOITA NÄYTE","exportLabel":"VIE JSON","recalLabel":"Kalibroi","clearLabel":"Tyhjennä näytteet","samplesTitle":"Tallennetut näytteet","profilePlaceholder":"Nimi","sampleCardGap":10,"sampleCardRadius":16,"sampleNoteSize":18,"sampleMetaSize":18};
+// Kiinteät käyttöliittymän renderöintiasetukset. Ei kehittäjäpaneelia.
+const UI_DEFAULTS={"appMaxWidth":1240,"appPadTop":18,"appPadX":18,"appPadBottom":28,"layoutLeft":46,"layoutGap":18,"analysisGap":14,"instrumentPad":0,"instrumentMinHeight":120,"instrumentRadius":28,"instrumentImageHeight":560,"instrumentImageWidth":100,"instrumentImageScale":96,"instrumentImageX":0,"instrumentImageY":0,"instrumentImageRotate":0,"topGap":50,"topMinHeight":24,"profileMinWidth":260,"profileMaxWidth":360,"miniPadY":10,"miniPadX":12,"miniRadius":12,"miniFont":16,"cardRadius":28,"cardPadTop":25,"cardPadX":80,"cardPadBottom":30,"cardGap":0,"barsHeight":190,"barsGap":40,"barsPadTop":0,"barsPadX":0,"barLabelRow":27,"barItemGap":0,"barFillWidth":70,"barTrackRadius":0,"barFillRadius":11,"barLabelSize":13,"barScaleMode":"fixed","barFixedMax":100,"barCurve":0.2,"noteMaxSize":40,"noteMinHeight":64,"hzSize":16,"actionGap":10,"buttonRadius":16,"buttonPadY":7,"primaryPadX":5,"secondaryPadX":20,"primaryFont":13,"secondaryFont":13,"primaryMinWidth":145,"bottomGap":14,"panelRadius":20,"panelPadY":15,"panelPadX":16,"panelMinHeight":110,"panelTitleSize":14,"panelTextSize":18,"profileListSize":13,"startWidth":890,"startPad":18,"startRadius":25,"startInputSize":16,"startInputPadY":11,"startInputPadX":12,"startInputRadius":13,"instrumentGridCols":5,"instrumentGridGap":11,"instrumentChoiceImgHeight":220,"instrumentChoiceRadius":16,"instrumentChoicePad":0,"instrumentChoiceFont":12,"reviewWidth":520,"reviewPad":25,"reviewRadius":26,"reviewTitleSize":26,"reviewMainSize":19,"reviewDetailSize":16,"calWidth":608,"overlayBlur":8,"overlayAlpha":0.42,"cardShadowAlpha":0.1,"panelShadowAlpha":0.07,"mobilePad":10,"mobileLayoutGap":10,"mobileInstrumentHeight":210,"mobileImageHeight":190,"mobileBarsHeight":190,"mobileGridCols":2,"bg":"#eef7fb","card":"#ffffff","ink":"#15384f","muted":"#668092","line":"#d7e7ef","accent":"#173f61","ok":"#18784c","warn":"#b66316","showInstrument":true,"showBottom":true,"showHz":true,"showBarLabels":true,"showProfile":true,"showRecal":true,"showClear":true,"showSample":true,"showPanelTitles":true,"showNotation":true,"holdLastNote":true,"notationClefMode":"auto","notationScale":400,"notationX":3,"notationY":127,"notationMeasureWidth":12,"sampleLabel":"ALOITA NÄYTE","recalLabel":"Kalibroi","clearLabel":"Tyhjennä näytteet","samplesTitle":"Tallennetut näytteet","profilePlaceholder":"Nimi","sampleCardGap":10,"sampleCardRadius":16,"sampleNoteSize":18,"sampleMetaSize":18};
 let uiSettings={...UI_DEFAULTS};
-const UI_GROUPS=[
-  {name:'Rakenne',items:[
-    ['appMaxWidth','Sovelluksen max leveys',700,1800,10,'px','--ui-app-max-width'],['appPadTop','App padding ylä',0,80,1,'px','--ui-app-pad-top'],['appPadX','App padding sivut',0,80,1,'px','--ui-app-pad-x'],['appPadBottom','App padding ala',0,100,1,'px','--ui-app-pad-bottom'],['layoutLeft','Vasemman palstan leveys',20,70,1,'%','--ui-layout-left'],['layoutGap','Palstojen väli',0,80,1,'px','--ui-layout-gap'],['analysisGap','Oikean palstan elementtiväli',0,60,1,'px','--ui-analysis-gap']
-  ]},
-  {name:'Soitinalue ja kuva',items:[
-    ['instrumentPad','Soitinalue padding',0,80,1,'px','--ui-instrument-pad'],['instrumentMinHeight','Soitinalue min korkeus',120,1000,10,'px','--ui-instrument-min-height'],['instrumentRadius','Soitinalue kulmat',0,60,1,'px','--ui-instrument-radius'],['instrumentImageHeight','Kuvan korkeus',80,900,5,'px','--ui-instrument-img-height'],['instrumentImageWidth','Kuvan leveys',20,160,1,'%','--ui-instrument-img-width'],['instrumentImageScale','Kuvan skaala',25,220,1,'factor','--ui-instrument-img-scale'],['instrumentImageX','Kuvan X',-300,300,1,'px','--ui-instrument-img-x'],['instrumentImageY','Kuvan Y',-300,300,1,'px','--ui-instrument-img-y'],['instrumentImageRotate','Kuvan kierto',-180,180,1,'deg','--ui-instrument-img-rotate']
-  ]},
-  {name:'Yläpalkki',items:[
-    ['topGap','Yläpalkin väli',0,50,1,'px','--ui-top-gap'],['topMinHeight','Yläpalkin min korkeus',24,100,1,'px','--ui-top-min-height'],['profileMinWidth','Profiilivalikon min leveys',120,500,5,'px','--ui-profile-min-width'],['profileMaxWidth','Profiilivalikon max leveys',160,700,5,'px','--ui-profile-max-width'],['miniPadY','Pikkunappien padding Y',2,30,1,'px','--ui-mini-pad-y'],['miniPadX','Pikkunappien padding X',2,40,1,'px','--ui-mini-pad-x'],['miniRadius','Pikkunappien kulmat',0,30,1,'px','--ui-mini-radius'],['miniFont','Pikkunappien fontti',9,28,1,'px','--ui-mini-font']
-  ]},
-  {name:'Analyysikortti',items:[
-    ['cardRadius','Kortin kulmat',0,60,1,'px','--ui-card-radius'],['cardPadTop','Kortin padding ylä',0,80,1,'px','--ui-card-pad-top'],['cardPadX','Kortin padding sivut',0,80,1,'px','--ui-card-pad-x'],['cardPadBottom','Kortin padding ala',0,80,1,'px','--ui-card-pad-bottom'],['cardGap','Kortin elementtiväli',0,50,1,'px','--ui-card-gap'],['cardShadowAlpha','Kortin varjon voimakkuus',0,.4,.01,'raw','--ui-card-shadow-alpha']
-  ]},
-  {name:'H1–H8 mittarit',items:[
-    ['barsHeight','Mittarien korkeus',80,600,5,'px','--ui-bars-height'],['barsGap','Palkkien väli',0,40,1,'px','--ui-bars-gap'],['barsPadTop','Mittarien padding ylä',0,60,1,'px','--ui-bars-pad-top'],['barsPadX','Mittarien padding sivut',0,60,1,'px','--ui-bars-pad-x'],['barLabelRow','H1–H8 tekstirivin korkeus',0,60,1,'px','--ui-bar-label-row'],['barItemGap','Palkki/tekstiväli',0,30,1,'px','--ui-bar-item-gap'],['barFillWidth','Täyttöpalkin leveys',10,100,1,'%','--ui-bar-fill-width'],['barTrackRadius','Mittaritaustan kulmat',0,40,1,'px','--ui-bar-track-radius'],['barFillRadius','Täytön kulmat',0,40,1,'px','--ui-bar-fill-radius'],['barLabelSize','H1–H8 fontti',7,26,1,'px','--ui-bar-label-size'],['barFixedMax','Kiinteän asteikon yläraja',30,100,1,'%','--ui-bar-fixed-max'],['barCurve','Näyttökäyrä',0.2,2,0.01,'raw','--ui-bar-curve']
-  ]},
-  {name:'Sävelnäyttö',items:[
-    ['noteMaxSize','Sävelen max fontti',40,220,2,'px','--ui-note-max-size'],['noteMinHeight','Sävelalueen min korkeus',0,260,2,'px','--ui-note-min-height'],['hzSize','Hz fontti',8,40,1,'px','--ui-hz-size']
-  ]},
-  {name:'Nuottikuva / OSMD',items:[
-    ['notationScale','Nuotin koko (100/200/300/400 %)',100,400,100,'raw','--ui-notation-scale'],['notationX','Nuotin X',-600,600,1,'px','--ui-notation-x'],['notationY','Viivaston Y',-300,300,1,'px','--ui-notation-y'],['notationMeasureWidth','Tahdin pituus (0 = Auto)',0,180,1,'raw','--ui-notation-measure-width']
-  ]},
-  {name:'Toimintanapit',items:[
-    ['actionGap','Nappien väli',0,40,1,'px','--ui-action-gap'],['buttonRadius','Nappien kulmat',0,40,1,'px','--ui-button-radius'],['buttonPadY','Nappien padding Y',2,35,1,'px','--ui-button-pad-y'],['primaryPadX','Päänapin padding X',5,60,1,'px','--ui-primary-pad-x'],['secondaryPadX','Muiden padding X',5,60,1,'px','--ui-secondary-pad-x'],['primaryFont','Päänapin fontti',9,30,1,'px','--ui-primary-font'],['secondaryFont','Muiden fontti',9,28,1,'px','--ui-secondary-font'],['primaryMinWidth','Päänapin min leveys',80,360,5,'px','--ui-primary-min-width']
-  ]},
-  {name:'Alapaneelit',items:[
-    ['bottomGap','Paneelien väli',0,50,1,'px','--ui-bottom-gap'],['panelRadius','Paneelien kulmat',0,50,1,'px','--ui-panel-radius'],['panelPadY','Paneelien padding Y',0,50,1,'px','--ui-panel-pad-y'],['panelPadX','Paneelien padding X',0,50,1,'px','--ui-panel-pad-x'],['panelMinHeight','Paneelien min korkeus',40,400,5,'px','--ui-panel-min-height'],['panelTitleSize','Paneeliotsikon fontti',8,28,1,'px','--ui-panel-title-size'],['panelTextSize','Paneelitekstin fontti',8,36,1,'px','--ui-panel-text-size'],['profileListSize','Näytteen lisätietojen fontti',7,26,1,'px','--ui-profile-list-size'],['sampleCardGap','Sävelkorttien väli',0,30,1,'px','--ui-sample-card-gap'],['sampleCardRadius','Sävelkorttien kulmat',0,30,1,'px','--ui-sample-card-radius'],['sampleNoteSize','Sävelnimen fontti',14,50,1,'px','--ui-sample-note-size'],['sampleMetaSize','Näytemäärän fontti',8,26,1,'px','--ui-sample-meta-size'],['panelShadowAlpha','Paneelivarjon voimakkuus',0,.35,.01,'raw','--ui-panel-shadow-alpha']
-  ]},
-  {name:'Aloitusikkuna',items:[
-    ['startWidth','Aloitusikkunan leveys',280,1100,10,'px','--ui-start-width'],['startPad','Aloitusikkunan padding',0,70,1,'px','--ui-start-pad'],['startRadius','Aloitusikkunan kulmat',0,50,1,'px','--ui-start-radius'],['startInputSize','Nimikentän fontti',9,30,1,'px','--ui-start-input-size'],['startInputPadY','Nimikentän padding Y',2,30,1,'px','--ui-start-input-pad-y'],['startInputPadX','Nimikentän padding X',2,40,1,'px','--ui-start-input-pad-x'],['startInputRadius','Nimikentän kulmat',0,30,1,'px','--ui-start-input-radius'],['instrumentGridCols','Soitinkortteja / rivi',1,8,1,'raw','--ui-instrument-grid-cols'],['instrumentGridGap','Soitinkorttien väli',0,30,1,'px','--ui-instrument-grid-gap'],['instrumentChoiceImgHeight','Soitinkortin kuvan korkeus',40,220,2,'px','--ui-instrument-choice-img-height'],['instrumentChoiceRadius','Soitinkortin kulmat',0,40,1,'px','--ui-instrument-choice-radius'],['instrumentChoicePad','Soitinkortin padding',0,30,1,'px','--ui-instrument-choice-pad'],['instrumentChoiceFont','Soitinkortin fontti',7,24,1,'px','--ui-instrument-choice-font'],['overlayBlur','Taustan blur',0,30,1,'px','--ui-overlay-blur'],['overlayAlpha','Aloitus-overlay opacity',0,1,.01,'raw','--ui-overlay-alpha']
-  ]},
-  {name:'Tarkistusikkuna ja kalibrointi',items:[
-    ['reviewWidth','Tarkistusikkunan leveys',260,900,10,'px','--ui-review-width'],['reviewPad','Tarkistusikkunan padding',0,70,1,'px','--ui-review-pad'],['reviewRadius','Tarkistusikkunan kulmat',0,60,1,'px','--ui-review-radius'],['reviewTitleSize','Tarkistusotsikon fontti',12,50,1,'px','--ui-review-title-size'],['reviewMainSize','Tarkistuspäätekstin fontti',10,40,1,'px','--ui-review-main-size'],['reviewDetailSize','Tarkistuslisätekstin fontti',8,32,1,'px','--ui-review-detail-size'],['calWidth','Kalibrointimittarin leveys',260,1000,10,'px','--ui-cal-width']
-  ]},
-  {name:'Mobiili',items:[
-    ['mobilePad','Mobiilin app padding',0,40,1,'px','--ui-mobile-pad'],['mobileLayoutGap','Mobiilin palstaväli',0,40,1,'px','--ui-mobile-layout-gap'],['mobileInstrumentHeight','Mobiilin soitinalue korkeus',80,500,5,'px','--ui-mobile-instrument-height'],['mobileImageHeight','Mobiilin soitinkuvan korkeus',50,420,5,'px','--ui-mobile-image-height'],['mobileBarsHeight','Mobiilin mittarikorkeus',60,420,5,'px','--ui-mobile-bars-height'],['mobileGridCols','Mobiilin soitinkortit/rivi',1,5,1,'raw','--ui-mobile-grid-cols']
-  ]}
-];
-const UI_COLORS=[['bg','Tausta','--bg'],['card','Kortit','--card'],['ink','Pääteksti','--ink'],['muted','Himmeä teksti','--muted'],['line','Reunaviiva','--line'],['accent','Korostus','--accent'],['ok','OK-väri','--ok'],['warn','Varoitusväri','--warn']];
-const UI_CHECKS=[['showInstrument','Näytä soitinalue','ui-hide-instrument'],['showBottom','Näytä alapaneelit','ui-hide-bottom'],['showHz','Näytä Hz','ui-hide-hz'],['showBarLabels','Näytä H1–H8 tekstit','ui-hide-bar-labels'],['showProfile','Näytä profiilivalikko','ui-hide-profile'],['showRecal','Näytä Kalibroi','ui-hide-recal'],['showClear','Näytä Tyhjennä näytteet','ui-hide-clear'],['showSample','Näytä Aloita näyte','ui-hide-sample'],['showExport','Näytä Vie JSON','ui-hide-export'],['showPanelTitles','Näytä alapaneelien otsikot','ui-hide-panel-titles']];
-const UI_TEXTS=[['sampleLabel','ALOITA NÄYTE -teksti','#sampleBtn'],['exportLabel','VIE JSON -teksti','#exportBtn'],['recalLabel','Kalibroi-teksti','#recalBtn'],['clearLabel','Tyhjennä-teksti','#clearBtn'],['samplesTitle','Näytepaneelin otsikko','#samplesPanelTitle'],['profilePlaceholder','Nimikentän placeholder','#profileName']];
-function uiCssValue(item,value){const unit=item[5];if(unit==='factor')return String(Number(value)/100);if(unit==='raw')return String(value);return String(value)+unit}
-function normalizeNotationScalePercent(value){
-  const n=Number(value);
-  if(!Number.isFinite(n))return 200;
-  // OSMD:n staff-viivojen pikselikohdistus on tarkka zoomilla 1x ja sen
-  // kokonaislukukerroilla. Vanha murtoarvo nostetaan seuraavaan crisp-portaaseen.
-  return Math.max(100,Math.min(400,Math.ceil(n/100)*100));
-}
-function notationScaleFactor(){
-  return normalizeNotationScalePercent(uiSettings?.notationScale)/100;
-}
-function applyNotationCrispRules(osmd){
-  if(!osmd?.EngravingRules)return;
-  try{
-    osmd.EngravingRules.SnapStafflinesToCrispPixels=true;
-    // Pidetään OSMD:n vakio staff-line width. Kokonaislukuzoomilla viivat
-    // rasteroituvat tasapaksuina ilman murto-pikseliantialiasointia.
-    osmd.EngravingRules.StaffLineWidth=0.10;
-  }catch(_){ }
-}
-function applyNotationMeasureWidth(osmd){
-  if(!osmd)return;
-  const width=Number(uiSettings?.notationMeasureWidth||0);
-  try{
-    const fixed=Number.isFinite(width)&&width>0;
-    osmd.EngravingRules.FixedMeasureWidth=fixed;
-    osmd.EngravingRules.FixedMeasureWidthFixedValue=fixed?width:undefined;
-    // Meidän yhden tahdin MusicXML on implicit/pickup-tyyppinen, joten tämä
-    // tarvitaan jotta kiinteä leveys vaikuttaa myös siihen.
-    osmd.EngravingRules.FixedMeasureWidthUseForPickupMeasures=fixed;
-  }catch(_){ }
-}
-function applyNotationNoteX(osmd){
-  const x=Number(uiSettings?.notationX||0);
-  if(!osmd?.GraphicSheet)return false;
-  const candidates=[];
-  try{
-    const measures=osmd.GraphicSheet.MeasureList||[];
-    for(const staffMeasures of measures){
-      for(const measure of (staffMeasures||[])){
-        for(const staffEntry of (measure?.staffEntries||[])){
-          for(const voiceEntry of (staffEntry?.graphicalVoiceEntries||[])){
-            for(const note of (voiceEntry?.notes||[])){
-              const add=el=>{if(el&&el instanceof Element)candidates.push(el)};
-              try{add(note.getSVGGElement?.())}catch(_){}
-              try{for(const el of (note.getLedgerLineSVGs?.()||[]))add(el)}catch(_){}
-              try{for(const el of (note.getModifierSVGs?.()||[]))add(el)}catch(_){}
-            }
-          }
-        }
-      }
-    }
-    // Jos etumerkki/apuviiva on jo nuotin SVG-ryhmän sisällä, sitä ei
-    // siirretä erikseen. Näin sama osa ei saa X-siirtoa kahteen kertaan.
-    const unique=[...new Set(candidates)];
-    const topLevel=unique.filter(el=>!unique.some(parent=>parent!==el&&parent.contains(el)));
-    for(const el of topLevel){
-      let wrapper=el.parentElement?.dataset?.osmdNoteXWrapper==='1'?el.parentElement:null;
-      if(!wrapper){
-        wrapper=document.createElementNS('http://www.w3.org/2000/svg','g');
-        wrapper.dataset.osmdNoteXWrapper='1';
-        el.parentNode?.insertBefore(wrapper,el);
-        wrapper.appendChild(el);
-      }
-      // Siirretään wrapperia, ei OSMD/VexFlow-elementin omaa transformia.
-      wrapper.setAttribute('transform',`translate(${x} 0)`);
-    }
-    return topLevel.length>0;
-  }catch(_){
-    return false;
-  }
-}
-function rerenderNotationZoomOnly(){
-  const osmd=osmdInstance;
-  if(!osmd)return false;
-  try{
-    applyNotationCrispRules(osmd);
-    osmd.Zoom=notationScaleFactor();
-    applyNotationMeasureWidth(osmd);
-    osmd.render();
-    applyNotationNoteX(osmd);
-    const svg=osmdContainer.querySelector('svg');
-    if(svg)svg.setAttribute('aria-label',svg.getAttribute('aria-label')||'Nuottiviivasto');
-    return true;
-  }catch(_){
-    return false;
-  }
-}
-function applyUiSettings(){
-  const root=document.documentElement;
-  for(const g of UI_GROUPS)for(const item of g.items){const [key,,,,,,cssVar]=item;root.style.setProperty(cssVar,uiCssValue(item,uiSettings[key]))}
-  for(const [key,,cssVar] of UI_COLORS)root.style.setProperty(cssVar,uiSettings[key]);
-  for(const [key,,hideClass] of UI_CHECKS)document.body.classList.toggle(hideClass,!uiSettings[key]);
-  document.body.classList.toggle('ui-hide-notation',!uiSettings.showNotation);
-  for(const [key,,selector] of UI_TEXTS){const el=document.querySelector(selector);if(!el)continue;if(key==='profilePlaceholder')el.placeholder=uiSettings[key]??'';else el.textContent=uiSettings[key]??''}
-  try{localStorage.setItem(UI_DEV_KEY,JSON.stringify(uiSettings))}catch(_){ }
-  renderSampleButtonState();
-  updateUiJsonBox();
-}
-function loadUiSettings(){try{const raw=JSON.parse(localStorage.getItem(UI_DEV_KEY)||localStorage.getItem(UI_DEV_PREVIOUS_KEY)||'null');if(raw&&typeof raw==='object')uiSettings={...UI_DEFAULTS,...raw};uiSettings.notationScale=normalizeNotationScalePercent(uiSettings.notationScale)}catch(_){uiSettings={...UI_DEFAULTS}}}
-function uiPayload(){return {format:'aaninaeyte-ui-dev-0.3.38',exportedAt:new Date().toISOString(),settings:{...uiSettings}}}
-function updateUiJsonBox(){const box=document.querySelector('#uiDevJson');if(box)box.value=JSON.stringify(uiPayload(),null,2)}
-function setUiSetting(key,value){
-  if(key==='notationScale')value=normalizeNotationScalePercent(value);
-  uiSettings[key]=value;
-  applyUiSettings();
-  if(key==='holdLastNote'&&!value&&!live?.f0&&heldNotationMidi!==null){heldNotationMidi=null;lastNotationKey='';renderNotation(null)}
-  if(key==='notationScale'||key==='notationMeasureWidth'){
-    if(!rerenderNotationZoomOnly()){lastNotationKey='';renderNotation(heldNotationMidi)}
-  }else if(key==='notationX'){
-    if(!applyNotationNoteX(osmdInstance)){lastNotationKey='';renderNotation(heldNotationMidi)}
-  }else if(['notationClefMode','showNotation'].includes(key)){
-    lastNotationKey='';renderNotation(heldNotationMidi)
-  }
-  if(live?.fp)setBars(live.fp)
-}
-function buildUiDevControls(){
-  const host=document.querySelector('#uiDevControls');if(!host)return;host.innerHTML='';
-  for(const group of UI_GROUPS){const d=document.createElement('details');d.className='ui-dev-group';if(['Rakenne','Soitinalue ja kuva','H1–H8 mittarit','Nuottikuva / OSMD'].includes(group.name))d.open=true;const s=document.createElement('summary');s.textContent=group.name;d.appendChild(s);const inner=document.createElement('div');inner.className='ui-dev-group-inner';
-    for(const item of group.items){const [key,label,min,max,step]=item;const row=document.createElement('div');row.className='ui-dev-row';const lab=document.createElement('label');lab.textContent=label;const range=document.createElement('input');range.type='range';range.min=min;range.max=max;range.step=step;range.value=uiSettings[key];range.dataset.uiKey=key;const num=document.createElement('input');num.type='number';num.min=min;num.max=max;num.step=step;num.value=uiSettings[key];num.dataset.uiKey=key;const commit=v=>{let n=Number(v);if(!Number.isFinite(n))return;n=Math.max(Number(min),Math.min(Number(max),n));range.value=n;num.value=n;setUiSetting(key,n)};range.addEventListener('input',()=>commit(range.value));num.addEventListener('input',()=>commit(num.value));row.append(lab,range,num);inner.appendChild(row)}
-    if(group.name==='H1–H8 mittarit'){const row=document.createElement('div');row.className='ui-dev-select';const lab=document.createElement('label');lab.textContent='Mittarien skaala';const sel=document.createElement('select');sel.innerHTML='<option value="fixed">Kiinteä (headroom)</option><option value="auto">Automaattinen (voimakkain = 100 %)</option>';sel.value=uiSettings.barScaleMode||'fixed';sel.dataset.uiKey='barScaleMode';sel.addEventListener('change',()=>setUiSetting('barScaleMode',sel.value));row.append(lab,sel);inner.insertBefore(row,inner.firstChild)}
-    if(group.name==='Nuottikuva / OSMD'){
-      const showRow=document.createElement('div');showRow.className='ui-dev-check';const showLab=document.createElement('label');showLab.textContent='Näytä nuottikuva';const showCb=document.createElement('input');showCb.type='checkbox';showCb.checked=!!uiSettings.showNotation;showCb.addEventListener('change',()=>setUiSetting('showNotation',showCb.checked));showRow.append(showLab,showCb);inner.insertBefore(showRow,inner.firstChild);
-      const holdRow=document.createElement('div');holdRow.className='ui-dev-check';const holdLab=document.createElement('label');holdLab.textContent='Pidä viimeisin nuotti näkyvissä';const holdCb=document.createElement('input');holdCb.type='checkbox';holdCb.checked=uiSettings.holdLastNote!==false;holdCb.addEventListener('change',()=>setUiSetting('holdLastNote',holdCb.checked));holdRow.append(holdLab,holdCb);inner.insertBefore(holdRow,showRow.nextSibling);
-      const clefRow=document.createElement('div');clefRow.className='ui-dev-select';const clefLab=document.createElement('label');clefLab.textContent='Avain';const clefSel=document.createElement('select');clefSel.innerHTML='<option value="auto">Auto (soittimen mukaan)</option><option value="treble">Diskanttiavain</option><option value="bass">Bassoavain</option>';clefSel.value=uiSettings.notationClefMode||'auto';clefSel.addEventListener('change',()=>setUiSetting('notationClefMode',clefSel.value));clefRow.append(clefLab,clefSel);inner.insertBefore(clefRow,holdRow.nextSibling);
-    }
-    d.appendChild(inner);host.appendChild(d)
-  }
-  const colors=document.createElement('details');colors.className='ui-dev-group';const cs=document.createElement('summary');cs.textContent='Värit';colors.appendChild(cs);const ci=document.createElement('div');ci.className='ui-dev-group-inner';for(const [key,label] of UI_COLORS){const row=document.createElement('div');row.className='ui-dev-row ui-dev-color';const lab=document.createElement('label');lab.textContent=label;const col=document.createElement('input');col.type='color';col.value=uiSettings[key];const txt=document.createElement('input');txt.type='text';txt.value=uiSettings[key];const commit=v=>{if(!/^#[0-9a-f]{6}$/i.test(v))return;col.value=v;txt.value=v;setUiSetting(key,v)};col.addEventListener('input',()=>commit(col.value));txt.addEventListener('change',()=>commit(txt.value.trim()));row.append(lab,col,txt);ci.appendChild(row)}colors.appendChild(ci);host.appendChild(colors);
-  const vis=document.createElement('details');vis.className='ui-dev-group';const vs=document.createElement('summary');vs.textContent='Näytä / piilota';vis.appendChild(vs);const vi=document.createElement('div');vi.className='ui-dev-group-inner';for(const [key,label] of UI_CHECKS){const row=document.createElement('div');row.className='ui-dev-check';const lab=document.createElement('label');lab.textContent=label;const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!uiSettings[key];cb.addEventListener('change',()=>setUiSetting(key,cb.checked));row.append(lab,cb);vi.appendChild(row)}vis.appendChild(vi);host.appendChild(vis);
-  const texts=document.createElement('details');texts.className='ui-dev-group';const ts=document.createElement('summary');ts.textContent='Tekstit';texts.appendChild(ts);const ti=document.createElement('div');ti.className='ui-dev-group-inner';for(const [key,label] of UI_TEXTS){const row=document.createElement('div');row.className='ui-dev-text';const lab=document.createElement('label');lab.textContent=label;const inp=document.createElement('input');inp.type='text';inp.value=uiSettings[key];inp.addEventListener('input',()=>setUiSetting(key,inp.value));row.append(lab,inp);ti.appendChild(row)}texts.appendChild(ti);host.appendChild(texts);
-}
-function syncUiDevFields(){buildUiDevControls();updateUiJsonBox()}
-function exportUiJson(){const blob=new Blob([JSON.stringify(uiPayload(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`aaninaeyte_UI_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)}
-function importUiObject(raw){const settings=raw?.settings&&typeof raw.settings==='object'?{...raw.settings}:{...raw};if(!settings||typeof settings!=='object')throw new Error('UI JSON ei sisällä settings-objektia.');delete settings.stateSize;delete settings.showState;delete settings.gameTargetSize;delete settings.showTest;delete settings.testLabel;delete settings.gameTitle;uiSettings={...UI_DEFAULTS,...settings};uiSettings.notationScale=normalizeNotationScalePercent(uiSettings.notationScale);applyUiSettings();syncUiDevFields()}
-function initUiDev(){
-  loadUiSettings();applyUiSettings();buildUiDevControls();
-  const panel=document.querySelector('#uiDevPanel'),toggle=document.querySelector('#uiDevToggle'),file=document.querySelector('#uiDevFile');
-  toggle.addEventListener('click',()=>{panel.hidden=false;syncUiDevFields()});document.querySelector('#uiDevClose').addEventListener('click',()=>panel.hidden=true);
-  document.querySelector('#uiDevExport').addEventListener('click',exportUiJson);document.querySelector('#uiDevImport').addEventListener('click',()=>file.click());
-  file.addEventListener('change',async()=>{const f=file.files?.[0];file.value='';if(!f)return;try{importUiObject(JSON.parse(await f.text()))}catch(e){alert(e?.message||'UI JSON ei kelpaa.')}});
-  document.querySelector('#uiDevApplyJson').addEventListener('click',()=>{try{importUiObject(JSON.parse(document.querySelector('#uiDevJson').value))}catch(e){alert(e?.message||'UI JSON ei kelpaa.')}});
-  document.querySelector('#uiDevCopy').addEventListener('click',async()=>{updateUiJsonBox();const t=document.querySelector('#uiDevJson').value;try{await navigator.clipboard.writeText(t)}catch(_){document.querySelector('#uiDevJson').select();document.execCommand('copy')}});
-  document.querySelector('#uiDevReset').addEventListener('click',()=>{if(!confirm('Palautetaanko kaikki UI-säädöt tämän 0.3.38-version JSON-oletuksiin?'))return;uiSettings={...UI_DEFAULTS};applyUiSettings();syncUiDevFields()});
-  document.querySelector('#uiDevRefresh').addEventListener('click',syncUiDevFields);
-}
-
 function clamp(x,min,max){return Math.max(min,Math.min(max,x))}
 function median(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
 function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
@@ -852,6 +740,43 @@ function setBars(fp){
   }
 }
 function setState(){/* Tilateksti poistettu käyttöliittymästä kokonaan. */}
+function setTunerColor(color){
+  if(tunerNeedle)tunerNeedle.style.background=color;
+  if(tunerBulbFill)tunerBulbFill.style.background=color;
+}
+function mixChannel(a,b,t){return Math.round(a+(b-a)*t)}
+function tunerColorForCents(cents){
+  // Kirkas virealue ja nopea värimuutos: täysi väri jo ±20 centissä.
+  const green=[34,197,94];   // #22c55e
+  const red=[255,77,79];     // #ff4d4f
+  const blue=[47,140,255];   // #2f8cff
+  const value=clamp(cents,-50,50);
+  if(value>=-5&&value<=5)return `rgb(${green[0]}, ${green[1]}, ${green[2]})`;
+  if(value>5){
+    const t=clamp((value-5)/15,0,1);
+    return `rgb(${mixChannel(green[0],red[0],t)}, ${mixChannel(green[1],red[1],t)}, ${mixChannel(green[2],red[2],t)})`;
+  }
+  const t=clamp((Math.abs(value)-5)/15,0,1);
+  return `rgb(${mixChannel(green[0],blue[0],t)}, ${mixChannel(green[1],blue[1],t)}, ${mixChannel(green[2],blue[2],t)})`;
+}
+function noteColorForCents(cents){
+  // Vireessä nuotti on musta. Vireen ulkopuolella sama nopea sininen/punainen liuku kuin mittarissa.
+  const black=[0,0,0];
+  const red=[255,77,79];     // #ff4d4f
+  const blue=[47,140,255];   // #2f8cff
+  const value=clamp(cents,-50,50);
+  if(value>=-5&&value<=5)return '#000000';
+  if(value>5){
+    const t=clamp((value-5)/15,0,1);
+    return `rgb(${mixChannel(black[0],red[0],t)}, ${mixChannel(black[1],red[1],t)}, ${mixChannel(black[2],red[2],t)})`;
+  }
+  const t=clamp((Math.abs(value)-5)/15,0,1);
+  return `rgb(${mixChannel(black[0],blue[0],t)}, ${mixChannel(black[1],blue[1],t)}, ${mixChannel(black[2],blue[2],t)})`;
+}
+function setTunerLevelFromCents(cents){
+  const level=clamp(cents+50,0,100);
+  if(tunerNeedle)tunerNeedle.style.height=`${level.toFixed(2)}%`;
+}
 function renderTuner(){
   if(!tunerScale||!tunerNeedle)return;
   const note=live.f0?freqToNote(live.f0):null;
@@ -862,32 +787,21 @@ function renderTuner(){
       tunerLastMidi=note.midi;
     }else tunerCentsSmooth+=0.28*(target-tunerCentsSmooth);
     const shown=clamp(tunerCentsSmooth,-50,50);
-    tunerNeedle.style.left=`${(50+shown).toFixed(2)}%`;
+    setTunerLevelFromCents(shown);
     tunerScale.classList.remove('inactive');
     const inTune=Math.abs(target)<=5;
     tunerScale.classList.toggle('in-tune',inTune);
-    const rounded=Math.round(target);
-    tunerReadout.textContent=`${rounded>0?'+':rounded<0?'−':''}${Math.abs(rounded)} cent`;
-    tunerStatus.textContent=inTune?'VIREESSÄ':target<0?'MATALA':'KORKEA';
-    tunerStatus.classList.toggle('ok',inTune);
-  }else{
-    tunerLastMidi=null;
-    tunerCentsSmooth+=0.18*(0-tunerCentsSmooth);
-    if(Math.abs(tunerCentsSmooth)<0.05)tunerCentsSmooth=0;
-    tunerNeedle.style.left=`${(50+clamp(tunerCentsSmooth,-50,50)).toFixed(2)}%`;
-    tunerScale.classList.add('inactive');
-    tunerScale.classList.remove('in-tune');
-    tunerReadout.textContent='–';
-    tunerStatus.textContent='KUUNTELEE';
-    tunerStatus.classList.remove('ok');
+    setTunerColor(tunerColorForCents(shown));
+    applyNotationPitchColor(noteColorForCents(shown));
   }
 }
 function resetTuner(){
-  tunerCentsSmooth=0;tunerLastMidi=null;
-  if(tunerNeedle)tunerNeedle.style.left='50%';
-  if(tunerScale){tunerScale.classList.add('inactive');tunerScale.classList.remove('in-tune')}
-  if(tunerReadout)tunerReadout.textContent='–';
-  if(tunerStatus){tunerStatus.textContent='KUUNTELEE';tunerStatus.classList.remove('ok')}
+  tunerCentsSmooth=0;
+  tunerLastMidi=null;
+  setTunerLevelFromCents(0);
+  if(tunerScale)tunerScale.classList.remove('inactive','in-tune');
+  setTunerColor(tunerColorForCents(0));
+  applyNotationPitchColor('#000000');
 }
 function renderLive(){
   renderTuner();
@@ -914,17 +828,15 @@ function profileId(){return activeProfileId||''}
 function renderInstrumentHero(){const p=currentProfile();const inst=instrumentByName(p?.instrument);if(!p||!inst){heroInstrument.classList.add('hidden');heroInstrumentImg.removeAttribute('src');heroInstrumentImg.alt='';return}heroInstrument.classList.remove('hidden');heroInstrumentImg.src=inst.src;heroInstrumentImg.alt=inst.name}
 function renderActiveProfile(){renderInstrumentHero();renderTopProfileMenu();lastNotationKey='';renderNotation(heldNotationMidi)}
 function renderSampleButtonState(){
-  const waiting=isCaptureArmed(),busy=isCaptureRecording()||isCaptureFinalizing(),active=waiting||busy;
-  sampleBtn.classList.toggle('sample-armed',waiting);
-  sampleBtn.classList.toggle('sample-recording',busy);
-  sampleBtn.setAttribute('aria-pressed',active?'true':'false');
-  sampleBtn.textContent=busy?'● TALLENTAA…':waiting?'● ODOTTAA ÄÄNTÄ':(uiSettings?.sampleLabel||'ALOITA NÄYTE');
+  const recording=isCaptureRecording();
+  sampleBtn.classList.toggle('sample-recording',recording);
+  sampleBtn.setAttribute('aria-pressed',recording?'true':'false');
+  sampleBtn.setAttribute('aria-label',recording?'Tallennus käynnissä, irrota lopettaaksesi':'Tallenna näyte pitämällä painettuna');
 }
 function updateButtons(){
-  const pid=profileId(),count=samples.filter(s=>sampleProfileId(s)===pid).length;
   const reviewing=!!pendingSample||captureState==='review',hasProfile=!!currentProfile();
-  exportBtn.disabled=!hasProfile||count<1||reviewing;
-  sampleBtn.disabled=!hasProfile||isCaptureRecording()||isCaptureFinalizing()||reviewing;
+  // Älä disabloi nappia kesken painalluksen, jotta pointerup saadaan varmasti talteen.
+  sampleBtn.disabled=!hasProfile||isCaptureFinalizing()||reviewing;
   renderSampleButtonState();
 }
 function aggregateProfile(pid,label){
@@ -1072,8 +984,8 @@ async function acceptPendingSample(){
 }
 function retryPendingSample(){
   if(!pendingSample)return;
-  pendingSample=null;pendingCheck=null;closeSampleReview();silenceSince=null;setCaptureState('armed');
-  setState('Uudelleen • seuraava puhallus tallentuu.','armed');
+  pendingSample=null;pendingCheck=null;closeSampleReview();silenceSince=null;setCaptureState('idle');
+  setState('Valmis uuteen näytteeseen.');
 }
 
 function cleanSampleForJson(s){const {audioBlob,...clean}=s;return clean}
@@ -1197,10 +1109,12 @@ async function clearAll(){
 }
 
 function mimeType(){const types=['audio/webm;codecs=opus','audio/mp4','audio/webm'];return types.find(t=>window.MediaRecorder?.isTypeSupported?.(t))||''}
-function flashSampleFeedback(text,ms=1200){
+function flashSampleFeedback(_text,ms=650){
   if(sampleFeedbackTimer){clearTimeout(sampleFeedbackTimer);sampleFeedbackTimer=null}
-  sampleBtn.textContent=text;
-  sampleFeedbackTimer=setTimeout(()=>{sampleFeedbackTimer=null;renderSampleButtonState()},ms);
+  sampleBtn.classList.remove('sample-error');
+  void sampleBtn.offsetWidth;
+  sampleBtn.classList.add('sample-error');
+  sampleFeedbackTimer=setTimeout(()=>{sampleFeedbackTimer=null;sampleBtn.classList.remove('sample-error');renderSampleButtonState()},ms);
 }
 function cancelCapture(){
   const oldRecorder=recorder;
@@ -1257,11 +1171,21 @@ async function finalizeRecording(sessionId=activeRecordingSessionId){
   if(check.warning){setState('Näyte odottaa tarkistusta.','armed');showSampleReview(s,check);return}
   await commitSample(s,check,false);captureState='idle';updateButtons();
 }
-function armSample(){
-  if(isCaptureRecording()||isCaptureFinalizing()||pendingSample)return;silenceSince=null;setCaptureState('armed');
-  setState(Number.isFinite(live.midi)?`Valmis. ${displayNoteFromMidi(live.midi)} näkyy nyt • seuraava puhallus tallentuu.`:'Valmis. Seuraava puhallus tallentuu.','armed')
+let activeSamplePointerId=null;
+function startHeldSample(pointerId=null){
+  if(isCaptureRecording()||isCaptureFinalizing()||pendingSample||captureState==='review'||!currentProfile()||!stream)return false;
+  silenceSince=null;
+  setCaptureState('armed');
+  beginRecording();
+  if(!isCaptureRecording())return false;
+  activeSamplePointerId=pointerId;
+  return true;
 }
-
+function endHeldSample(pointerId=null){
+  if(activeSamplePointerId!==null&&pointerId!==null&&pointerId!==activeSamplePointerId)return;
+  activeSamplePointerId=null;
+  if(isCaptureRecording())stopRecording();
+}
 function analyzeLiveFrame(){
   analyser.getFloatTimeDomainData(timeData);
   const dbNow=rmsDb(timeData),loud=dbNow>dbThreshold;
@@ -1278,16 +1202,12 @@ function analyzeLiveFrame(){
 }
 function handleCaptureFrame(frame){
   const {dbNow,f0,fp,validTone}=frame;
-  // Näytteenotto on vain live-analyysin päällä oleva tallennuskerros.
-  // Live-näyttö toimii koko ajan riippumatta captureState-tilasta.
-  if(isCaptureArmed()&&validTone)beginRecording();
+  // Manuaalinen painallus määrää nyt tallennuksen alun ja lopun.
+  // Hiljaisuus ei katkaise tallennusta kesken opettajan painalluksen.
   if(!isCaptureRecording())return;
   if(validTone){
     sampleFrames.push({t:Math.round(performance.now()-sampleStartedAt),f0,db:dbNow,fp:[...fp]});
-    silenceSince=null;
-  }else if(silenceSince===null)silenceSince=performance.now();
-  const elapsed=performance.now()-sampleStartedAt;
-  if((silenceSince!==null&&performance.now()-silenceSince>END_SILENCE_MS)||elapsed>MAX_SAMPLE_MS)stopRecording();
+  }
 }
 function processFrame(){
   if(!analyser)return;
@@ -1312,11 +1232,6 @@ async function startMic(){
   ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state!=='running')await ctx.resume();
   const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};const c={echoCancellation:false,noiseSuppression:false,autoGainControl:false};if(supported.voiceIsolation)c.voiceIsolation=false;
   stream=await navigator.mediaDevices.getUserMedia({audio:c});const src=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.08;analyser.minDecibels=-110;analyser.maxDecibels=-10;src.connect(analyser);timeData=new Float32Array(analyser.fftSize);freqData=new Float32Array(analyser.frequencyBinCount);await calibrateMicrophoneNoiseFloor();return true;
-}
-function exportJson(){
-  const p=currentProfile();if(!p)return;const selected=samples.filter(s=>sampleProfileId(s)===p.id);const clean=selected.map(cleanSampleForJson);
-  const payload={format:'aaninaeyte-dev-0.3.46-tuner',exportedAt:new Date().toISOString(),activeProfileId:p.id,profiles:[{...p}],calibration:{thresholdDb:dbThreshold,warmupMs:MIC_CAL_WARMUP_MS,measureMs:MIC_CAL_MEASURE_MS,marginDb:MIC_CAL_MARGIN_DB},samples:clean};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);const safe=String(p.name||'profiili').replace(/[^a-z0-9åäö_-]+/gi,'_');a.download=`aaninaeyte_${safe}_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)
 }
 
 function normalizeImportedProfilePayload(raw){
@@ -1367,9 +1282,21 @@ profileList.addEventListener('click',handleSampleListClick);
 document.addEventListener('pointerdown',e=>{if(!topProfilePanel.hidden&&!e.target.closest('#topProfileMenu'))closeTopProfileMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!topProfilePanel.hidden)closeTopProfileMenu()});
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateMicrophoneNoiseFloor()});
-sampleBtn.addEventListener('click',armSample);exportBtn.addEventListener('click',exportJson);acceptSampleBtn.addEventListener('click',acceptPendingSample);retrySampleBtn.addEventListener('click',retryPendingSample);$('#clearBtn').addEventListener('click',clearAll);
-initUiDev();renderInstrumentGrid();renderNotation(null);loadStored();updateButtons();loadOsmdLibrary();
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>fetch(OSMD_CDN_URL).catch(()=>{})).catch(()=>{}));
+sampleBtn.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  e.preventDefault();
+  if(!startHeldSample(e.pointerId))return;
+  try{sampleBtn.setPointerCapture(e.pointerId)}catch(_){ }
+});
+sampleBtn.addEventListener('pointerup',e=>{e.preventDefault();endHeldSample(e.pointerId);try{if(sampleBtn.hasPointerCapture(e.pointerId))sampleBtn.releasePointerCapture(e.pointerId)}catch(_){ }});
+sampleBtn.addEventListener('pointercancel',e=>{endHeldSample(e.pointerId)});
+sampleBtn.addEventListener('lostpointercapture',e=>{if(isCaptureRecording()&&activeSamplePointerId===e.pointerId)endHeldSample(e.pointerId)});
+sampleBtn.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();startHeldSample('keyboard')}});
+sampleBtn.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();endHeldSample('keyboard')}});
+window.addEventListener('blur',()=>{if(isCaptureRecording())endHeldSample(activeSamplePointerId)});
+acceptSampleBtn.addEventListener('click',acceptPendingSample);retrySampleBtn.addEventListener('click',retryPendingSample);$('#clearBtn').addEventListener('click',clearAll);
+renderInstrumentGrid();renderNotation(null);loadStored();updateButtons();
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>fetch(OSMD_URL).catch(()=>{})).catch(()=>{}));
 })();
 </script>
 </body>
