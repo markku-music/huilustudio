@@ -1,4 +1,4 @@
-const CACHE='puhaltimet-0.2.9-aanimuisti-toggle-clean';
+const CACHE='puhaltimet-0.3.1-name-weight-suphigh';
 const ASSETS=['./','index.html','manifest.webmanifest','opensheetmusicdisplay.min.js','sample_button.webp','icons/icon-192.png','icons/icon-512.png','icons/icon-512-maskable.png','icons/apple-touch-icon.png','instruments/huilu.webp','instruments/klarinetti.webp','instruments/saksofoni.webp','instruments/oboe.webp','instruments/fagotti.webp','instruments/trumpetti.webp','instruments/alttotorvi.webp','instruments/kayratorvi.webp','instruments/pasuuna.webp','instruments/tuuba.webp'];
 
 self.addEventListener('install',event=>{

@@ -320,6 +320,13 @@ function concertLabelToMidi(label){
 }
 function displayConcertLabel(label,instrumentName=currentProfile()?.instrument){const midi=concertLabelToMidi(label);return Number.isFinite(midi)?displayNoteFromMidi(midi,instrumentName):String(label||'–')}
 function displaySampleNote(sample,instrumentName=currentProfile()?.instrument){const midi=Number.isFinite(sample?.midi)?sample.midi:concertLabelToMidi(sample?.note);return Number.isFinite(midi)?displayNoteFromMidi(midi,instrumentName):String(sample?.note||'–')}
+function memoryCardNameHtml(midi,instrumentName=currentProfile()?.instrument){
+  const label=displayNoteFromMidi(midi,instrumentName);
+  const s=String(label||'');
+  const m=s.match(/^([^0-9+-]+)(-?\d+)$/i);
+  if(!m)return s.toUpperCase();
+  return `${m[1].toUpperCase()}<sup>${m[2]}</sup>`;
+}
 for(let i=0;i<8;i++)barsEl.insertAdjacentHTML('beforeend',`<div class="bar-item"><div class="bar-track"><div class="bar-fill" data-bar="${i}"></div></div><div class="bar-label">H${i+1}</div></div>`);
 const barEls=[...document.querySelectorAll('.bar-fill')];
 
@@ -343,7 +350,7 @@ let samples=[],profiles=[],activeProfileId=null;
 let expandedSampleNotes=new Set();
 let db=null;
 
-// Äänimuisti käyttää Lentokone_PWA_BASE_4_0:n tunnistusperiaatetta:
+// Muistipeli käyttää Lentokone_PWA_BASE_4_0:n tunnistusperiaatetta:
 // YIN-pohjasävel + H2–H8-sormenjälki, 42 % pitch / 58 % spektri.
 const MEMORY_ACCEPT=50;
 const MEMORY_HISTORY=6;
@@ -792,7 +799,7 @@ async function memoryCardSvgMarkup(card){
     memoryOsmdStage.innerHTML='';
     return markup;
   }catch(err){
-    console.warn('Äänimuisti-kortin OSMD-renderöinti epäonnistui.',err);
+    console.warn('Muistipeli-kortin OSMD-renderöinti epäonnistui.',err);
     const fallback=`<div class="memory-note-art">${displayNoteFromMidi(card?.midi,instrument)}</div>`;
     memoryCardArtCache.set(key,fallback);
     memoryOsmdStage.innerHTML='';
@@ -842,7 +849,7 @@ async function renderMemoryBoard(){
     const img=document.createElement('img');img.src=inst?.src||heroInstrumentImg.src||'';img.alt='';back.appendChild(img);
     const front=document.createElement('span');front.className='memory-card-face memory-card-front';
     if(memoryDisplayMode==='name'){
-      front.innerHTML=`<div class="memory-note-name">${displayNoteFromMidi(c.midi)}</div>`;
+      front.innerHTML=`<div class="memory-note-name">${memoryCardNameHtml(c.midi)}</div>`;
     }else{
       front.innerHTML='<div class="memory-note-art"><div class="memory-note-scale"></div></div>';
       fronts.push({front,cardData:c});
