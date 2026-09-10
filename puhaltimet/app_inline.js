@@ -25,6 +25,7 @@ const $=s=>document.querySelector(s);
 const barsEl=$('#bars'),noteName=$('#noteName'),hzValue=$('#hzValue'),osmdContainer=$('#osmdContainer');
 const tunerScale=$('#tunerScale'),tunerNeedle=$('#tunerNeedle'),tunerBulbFill=$('#tunerBulbFill');
 const sampleBtn=$('#sampleBtn');
+const recalBtn=$('#recalBtn'),refreshBtn=$('#refreshBtn');
 const profileList=$('#profileList');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
 const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileGame=$('#topProfileGame'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
@@ -638,7 +639,7 @@ async function handleTopProfileClick(ev){
 }
 function renderProfileSelects(){renderTopProfileMenu()}
 function openProfileChooser(){cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();updateButtons();startError.textContent='';profileNameInput.value='';renderInstrumentGrid();selectInstrument('');renderProfileSelects();startOverlay.style.display='flex';syncStartOverlayToVisualViewport();requestAnimationFrame(()=>{profileNameInput.focus({preventScroll:true});setTimeout(()=>{syncStartOverlayToVisualViewport();profileNameInput.scrollIntoView({block:'start',behavior:'smooth'})},80)})}
-async function activateProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return;activeProfileId=id;renderSamples();renderProfileSelects();startOverlay.style.display='none';startError.textContent='';try{if(stream)await calibrateMicrophoneNoiseFloor();else await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}}
+async function activateProfile(id){const p=profiles.find(x=>x.id===id);if(!p)return;activeProfileId=id;renderSamples();renderProfileSelects();startOverlay.style.display='none';startError.textContent='';try{if(stream)await ensureAudioRunning();else await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}}
 function memoryH2H8FromH1H8(fp8){
   if(!fp8||fp8.length<8)return null;
   const vals=fp8.slice(1,8).map(v=>Math.max(0,Number(v)||0));
@@ -1112,7 +1113,7 @@ async function createProfile(){
     profiles.push(p);activeProfileId=p.id;saveProfile=persistProfile(p);
   }
   renderSamples();renderProfileSelects();profileNameInput.value='';selectInstrument('');startError.textContent='';startOverlay.style.display='none';
-  const micStart=stream?calibrateMicrophoneNoiseFloor():startMic();
+  const micStart=stream?ensureAudioRunning():startMic();
   try{await micStart;await saveProfile}
   catch(err){await saveProfile.catch(()=>{});startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';calOverlay.classList.remove('show')}
 }
@@ -1145,13 +1146,16 @@ async function deleteSampleIds(ids){
 }
 async function deleteOneSample(id){
   const s=samples.find(x=>x.id===id);if(!s)return;
-  if(!confirm(`Poistetaanko näyte ${displaySampleNote(s)}?`))return;
+  await ensureAudioRunning();
   await deleteSampleIds([id]);
+  await ensureAudioRunning();
 }
 async function deleteNoteSamples(note){
   const pid=profileId();if(!pid)return;const ids=samples.filter(s=>sampleProfileId(s)===pid&&s.note===note).map(s=>s.id);if(!ids.length)return;
   if(!confirm(`Poistetaanko kaikki sävelen ${displayConcertLabel(note)} näytteet?`))return;
+  await ensureAudioRunning();
   expandedSampleNotes.delete(sampleGroupKey(pid,note));await deleteSampleIds(ids);
+  await ensureAudioRunning();
 }
 function handleSampleListClick(ev){
   const delOne=ev.target.closest('[data-delete-sample]');if(delOne){ev.preventDefault();ev.stopPropagation();deleteOneSample(delOne.dataset.deleteSample);return}
@@ -1161,8 +1165,9 @@ function handleSampleListClick(ev){
 async function clearAll(){
   const p=currentProfile();if(!p)return;
   if(!confirm(`Tyhjennetäänkö oppilaan ${p.name} kaikki tallennetut näytteet? Profiili säilyy.`))return;
+  await ensureAudioRunning();
   const pid=p.id;await deleteSamplesForProfile(pid);samples=samples.filter(s=>sampleProfileId(s)!==pid);await touchProfile(pid);writeFallbackSnapshot();
-  renderSamples();setState('Oppilaan näytteet tyhjennetty.')
+  renderSamples();setState('Oppilaan näytteet tyhjennetty.');await ensureAudioRunning();
 }
 
 function mimeType(){const types=['audio/webm;codecs=opus','audio/mp4','audio/webm'];return types.find(t=>window.MediaRecorder?.isTypeSupported?.(t))||''}
@@ -1288,6 +1293,23 @@ function updateCalibrationVisual(dbv,progress){
   }
   calOverlay.classList.toggle('complete',p>=.999);
 }
+async function ensureAudioRunning(){
+  if(ctx&&ctx.state!=='running'){
+    try{await ctx.resume()}catch(_){ }
+  }
+  if(stream&&analyser&&ctx?.state==='running'&&!timer&&!calOverlay.classList.contains('show'))timer=setInterval(processFrame,FRAME_MS);
+  return !ctx||ctx.state==='running';
+}
+async function manualRecalibrate(){
+  if(!stream){await startMic();return}
+  await ensureAudioRunning();
+  await calibrateMicrophoneNoiseFloor();
+}
+async function handleManualRecalibrate(){
+  if(recalBtn)recalBtn.disabled=true;
+  try{await manualRecalibrate()}catch(err){console.error(err);setState(err?.message||'Kalibrointi epäonnistui.')}finally{if(recalBtn)recalBtn.disabled=false}
+}
+function handleManualRefresh(){window.location.reload()}
 async function calibrateMicrophoneNoiseFloor(){
   if(!analyser||!timeData)return false;if(timer){clearInterval(timer);timer=null}
   cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();setBars(null);noteName.textContent='–';hzValue.textContent='';resetTuner();updateButtons();
@@ -1343,6 +1365,10 @@ async function handleProfileFileInput(){
   const file=profileFileInput.files&&profileFileInput.files[0];profileFileInput.value='';if(!file)return;
   try{startError.textContent='';await openProfileFromFile(file)}catch(err){console.error(err);const msg=err?.message||'Profiilitiedostoa ei voitu avata.';startError.textContent=msg;setState(msg)}
 }
+recalBtn?.addEventListener('click',e=>{e.preventDefault();handleManualRecalibrate()});
+refreshBtn?.addEventListener('click',e=>{e.preventDefault();handleManualRefresh()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&stream)ensureAudioRunning()});
+window.addEventListener('pageshow',()=>{if(stream)ensureAudioRunning()});
 $('#createProfileBtn').addEventListener('click',createProfile);
 profileNameInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();releaseProfileKeyboard();instrumentGrid.querySelector('.instrument-choice')?.focus()}});
 if(window.visualViewport){visualViewport.addEventListener('resize',syncStartOverlayToVisualViewport);visualViewport.addEventListener('scroll',syncStartOverlayToVisualViewport)}
