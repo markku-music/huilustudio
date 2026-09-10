@@ -1,4 +1,4 @@
-Puhaltimet 0.1.0
+Puhaltimet 0.1.1
 
 Uusi itsenäinen PWA puhallinopetukseen.
 

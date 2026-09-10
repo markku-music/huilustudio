@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Puhaltimet 0.1.0</title>
+<title>Puhaltimet 0.1.1</title>
 <style>
 :root{--ink:#15384f;--muted:#668092;--line:#d7e7ef;--card:#fff;--bg:#eef7fb;--accent:#173f61;--ok:#18784c;--warn:#b66316}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -216,6 +216,61 @@ body{display:block;background:#edf5fa}
 }
 
 
+
+/* ===== PUHALTIMET 0.1.1 MINIMAL CALIBRATION ===== */
+#calOverlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:60;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(18,28,38,.22);
+  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(6px);
+  opacity:0;
+}
+#calOverlay.show{display:flex;animation:calOverlayIn 180ms ease-out forwards}
+#calOverlay.show.closing{animation:calOverlayOut 150ms ease-in forwards}
+.cal-panel{
+  position:relative;
+  width:244px !important;
+  height:244px !important;
+  aspect-ratio:1/1 !important;
+  display:grid;
+  place-items:center;
+  overflow:visible;
+  background:rgba(255,255,255,.97);
+  border:1px solid rgba(215,231,239,.92);
+  border-radius:30px;
+  box-shadow:0 22px 65px rgba(9,37,57,.20);
+  filter:none !important;
+  transform:scale(.965);
+  animation:calCardIn 220ms cubic-bezier(.2,.8,.2,1) forwards;
+}
+.cal-ring-wrap{position:relative;width:140px;height:140px;display:grid;place-items:center}
+.cal-ring{position:absolute;inset:0;width:140px;height:140px;overflow:visible;transform:rotate(-90deg)}
+.cal-ring-track,.cal-ring-progress{fill:none;stroke-width:10;stroke-linecap:round}
+.cal-ring-track{stroke:#e5edf2}
+.cal-ring-progress{stroke:#254f6b;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset 70ms linear,stroke 180ms ease}
+.cal-pulse{
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  background:rgba(37,79,107,.22);
+  box-shadow:0 0 0 10px rgba(37,79,107,.055);
+  transform:scale(.72);
+  opacity:.24;
+  transition:transform 80ms ease-out,opacity 80ms ease-out,background 180ms ease,box-shadow 180ms ease;
+}
+#calOverlay.complete .cal-ring-progress{stroke:#22c55e}
+#calOverlay.complete .cal-pulse{background:rgba(34,197,94,.44);box-shadow:0 0 0 12px rgba(34,197,94,.08)}
+@keyframes calOverlayIn{from{opacity:0}to{opacity:1}}
+@keyframes calOverlayOut{from{opacity:1}to{opacity:0}}
+@keyframes calCardIn{from{transform:scale(.955);opacity:.72}to{transform:scale(1);opacity:1}}
+@media(max-width:560px){.cal-panel{width:218px !important;height:218px !important;border-radius:28px}.cal-ring-wrap,.cal-ring{width:128px;height:128px}}
+
 </style>
 </head>
 <body>
@@ -305,23 +360,13 @@ body{display:block;background:#edf5fa}
 
 <div id="calOverlay" aria-live="polite">
   <div class="cal-panel" role="status" aria-label="Mikrofonin kalibrointi">
-    <img class="cal-panel-bg" src="kalibrointi_tausta.webp" alt="">
-    <svg class="cal-live" viewBox="0 0 1118 714" aria-hidden="true">
-      <defs>
-        <linearGradient id="calGaugeGradient" x1="319" y1="0" x2="799" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#32a65a"/><stop offset=".5" stop-color="#ffcf35"/><stop offset=".82" stop-color="#ff8a29"/><stop offset="1" stop-color="#e74a35"/></linearGradient>
-        <linearGradient id="calProgressGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2e9af1"/><stop offset="1" stop-color="#40c85a"/></linearGradient>
-      </defs>
-      <circle cx="559" cy="365" r="257" fill="#f7f4ed" opacity=".985"/>
-      <path d="M319 365 A240 240 0 0 1 799 365" fill="none" stroke="url(#calGaugeGradient)" stroke-width="48"/>
-      <g><line class="cal-tick" x1="335" y1="365" x2="363" y2="365"/><line class="cal-tick" x1="365" y1="245" x2="390" y2="260"/><line class="cal-tick" x1="440" y1="170" x2="454" y2="195"/><line class="cal-tick" x1="559" y1="142" x2="559" y2="174"/><line class="cal-tick" x1="678" y1="170" x2="664" y2="195"/><line class="cal-tick" x1="753" y1="245" x2="728" y2="260"/><line class="cal-tick" x1="783" y1="365" x2="755" y2="365"/></g>
-      <g class="cal-scale" text-anchor="middle"><text x="320" y="407">-90</text><text x="365" y="223">-80</text><text x="445" y="148">-70</text><text x="559" y="119">-60</text><text x="673" y="148">-50</text><text x="753" y="223">-40</text><text x="798" y="407">-30</text></g>
-      <g id="calNeedleGroup" transform="rotate(-90 559 365)"><line class="cal-needle" x1="559" y1="365" x2="559" y2="178"/><circle class="cal-needle-tip" cx="559" cy="178" r="7"/></g>
-      <circle class="cal-hub" cx="559" cy="365" r="30"/>
-      <rect x="428" y="423" width="262" height="82" rx="30" fill="#243b4c" stroke="#8ba5b7" stroke-width="5"/>
-      <text id="calDbValue" class="cal-db" x="559" y="483" text-anchor="middle">– dB</text>
-      <rect class="cal-progress-track" x="352" y="612" width="414" height="18" rx="9"/>
-      <rect id="calProgressFill" x="352" y="612" width="0" height="18" rx="9" fill="url(#calProgressGradient)"/>
-    </svg>
+    <div class="cal-ring-wrap" aria-hidden="true">
+      <svg class="cal-ring" viewBox="0 0 140 140">
+        <circle class="cal-ring-track" cx="70" cy="70" r="58" pathLength="100"></circle>
+        <circle id="calProgressRing" class="cal-ring-progress" cx="70" cy="70" r="58" pathLength="100"></circle>
+      </svg>
+      <div id="calPulse" class="cal-pulse"></div>
+    </div>
   </div>
 </div>
 
@@ -370,7 +415,7 @@ const barsEl=$('#bars'),noteName=$('#noteName'),hzValue=$('#hzValue'),osmdContai
 const tunerScale=$('#tunerScale'),tunerNeedle=$('#tunerNeedle'),tunerBulbFill=$('#tunerBulbFill');
 const sampleBtn=$('#sampleBtn');
 const profileList=$('#profileList');
-const calOverlay=$('#calOverlay'),calNeedleGroup=$('#calNeedleGroup'),calDbValue=$('#calDbValue'),calProgressFill=$('#calProgressFill');
+const calOverlay=$('#calOverlay'),calProgressRing=$('#calProgressRing'),calPulse=$('#calPulse');
 const startOverlay=$('#startOverlay'),startError=$('#startError'),profileForm=$('#profileForm'),profileNameInput=$('#profileName'),profileInstrumentInput=$('#profileInstrument'),instrumentGrid=$('#instrumentGrid'),instrumentSelected=$('#instrumentSelected'),heroInstrument=$('#heroInstrument'),heroInstrumentImg=$('#heroInstrumentImg'),topProfileMenu=$('#topProfileMenu'),topProfileTrigger=$('#topProfileTrigger'),topProfilePanel=$('#topProfilePanel'),topProfileList=$('#topProfileList'),topProfileLabel=$('#topProfileLabel'),topProfileNew=$('#topProfileNew'),topProfileFile=$('#topProfileFile'),profileFileInput=$('#profileFileInput');
 const reviewOverlay=$('#reviewOverlay'),reviewMain=$('#reviewMain'),reviewDetail=$('#reviewDetail'),acceptSampleBtn=$('#acceptSampleBtn'),retrySampleBtn=$('#retrySampleBtn');
 const INSTRUMENTS=[
@@ -1215,17 +1260,28 @@ function processFrame(){
   handleCaptureFrame(frame);
 }
 
-function updateCalibrationVisual(dbv,progress){const shown=Number.isFinite(dbv)?clamp(dbv,-90,-30):-90,ratio=(shown+90)/60,angle=-90+ratio*180;calNeedleGroup.setAttribute('transform',`rotate(${angle.toFixed(2)} 559 365)`);calDbValue.textContent=Number.isFinite(dbv)?`${Math.round(dbv)} dB`:'– dB';calProgressFill.setAttribute('width',(414*clamp(progress,0,1)).toFixed(1))}
+function updateCalibrationVisual(dbv,progress){
+  const p=clamp(progress,0,1);
+  if(calProgressRing)calProgressRing.style.strokeDashoffset=(100-p*100).toFixed(2);
+  const shown=Number.isFinite(dbv)?clamp(dbv,-90,-30):-90;
+  const level=clamp((shown+90)/60,0,1);
+  const eased=Math.pow(level,.62);
+  if(calPulse){
+    calPulse.style.transform=`scale(${(0.72+0.34*eased).toFixed(3)})`;
+    calPulse.style.opacity=(0.24+0.62*eased).toFixed(3);
+  }
+  calOverlay.classList.toggle('complete',p>=.999);
+}
 async function calibrateMicrophoneNoiseFloor(){
   if(!analyser||!timeData)return false;if(timer){clearInterval(timer);timer=null}
   cancelCapture();pendingSample=null;pendingCheck=null;closeSampleReview();setBars(null);noteName.textContent='–';hzValue.textContent='';resetTuner();updateButtons();
-  calOverlay.classList.add('show');updateCalibrationVisual(-90,0);
+  calOverlay.classList.remove('complete','closing');calOverlay.classList.add('show');updateCalibrationVisual(-90,0);
   const total=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS,start=performance.now();
   while(performance.now()-start<MIC_CAL_WARMUP_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);updateCalibrationVisual(l,(performance.now()-start)/total);await sleepMs(33)}
   const vals=[],mstart=performance.now();
   while(performance.now()-mstart<MIC_CAL_MEASURE_MS){analyser.getFloatTimeDomainData(timeData);const l=rmsDb(timeData);if(Number.isFinite(l))vals.push(l);updateCalibrationVisual(l,(MIC_CAL_WARMUP_MS+performance.now()-mstart)/total);await sleepMs(33)}
   if(!vals.length)dbThreshold=-70;else{vals.sort((a,b)=>a-b);const nf=median(vals);dbThreshold=clamp(Math.round(nf+MIC_CAL_MARGIN_DB),DB_MIN,DB_MAX)}
-  updateCalibrationVisual(median(vals),1);await sleepMs(180);timer=setInterval(processFrame,FRAME_MS);calOverlay.classList.remove('show');setState('');return true;
+  updateCalibrationVisual(median(vals),1);await sleepMs(300);calOverlay.classList.add('closing');await sleepMs(150);timer=setInterval(processFrame,FRAME_MS);calOverlay.classList.remove('show','complete','closing');setState('');return true;
 }
 async function startMic(){
   if(stream)return true;if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');
