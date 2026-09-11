@@ -184,3 +184,9 @@ BASE 4.1 – PYÖRRE / YLÖSALAISIN
 - Roll valmistuu seuraavan peliobjektin kohdalla, ei kiinteällä aikakestolla.
 - Ohjaus vaihtuu vasta kun kone on täysin ylösalaisin.
 - Ylösalaisin ×2-pisteet 15 s; toinen pyörre tai 15 s käynnistää paluurullauksen seuraavaan objektiin mennessä.
+
+BASE 4.12 – LATAUSPALKKI
+- Lisätty pelin käynnistykseen latausnäkymä, jossa prosenttipalkki etenee 0–100 %.
+- Prosentti perustuu pelissä tarvittavien grafiikkaresurssien todellisiin tiedostokokoihin.
+- Latausnäkymä poistuu automaattisesti, kun pelin grafiikat ovat valmiina.
+- Äänentunnistus-, kalibrointi- ja pelilogiikkaa ei muutettu.

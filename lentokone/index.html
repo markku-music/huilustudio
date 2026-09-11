@@ -325,6 +325,67 @@ button{font:inherit}
 }
 .dev-json-actions button:hover{background:rgba(255,255,255,.21)}
 #jsonStatus{display:block;min-height:16px;margin-top:5px;font-weight:750;color:#ffd65a}
+
+#loadingOverlay{
+  position:absolute;
+  inset:0;
+  z-index:100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(180deg,#8ed4f2 0%,#bfe9f8 58%,#e8f6fb 100%);
+  opacity:1;
+  visibility:visible;
+  transition:opacity .28s ease,visibility 0s linear 0s;
+}
+#loadingOverlay.done{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .28s ease,visibility 0s linear .28s;
+}
+.loading-card{
+  width:min(440px,86vw);
+  padding:22px 24px 20px;
+  border-radius:24px;
+  background:rgba(255,255,255,.94);
+  box-shadow:0 18px 55px rgba(27,81,116,.20);
+  text-align:center;
+}
+.loading-title{
+  margin:0 0 14px;
+  color:#173f61;
+  font:950 clamp(22px,5vw,34px)/1.05 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.loading-percent{
+  margin:0 0 10px;
+  color:#173f61;
+  font:1000 clamp(28px,7vw,46px)/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.loading-track{
+  width:100%;
+  height:18px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#d9eaf2;
+  box-shadow:inset 0 2px 5px rgba(31,83,112,.16);
+}
+.loading-fill{
+  width:0%;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#2e9af1,#40c85a);
+  transition:width .22s ease-out;
+}
+.loading-status{
+  min-height:1.3em;
+  margin:9px 0 0;
+  color:#557188;
+  font:800 13px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
 #startOverlay,#calOverlay,#rotateOverlay,#finishOverlay{
   position:absolute;
   inset:0;
@@ -545,6 +606,14 @@ button{font:inherit}
 </head>
 <body>
 <div id="game">
+  <div id="loadingOverlay" role="status" aria-live="polite" aria-label="Peli latautuu">
+    <div class="loading-card">
+      <p class="loading-title">Ladataan peliä</p>
+      <p id="loadingPercent" class="loading-percent">0 %</p>
+      <div class="loading-track" aria-hidden="true"><div id="loadingFill" class="loading-fill"></div></div>
+      <p id="loadingStatus" class="loading-status">Valmistellaan lentoonlähtöä…</p>
+    </div>
+  </div>
   <div id="cloudLayer"></div>
 
   <div id="plane" class="idle">
@@ -812,6 +881,7 @@ const UNCERTAIN_DELAY_MS=180;
 
 const $=s=>document.querySelector(s);
 const game=$('#game'),cloudLayer=$('#cloudLayer'),plane=$('#plane'),scoreNum=$('#scoreNum'),gameTimer=$('#gameTimer'),bonus=$('#bonus'),flash=$('#flash');
+const loadingOverlay=$('#loadingOverlay'),loadingPercent=$('#loadingPercent'),loadingFill=$('#loadingFill'),loadingStatus=$('#loadingStatus');
 const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),finishOverlay=$('#finishOverlay'),startError=$('#startError');
 const helpOverlay=$('#helpOverlay'),helpImage=$('#helpImage');
 const instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentTromboneBtn=$('#instrumentTromboneBtn'),instrumentFluteInfoBtn=$('#instrumentFluteInfoBtn'),instrumentTromboneInfoBtn=$('#instrumentTromboneInfoBtn'),replayBtn=$('#replayBtn'),finishBtn=$('#finishBtn'),finishScore=$('#finishScore');
@@ -831,6 +901,61 @@ const dev={
   low:$('#devLow'),high:$('#devHigh'),best:$('#devBest'),gap:$('#devGap'),
   recognition:$('#devRecognition'),duration:$('#devDuration')
 };
+
+const STARTUP_ASSETS=[
+  ['lentokone_sivu.webp',359114],
+  ['kalibrointi_tausta.webp',76276],
+  ['pilvi_levea.webp',34046],
+  ['pilvi_keski.webp',17670],
+  ['pilvi_iso.webp',54196],
+  ['kerattava_kolikko.webp',221486],
+  ['kerattava_timantti.webp',158640],
+  ['kerattava_aarrearkku.webp',261388],
+  ['este_lehma.webp',146738],
+  ['este_kivi.webp',84050],
+  ['este_pyorre.webp',142660],
+  ['soitin_huilu.webp',225530],
+  ['soitin_pasuuna.webp',499830]
+];
+function preloadImageAsset(src){
+  return new Promise(resolve=>{
+    const img=new Image();
+    let settled=false;
+    const finish=()=>{
+      if(settled)return;
+      settled=true;
+      resolve();
+    };
+    img.onload=async()=>{
+      try{if(img.decode)await img.decode()}catch{}
+      finish();
+    };
+    img.onerror=finish;
+    img.src=src;
+    if(img.complete&&img.naturalWidth)img.onload();
+  });
+}
+async function preloadStartupAssets(){
+  const totalBytes=STARTUP_ASSETS.reduce((sum,item)=>sum+item[1],0);
+  let loadedBytes=0;
+  const update=()=>{
+    const percent=Math.max(0,Math.min(100,Math.round((loadedBytes/totalBytes)*100)));
+    loadingPercent.textContent=percent+' %';
+    loadingFill.style.width=percent+'%';
+    loadingOverlay.setAttribute('aria-label','Peli latautuu '+percent+' prosenttia');
+  };
+  update();
+  await Promise.all(STARTUP_ASSETS.map(async([src,bytes])=>{
+    await preloadImageAsset(src);
+    loadedBytes+=bytes;
+    update();
+  }));
+  loadedBytes=totalBytes;
+  update();
+  loadingStatus.textContent='Valmis!';
+  await new Promise(resolve=>setTimeout(resolve,180));
+  loadingOverlay.classList.add('done');
+}
 
 let ctx=null,stream=null,analyser=null,timer=null;
 let timeData=null,freqData=null;
@@ -2345,6 +2470,8 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')void ensureAudioContextRunning();
 });
 window.addEventListener('pageshow',()=>{void ensureAudioContextRunning()});
+
+void preloadStartupAssets();
 
 clearRecognition();
 objectSizeValue.textContent=objectSizePercent+' %';
