@@ -1,27 +1,30 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.12-loading-progress';
+const CACHE_NAME = 'lentokone-pwa-base-4.14-puhaltimet-calibration';
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest',
-  './lentokone_sivu.webp',
-  './kalibrointi_tausta.webp',
-  './pilvi_levea.webp',
-  './pilvi_keski.webp',
-  './pilvi_iso.webp',
-  './kerattava_kolikko.webp',
-  './kerattava_timantti.webp',
-  './kerattava_aarrearkku.webp',
-  './este_lehma.webp',
-  './este_kivi.webp',
-  './este_pyorre.webp',
-  './soitin_huilu.webp',
-  './soitin_pasuuna.webp',
-  './ohje_huilu.png',
-  './ohje_pasuuna.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './sw.js',
+  './app/manifest.webmanifest',
+  './app/css/app.css',
+  './app/js/audio-data.js',
+  './app/js/app.js',
+  './app/assets/images/lentokone_sivu.webp',
+  './app/assets/images/pilvi_levea.webp',
+  './app/assets/images/pilvi_keski.webp',
+  './app/assets/images/pilvi_iso.webp',
+  './app/assets/images/kerattava_kolikko.webp',
+  './app/assets/images/kerattava_timantti.webp',
+  './app/assets/images/kerattava_aarrearkku.webp',
+  './app/assets/images/este_lehma.webp',
+  './app/assets/images/este_kivi.webp',
+  './app/assets/images/este_pyorre.webp',
+  './app/assets/images/soitin_huilu.webp',
+  './app/assets/images/soitin_pasuuna.webp',
+  './app/assets/images/ohje_huilu.png',
+  './app/assets/images/ohje_pasuuna.png',
+  './app/assets/icons/icon-192.png',
+  './app/assets/icons/icon-512.png',
+  './app/assets/icons/icon-maskable-512.png',
+  './app/assets/icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
@@ -57,7 +60,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Staattiset tiedostot edelleen cache-first, jotta peli toimii nopeasti ja offline.
+  // Staattiset tiedostot cache-first, jotta peli toimii nopeasti ja offline.
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;

@@ -190,3 +190,16 @@ BASE 4.12 – LATAUSPALKKI
 - Prosentti perustuu pelissä tarvittavien grafiikkaresurssien todellisiin tiedostokokoihin.
 - Latausnäkymä poistuu automaattisesti, kun pelin grafiikat ovat valmiina.
 - Äänentunnistus-, kalibrointi- ja pelilogiikkaa ei muutettu.
+
+BASE 4.13 – KOODI SIIVOTTU
+- Ei pelilogiikan muutoksia.
+- CSS ja JavaScript erotettu omiin tiedostoihinsa.
+- Base64-äänidata erotettu pelilogiikasta omaan audio-data.js-tiedostoon.
+- Kuvat, ikonit, manifesti ja dokumentaatio järjestetty app/-kansioon.
+- sw.js jätetty juureen PWA-scopea varten.
+
+BASE 4.14 – PUHALTIMET-TYYLINEN POHJAKOHINAMITTAUS
+- Pohjakohinan kalibroinnin UI vaihdettu Puhaltimet-appin 180 px rengasnäkymään.
+- Keskellä reaaliaikainen dB-lukema ja äänenvoimakkuuden mukaan elävä pulssi.
+- Edistyminen näkyy kiertävänä renkaana; valmis tila vihreä.
+- Varsinainen pohjakohinan laskenta, 250 ms warmup, 1500 ms mittaus ja +10 dB marginaali ennallaan.
