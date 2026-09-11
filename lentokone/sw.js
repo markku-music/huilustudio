@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.17-no-suction-rock-minus2';
+const CACHE_NAME = 'lentokone-pwa-base-4.17.2-responsive-instruments';
 const APP_SHELL = [
   './',
   './index.html',

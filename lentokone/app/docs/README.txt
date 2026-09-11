@@ -224,3 +224,18 @@ BASE 4.17 – EI IMUKIIHDYTYSTÄ / KIVI −2
 - Pyörre säilyy 50 % suurempana ja kone reitittyy edelleen sen todelliseen suuaukkoon kuten kerättäviin kohteisiin.
 - Kiveen osuminen vähentää nyt 2 pistettä (ei alle nollan).
 - Timantin ääniefektin 50 % vaimennus säilyy.
+
+
+BASE 4.17.1 – RESPONSIIVISET SOITINKUVAKKEET
+- Huilu- ja pasuunakortit skaalautuvat nyt sekä viewportin leveyden että korkeuden mukaan.
+- Poistettu 90 px pakotettu minimileveys.
+- Soitinkuvien oma kuvasuhde säilyy; pasuunaa ei enää pakoteta neliöön.
+- Myös info-painike, teksti, padding ja kortin kulmat skaalautuvat maltillisesti.
+- Pelilogiikkaan ei muutoksia.
+
+
+BASE 4.17.2 – SOITINKUVAKKEET SEURAAVAT IKKUNAN KOKOA
+- Poistettu aiempi 170 px kortin ja 155 px kuvan yläraja.
+- Soitinkortti skaalautuu nyt aidosti viewportin pienemmän mitan mukaan (46vmin), max 500 px.
+- Iso Safari-ikkuna kasvattaa kortit ja kuvat selvästi suuremmiksi; pieni ikkuna pienentää ne automaattisesti.
+- Muu pelilogiikka ennallaan.
