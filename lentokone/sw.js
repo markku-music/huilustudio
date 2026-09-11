@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-4.14-puhaltimet-calibration';
+const CACHE_NAME = 'lentokone-pwa-base-4.17-no-suction-rock-minus2';
 const APP_SHELL = [
   './',
   './index.html',

@@ -203,3 +203,24 @@ BASE 4.14 – PUHALTIMET-TYYLINEN POHJAKOHINAMITTAUS
 - Keskellä reaaliaikainen dB-lukema ja äänenvoimakkuuden mukaan elävä pulssi.
 - Edistyminen näkyy kiertävänä renkaana; valmis tila vihreä.
 - Varsinainen pohjakohinan laskenta, 250 ms warmup, 1500 ms mittaus ja +10 dB marginaali ennallaan.
+
+
+BASE 4.15 – PEHMEÄ SUUNNANVAIHTO
+- Reittivaihto perii koneen hetkellisen pystynopeuden.
+- Vastakkaiseen suuntaan annettu uusi ääni jarruttaa liikkeen pehmeästi nollaan ennen suunnan vaihtoa.
+- Nokan kallistus seuraa todellista pystynopeutta ja kulkee suunnanvaihdossa pehmeästi vaakatason kautta.
+- Muu pelilogiikka ja 4.14:n Puhaltimet-tyylinen pohjakohinamittaus ennallaan.
+
+
+BASE 4.16
+- Pyörre reitittyy kuten kerättävät kohteet, mutta kone tähtää WebP-kuvan todelliseen imuaukkoon.
+- Pyörre 50 % suurempi kuin 4.15:ssa (1.18x -> 1.77x).
+- Imun lopussa etenemisvauhti kiihtyy pehmeästi enintään 28 % ja palautuu pehmeästi.
+- Timantin ääniefektin gain puolitetty (1.08 -> 0.54).
+
+
+BASE 4.17 – EI IMUKIIHDYTYSTÄ / KIVI −2
+- Poistettu 4.16:ssa lisätty pyörteen imeytymiskiihdytys ja osuman jälkeinen palautusliike.
+- Pyörre säilyy 50 % suurempana ja kone reitittyy edelleen sen todelliseen suuaukkoon kuten kerättäviin kohteisiin.
+- Kiveen osuminen vähentää nyt 2 pistettä (ei alle nollan).
+- Timantin ääniefektin 50 % vaimennus säilyy.

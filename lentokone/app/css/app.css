@@ -138,7 +138,7 @@ button{font:inherit}
 }
 .obstacle.cow{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * 1.48)}
 .obstacle.rock{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * .90)}
-.obstacle.vortex{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * 1.18)}
+.obstacle.vortex{width:calc(var(--obstacle-size,clamp(54px,8vw,82px)) * 1.77)}
 .obstacle.vortex img{
   animation:vortexAlive 2.1s ease-in-out infinite;
   transform-origin:50% 50%;

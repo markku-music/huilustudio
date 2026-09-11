@@ -159,11 +159,20 @@ let planeY=50;
 let routeTransitionStartY=50;
 let routeTransitionTargetY=50;
 let routeTransitionStartedAt=0;
+let routeTransitionStartVelocity=0; // %-yksikköä / ms
+let routeTransitionEndVelocity=0;
+let routePendingTransition=null; // suunnanvaihdon jarrutusvaiheen jälkeinen varsinainen reitti
+let routeVelocity=0;
+let routeTiltCurrent=0;
 const ROUTE_TRANSITION_MS=780;
 let routeTransitionDurationMs=ROUTE_TRANSITION_MS;
 const FULL_ROUTE_DISTANCE=38;
 const ROUTE_HIT_TOLERANCE=5.5;
 const ROUTE_START_SPEED=0.55;
+const ROUTE_MAX_INHERITED_SLOPE=2.0;
+const ROUTE_REVERSAL_BRAKE_MS=280;
+const ROUTE_TILT_REFERENCE_SPEED=(FULL_ROUTE_DISTANCE/ROUTE_TRANSITION_MS)*1.5;
+const ROUTE_TILT_RESPONSE_MS=120;
 let noseTiltAmount=20;
 let objectSizePercent=70;
 // Kevyt sarjakuvamainen visuaalinen keinunta. Ei muuta koneen todellista planeY-arvoa
@@ -180,7 +189,7 @@ const PLANE_SWAY_BASE_PERIOD_MS=1850;
 let gameFxBuffers={coin:null,chest:null,diamond:null,cow:null,rock:null};
 let gameAudioMuted=false;
 const activeGameFxSources=new Set();
-const GAME_FX_GAIN={coin:.92,chest:.82,diamond:1.08};
+const GAME_FX_GAIN={coin:.92,chest:.82,diamond:.54};
 function gameFxGainForKey(key){
   if(key==='cow')return clamp(cowVolumePercent/100,0,1);
   if(key==='rock')return clamp(rockVolumePercent/100,0,1);
@@ -454,6 +463,12 @@ const SPAWN_X_OFFSET=100;
 const ROCK_BOUNCE_MS=430;
 const ROCK_CONTROL_LOCK_MS=560;
 const OBSTACLE_HIT_TOLERANCE=7.5;
+// Pyörteen varsinainen imuaukko on kuvan yläosassa, ei WebP:n geometrisessa keskellä.
+// 0.30 vastaa tumman sinisen suuaukon keskikohtaa kuvan korkeudesta.
+const VORTEX_CORE_X_RATIO=.46;
+const VORTEX_CORE_Y_RATIO=.30;
+const VORTEX_CORE_X_TOLERANCE=34;
+const VORTEX_CORE_HIT_TOLERANCE=9.5;
 const ROCK_FRAGMENT_GRAVITY=window.innerHeight*1.55;
 const ROCK_FRAGMENT_FADE_MS=220;
 const ROCK_FRAGMENT_LIFE_MS=980;
@@ -595,12 +610,115 @@ function objectSpeedPxPerSec(now=performance.now()){return Math.max(116,window.i
 function minimumRouteTimeMs(fromY,toY){
   return ROUTE_TRANSITION_MS*(Math.abs(toY-fromY)/FULL_ROUTE_DISTANCE);
 }
+function routeMotionAt(now=performance.now()){
+  if(!routeTransitionStartedAt){
+    return {y:routeTransitionTargetY,velocity:0,done:true};
+  }
+  const duration=Math.max(1,routeTransitionDurationMs);
+  const t=clamp((now-routeTransitionStartedAt)/duration,0,1);
+  const t2=t*t,t3=t2*t;
+  const p0=routeTransitionStartY;
+  const p1=routeTransitionTargetY;
+  const m0=routeTransitionStartVelocity*duration;
+  const m1=routeTransitionEndVelocity*duration;
+
+  const h00=2*t3-3*t2+1;
+  const h10=t3-2*t2+t;
+  const h01=-2*t3+3*t2;
+  const h11=t3-t2;
+  const y=h00*p0+h10*m0+h01*p1+h11*m1;
+
+  const dh00=6*t2-6*t;
+  const dh10=3*t2-4*t+1;
+  const dh01=-6*t2+6*t;
+  const dh11=3*t2-2*t;
+  const velocity=(dh00*p0+dh10*m0+dh01*p1+dh11*m1)/duration;
+  return {y,velocity,done:t>=1};
+}
+function beginRouteSegment(startY,targetY,duration,startVelocity=0,endVelocity=0,now=performance.now()){
+  planeY=startY;
+  routeVelocity=startVelocity;
+  routeTransitionStartY=startY;
+  routeTransitionTargetY=targetY;
+  routeTransitionStartVelocity=startVelocity;
+  routeTransitionEndVelocity=endVelocity;
+  routeTransitionStartedAt=now;
+  routeTransitionDurationMs=Math.max(1,duration);
+}
+function beginRouteTransition(targetY,duration,now=performance.now(),inheritVelocity=true){
+  let startY=planeY;
+  let inheritedVelocity=0;
+
+  if(routeTransitionStartedAt){
+    const motion=routeMotionAt(now);
+    startY=motion.y;
+    inheritedVelocity=motion.velocity;
+  }
+  routePendingTransition=null;
+
+  const safeDuration=Math.max(1,duration);
+  const delta=targetY-startY;
+  if(Math.abs(delta)<0.00001){
+    beginRouteSegment(startY,targetY,1,0,0,now);
+    return;
+  }
+
+  const reversing=inheritVelocity&&Math.abs(inheritedVelocity)>0.00001&&Math.sign(inheritedVelocity)!==Math.sign(delta);
+  if(reversing){
+    // Uusi ääni vaikuttaa heti, mutta ei käännä konetta yhdellä framella.
+    // Ensin vanha pystynopeus jarrutetaan 280 ms aikana nollaan.
+    const brakeDuration=ROUTE_REVERSAL_BRAKE_MS;
+    let brakeEndY=startY+inheritedVelocity*brakeDuration*.5;
+    brakeEndY=clamp(brakeEndY,13,87);
+
+    // Varsinainen uusi reitti alkaa jarrutuksen jälkeen levosta. Jos alkuperäinen
+    // ajoitus oli väljä, se säilyy. Liian myöhäistä komentoa ei kiihdytetä
+    // epäluonnollisesti vain siksi, että objektiin ehdittäisiin.
+    const remainingRequested=Math.max(1,safeDuration-brakeDuration);
+    const remainingNatural=minimumRouteTimeMs(brakeEndY,targetY);
+    const goDuration=Math.max(remainingRequested,remainingNatural);
+    routePendingTransition={targetY,duration:goDuration};
+    beginRouteSegment(startY,brakeEndY,brakeDuration,inheritedVelocity,0,now);
+    return;
+  }
+
+  let startVelocity=(delta/safeDuration)*ROUTE_START_SPEED;
+  if(inheritVelocity&&Math.abs(inheritedVelocity)>0.00001){
+    const naturalSpeed=Math.abs(delta)/safeDuration;
+    const maxInherited=naturalSpeed*ROUTE_MAX_INHERITED_SLOPE;
+    startVelocity=clamp(inheritedVelocity,-maxInherited,maxInherited);
+  }
+  beginRouteSegment(startY,targetY,safeDuration,startVelocity,0,now);
+}
+function vortexCoreXPosition(item){
+  const width=item.el.offsetWidth||item.el.getBoundingClientRect().width||80;
+  return item.x+(VORTEX_CORE_X_RATIO-.5)*width;
+}
+function vortexCoreYPercent(item){
+  // Kohdistetaan kone pyörteen näkyvän suuaukon keskelle. Elementin top/left
+  // kuvaavat koko spriteä, joten muutetaan aukon kuvakoordinaatti pelin koordinaateiksi.
+  const height=item.el.offsetHeight||item.el.getBoundingClientRect().height||80;
+  const coreYpx=item.y+(VORTEX_CORE_Y_RATIO-.5)*height;
+  return coreYpx/window.innerHeight*100;
+}
+function targetXForItem(item){
+  return item?.type?.key==='vortex'?vortexCoreXPosition(item):item?.x;
+}
+function targetYForItem(item){
+  return item?.type?.key==='vortex'?vortexCoreYPercent(item):routeY(item?.lane);
+}
 function nextTargetOnLane(lane){
   const planeX=planeXPosition();
   let target=null;
   for(const item of collectibles){
     if(item.collected||item.lane!==lane||item.x<=planeX)continue;
-    if(!target||item.x<target.x)target=item;
+    if(!target||targetXForItem(item)<targetXForItem(target))target=item;
+  }
+  // Pyörre käyttäytyy reitityksen kannalta kuten kerättävä kohde: oikea ääni
+  // ajoittaa koneen sen todelliseen imuaukkoon. Lehmä ja kivi jäävät esteiksi.
+  for(const item of obstacles){
+    if(item.hit||item.type.key!=='vortex'||item.lane!==lane||item.x<=planeX)continue;
+    if(!target||targetXForItem(item)<targetXForItem(target))target=item;
   }
   return target;
 }
@@ -611,23 +729,22 @@ function setRoute(name){
 
   const now=performance.now();
   if(now<controlLockUntil)return;
-  const targetY=routeY(next);
-  const minDuration=minimumRouteTimeMs(planeY,targetY);
   const target=nextTargetOnLane(next);
+  // Kolikko/timantti/arkku käyttävät kaistan keskikohtaa. Pyörteelle käytetään
+  // sen todellista imuaukkoa, joka on sprite-kuvan keskilinjaa ylempänä.
+  const targetY=target?targetYForItem(target):routeY(next);
+  const minDuration=minimumRouteTimeMs(planeY,targetY);
   let duration=minDuration;
 
   if(target){
-    const distancePx=Math.max(0,target.x-planeXPosition());
+    const distancePx=Math.max(0,targetXForItem(target)-planeXPosition());
     const timeToTargetMs=(distancePx/objectSpeedPxPerSec())*1000;
-    // Ajoissa annettu komento osuu objektin korkeudelle juuri sen saapuessa koneelle.
+    // Ajoissa annettu komento osuu kohteen keskelle juuri sen saapuessa koneelle.
     // Myöhäistä komentoa ei nopeuteta yli normaalin reittivaihdon nopeuden.
     duration=Math.max(minDuration,timeToTargetMs);
   }
 
-  routeTransitionStartY=planeY;
-  routeTransitionTargetY=targetY;
-  routeTransitionStartedAt=now;
-  routeTransitionDurationMs=Math.max(1,duration);
+  beginRouteTransition(targetY,duration,now,true);
   currentRoute=next;
   setEngineFlightState(targetY<planeY?'climb':'descend');
 }
@@ -1072,10 +1189,8 @@ function showScoreFlash(text,penalty=false){
 function bouncePlaneFromRock(){
   const now=performance.now();
   const otherLane=planeY<50?'low':'high';
-  routeTransitionStartY=planeY;
-  routeTransitionTargetY=routeY(otherLane);
-  routeTransitionStartedAt=now;
-  routeTransitionDurationMs=ROCK_BOUNCE_MS;
+  const bounceTargetY=routeY(otherLane);
+  beginRouteTransition(bounceTargetY,ROCK_BOUNCE_MS,now,false);
   currentRoute=otherLane;
   controlLockUntil=now+ROCK_CONTROL_LOCK_MS;
   setEngineFlightState(routeTransitionTargetY<planeY?'climb':'descend');
@@ -1108,6 +1223,7 @@ function hitVortex(){
     setVortexSpeedTarget(2,now);
   }
   updateBonusIndicator(now);
+
 }
 
 function hitObstacle(item,speed){
@@ -1124,6 +1240,9 @@ function hitObstacle(item,speed){
 
   if(item.type.key==='rock'){
     playGameFx('rock');
+    score=Math.max(0,score-2);
+    scoreNum.textContent=score;
+    showScoreFlash('-2',true);
     spawnRockFragments(item,speed);
     item.dead=true;
     item.opacity=0;
@@ -1276,6 +1395,11 @@ function beginGame(){
   routeTransitionStartY=50;
   routeTransitionTargetY=50;
   routeTransitionStartedAt=0;
+  routeTransitionStartVelocity=0;
+  routeTransitionEndVelocity=0;
+  routePendingTransition=null;
+  routeVelocity=0;
+  routeTiltCurrent=0;
   routeTransitionDurationMs=ROUTE_TRANSITION_MS;
   plane.classList.remove('active');
   plane.classList.add('idle');
@@ -1298,27 +1422,41 @@ function gameLoop(now){
   const finishT=gameFinishing?clamp((now-finishStartedAt)/GAME_FINISH_EASE_MS,0,1):0;
   const finishSpeedScale=gameFinishing?1-vortexEaseInOut(finishT):1;
 
-  let routeTilt=0;
   if(routeTransitionStartedAt){
-    const t=clamp((now-routeTransitionStartedAt)/routeTransitionDurationMs,0,1);
-    // Cubic Hermite: liike alkaa heti pienellä nopeudella mutta pehmenee loppua kohti.
-    const eased=(ROUTE_START_SPEED-2)*t*t*t+
-                (3-2*ROUTE_START_SPEED)*t*t+
-                ROUTE_START_SPEED*t;
-    planeY=routeTransitionStartY+(routeTransitionTargetY-routeTransitionStartY)*eased;
-    const direction=Math.sign(routeTransitionTargetY-routeTransitionStartY);
-    routeTilt=direction*noseTiltAmount*Math.sin(Math.PI*eased);
-    if(t>=1){
+    const motion=routeMotionAt(now);
+    planeY=motion.y;
+    routeVelocity=motion.velocity;
+    if(motion.done){
       planeY=routeTransitionTargetY;
+      routeVelocity=routeTransitionEndVelocity;
       routeTransitionStartedAt=0;
-      routeTilt=0;
-      setEngineFlightState('level');
+      routeTransitionStartVelocity=0;
+      routeTransitionEndVelocity=0;
+
+      if(routePendingTransition){
+        const pending=routePendingTransition;
+        routePendingTransition=null;
+        const pendingStartY=planeY;
+        beginRouteSegment(pendingStartY,pending.targetY,pending.duration,0,0,now);
+        setEngineFlightState(pending.targetY<pendingStartY?'climb':'descend');
+      }else{
+        setEngineFlightState('level');
+      }
     }
   }else{
     planeY=routeTransitionTargetY;
+    routeVelocity=0;
   }
 
+  // Nokka seuraa todellista pystynopeutta. Kun suunta vaihtuu, kallistus
+  // kulkee ensin vaakatasoon ja vasta sitten vastakkaiseen suuntaan.
+  const targetRouteTilt=clamp(routeVelocity/ROUTE_TILT_REFERENCE_SPEED,-1,1)*noseTiltAmount;
+  const tiltAlpha=1-Math.exp(-dt/ROUTE_TILT_RESPONSE_MS);
+  routeTiltCurrent+=(targetRouteTilt-routeTiltCurrent)*tiltAlpha;
+  if(!routeTransitionStartedAt&&Math.abs(routeTiltCurrent)<0.02)routeTiltCurrent=0;
+
   const speedMultiplier=gameSpeedMultiplier(now)*finishSpeedScale;
+  const planeX=planeXPosition();
   const speed=objectSpeedPxPerSec(now)*finishSpeedScale; // px/s
   updateBonusIndicator(now);
 
@@ -1329,11 +1467,10 @@ function gameLoop(now){
   // Toinen harmoninen skaalautuu kulmasäätimen mukana, joten 0° pysäyttää kallistelun täysin.
   const swayRotation=(Math.sin(swayPhase)+Math.sin(swayPhase*2+.8)*.19)*planeSwayRotDeg;
   const swayBob=Math.sin(swayPhase+.35)*planeSwayBobPx;
-  const tilt=routeTilt+swayRotation;
+  const tilt=routeTiltCurrent+swayRotation;
   const planeTopPercent=clamp(planeY,13,87);
   plane.style.top=planeTopPercent+'%';
   plane.style.transform=`translate(-50%,-50%) translateY(${swayBob.toFixed(1)}px) rotate(${tilt.toFixed(1)}deg)`;
-  const planeX=planeXPosition();
   updateClouds(dt*speedMultiplier);
 
   if(!gameFinishing)spawnClock+=dt*speedMultiplier;
@@ -1407,8 +1544,12 @@ function gameLoop(now){
     if(!gameFinishing&&!o.hit){
       const obstacleHalfWidth=Math.max(22,o.el.offsetWidth*.34);
       const planeHalfWidth=Math.max(30,plane.offsetWidth*.32);
-      const horizontalHit=Math.abs(o.x-planeX)<obstacleHalfWidth+planeHalfWidth;
-      const verticalHit=Math.abs(planeY-routeY(o.lane))<=OBSTACLE_HIT_TOLERANCE;
+      const obstacleTargetX=o.type.key==='vortex'?vortexCoreXPosition(o):o.x;
+      const horizontalTolerance=o.type.key==='vortex'?VORTEX_CORE_X_TOLERANCE:obstacleHalfWidth+planeHalfWidth;
+      const horizontalHit=Math.abs(obstacleTargetX-planeX)<horizontalTolerance;
+      const obstacleTargetY=o.type.key==='vortex'?vortexCoreYPercent(o):routeY(o.lane);
+      const hitTolerance=o.type.key==='vortex'?VORTEX_CORE_HIT_TOLERANCE:OBSTACLE_HIT_TOLERANCE;
+      const verticalHit=Math.abs(planeY-obstacleTargetY)<=hitTolerance;
       if(horizontalHit&&verticalHit){
         hitObstacle(o,speed);
         if(o.dead){
