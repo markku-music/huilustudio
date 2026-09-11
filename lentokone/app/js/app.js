@@ -68,21 +68,6 @@ const startOverlay=$('#startOverlay'),calOverlay=$('#calOverlay'),finishOverlay=
 const helpOverlay=$('#helpOverlay'),helpImage=$('#helpImage');
 const instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentTromboneBtn=$('#instrumentTromboneBtn'),instrumentFluteInfoBtn=$('#instrumentFluteInfoBtn'),instrumentTromboneInfoBtn=$('#instrumentTromboneInfoBtn'),replayBtn=$('#replayBtn'),finishBtn=$('#finishBtn'),finishScore=$('#finishScore');
 const calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
-const devPanel=$('#devPanel');
-const objectSizeSlider=$('#objectSizeSlider'),objectSizeValue=$('#objectSizeValue');
-const planeSwayRotSlider=$('#planeSwayRotSlider'),planeSwayRotValue=$('#planeSwayRotValue');
-const planeSwayBobSlider=$('#planeSwayBobSlider'),planeSwayBobValue=$('#planeSwayBobValue');
-const planeSwaySpeedSlider=$('#planeSwaySpeedSlider'),planeSwaySpeedValue=$('#planeSwaySpeedValue');
-const engineVolumeSlider=$('#engineVolumeSlider'),engineVolumeValue=$('#engineVolumeValue');
-const cowVolumeSlider=$('#cowVolumeSlider'),cowVolumeValue=$('#cowVolumeValue');
-const rockVolumeSlider=$('#rockVolumeSlider'),rockVolumeValue=$('#rockVolumeValue');
-const settingsJson=$('#settingsJson'),copyJsonBtn=$('#copyJsonBtn'),importJsonBtn=$('#importJsonBtn'),jsonStatus=$('#jsonStatus');
-const dev={
-  instrument:$('#devInstrument'),notes:$('#devNotes'),
-  db:$('#devDb'),threshold:$('#devThreshold'),f0:$('#devF0'),
-  low:$('#devLow'),high:$('#devHigh'),best:$('#devBest'),gap:$('#devGap'),
-  recognition:$('#devRecognition'),duration:$('#devDuration')
-};
 
 const STARTUP_ASSETS=[
   ['app/assets/images/lentokone_sivu.webp',359114],
@@ -756,48 +741,38 @@ function setInstrument(key){
   REFS=instrument.refs;
   instrumentFluteBtn.setAttribute('aria-pressed',key==='flute'?'true':'false');
   instrumentTromboneBtn.setAttribute('aria-pressed',key==='trombone'?'true':'false');
-  dev.instrument.textContent=instrument.name;
-  dev.notes.textContent=instrument.notes;
   clearRecognition();
 }
 
 function clearRecognition(){
   liveLowHistory=[];liveHighHistory=[];liveF0History=[];
-  dev.f0.textContent='–';dev.low.textContent='–';dev.high.textContent='–';
-  dev.best.textContent='–';dev.gap.textContent='–';dev.recognition.textContent='–';
 }
 
 function processFrame(){
   if(!analyser)return;
   analyser.getFloatTimeDomainData(timeData);
   const level=rmsDb(timeData);
-  dev.db.textContent=Number.isFinite(level.db)?level.db.toFixed(1):'–';
-  dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
   const loud=level.db>dbThreshold;
   plane.classList.toggle('active',loud);
   plane.classList.toggle('idle',!loud);
 
   if(!loud){
     soundStartedAt=null;
-    dev.duration.textContent='–';
     liveLowHistory=[];liveHighHistory=[];liveF0History=[];
     return;
   }
 
   const now=performance.now();
   if(soundStartedAt===null)soundStartedAt=now;
-  dev.duration.textContent=((now-soundStartedAt)/1000).toFixed(2)+' s';
 
   analyser.getFloatFrequencyData(freqData);
   const f0=yin(timeData,ctx.sampleRate);
   if(!f0){
-    dev.f0.textContent='–';
-    if(now-soundStartedAt>=UNCERTAIN_DELAY_MS)dev.recognition.textContent='EPÄVARMA';
     return;
   }
 
   const fp=harmonicVector(f0);
-  if(!fp){dev.f0.textContent=f0.toFixed(1)+' Hz';return}
+  if(!fp)return;
 
   pushLimited(liveF0History,f0);
   const smoothF0=median(liveF0History);
@@ -809,19 +784,12 @@ function processFrame(){
   const lowS=mean(liveLowHistory),highS=mean(liveHighHistory);
   const best=Math.max(lowS,highS),gap=Math.abs(lowS-highS);
 
-  dev.f0.textContent=smoothF0.toFixed(1)+' Hz';
-  dev.low.textContent=lowS.toFixed(1)+' %';
-  dev.high.textContent=highS.toFixed(1)+' %';
-  dev.best.textContent=best.toFixed(1)+' %';
-  dev.gap.textContent=gap.toFixed(1)+' pp';
 
   let name='EPÄVARMA';
   if(best>=ACCEPT&&gap>=MARGIN)name=lowS>highS?'MATALA':'KORKEA';
   if(name==='EPÄVARMA'&&now-soundStartedAt<UNCERTAIN_DELAY_MS){
-    dev.recognition.textContent='–';
     return;
   }
-  dev.recognition.textContent=name;
   if(name!=='EPÄVARMA')setRoute(name);
 }
 
@@ -877,7 +845,6 @@ async function calibrateMicrophoneNoiseFloor(){
     const noiseFloor=samples.length%2?samples[mid]:(samples[mid-1]+samples[mid])/2;
     dbThreshold=Math.max(-70,Math.min(-20,Math.round(noiseFloor+MIC_CAL_MARGIN_DB)));
   }
-  dev.threshold.textContent=dbThreshold.toFixed(0)+' dB';
   updateCalibrationVisual(samples.length?samples[Math.floor(samples.length/2)]:-90,1);
   await sleepMs(300);
   calOverlay.classList.add('closing');
@@ -936,8 +903,8 @@ function applyResponsiveVisualScale(){
   root.style.setProperty('--score-pad-y',(7*s).toFixed(1)+'px');
   root.style.setProperty('--score-pad-y2',(8*s).toFixed(1)+'px');
   root.style.setProperty('--score-pad-x',(13*s).toFixed(1)+'px');
-  root.style.setProperty('--gear-size',Math.min(52,38*s).toFixed(1)+'px');
-  root.style.setProperty('--gear-font-size',Math.min(27,20*s).toFixed(1)+'px');
+  root.style.setProperty('--top-control-size',Math.min(52,38*s).toFixed(1)+'px');
+  root.style.setProperty('--top-control-font-size',Math.min(27,20*s).toFixed(1)+'px');
   root.style.setProperty('--flash-font-size',Math.min(50,baseFlash*s).toFixed(1)+'px');
   root.style.setProperty('--overlay-h1-size',Math.min(56,baseH1*s).toFixed(1)+'px');
   root.style.setProperty('--overlay-p-size',Math.min(24,baseP*s).toFixed(1)+'px');
@@ -1640,85 +1607,6 @@ finishBtn.addEventListener('click',()=>{
   gameTimer.textContent='1:30';
   gameTimer.classList.remove('warning','urgent');
 });
-function currentSettingsObject(){
-  return {
-    version:1,
-    objectSizePercent:Number(objectSizePercent.toFixed(0)),
-    planeSwayRotDeg:Number(planeSwayRotDeg.toFixed(1)),
-    planeSwayBobPx:Number(planeSwayBobPx.toFixed(1)),
-    planeSwaySpeedPercent:Number(planeSwaySpeedPercent.toFixed(0)),
-    engineVolumePercent:Number(engineVolumePercent.toFixed(0)),
-    cowVolumePercent:Number(cowVolumePercent.toFixed(0)),
-    rockVolumePercent:Number(rockVolumePercent.toFixed(0))
-  };
-}
-function refreshSettingsJson(){
-  settingsJson.value=JSON.stringify(currentSettingsObject(),null,2);
-}
-function applySettingsObject(data){
-  if(!data||typeof data!=='object')throw new Error('JSON ei ole objekti');
-  if(Number.isFinite(Number(data.objectSizePercent))){
-    objectSizePercent=clamp(Number(data.objectSizePercent),50,200);
-    objectSizeSlider.value=String(objectSizePercent);
-  }
-  if(Number.isFinite(Number(data.planeSwayRotDeg))){
-    planeSwayRotDeg=clamp(Number(data.planeSwayRotDeg),0,10);
-    planeSwayRotSlider.value=String(planeSwayRotDeg);
-  }
-  if(Number.isFinite(Number(data.planeSwayBobPx))){
-    planeSwayBobPx=clamp(Number(data.planeSwayBobPx),0,12);
-    planeSwayBobSlider.value=String(planeSwayBobPx);
-  }
-  if(Number.isFinite(Number(data.planeSwaySpeedPercent))){
-    planeSwaySpeedPercent=clamp(Number(data.planeSwaySpeedPercent),25,250);
-    planeSwaySpeedSlider.value=String(planeSwaySpeedPercent);
-  }
-  if(Number.isFinite(Number(data.engineVolumePercent))){
-    engineVolumePercent=clamp(Number(data.engineVolumePercent),0,100);
-    engineVolumeSlider.value=String(engineVolumePercent);
-    applyEngineVolume();
-  }
-  if(Number.isFinite(Number(data.cowVolumePercent))){
-    cowVolumePercent=clamp(Number(data.cowVolumePercent),0,100);
-    cowVolumeSlider.value=String(cowVolumePercent);
-  }
-  if(Number.isFinite(Number(data.rockVolumePercent))){
-    rockVolumePercent=clamp(Number(data.rockVolumePercent),0,100);
-    rockVolumeSlider.value=String(rockVolumePercent);
-  }
-  objectSizeValue.textContent=Math.round(objectSizePercent)+' %';
-  planeSwayRotValue.textContent=planeSwayRotDeg.toFixed(1)+'°';
-  planeSwayBobValue.textContent=planeSwayBobPx.toFixed(1)+' px';
-  planeSwaySpeedValue.textContent=Math.round(planeSwaySpeedPercent)+' %';
-  engineVolumeValue.textContent=Math.round(engineVolumePercent)+' %';
-  cowVolumeValue.textContent=Math.round(cowVolumePercent)+' %';
-  rockVolumeValue.textContent=Math.round(rockVolumePercent)+' %';
-  applyResponsiveVisualScale();
-  refreshSettingsJson();
-}
-async function copySettingsJson(){
-  refreshSettingsJson();
-  try{
-    await navigator.clipboard.writeText(settingsJson.value);
-    jsonStatus.textContent='JSON kopioitu';
-  }catch{
-    settingsJson.focus();
-    settingsJson.select();
-    document.execCommand('copy');
-    jsonStatus.textContent='JSON kopioitu';
-  }
-  setTimeout(()=>{jsonStatus.textContent=''},1400);
-}
-function importSettingsJson(){
-  try{
-    applySettingsObject(JSON.parse(settingsJson.value));
-    jsonStatus.textContent='JSON tuotu';
-  }catch(err){
-    jsonStatus.textContent='Virheellinen JSON';
-  }
-  setTimeout(()=>{jsonStatus.textContent=''},1800);
-}
-
 $('#refreshBtn').addEventListener('click',async()=>{
   const btn=$('#refreshBtn');
   if(btn.classList.contains('updating'))return;
@@ -1739,46 +1627,6 @@ $('#refreshBtn').addEventListener('click',async()=>{
     location.replace(url.href);
   }
 });
-$('#gear').addEventListener('click',()=>devPanel.classList.toggle('open'));
-objectSizeSlider.addEventListener('input',()=>{
-  objectSizePercent=Number(objectSizeSlider.value)||100;
-  objectSizeValue.textContent=objectSizePercent+' %';
-  applyResponsiveVisualScale();
-  refreshSettingsJson();
-});
-planeSwayRotSlider.addEventListener('input',()=>{
-  planeSwayRotDeg=Number(planeSwayRotSlider.value);
-  planeSwayRotValue.textContent=planeSwayRotDeg.toFixed(1)+'°';
-  refreshSettingsJson();
-});
-planeSwayBobSlider.addEventListener('input',()=>{
-  planeSwayBobPx=Number(planeSwayBobSlider.value);
-  planeSwayBobValue.textContent=planeSwayBobPx.toFixed(1)+' px';
-  refreshSettingsJson();
-});
-planeSwaySpeedSlider.addEventListener('input',()=>{
-  planeSwaySpeedPercent=Number(planeSwaySpeedSlider.value)||100;
-  planeSwaySpeedValue.textContent=planeSwaySpeedPercent+' %';
-  refreshSettingsJson();
-});
-engineVolumeSlider.addEventListener('input',()=>{
-  engineVolumePercent=Number(engineVolumeSlider.value)||0;
-  engineVolumeValue.textContent=engineVolumePercent+' %';
-  applyEngineVolume();
-  refreshSettingsJson();
-});
-cowVolumeSlider.addEventListener('input',()=>{
-  cowVolumePercent=Number(cowVolumeSlider.value)||0;
-  cowVolumeValue.textContent=cowVolumePercent+' %';
-  refreshSettingsJson();
-});
-rockVolumeSlider.addEventListener('input',()=>{
-  rockVolumePercent=Number(rockVolumeSlider.value)||0;
-  rockVolumeValue.textContent=rockVolumePercent+' %';
-  refreshSettingsJson();
-});
-copyJsonBtn.addEventListener('click',copySettingsJson);
-importJsonBtn.addEventListener('click',importSettingsJson);
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateWithAllGameAudioMuted()});
 
 // iOS voi keskeyttää Web Audio -kontekstin väliaikaisesti sovelluksen vaihtaessa tilaa.
@@ -1791,15 +1639,7 @@ window.addEventListener('pageshow',()=>{void ensureAudioContextRunning()});
 void preloadStartupAssets();
 
 clearRecognition();
-objectSizeValue.textContent=objectSizePercent+' %';
-planeSwayRotValue.textContent=planeSwayRotDeg.toFixed(1)+'°';
-planeSwayBobValue.textContent=planeSwayBobPx.toFixed(1)+' px';
-planeSwaySpeedValue.textContent=planeSwaySpeedPercent+' %';
-engineVolumeValue.textContent=engineVolumePercent+' %';
-cowVolumeValue.textContent=cowVolumePercent+' %';
-rockVolumeValue.textContent=rockVolumePercent+' %';
 applyResponsiveVisualScale();
-refreshSettingsJson();
 })();
 
 // PWA / päivitys

@@ -239,3 +239,16 @@ BASE 4.17.2 – SOITINKUVAKKEET SEURAAVAT IKKUNAN KOKOA
 - Soitinkortti skaalautuu nyt aidosti viewportin pienemmän mitan mukaan (46vmin), max 500 px.
 - Iso Safari-ikkuna kasvattaa kortit ja kuvat selvästi suuremmiksi; pieni ikkuna pienentää ne automaattisesti.
 - Muu pelilogiikka ennallaan.
+
+
+BASE 5.0
+- BASE 4.17.2 hyväksytty uudeksi viralliseksi lähtöpisteeksi.
+- Ei toiminnallisia muutoksia 4.17.2-versioon nähden.
+- Soitinkuvakkeet skaalautuvat ikkunan koon mukaan.
+
+
+BASE 5.1 – KEHITTÄJÄTILA POISTETTU
+- Kehittäjätilan hammasratas, diagnostiikkapaneeli, sliderit ja JSON-tuonti/vienti poistettu.
+- Pelin aiemmat säätöarvot jäivät kiinteiksi oletusarvoiksi: objektit 70 %, keinunta 0,7° / 1,1 px / 58 %, moottori 18 %, lehmä 25 %, kivi 20 %.
+- Kalibroi- ja Päivitä-painikkeet säilyvät.
+- Pelilogiikkaa ei muutettu.

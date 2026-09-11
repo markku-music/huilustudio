@@ -219,23 +219,22 @@ button{font:inherit}
 }
 #gameTimer.warning{background:rgba(255,184,53,.24);color:#8a4d00}
 #gameTimer.urgent{background:rgba(232,74,74,.18);color:#a12626;transform:scale(1.08)}
-#gear,#refreshBtn,#recalBtn{
+#refreshBtn,#recalBtn{
   position:absolute;
   top:max(8px,env(safe-area-inset-top));
   z-index:30;
   border:0;
-  width:var(--gear-size,38px);height:var(--gear-size,38px);
+  width:var(--top-control-size,38px);height:var(--top-control-size,38px);
   border-radius:50%;
   background:rgba(255,255,255,.76);
   color:var(--ink);
-  font-size:var(--gear-font-size,20px);
+  font-size:var(--top-control-font-size,20px);
   font-weight:900;
   box-shadow:0 4px 14px rgba(24,77,113,.12);
 }
-#gear{right:max(10px,env(safe-area-inset-right))}
-#refreshBtn{right:calc(max(10px,env(safe-area-inset-right)) + var(--gear-size,38px) + 8px)}
+#refreshBtn{right:max(10px,env(safe-area-inset-right))}
 #recalBtn{
-  right:calc(max(10px,env(safe-area-inset-right)) + var(--gear-size,38px) + 8px + var(--gear-size,38px) + 8px);
+  right:calc(max(10px,env(safe-area-inset-right)) + var(--top-control-size,38px) + 8px);
   width:auto;
   min-width:68px;
   padding:0 10px;
@@ -244,71 +243,6 @@ button{font:inherit}
 }
 #refreshBtn.updating{animation:refreshSpin .7s linear infinite}
 @keyframes refreshSpin{to{transform:rotate(360deg)}}
-#devPanel{
-  position:absolute;
-  right:max(10px,env(safe-area-inset-right));
-  top:54px;
-  z-index:29;
-  width:min(270px,44vw);
-  max-height:calc(100dvh - 64px);
-  overflow:auto;
-  padding:12px;
-  border-radius:16px;
-  background:rgba(18,47,68,.90);
-  color:white;
-  box-shadow:0 10px 30px rgba(0,0,0,.22);
-  display:none;
-  font-size:12px;
-  backdrop-filter:blur(8px);
-}
-#devPanel.open{display:block}
-.dev-grid{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center}
-.dev-grid strong{text-align:right}
-.dev-setting{
-  margin-top:12px;
-  padding-top:10px;
-  border-top:1px solid rgba(255,255,255,.18);
-}
-.dev-setting-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:7px;
-  font-weight:800;
-}
-.dev-setting input[type=range]{
-  width:100%;
-  margin:0;
-  accent-color:#ffd65a;
-}
-.dev-json textarea{
-  width:100%;
-  min-height:118px;
-  box-sizing:border-box;
-  resize:vertical;
-  border:1px solid rgba(255,255,255,.22);
-  border-radius:10px;
-  padding:8px 9px;
-  background:rgba(255,255,255,.08);
-  color:#fff;
-  font:600 11px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  outline:none;
-}
-.dev-json textarea:focus{border-color:rgba(255,214,90,.75)}
-.dev-json-actions{display:flex;gap:7px;margin-top:7px}
-.dev-json-actions button{
-  flex:1;
-  border:0;
-  border-radius:9px;
-  padding:7px 8px;
-  background:rgba(255,255,255,.14);
-  color:#fff;
-  font-weight:850;
-  cursor:pointer;
-}
-.dev-json-actions button:hover{background:rgba(255,255,255,.21)}
-#jsonStatus{display:block;min-height:16px;margin-top:5px;font-weight:750;color:#ffd65a}
 
 #loadingOverlay{
   position:absolute;
