@@ -60,3 +60,5 @@ DEV 2.4: Viulutausta korjattu paremmin vastaamaan käyttäjän referenssiviulun 
 DEV 2.5: Korjattu viulukuva vaihdettu sovelluksen assets/viulu.png-tiedostoksi vanhan kuvan tilalle.
 
 DEV 2.6: käyttäjän DEV 2.5 JSON-säädöt asetettu uusiksi oletusarvoiksi.
+
+DEV 2.7: Tunnistusmoottori vakautettu: YIN confidence, hysteresis, 3 framen vahvistus, octave guard ja 420 ms hold/release.
