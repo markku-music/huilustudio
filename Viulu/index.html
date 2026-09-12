@@ -1,0 +1,1862 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#17120f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Viulukielet">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <title>Viulukielet DEV 2.6</title>
+  <style>
+    :root {
+      --g:#3FAE5A;
+      --d:#E84B4B;
+      --a:#3F82D7;
+      --e:#F4C542;
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; width:100%; min-height:100%; background:#17120f; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    body { display:flex; justify-content:center; color:white; overflow:hidden; }
+    #app {
+      width:100%;
+      min-height:100vh;
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:0;
+      background:#17120f;
+      position:relative;
+      overflow:hidden;
+    }
+    .stage {
+      position:relative;
+      width:min(100vw, calc(100dvh * 1075 / 1463));
+      max-width:100%;
+      aspect-ratio:1075/1463;
+      flex:0 0 auto;
+      overflow:hidden;
+      background:#2b201a;
+      touch-action:manipulation;
+    }
+    .violin {
+      position:absolute;
+      inset:0;
+      width:100%; height:100%;
+      object-fit:contain;
+      display:block;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    .wash {
+      position:absolute; inset:0;
+      pointer-events:none;
+      background:rgba(0,0,0,0);
+      transition:background 160ms ease;
+    }
+    .stage.listening .wash { background:rgba(0,0,0,.03); }
+    .overlay {
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      overflow:visible;
+      pointer-events:none;
+    }
+    .string-hot {
+      fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      opacity:0;
+      transition:opacity 90ms linear, filter 90ms linear;
+      filter:drop-shadow(0 0 0 rgba(255,255,255,0));
+    }
+    .stage[data-active="G"] .gline,
+    .stage[data-active="D"] .dline,
+    .stage[data-active="A"] .aline,
+    .stage[data-active="E"] .eline {
+      opacity:1;
+      filter:
+        drop-shadow(0 0 calc(var(--glow-width, 16px) * .44) rgb(var(--glow-rgb) / var(--glow-alpha, .92)))
+        drop-shadow(0 0 var(--glow-width, 16px) rgb(var(--glow-rgb) / var(--glow-alpha, .92)));
+    }
+    .gline{color:var(--g); --glow-rgb:63 174 90}
+    .dline{color:var(--d); --glow-rgb:232 75 75}
+    .aline{color:var(--a); --glow-rgb:63 130 215}
+    .eline{color:var(--e); --glow-rgb:244 197 66}
+
+    .string-icons {
+      position:absolute; inset:0;
+      pointer-events:none;
+      z-index:3;
+    }
+    .string-icon {
+      position:absolute;
+      top:75.87%;
+      width:9.77%;
+      height:auto;
+      opacity:0;
+      transform:translate(-50%,-50%) scale(.92);
+      transform-origin:center center;
+      transition:opacity 140ms ease, transform 170ms cubic-bezier(.2,.75,.25,1), filter 150ms ease;
+      filter:drop-shadow(0 2px 3px rgba(0,0,0,.24));
+      user-select:none;
+      -webkit-user-drag:none;
+      will-change:opacity,transform;
+    }
+    .string-icon[data-string="G"] { left:var(--icon-g-x, 42.0%); }
+    .string-icon[data-string="D"] { left:var(--icon-d-x, 47.3%); }
+    .string-icon[data-string="A"] { left:var(--icon-a-x, 51.8%); }
+    .string-icon[data-string="E"] { left:var(--icon-e-x, 55.7%); }
+    .stage[data-active="G"] .string-icon[data-string="G"],
+    .stage[data-active="D"] .string-icon[data-string="D"],
+    .stage[data-active="A"] .string-icon[data-string="A"],
+    .stage[data-active="E"] .string-icon[data-string="E"] {
+      opacity:1;
+      transform:translate(-50%,-50%) scale(1.08);
+      filter:drop-shadow(0 3px 6px rgba(0,0,0,.32));
+    }
+
+
+    .a4-topbar {
+      position:absolute;
+      left:50%;
+      top:max(12px, env(safe-area-inset-top));
+      transform:translateX(-50%);
+      z-index:6;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(22,18,16,.72);
+      color:white;
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      box-shadow:0 2px 18px rgba(0,0,0,.26), inset 0 0 0 1px rgba(255,255,255,.16);
+    }
+    .a4-arrow {
+      width:34px;
+      height:34px;
+      border:0;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      color:white;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      font-size:20px;
+      line-height:1;
+      padding:0;
+    }
+    .a4-arrow:active { transform:scale(.96); }
+    .a4-readout {
+      min-width:104px;
+      text-align:center;
+      line-height:1.05;
+      user-select:none;
+    }
+    .a4-label {
+      display:block;
+      font-size:11px;
+      font-weight:750;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.76);
+      margin-bottom:2px;
+    }
+    .a4-value {
+      display:block;
+      font-size:20px;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+      color:rgba(255,255,255,.96);
+    }
+
+    .tuner-meter {
+      position:absolute;
+      left:var(--tuner-x, 87%);
+      top:var(--tuner-y, 48%);
+      width:var(--tuner-width, 20px);
+      height:var(--tuner-height, 34%);
+      transform:translate(-50%,-50%);
+      z-index:4;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 150ms ease;
+      --tuner-color:#f2e5c7;
+    }
+    .stage.tuner-active .tuner-meter,
+    .stage.tuner-preview .tuner-meter { opacity:1; }
+    .tuner-track {
+      position:absolute;
+      inset:0;
+      border-radius:999px;
+      background:rgba(20,16,14,.46);
+      border:1px solid rgba(255,255,255,.20);
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.16);
+      backdrop-filter:blur(7px);
+      -webkit-backdrop-filter:blur(7px);
+      overflow:visible;
+    }
+    .tuner-rail {
+      position:absolute;
+      left:50%;
+      top:5%;
+      bottom:5%;
+      width:3px;
+      transform:translateX(-50%);
+      border-radius:999px;
+      background:rgba(255,255,255,.34);
+    }
+    .tuner-zone {
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:calc(100% + 8px);
+      height:var(--tuner-zone-height, 16.67%);
+      transform:translate(-50%,-50%);
+      border-radius:999px;
+      background:rgba(245,222,164,.14);
+      border:1px solid rgba(245,222,164,.24);
+      transition:box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+    .tuner-center-line {
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:calc(100% + 12px);
+      height:2px;
+      transform:translate(-50%,-50%);
+      border-radius:999px;
+      background:rgba(255,244,211,.78);
+      box-shadow:0 0 5px rgba(255,239,190,.26);
+    }
+    .tuner-marker {
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:calc(var(--tuner-width, 20px) * .78);
+      aspect-ratio:1;
+      transform:translate(-50%,-50%);
+      border-radius:999px;
+      background:var(--tuner-color);
+      border:2px solid rgba(255,255,255,.86);
+      box-shadow:0 1px 5px rgba(0,0,0,.30), 0 0 9px color-mix(in srgb, var(--tuner-color) 70%, transparent);
+      transition:top 55ms linear, background 100ms ease, box-shadow 120ms ease, transform 120ms ease;
+      will-change:top;
+    }
+    .tuner-meter.in-tune .tuner-zone {
+      background:rgba(255,229,153,.25);
+      border-color:rgba(255,238,188,.70);
+      box-shadow:0 0 10px rgba(255,222,127,.34), 0 0 20px rgba(255,222,127,.15);
+    }
+    .tuner-meter.in-tune .tuner-marker {
+      transform:translate(-50%,-50%) scale(1.08);
+      box-shadow:0 1px 5px rgba(0,0,0,.28), 0 0 11px var(--tuner-color), 0 0 19px rgba(255,235,175,.28);
+    }
+    .dev-check {
+      display:flex;
+      align-items:center;
+      gap:9px;
+      min-height:38px;
+      margin-top:8px;
+      font-size:12px;
+      font-weight:700;
+      color:rgba(255,255,255,.88);
+    }
+    .dev-check input { width:18px; height:18px; accent-color:#fff; }
+
+    .mic {
+      position:absolute;
+      left:50%;
+      bottom:max(14px, env(safe-area-inset-bottom));
+      transform:translateX(-50%);
+      width:68px; height:68px;
+      border:0;
+      border-radius:999px;
+      background:rgba(22,18,16,.80);
+      color:white;
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:grid;
+      place-items:center;
+      box-shadow:0 2px 18px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.18);
+      cursor:pointer;
+      z-index:5;
+    }
+    .mic:active { transform:translateX(-50%) scale(.96); }
+    .mic svg { width:31px; height:31px; fill:currentColor; }
+    .mic .stop { display:none; }
+    .stage.listening .mic .start { display:none; }
+    .stage.listening .mic .stop { display:block; }
+    .stage.listening .mic {
+      background:rgba(246,246,246,.90);
+      color:#181412;
+    }
+
+    .pulse {
+      position:absolute;
+      left:50%;
+      bottom:max(14px, env(safe-area-inset-bottom));
+      width:68px; height:68px;
+      transform:translateX(-50%) scale(1);
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.28);
+      opacity:0;
+      pointer-events:none;
+      z-index:4;
+    }
+    .stage.listening .pulse { opacity:.45; }
+
+    .hint {
+      position:absolute;
+      left:50%; bottom:96px;
+      transform:translateX(-50%);
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(20,16,14,.62);
+      color:rgba(255,255,255,.92);
+      font-size:13px;
+      font-weight:650;
+      letter-spacing:.01em;
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+      pointer-events:none;
+      opacity:1;
+      transition:opacity .25s ease;
+      white-space:nowrap;
+      z-index:4;
+    }
+    .stage.listening .hint { opacity:0; }
+
+    .error {
+      position:absolute;
+      left:14px; right:14px; bottom:98px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(90,20,20,.86);
+      font-size:13px;
+      line-height:1.35;
+      text-align:center;
+      display:none;
+      z-index:6;
+    }
+    .error.show { display:block; }
+
+    .dev-toggle {
+      position:absolute;
+      top:max(12px, env(safe-area-inset-top));
+      right:12px;
+      width:46px; height:46px;
+      border:0;
+      border-radius:999px;
+      background:rgba(22,18,16,.74);
+      color:white;
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      display:grid; place-items:center;
+      box-shadow:0 2px 14px rgba(0,0,0,.24), inset 0 0 0 1px rgba(255,255,255,.16);
+      z-index:10;
+      cursor:pointer;
+    }
+    .dev-toggle:active { transform:scale(.96); }
+    .dev-toggle svg { width:24px; height:24px; fill:currentColor; }
+
+    .dev-panel {
+      width:min(560px, 100%);
+      padding:12px 14px 14px;
+      border-radius:18px;
+      background:rgba(18,15,14,.96);
+      color:white;
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);
+      display:none;
+      flex:0 0 auto;
+      overflow:auto;
+      overscroll-behavior:contain;
+    }
+    .dev-panel.open { display:block; }
+    .dev-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:11px; }
+    .dev-title { font-size:14px; font-weight:800; letter-spacing:.02em; }
+    .string-tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:12px; }
+    .string-tab {
+      min-height:38px; border:0; border-radius:10px; color:white; background:rgba(255,255,255,.10); font-weight:800;
+    }
+    .string-tab.active { box-shadow:inset 0 0 0 2px rgba(255,255,255,.92); }
+    .string-tab[data-string="G"] { background:color-mix(in srgb, var(--g) 62%, #17120f); }
+    .string-tab[data-string="D"] { background:color-mix(in srgb, var(--d) 62%, #17120f); }
+    .string-tab[data-string="A"] { background:color-mix(in srgb, var(--a) 62%, #17120f); }
+    .string-tab[data-string="E"] { background:color-mix(in srgb, var(--e) 62%, #17120f); color:#17120f; }
+    .dev-section-title {
+      margin:14px 0 7px;
+      padding-top:10px;
+      border-top:1px solid rgba(255,255,255,.12);
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.68);
+    }
+    .dev-section-title.first { margin-top:2px; padding-top:0; border-top:0; }
+    .dev-row { margin:10px 0; }
+    .dev-label { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; font-weight:700; margin-bottom:5px; }
+    .dev-value { font-variant-numeric:tabular-nums; color:rgba(255,255,255,.76); }
+    .dev-row input[type="range"] { width:100%; accent-color:#fff; }
+    .dev-actions { display:flex; gap:8px; margin-top:12px; }
+    .dev-actions.json-actions { margin-top:8px; }
+    .dev-actions button {
+      flex:1; min-height:40px; border:0; border-radius:11px; background:rgba(255,255,255,.12); color:white; font-weight:750;
+    }
+    .dev-actions button.active { background:rgba(255,255,255,.90); color:#17120f; }
+    .dev-note { margin-top:9px; font-size:11px; line-height:1.35; color:rgba(255,255,255,.62); }
+    .dev-status { margin-top:7px; min-height:15px; font-size:11px; line-height:1.35; color:rgba(255,255,255,.84); }
+
+
+    .all-values-wrap {
+      margin-top:8px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;
+      overflow:hidden;
+      background:rgba(255,255,255,.035);
+    }
+    .all-values-grid {
+      display:grid;
+      grid-template-columns:32px repeat(6, minmax(40px, 1fr));
+      gap:0;
+      align-items:center;
+      min-width:326px;
+    }
+    .all-values-grid > * {
+      min-width:0;
+      padding:6px 4px;
+      border-right:1px solid rgba(255,255,255,.08);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .all-values-grid > *:nth-child(7n) { border-right:0; }
+    .all-values-grid > *:nth-last-child(-n+7) { border-bottom:0; }
+    .all-values-head {
+      font-size:9px;
+      line-height:1.05;
+      text-align:center;
+      color:rgba(255,255,255,.58);
+      font-weight:800;
+    }
+    .all-values-string {
+      font-size:12px;
+      font-weight:900;
+      text-align:center;
+    }
+    .all-value-input {
+      width:100%;
+      min-height:34px;
+      padding:4px 3px;
+      border:1px solid rgba(255,255,255,.13);
+      border-radius:7px;
+      background:rgba(255,255,255,.08);
+      color:white;
+      font:700 12px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      text-align:center;
+      font-variant-numeric:tabular-nums;
+      outline:none;
+    }
+    .all-value-input:focus { border-color:rgba(255,255,255,.75); background:rgba(255,255,255,.13); }
+    .common-values {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:7px;
+      margin-top:8px;
+    }
+    .common-value {
+      display:grid;
+      grid-template-columns:1fr 68px;
+      gap:6px;
+      align-items:center;
+      font-size:10px;
+      color:rgba(255,255,255,.72);
+      font-weight:700;
+    }
+    .common-value .all-value-input { min-height:32px; }
+
+    .orientation-lock {
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      background:#17120f;
+      color:white;
+      text-align:center;
+    }
+    .orientation-lock-inner {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:16px;
+      max-width:320px;
+    }
+    .orientation-phone {
+      width:74px;
+      height:118px;
+      border:5px solid rgba(255,255,255,.92);
+      border-radius:16px;
+      position:relative;
+      box-shadow:0 0 0 1px rgba(0,0,0,.18), 0 10px 28px rgba(0,0,0,.28);
+    }
+    .orientation-phone::before {
+      content:'';
+      position:absolute;
+      top:7px;
+      left:50%;
+      width:24px;
+      height:4px;
+      border-radius:999px;
+      transform:translateX(-50%);
+      background:rgba(255,255,255,.72);
+    }
+    .orientation-phone::after {
+      content:'';
+      position:absolute;
+      bottom:7px;
+      left:50%;
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      transform:translateX(-50%);
+      background:rgba(255,255,255,.72);
+    }
+    .orientation-lock-title {
+      font-size:22px;
+      font-weight:850;
+      line-height:1.15;
+    }
+    .orientation-lock-text {
+      font-size:14px;
+      line-height:1.45;
+      color:rgba(255,255,255,.72);
+    }
+    @media (orientation:landscape) and (max-height:700px) {
+      .orientation-lock { display:flex; }
+    }
+
+    .sr-only {
+      position:absolute!important;
+      width:1px!important;height:1px!important;
+      padding:0!important;margin:-1px!important;
+      overflow:hidden!important;clip:rect(0,0,0,0)!important;
+      white-space:nowrap!important;border:0!important;
+    }
+    /* Kehittäjäpaneeli ei enää peitä viulua. Pienellä ruudulla se telakoituu alle,
+       suurella ruudulla viulun oikealle puolelle. Taustakuva ja sen SVG-overlay skaalautuvat yhdessä aina käytettävissä olevaan tilaan. */
+    #app.dev-open {
+      justify-content:flex-start;
+      padding:6px 0 0;
+      gap:6px;
+    }
+    #app.dev-open .stage {
+      width:min(100vw, calc((58dvh - 12px) * 1075 / 1463));
+    }
+    #app.dev-open .dev-panel {
+      width:min(560px, 100%);
+      max-height:42dvh;
+      border-radius:18px 18px 0 0;
+    }
+    @media (min-width:700px) {
+      .stage { border-radius:28px; box-shadow:0 16px 60px rgba(0,0,0,.35); }
+    }
+    @media (min-width:860px) {
+      #app.dev-open {
+        flex-direction:row;
+        align-items:center;
+        justify-content:center;
+        gap:14px;
+        padding:14px;
+      }
+      #app.dev-open .stage {
+        width:min(calc(100vw - 364px), calc((100dvh - 28px) * 1075 / 1463));
+      }
+      #app.dev-open .dev-panel {
+        width:320px;
+        max-height:calc(100dvh - 28px);
+        border-radius:18px;
+      }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { transition:none!important; animation:none!important; }
+    }
+  </style>
+</head>
+<body>
+<div class="orientation-lock" id="orientationLock" role="alert" aria-live="assertive">
+  <div class="orientation-lock-inner">
+    <div class="orientation-phone" aria-hidden="true"></div>
+    <div class="orientation-lock-title">Käännä puhelin pystyasentoon</div>
+    <div class="orientation-lock-text">Viuluappi on suunniteltu käytettäväksi pystyasennossa.</div>
+  </div>
+</div>
+<main id="app">
+  <section class="stage" id="stage" data-active="" aria-label="Viulun kielten kuuntelunäkymä">
+    <img class="violin" src="assets/viulu.png" alt="Viulu edestä ja neljä värillistä kieltä">
+    <div class="wash"></div>
+
+    <svg class="overlay" viewBox="0 0 1075 1463" aria-hidden="true">
+      <defs>
+        <linearGradient id="gradG" x1="0" y1="148" x2="0" y2="1105" gradientUnits="userSpaceOnUse">
+          <stop id="gradG0" offset="0%" stop-color="#3FAE5A" stop-opacity="0.55" />
+          <stop id="gradG1" offset="50%" stop-color="#3FAE5A" stop-opacity="1" />
+          <stop id="gradG2" offset="100%" stop-color="#3FAE5A" stop-opacity="0.55" />
+        </linearGradient>
+        <linearGradient id="gradD" x1="0" y1="148" x2="0" y2="1105" gradientUnits="userSpaceOnUse">
+          <stop id="gradD0" offset="0%" stop-color="#E84B4B" stop-opacity="0.55" />
+          <stop id="gradD1" offset="50%" stop-color="#E84B4B" stop-opacity="1" />
+          <stop id="gradD2" offset="100%" stop-color="#E84B4B" stop-opacity="0.55" />
+        </linearGradient>
+        <linearGradient id="gradA" x1="0" y1="148" x2="0" y2="1105" gradientUnits="userSpaceOnUse">
+          <stop id="gradA0" offset="0%" stop-color="#3F82D7" stop-opacity="0.55" />
+          <stop id="gradA1" offset="50%" stop-color="#3F82D7" stop-opacity="1" />
+          <stop id="gradA2" offset="100%" stop-color="#3F82D7" stop-opacity="0.55" />
+        </linearGradient>
+        <linearGradient id="gradE" x1="0" y1="148" x2="0" y2="1105" gradientUnits="userSpaceOnUse">
+          <stop id="gradE0" offset="0%" stop-color="#F4C542" stop-opacity="0.55" />
+          <stop id="gradE1" offset="50%" stop-color="#F4C542" stop-opacity="1" />
+          <stop id="gradE2" offset="100%" stop-color="#F4C542" stop-opacity="0.55" />
+        </linearGradient>
+      </defs>
+      <!-- Hienovaraiset aktiivisen kielen hohtoviivat. Koordinaatit seuraavat taustakuvan kieliä. -->
+      <g id="vibMotionG"><path id="vibG" class="string-hot gline" stroke="url(#gradG)" stroke-width="13" d="M494 148 C484 345 471 635 454 1000 L452 1105" /></g>
+      <g id="vibMotionD"><path id="vibD" class="string-hot dline" stroke="url(#gradD)" stroke-width="10" d="M506 148 C503 355 501 650 497 1000 L497 1105" /></g>
+      <g id="vibMotionA"><path id="vibA" class="string-hot aline" stroke="url(#gradA)" stroke-width="8" d="M520 148 C526 355 535 650 545 1000 L545 1105" /></g>
+      <g id="vibMotionE"><path id="vibE" class="string-hot eline" stroke="url(#gradE)" stroke-width="6" d="M535 148 C548 355 565 650 583 1000 L584 1105" /></g>
+    </svg>
+
+    <div class="string-icons" aria-hidden="true">
+      <img class="string-icon" data-string="G" src="assets/karhu_G.webp" alt="">
+      <img class="string-icon" data-string="D" src="assets/isa_D.webp" alt="">
+      <img class="string-icon" data-string="A" src="assets/aiti_A.webp" alt="">
+      <img class="string-icon" data-string="E" src="assets/lintu_E.webp" alt="">
+    </div>
+
+    <div class="a4-topbar" aria-label="A4-virityksen valinta">
+      <button class="a4-arrow" id="a4DownBtn" type="button" aria-label="Vähennä A4-viritystä yhdellä hertsillä">&#8249;</button>
+      <div class="a4-readout"><span class="a4-label">A4</span><span class="a4-value" id="a4TopValue">440 Hz</span></div>
+      <button class="a4-arrow" id="a4UpBtn" type="button" aria-label="Lisää A4-viritystä yhdellä hertsillä">&#8250;</button>
+    </div>
+
+    <div class="tuner-meter" id="tunerMeter" aria-hidden="true">
+      <div class="tuner-track">
+        <div class="tuner-rail"></div>
+        <div class="tuner-zone"></div>
+        <div class="tuner-center-line"></div>
+        <div class="tuner-marker" id="tunerMarker"></div>
+      </div>
+    </div>
+
+    <button class="dev-toggle" id="devToggle" type="button" aria-label="Avaa kehittäjäasetukset" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.66 7.66 0 0 0 .05-.94 7.66 7.66 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.1 7.1 0 0 0-1.62-.94L14.39 2.8a.5.5 0 0 0-.5-.4h-3.84a.5.5 0 0 0-.49.4L9.2 5.32c-.58.24-1.12.55-1.62.94L5.19 5.3a.5.5 0 0 0-.61.22L2.66 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.66 7.66 0 0 0-.05.94c0 .32.02.63.05.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.23.4.32.61.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.52c.04.24.25.4.49.4h3.84c.24 0 .45-.16.49-.4l.36-2.52c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.1.48.01.61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg>
+    </button>
+
+    <div class="pulse" id="pulse"></div>
+    <div class="hint">Kosketa mikrofonia</div>
+    <button class="mic" id="micBtn" type="button" aria-label="Aloita kuuntelu">
+      <svg class="start" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.25a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v4.25a4 4 0 0 0 4 4Zm-2-8.25a2 2 0 1 1 4 0v4.25a2 2 0 1 1-4 0V6Zm8 4.25a1 1 0 1 1 2 0 8 8 0 0 1-7 7.94V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.81a8 8 0 0 1-7-7.94 1 1 0 1 1 2 0 6 6 0 0 0 12 0Z"/></svg>
+      <svg class="stop" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7.2A2.2 2.2 0 0 1 9.2 5h5.6A2.2 2.2 0 0 1 17 7.2v5.6a2.2 2.2 0 0 1-2.2 2.2H9.2A2.2 2.2 0 0 1 7 12.8V7.2Z"/></svg>
+    </button>
+    <div class="error" id="errorBox" role="alert"></div>
+    <div class="sr-only" id="announce" aria-live="polite"></div>
+  </section>
+    <div class="dev-panel" id="devPanel" aria-label="Kehittäjäasetukset">
+      <div class="dev-head">
+        <div class="dev-title">Värähtelevä kieli</div>
+      </div>
+      <div class="string-tabs" id="stringTabs">
+        <button class="string-tab active" type="button" data-string="G">G</button>
+        <button class="string-tab" type="button" data-string="D">D</button>
+        <button class="string-tab" type="button" data-string="A">A</button>
+        <button class="string-tab" type="button" data-string="E">E</button>
+      </div>
+      <div class="dev-section-title first">Sijainti ja geometria</div>
+      <div class="dev-row">
+        <label class="dev-label" for="lenSlider"><span>Pituus</span><span class="dev-value" id="lenValue">100 %</span></label>
+        <input id="lenSlider" type="range" min="55" max="145" value="100" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="angleSlider"><span>Kulma</span><span class="dev-value" id="angleValue">0.0°</span></label>
+        <input id="angleSlider" type="range" min="-8" max="8" value="0" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="xSlider"><span>X</span><span class="dev-value" id="xValue">0</span></label>
+        <input id="xSlider" type="range" min="-120" max="120" value="0" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="ySlider"><span>Y</span><span class="dev-value" id="yValue">0</span></label>
+        <input id="ySlider" type="range" min="-180" max="180" value="0" step="1">
+      </div>
+      <div class="dev-section-title">Värähtely</div>
+      <div class="dev-row">
+        <label class="dev-label" for="ampSlider"><span>Amplitudi / sivuttaisliike</span><span class="dev-value" id="ampValue">3.8</span></label>
+        <input id="ampSlider" type="range" min="0" max="8" value="3.8" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="speedSlider"><span>Nopeus</span><span class="dev-value" id="speedValue">100 %</span></label>
+        <input id="speedSlider" type="range" min="25" max="200" value="100" step="5">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="fineSlider"><span>Hienoliike</span><span class="dev-value" id="fineValue">10 %</span></label>
+        <input id="fineSlider" type="range" min="0" max="30" value="10" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="followSlider"><span>Hz-seurannan nopeus</span><span class="dev-value" id="followValue">24 %</span></label>
+        <input id="followSlider" type="range" min="5" max="100" value="24" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="centerBrightSlider"><span>Keskikirkkaus</span><span class="dev-value" id="centerBrightValue">70 %</span></label>
+        <input id="centerBrightSlider" type="range" min="0" max="100" value="70" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="glowSlider"><span>Hehkun voimakkuus</span><span class="dev-value" id="glowValue">92 %</span></label>
+        <input id="glowSlider" type="range" min="0" max="100" value="92" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="glowWidthSlider"><span>Hehkun leveys</span><span class="dev-value" id="glowWidthValue">16 px</span></label>
+        <input id="glowWidthSlider" type="range" min="0" max="32" value="16" step="1">
+      </div>
+      <div class="dev-section-title">Ikonien X-sijainti</div>
+      <div class="dev-row">
+        <label class="dev-label" for="iconXGSlider"><span>G / karhu</span><span class="dev-value" id="iconXGValue">42.0 %</span></label>
+        <input id="iconXGSlider" type="range" min="20" max="80" value="42" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="iconXDSlider"><span>D / isä</span><span class="dev-value" id="iconXDValue">47.3 %</span></label>
+        <input id="iconXDSlider" type="range" min="20" max="80" value="47.3" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="iconXASlider"><span>A / äiti</span><span class="dev-value" id="iconXAValue">51.8 %</span></label>
+        <input id="iconXASlider" type="range" min="20" max="80" value="51.8" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="iconXESlider"><span>E / lintu</span><span class="dev-value" id="iconXEValue">55.7 %</span></label>
+        <input id="iconXESlider" type="range" min="20" max="80" value="55.7" step="0.1">
+      </div>
+      <div class="dev-section-title">Viritysmittari</div>
+      <div class="dev-row">
+        <label class="dev-label" for="a4Slider"><span>A4-viritys</span><span class="dev-value" id="a4Value">440 Hz</span></label>
+        <input id="a4Slider" type="range" min="415" max="466" value="440" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="tunerXSlider"><span>Mittarin X</span><span class="dev-value" id="tunerXValue">87.0 %</span></label>
+        <input id="tunerXSlider" type="range" min="65" max="97" value="87" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="tunerYSlider"><span>Mittarin Y</span><span class="dev-value" id="tunerYValue">48.0 %</span></label>
+        <input id="tunerYSlider" type="range" min="20" max="80" value="48" step="0.1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="tunerHeightSlider"><span>Mittarin korkeus</span><span class="dev-value" id="tunerHeightValue">34 %</span></label>
+        <input id="tunerHeightSlider" type="range" min="15" max="60" value="34" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="tunerWidthSlider"><span>Mittarin leveys</span><span class="dev-value" id="tunerWidthValue">20 px</span></label>
+        <input id="tunerWidthSlider" type="range" min="10" max="40" value="20" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="tunerToleranceSlider"><span>Vireessä-alue</span><span class="dev-value" id="tunerToleranceValue">±5 cent</span></label>
+        <input id="tunerToleranceSlider" type="range" min="1" max="15" value="5" step="1">
+      </div>
+      <div class="dev-row">
+        <label class="dev-label" for="tunerSmoothingSlider"><span>Mittarin reagointi</span><span class="dev-value" id="tunerSmoothingValue">18 %</span></label>
+        <input id="tunerSmoothingSlider" type="range" min="5" max="100" value="18" step="1">
+      </div>
+      <label class="dev-check" for="tunerPreviewToggle">
+        <input id="tunerPreviewToggle" type="checkbox" checked>
+        <span>Näytä mittari esikatselussa</span>
+      </label>
+      <div class="dev-section-title">Kaikki kieliarvot</div>
+      <div class="all-values-wrap">
+        <div class="all-values-grid" id="allValuesGrid">
+          <div class="all-values-head"></div>
+          <div class="all-values-head">Pituus</div>
+          <div class="all-values-head">Kulma</div>
+          <div class="all-values-head">X</div>
+          <div class="all-values-head">Y</div>
+          <div class="all-values-head">Amp.</div>
+          <div class="all-values-head">Hehku</div>
+
+          <div class="all-values-string" style="color:var(--g)">G</div>
+          <input class="all-value-input string-value-input" data-string="G" data-prop="length" type="number" min="55" max="145" step="1" aria-label="G pituus">
+          <input class="all-value-input string-value-input" data-string="G" data-prop="angle" type="number" min="-8" max="8" step="0.1" aria-label="G kulma">
+          <input class="all-value-input string-value-input" data-string="G" data-prop="x" type="number" min="-120" max="120" step="1" aria-label="G X">
+          <input class="all-value-input string-value-input" data-string="G" data-prop="y" type="number" min="-180" max="180" step="1" aria-label="G Y">
+          <input class="all-value-input string-value-input" data-string="G" data-prop="amplitude" type="number" min="0" max="8" step="0.1" aria-label="G amplitudi">
+          <input class="all-value-input string-value-input" data-string="G" data-prop="glow" type="number" min="0" max="100" step="1" aria-label="G hehku">
+
+          <div class="all-values-string" style="color:var(--d)">D</div>
+          <input class="all-value-input string-value-input" data-string="D" data-prop="length" type="number" min="55" max="145" step="1" aria-label="D pituus">
+          <input class="all-value-input string-value-input" data-string="D" data-prop="angle" type="number" min="-8" max="8" step="0.1" aria-label="D kulma">
+          <input class="all-value-input string-value-input" data-string="D" data-prop="x" type="number" min="-120" max="120" step="1" aria-label="D X">
+          <input class="all-value-input string-value-input" data-string="D" data-prop="y" type="number" min="-180" max="180" step="1" aria-label="D Y">
+          <input class="all-value-input string-value-input" data-string="D" data-prop="amplitude" type="number" min="0" max="8" step="0.1" aria-label="D amplitudi">
+          <input class="all-value-input string-value-input" data-string="D" data-prop="glow" type="number" min="0" max="100" step="1" aria-label="D hehku">
+
+          <div class="all-values-string" style="color:var(--a)">A</div>
+          <input class="all-value-input string-value-input" data-string="A" data-prop="length" type="number" min="55" max="145" step="1" aria-label="A pituus">
+          <input class="all-value-input string-value-input" data-string="A" data-prop="angle" type="number" min="-8" max="8" step="0.1" aria-label="A kulma">
+          <input class="all-value-input string-value-input" data-string="A" data-prop="x" type="number" min="-120" max="120" step="1" aria-label="A X">
+          <input class="all-value-input string-value-input" data-string="A" data-prop="y" type="number" min="-180" max="180" step="1" aria-label="A Y">
+          <input class="all-value-input string-value-input" data-string="A" data-prop="amplitude" type="number" min="0" max="8" step="0.1" aria-label="A amplitudi">
+          <input class="all-value-input string-value-input" data-string="A" data-prop="glow" type="number" min="0" max="100" step="1" aria-label="A hehku">
+
+          <div class="all-values-string" style="color:var(--e)">E</div>
+          <input class="all-value-input string-value-input" data-string="E" data-prop="length" type="number" min="55" max="145" step="1" aria-label="E pituus">
+          <input class="all-value-input string-value-input" data-string="E" data-prop="angle" type="number" min="-8" max="8" step="0.1" aria-label="E kulma">
+          <input class="all-value-input string-value-input" data-string="E" data-prop="x" type="number" min="-120" max="120" step="1" aria-label="E X">
+          <input class="all-value-input string-value-input" data-string="E" data-prop="y" type="number" min="-180" max="180" step="1" aria-label="E Y">
+          <input class="all-value-input string-value-input" data-string="E" data-prop="amplitude" type="number" min="0" max="8" step="0.1" aria-label="E amplitudi">
+          <input class="all-value-input string-value-input" data-string="E" data-prop="glow" type="number" min="0" max="100" step="1" aria-label="E hehku">
+        </div>
+      </div>
+      <div class="common-values">
+        <label class="common-value"><span>Nopeus %</span><input id="commonSpeedInput" class="all-value-input" type="number" min="25" max="200" step="5"></label>
+        <label class="common-value"><span>Hienoliike %</span><input id="commonFineInput" class="all-value-input" type="number" min="0" max="30" step="1"></label>
+        <label class="common-value"><span>Hz-seuranta %</span><input id="commonFollowInput" class="all-value-input" type="number" min="5" max="100" step="1"></label>
+        <label class="common-value"><span>Keskikirkkaus %</span><input id="commonCenterBrightInput" class="all-value-input" type="number" min="0" max="100" step="1"></label>
+        <label class="common-value"><span>Hehkun leveys px</span><input id="commonGlowWidthInput" class="all-value-input" type="number" min="0" max="32" step="1"></label>
+      </div>
+
+      <div class="dev-actions">
+        <button id="previewBtn" type="button" class="active">Näytä valittu</button>
+        <button id="resetBtn" type="button">Nollaa</button>
+      </div>
+      <div class="dev-actions json-actions">
+        <button id="exportJsonBtn" type="button">Vie JSON</button>
+        <button id="importJsonBtn" type="button">Tuo JSON</button>
+        <input id="importJsonFile" class="sr-only" type="file" accept="application/json,.json">
+      </div>
+      <div class="dev-note">Amplitudi ja hehkun voimakkuus ovat kielikohtaisia. Nopeus, hienoliike, Hz-seuranta, keskikirkkaus ja hehkun leveys ovat yhteisiä kaikille kielille. Ikonien X-sijainnit ovat myös säädettävissä erikseen. Viritysmittarissa A4 on oletuksena 440 Hz ja mittarin sijaintia, kokoa, vireessä-aluetta sekä reagointia voi säätää. Alla voit myös kirjoittaa kaikkien kielten arvot suoraan numeroina. Kaikki säädöt tallentuvat tähän selaimeen automaattisesti.</div>
+      <div class="dev-status" id="devStatus" aria-live="polite"></div>
+    </div>
+
+</main>
+<script>
+(() => {
+  const app = document.getElementById('app');
+  const orientationLock = document.getElementById('orientationLock');
+  const stage = document.getElementById('stage');
+  const micBtn = document.getElementById('micBtn');
+  const pulse = document.getElementById('pulse');
+  const errorBox = document.getElementById('errorBox');
+  const announce = document.getElementById('announce');
+  const devToggle = document.getElementById('devToggle');
+  const devPanel = document.getElementById('devPanel');
+  const stringTabs = Array.from(document.querySelectorAll('.string-tab'));
+  const previewBtn = document.getElementById('previewBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const exportJsonBtn = document.getElementById('exportJsonBtn');
+  const importJsonBtn = document.getElementById('importJsonBtn');
+  const importJsonFile = document.getElementById('importJsonFile');
+  const devStatus = document.getElementById('devStatus');
+  const lenSlider = document.getElementById('lenSlider');
+  const angleSlider = document.getElementById('angleSlider');
+  const xSlider = document.getElementById('xSlider');
+  const ySlider = document.getElementById('ySlider');
+  const ampSlider = document.getElementById('ampSlider');
+  const speedSlider = document.getElementById('speedSlider');
+  const fineSlider = document.getElementById('fineSlider');
+  const followSlider = document.getElementById('followSlider');
+  const centerBrightSlider = document.getElementById('centerBrightSlider');
+  const glowSlider = document.getElementById('glowSlider');
+  const glowWidthSlider = document.getElementById('glowWidthSlider');
+  const iconXGSlider = document.getElementById('iconXGSlider');
+  const iconXDSlider = document.getElementById('iconXDSlider');
+  const iconXASlider = document.getElementById('iconXASlider');
+  const iconXESlider = document.getElementById('iconXESlider');
+  const tunerMeter = document.getElementById('tunerMeter');
+  const a4DownBtn = document.getElementById('a4DownBtn');
+  const a4UpBtn = document.getElementById('a4UpBtn');
+  const a4TopValue = document.getElementById('a4TopValue');
+  const tunerMarker = document.getElementById('tunerMarker');
+  const a4Slider = document.getElementById('a4Slider');
+  const tunerXSlider = document.getElementById('tunerXSlider');
+  const tunerYSlider = document.getElementById('tunerYSlider');
+  const tunerHeightSlider = document.getElementById('tunerHeightSlider');
+  const tunerWidthSlider = document.getElementById('tunerWidthSlider');
+  const tunerToleranceSlider = document.getElementById('tunerToleranceSlider');
+  const tunerSmoothingSlider = document.getElementById('tunerSmoothingSlider');
+  const tunerPreviewToggle = document.getElementById('tunerPreviewToggle');
+  const lenValue = document.getElementById('lenValue');
+  const angleValue = document.getElementById('angleValue');
+  const xValue = document.getElementById('xValue');
+  const yValue = document.getElementById('yValue');
+  const ampValue = document.getElementById('ampValue');
+  const speedValue = document.getElementById('speedValue');
+  const fineValue = document.getElementById('fineValue');
+  const followValue = document.getElementById('followValue');
+  const centerBrightValue = document.getElementById('centerBrightValue');
+  const glowValue = document.getElementById('glowValue');
+  const glowWidthValue = document.getElementById('glowWidthValue');
+  const iconXGValue = document.getElementById('iconXGValue');
+  const iconXDValue = document.getElementById('iconXDValue');
+  const iconXAValue = document.getElementById('iconXAValue');
+  const iconXEValue = document.getElementById('iconXEValue');
+  const a4Value = document.getElementById('a4Value');
+  const tunerXValue = document.getElementById('tunerXValue');
+  const tunerYValue = document.getElementById('tunerYValue');
+  const tunerHeightValue = document.getElementById('tunerHeightValue');
+  const tunerWidthValue = document.getElementById('tunerWidthValue');
+  const tunerToleranceValue = document.getElementById('tunerToleranceValue');
+  const tunerSmoothingValue = document.getElementById('tunerSmoothingValue');
+  const stringValueInputs = Array.from(document.querySelectorAll('.string-value-input'));
+  const commonSpeedInput = document.getElementById('commonSpeedInput');
+  const commonFineInput = document.getElementById('commonFineInput');
+  const commonFollowInput = document.getElementById('commonFollowInput');
+  const commonCenterBrightInput = document.getElementById('commonCenterBrightInput');
+  const commonGlowWidthInput = document.getElementById('commonGlowWidthInput');
+
+  const STRINGS = [
+    { id:'G', hz:196.00, name:'karhukieli' },
+    { id:'D', hz:293.6648, name:'isäkieli' },
+    { id:'A', hz:440.00, name:'äitikieli' },
+    { id:'E', hz:659.2551, name:'lintukieli' }
+  ];
+
+  let ctx = null;
+  let analyser = null;
+  let source = null;
+  let stream = null;
+  let raf = 0;
+  let listening = false;
+  let buf = null;
+  let pending = '';
+  let pendingCount = 0;
+  let active = '';
+  let lastGoodAt = 0;
+  let rmsSmooth = 0;
+
+  // Visuaalinen värähtely säilyttää soitettujen hertsien suhteet, mutta
+  // hidastetaan ruudulle näkyväksi (1 visuaalinen sykli = 50 äänen sykliä).
+  const VISUAL_HZ_DIVISOR = 50;
+  const MOTION_DEFAULTS = {
+    amplitude:{ G:0.5, D:0.7, A:1, E:1.1 },
+    speedPercent:200,
+    finePercent:0,
+    followPercent:5,
+    centerBrightPercent:100,
+    glowPercent:{ G:100, D:92, A:92, E:92 },
+    glowWidthPx:16
+  };
+  let motion = JSON.parse(JSON.stringify(MOTION_DEFAULTS));
+  const ICON_DEFAULTS = { xPercent:{ G:42, D:47.3, A:51.8, E:55.7 } };
+  let iconSettings = JSON.parse(JSON.stringify(ICON_DEFAULTS));
+  const TUNER_DEFAULTS = {
+    a4Hz:440,
+    xPercent:87,
+    yPercent:48,
+    heightPercent:34,
+    widthPx:20,
+    toleranceCents:5,
+    smoothingPercent:18,
+    preview:true,
+    rangeCents:30
+  };
+  let tunerSettings = JSON.parse(JSON.stringify(TUNER_DEFAULTS));
+  let tunerCentsSmooth = 0;
+  let tunerHasValue = false;
+  let visualPitchHz = 0;
+  let vibrationAnimRaf = 0;
+  let vibrationAnimLastTs = 0;
+  let vibrationAnimPhase = 0;
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const VIBRATION_DEFAULTS = {
+    G:{length:72, angle:-1.9, x:29, y:-13, cx:473, cy:627},
+    D:{length:72, angle:-0.1, x:20, y:-16, cx:501, cy:627},
+    A:{length:72, angle:1.2, x:9, y:-20, cx:533, cy:627},
+    E:{length:72, angle:1.7, x:0, y:-16, cx:559, cy:627}
+  };
+  const STORAGE_KEY = 'viulukielet-dev-vibration-2.6';
+  const LEGACY_STORAGE_KEY = 'viulukielet-dev-vibration-2.5';
+  const OLDER_STORAGE_KEY = 'viulukielet-dev-vibration-2.4';
+  const MOTION_STORAGE_KEY = 'viulukielet-dev-motion-2.6';
+  const ICON_STORAGE_KEY = 'viulukielet-dev-icons-2.6';
+  const TUNER_STORAGE_KEY = 'viulukielet-dev-tuner-2.6';
+  let selectedString = 'G';
+  let previewMode = true;
+  let vibration = JSON.parse(JSON.stringify(VIBRATION_DEFAULTS));
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (saved && typeof saved === 'object') {
+      for (const id of ['G','D','A','E']) {
+        if (!saved[id]) continue;
+        for (const k of ['length','angle','x','y']) {
+          const n = Number(saved[id][k]);
+          if (Number.isFinite(n)) vibration[id][k] = n;
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    const savedMotion = JSON.parse(localStorage.getItem(MOTION_STORAGE_KEY) || 'null');
+    if (savedMotion && typeof savedMotion === 'object') {
+      if (savedMotion.amplitude && typeof savedMotion.amplitude === 'object') {
+        for (const id of ['G','D','A','E']) {
+          const n = Number(savedMotion.amplitude[id]);
+          if (Number.isFinite(n)) motion.amplitude[id] = Math.min(8, Math.max(0, n));
+        }
+      }
+      const speed = Number(savedMotion.speedPercent);
+      const fine = Number(savedMotion.finePercent);
+      const follow = Number(savedMotion.followPercent);
+      const centerBright = Number(savedMotion.centerBrightPercent);
+      if (savedMotion.glowPercent && typeof savedMotion.glowPercent === 'object') {
+        for (const id of ['G','D','A','E']) {
+          const n = Number(savedMotion.glowPercent[id]);
+          if (Number.isFinite(n)) motion.glowPercent[id] = Math.min(100, Math.max(0, n));
+        }
+      }
+      const glowWidth = Number(savedMotion.glowWidthPx);
+      if (Number.isFinite(speed)) motion.speedPercent = Math.min(200, Math.max(25, speed));
+      if (Number.isFinite(fine)) motion.finePercent = Math.min(30, Math.max(0, fine));
+      if (Number.isFinite(follow)) motion.followPercent = Math.min(100, Math.max(5, follow));
+      if (Number.isFinite(centerBright)) motion.centerBrightPercent = Math.min(100, Math.max(0, centerBright));
+      if (Number.isFinite(glowWidth)) motion.glowWidthPx = Math.min(32, Math.max(0, glowWidth));
+    }
+  } catch {}
+
+  try {
+    const savedIcons = JSON.parse(localStorage.getItem(ICON_STORAGE_KEY) || 'null');
+    if (savedIcons && savedIcons.xPercent && typeof savedIcons.xPercent === 'object') {
+      for (const id of ['G','D','A','E']) {
+        const n = Number(savedIcons.xPercent[id]);
+        if (Number.isFinite(n)) iconSettings.xPercent[id] = Math.min(80, Math.max(20, n));
+      }
+    }
+  } catch {}
+
+
+  try {
+    const savedTuner = JSON.parse(localStorage.getItem(TUNER_STORAGE_KEY) || 'null');
+    if (savedTuner && typeof savedTuner === 'object') {
+      tunerSettings.a4Hz = Math.round(clampNumber(savedTuner.a4Hz, 415, 466, tunerSettings.a4Hz));
+      tunerSettings.xPercent = clampNumber(savedTuner.xPercent, 65, 97, tunerSettings.xPercent);
+      tunerSettings.yPercent = clampNumber(savedTuner.yPercent, 20, 80, tunerSettings.yPercent);
+      tunerSettings.heightPercent = clampNumber(savedTuner.heightPercent, 15, 60, tunerSettings.heightPercent);
+      tunerSettings.widthPx = clampNumber(savedTuner.widthPx, 10, 40, tunerSettings.widthPx);
+      tunerSettings.toleranceCents = clampNumber(savedTuner.toleranceCents, 1, 15, tunerSettings.toleranceCents);
+      tunerSettings.smoothingPercent = clampNumber(savedTuner.smoothingPercent, 5, 100, tunerSettings.smoothingPercent);
+      if (typeof savedTuner.preview === 'boolean') tunerSettings.preview = savedTuner.preview;
+    }
+  } catch {}
+
+  function saveVibration() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(vibration)); } catch {}
+  }
+
+  function saveMotion() {
+    try { localStorage.setItem(MOTION_STORAGE_KEY, JSON.stringify(motion)); } catch {}
+  }
+
+  function saveIcons() {
+    try { localStorage.setItem(ICON_STORAGE_KEY, JSON.stringify(iconSettings)); } catch {}
+  }
+
+
+  function saveTuner() {
+    try { localStorage.setItem(TUNER_STORAGE_KEY, JSON.stringify(tunerSettings)); } catch {}
+  }
+
+  function setA4Hz(value, save=true) {
+    tunerSettings.a4Hz = Math.round(clampNumber(value, 415, 466, tunerSettings.a4Hz));
+    if (!listening && active) {
+      visualPitchHz = nominalHz(active);
+      if (tunerSettings.preview && devPanel.classList.contains('open')) renderTuner(active, 0, true);
+    }
+    if (save) saveTuner();
+    updateDevControls();
+  }
+
+  function setDevStatus(message) {
+    devStatus.textContent = message || '';
+  }
+
+  function clampNumber(value, min, max, fallback) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function exportVibrationJson() {
+    const settings = {};
+    for (const id of ['G','D','A','E']) {
+      const v = vibration[id];
+      settings[id] = { length:v.length, angle:v.angle, x:v.x, y:v.y };
+    }
+    const payload = {
+      app: 'Viulukielet',
+      version: 'DEV 2.6',
+      vibration: settings,
+      motion: {
+        amplitude:{...motion.amplitude},
+        speedPercent:motion.speedPercent,
+        finePercent:motion.finePercent,
+        followPercent:motion.followPercent,
+        centerBrightPercent:motion.centerBrightPercent,
+        glowPercent:{...motion.glowPercent},
+        glowWidthPx:motion.glowWidthPx
+      },
+      icons: {
+        xPercent:{...iconSettings.xPercent}
+      },
+      tuner: {
+        a4Hz:tunerSettings.a4Hz,
+        xPercent:tunerSettings.xPercent,
+        yPercent:tunerSettings.yPercent,
+        heightPercent:tunerSettings.heightPercent,
+        widthPx:tunerSettings.widthPx,
+        toleranceCents:tunerSettings.toleranceCents,
+        smoothingPercent:tunerSettings.smoothingPercent,
+        preview:tunerSettings.preview
+      }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'viulukielet_vibration_DEV_2.6.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    setDevStatus('JSON viety.');
+  }
+
+  function importVibrationObject(data) {
+    const source = data && typeof data === 'object' && data.vibration && typeof data.vibration === 'object'
+      ? data.vibration
+      : data;
+    if (!source || typeof source !== 'object') throw new Error('Virheellinen JSON');
+
+    let imported = 0;
+    for (const id of ['G','D','A','E']) {
+      const src = source[id];
+      if (!src || typeof src !== 'object') continue;
+      const current = vibration[id];
+      current.length = clampNumber(src.length, 55, 145, current.length);
+      current.angle = clampNumber(src.angle, -8, 8, current.angle);
+      current.x = clampNumber(src.x, -120, 120, current.x);
+      current.y = clampNumber(src.y, -180, 180, current.y);
+      imported++;
+    }
+    if (!imported) throw new Error('JSONissa ei ollut G/D/A/E-asetuksia');
+
+    if (data && data.motion && typeof data.motion === 'object') {
+      const m = data.motion;
+      if (m.amplitude && typeof m.amplitude === 'object') {
+        for (const id of ['G','D','A','E']) {
+          motion.amplitude[id] = clampNumber(m.amplitude[id], 0, 8, motion.amplitude[id]);
+        }
+      }
+      motion.speedPercent = clampNumber(m.speedPercent, 25, 200, motion.speedPercent);
+      motion.finePercent = clampNumber(m.finePercent, 0, 30, motion.finePercent);
+      motion.followPercent = clampNumber(m.followPercent, 5, 100, motion.followPercent);
+      motion.centerBrightPercent = clampNumber(m.centerBrightPercent, 0, 100, motion.centerBrightPercent);
+      if (m.glowPercent && typeof m.glowPercent === 'object') {
+        for (const id of ['G','D','A','E']) {
+          motion.glowPercent[id] = clampNumber(m.glowPercent[id], 0, 100, motion.glowPercent[id]);
+        }
+      }
+      motion.glowWidthPx = clampNumber(m.glowWidthPx, 0, 32, motion.glowWidthPx);
+      saveMotion();
+    }
+
+    if (data && data.icons && data.icons.xPercent && typeof data.icons.xPercent === 'object') {
+      for (const id of ['G','D','A','E']) {
+        iconSettings.xPercent[id] = clampNumber(data.icons.xPercent[id], 20, 80, iconSettings.xPercent[id]);
+      }
+      saveIcons();
+    }
+
+    if (data && data.tuner && typeof data.tuner === 'object') {
+      const t = data.tuner;
+      tunerSettings.a4Hz = Math.round(clampNumber(t.a4Hz, 415, 466, tunerSettings.a4Hz));
+      tunerSettings.xPercent = clampNumber(t.xPercent, 65, 97, tunerSettings.xPercent);
+      tunerSettings.yPercent = clampNumber(t.yPercent, 20, 80, tunerSettings.yPercent);
+      tunerSettings.heightPercent = clampNumber(t.heightPercent, 15, 60, tunerSettings.heightPercent);
+      tunerSettings.widthPx = clampNumber(t.widthPx, 10, 40, tunerSettings.widthPx);
+      tunerSettings.toleranceCents = clampNumber(t.toleranceCents, 1, 15, tunerSettings.toleranceCents);
+      tunerSettings.smoothingPercent = clampNumber(t.smoothingPercent, 5, 100, tunerSettings.smoothingPercent);
+      if (typeof t.preview === 'boolean') tunerSettings.preview = t.preview;
+      saveTuner();
+    }
+
+    applyAllVibrationTransforms();
+    updateIconPositions();
+    updateTunerLayout();
+    updateStringGradients();
+    updateGlowStyles();
+    saveVibration();
+    updateDevControls();
+    setDevStatus('JSON tuotu ja asetukset otettu käyttöön.');
+  }
+
+  function updateIconPositions() {
+    stage.style.setProperty('--icon-g-x', `${iconSettings.xPercent.G}%`);
+    stage.style.setProperty('--icon-d-x', `${iconSettings.xPercent.D}%`);
+    stage.style.setProperty('--icon-a-x', `${iconSettings.xPercent.A}%`);
+    stage.style.setProperty('--icon-e-x', `${iconSettings.xPercent.E}%`);
+  }
+
+
+  function updateTunerLayout() {
+    stage.style.setProperty('--tuner-x', `${tunerSettings.xPercent}%`);
+    stage.style.setProperty('--tuner-y', `${tunerSettings.yPercent}%`);
+    stage.style.setProperty('--tuner-height', `${tunerSettings.heightPercent}%`);
+    stage.style.setProperty('--tuner-width', `${tunerSettings.widthPx}px`);
+    const zoneHeight = Math.min(60, Math.max(3, (tunerSettings.toleranceCents * 2 / (tunerSettings.rangeCents * 2)) * 100));
+    stage.style.setProperty('--tuner-zone-height', `${zoneHeight}%`);
+  }
+
+  function stringColor(id) {
+    return id === 'G' ? '#3FAE5A' : id === 'D' ? '#E84B4B' : id === 'A' ? '#3F82D7' : '#F4C542';
+  }
+
+  function targetHz(id) {
+    const s = STRINGS.find(x => x.id === id);
+    if (!s) return 0;
+    return s.hz * (tunerSettings.a4Hz / 440);
+  }
+
+  function renderTuner(id, cents, forceShow=false) {
+    if (!id || !Number.isFinite(cents)) {
+      stage.classList.remove('tuner-active');
+      tunerMeter.classList.remove('in-tune');
+      return;
+    }
+    const range = tunerSettings.rangeCents;
+    const clamped = Math.max(-range, Math.min(range, cents));
+    const y = 50 - (clamped / range) * 45;
+    tunerMarker.style.top = `${y.toFixed(2)}%`;
+    tunerMeter.style.setProperty('--tuner-color', stringColor(id));
+    tunerMeter.classList.toggle('in-tune', Math.abs(cents) <= tunerSettings.toleranceCents);
+    if (forceShow || listening) stage.classList.add('tuner-active');
+  }
+
+  function updateTunerMeasurement(id, cents) {
+    if (!id || !Number.isFinite(cents)) return;
+    if (!tunerHasValue) {
+      tunerCentsSmooth = cents;
+      tunerHasValue = true;
+    } else {
+      tunerCentsSmooth += (cents - tunerCentsSmooth) * (tunerSettings.smoothingPercent / 100);
+    }
+    renderTuner(id, tunerCentsSmooth, true);
+  }
+
+  function resetTunerVisual() {
+    tunerHasValue = false;
+    tunerCentsSmooth = 0;
+    tunerMarker.style.top = '50%';
+    tunerMeter.classList.remove('in-tune');
+    stage.classList.remove('tuner-active');
+  }
+
+  function updateStringGradients() {
+    const focus = Math.min(1, Math.max(0, motion.centerBrightPercent / 100));
+    const edgeOpacity = 1 - (0.65 * focus);
+    const centerOpacity = 1;
+    for (const id of ['G','D','A','E']) {
+      const s0 = document.getElementById(`grad${id}0`);
+      const s1 = document.getElementById(`grad${id}1`);
+      const s2 = document.getElementById(`grad${id}2`);
+      if (s0) s0.setAttribute('stop-opacity', edgeOpacity.toFixed(3));
+      if (s1) s1.setAttribute('stop-opacity', centerOpacity.toFixed(3));
+      if (s2) s2.setAttribute('stop-opacity', edgeOpacity.toFixed(3));
+    }
+  }
+
+  function updateGlowStyles() {
+    const width = clampNumber(motion.glowWidthPx, 0, 32, 16);
+    stage.style.setProperty('--glow-width', `${width}px`);
+    for (const id of ['G','D','A','E']) {
+      const path = document.getElementById('vib' + id);
+      if (!path) continue;
+      const strength = clampNumber(motion.glowPercent[id], 0, 100, 92) / 100;
+      path.style.setProperty('--glow-alpha', strength.toFixed(3));
+    }
+  }
+
+  function applyVibrationTransform(id) {
+    const el = document.getElementById('vib' + id);
+    const v = vibration[id];
+    if (!el || !v) return;
+    const sy = Math.max(.2, v.length / 100);
+    el.setAttribute('transform', `translate(${v.x} ${v.y}) translate(${v.cx} ${v.cy}) rotate(${v.angle}) scale(1 ${sy}) translate(${-v.cx} ${-v.cy})`);
+  }
+
+  function applyAllVibrationTransforms() {
+    ['G','D','A','E'].forEach(applyVibrationTransform);
+  }
+
+  function syncAllValueInputs() {
+    for (const input of stringValueInputs) {
+      const id = input.dataset.string;
+      const prop = input.dataset.prop;
+      if (!id || !prop || !vibration[id]) continue;
+      const value = prop === 'amplitude' ? motion.amplitude[id] : prop === 'glow' ? motion.glowPercent[id] : vibration[id][prop];
+      input.value = String(value);
+    }
+    commonSpeedInput.value = String(motion.speedPercent);
+    commonFineInput.value = String(motion.finePercent);
+    commonFollowInput.value = String(motion.followPercent);
+    commonCenterBrightInput.value = String(motion.centerBrightPercent);
+    commonGlowWidthInput.value = String(motion.glowWidthPx);
+  }
+
+  function updateDevControls() {
+    const v = vibration[selectedString];
+    lenSlider.value = String(v.length);
+    angleSlider.value = String(v.angle);
+    xSlider.value = String(v.x);
+    ySlider.value = String(v.y);
+    ampSlider.value = String(motion.amplitude[selectedString]);
+    speedSlider.value = String(motion.speedPercent);
+    fineSlider.value = String(motion.finePercent);
+    followSlider.value = String(motion.followPercent);
+    centerBrightSlider.value = String(motion.centerBrightPercent);
+    glowSlider.value = String(motion.glowPercent[selectedString]);
+    glowWidthSlider.value = String(motion.glowWidthPx);
+    iconXGSlider.value = String(iconSettings.xPercent.G);
+    iconXDSlider.value = String(iconSettings.xPercent.D);
+    iconXASlider.value = String(iconSettings.xPercent.A);
+    iconXESlider.value = String(iconSettings.xPercent.E);
+    lenValue.textContent = `${Math.round(v.length)} %`;
+    angleValue.textContent = `${Number(v.angle).toFixed(1)}°`;
+    xValue.textContent = `${Math.round(v.x)}`;
+    yValue.textContent = `${Math.round(v.y)}`;
+    ampValue.textContent = `${Number(motion.amplitude[selectedString]).toFixed(1)}`;
+    speedValue.textContent = `${Math.round(motion.speedPercent)} %`;
+    fineValue.textContent = `${Math.round(motion.finePercent)} %`;
+    followValue.textContent = `${Math.round(motion.followPercent)} %`;
+    centerBrightValue.textContent = `${Math.round(motion.centerBrightPercent)} %`;
+    glowValue.textContent = `${Math.round(motion.glowPercent[selectedString])} %`;
+    glowWidthValue.textContent = `${Math.round(motion.glowWidthPx)} px`;
+    iconXGValue.textContent = `${Number(iconSettings.xPercent.G).toFixed(1)} %`;
+    iconXDValue.textContent = `${Number(iconSettings.xPercent.D).toFixed(1)} %`;
+    iconXAValue.textContent = `${Number(iconSettings.xPercent.A).toFixed(1)} %`;
+    iconXEValue.textContent = `${Number(iconSettings.xPercent.E).toFixed(1)} %`;
+    a4Slider.value = String(Math.round(tunerSettings.a4Hz));
+    tunerXSlider.value = String(tunerSettings.xPercent);
+    tunerYSlider.value = String(tunerSettings.yPercent);
+    tunerHeightSlider.value = String(tunerSettings.heightPercent);
+    tunerWidthSlider.value = String(tunerSettings.widthPx);
+    tunerToleranceSlider.value = String(tunerSettings.toleranceCents);
+    tunerSmoothingSlider.value = String(tunerSettings.smoothingPercent);
+    tunerPreviewToggle.checked = !!tunerSettings.preview;
+    a4Value.textContent = `${Math.round(tunerSettings.a4Hz)} Hz`;
+    a4TopValue.textContent = `${Math.round(tunerSettings.a4Hz)} Hz`;
+    tunerXValue.textContent = `${Number(tunerSettings.xPercent).toFixed(1)} %`;
+    tunerYValue.textContent = `${Number(tunerSettings.yPercent).toFixed(1)} %`;
+    tunerHeightValue.textContent = `${Math.round(tunerSettings.heightPercent)} %`;
+    tunerWidthValue.textContent = `${Math.round(tunerSettings.widthPx)} px`;
+    tunerToleranceValue.textContent = `±${Math.round(tunerSettings.toleranceCents)} cent`;
+    tunerSmoothingValue.textContent = `${Math.round(tunerSettings.smoothingPercent)} %`;
+    stringTabs.forEach(b => b.classList.toggle('active', b.dataset.string === selectedString));
+    previewBtn.classList.toggle('active', previewMode);
+    previewBtn.textContent = previewMode ? 'Näytä valittu' : 'Esikatselu pois';
+    if (previewMode && !listening) {
+      visualPitchHz = nominalHz(selectedString);
+      setActive(selectedString);
+      stage.classList.toggle('tuner-preview', tunerSettings.preview && devPanel.classList.contains('open'));
+      if (tunerSettings.preview && devPanel.classList.contains('open')) renderTuner(selectedString, 0, true);
+    } else if (!listening) {
+      stage.classList.remove('tuner-preview');
+    }
+    syncAllValueInputs();
+  }
+
+  function readDevControls() {
+    const v = vibration[selectedString];
+    v.length = Number(lenSlider.value);
+    v.angle = Number(angleSlider.value);
+    v.x = Number(xSlider.value);
+    v.y = Number(ySlider.value);
+    applyVibrationTransform(selectedString);
+    saveVibration();
+    updateDevControls();
+  }
+
+  function readMotionControls() {
+    motion.amplitude[selectedString] = Number(ampSlider.value);
+    motion.speedPercent = Number(speedSlider.value);
+    motion.finePercent = Number(fineSlider.value);
+    motion.followPercent = Number(followSlider.value);
+    motion.centerBrightPercent = Number(centerBrightSlider.value);
+    motion.glowPercent[selectedString] = Number(glowSlider.value);
+    motion.glowWidthPx = Number(glowWidthSlider.value);
+    saveMotion();
+    updateStringGradients();
+    updateGlowStyles();
+    updateDevControls();
+  }
+
+  function readIconControls() {
+    iconSettings.xPercent.G = Number(iconXGSlider.value);
+    iconSettings.xPercent.D = Number(iconXDSlider.value);
+    iconSettings.xPercent.A = Number(iconXASlider.value);
+    iconSettings.xPercent.E = Number(iconXESlider.value);
+    saveIcons();
+    updateIconPositions();
+    updateDevControls();
+  }
+
+
+  function readTunerControls() {
+    setA4Hz(a4Slider.value, false);
+    tunerSettings.xPercent = Number(tunerXSlider.value);
+    tunerSettings.yPercent = Number(tunerYSlider.value);
+    tunerSettings.heightPercent = Number(tunerHeightSlider.value);
+    tunerSettings.widthPx = Number(tunerWidthSlider.value);
+    tunerSettings.toleranceCents = Number(tunerToleranceSlider.value);
+    tunerSettings.smoothingPercent = Number(tunerSmoothingSlider.value);
+    tunerSettings.preview = !!tunerPreviewToggle.checked;
+    saveTuner();
+    updateTunerLayout();
+    if (!listening && previewMode && devPanel.classList.contains('open')) {
+      stage.classList.toggle('tuner-preview', tunerSettings.preview);
+      if (tunerSettings.preview) renderTuner(selectedString, 0, true);
+      else resetTunerVisual();
+    }
+    updateDevControls();
+  }
+
+  function nominalHz(id) {
+    return targetHz(id);
+  }
+
+  function setVisualPitch(freq) {
+    const n = Number(freq);
+    if (!Number.isFinite(n) || n <= 0) return;
+    if (visualPitchHz <= 0) visualPitchHz = n;
+    else visualPitchHz += (n - visualPitchHz) * (motion.followPercent / 100);
+  }
+
+  // DEV 0.9: värähtely ei enää siirrä koko kieliviivaa sivuttain.
+  // Kielen päät pysyvät paikoillaan ja keskiosa taipuu kuten jännitetty kieli.
+  const VIBRATION_PATH_POINTS = {
+    G:[[494,148],[484,345],[471,635],[454,1000],[452,1105]],
+    D:[[506,148],[503,355],[501,650],[497,1000],[497,1105]],
+    A:[[520,148],[526,355],[535,650],[545,1000],[545,1105]],
+    E:[[535,148],[548,355],[565,650],[583,1000],[584,1105]]
+  };
+  // DEV 2.6: käyttäjän DEV 2.5 JSON -säädöt on asetettu uusiksi oletusarvoiksi uuden viulukuvan päälle.
+  // Amplitudi on kielikohtainen; nopeus, hienoliike, Hz-seuranta ja keskikirkkaus ovat yhteisiä kaikille kielille.
+
+  function catmullRomPath(points) {
+    if (!points || points.length < 2) return '';
+    let d = `M${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)}`;
+    for (let i=0; i<points.length-1; i++) {
+      const p0 = points[Math.max(0, i-1)];
+      const p1 = points[i];
+      const p2 = points[i+1];
+      const p3 = points[Math.min(points.length-1, i+2)];
+      const c1x = p1[0] + (p2[0]-p0[0]) / 6;
+      const c1y = p1[1] + (p2[1]-p0[1]) / 6;
+      const c2x = p2[0] - (p3[0]-p1[0]) / 6;
+      const c2y = p2[1] - (p3[1]-p1[1]) / 6;
+      d += ` C${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+    }
+    return d;
+  }
+
+  function vibrationPath(id, phase) {
+    const base = VIBRATION_PATH_POINTS[id];
+    if (!base) return '';
+    const amp = motion.amplitude[id] ?? 3;
+    const swing = Math.sin(phase);
+    const last = base.length - 1;
+    const moved = base.map((p, i) => {
+      // Fundamental mode: 0 liike päissä, suurin liike keskellä.
+      const t = i / last;
+      const envelope = Math.sin(Math.PI * t);
+      // Hyvin pieni toinen komponentti estää liian konemaisen liikkeen,
+      // mutta ei kasvata kokonaisliikettä olennaisesti.
+      const fine = Math.sin(phase * 2.03) * (motion.finePercent / 100);
+      const dx = amp * envelope * (swing + fine);
+      return [p[0] + dx, p[1]];
+    });
+    return catmullRomPath(moved);
+  }
+
+  function resetAnimatedPaths(exceptId='') {
+    for (const id of ['G','D','A','E']) {
+      if (id === exceptId) continue;
+      const path = document.getElementById('vib' + id);
+      if (path) path.setAttribute('d', catmullRomPath(VIBRATION_PATH_POINTS[id]));
+      const g = document.getElementById('vibMotion' + id);
+      if (g) g.setAttribute('transform', 'translate(0 0)');
+    }
+  }
+
+  function animateStringVibration(ts) {
+    vibrationAnimRaf = requestAnimationFrame(animateStringVibration);
+    const id = active;
+    if (!id || reduceMotion) {
+      vibrationAnimLastTs = ts;
+      vibrationAnimPhase = 0;
+      resetAnimatedPaths();
+      return;
+    }
+
+    const path = document.getElementById('vib' + id);
+    if (!path) return;
+    resetAnimatedPaths(id);
+
+    if (!vibrationAnimLastTs) vibrationAnimLastTs = ts;
+    const dt = Math.min(0.05, Math.max(0, (ts - vibrationAnimLastTs) / 1000));
+    vibrationAnimLastTs = ts;
+
+    const hz = visualPitchHz > 0 ? visualPitchHz : nominalHz(id);
+    const visualHz = Math.max(0.5, Math.min(28, (hz / VISUAL_HZ_DIVISOR) * (motion.speedPercent / 100)));
+    vibrationAnimPhase = (vibrationAnimPhase + dt * Math.PI * 2 * visualHz) % (Math.PI * 2);
+
+    // Päät pysyvät paikallaan, keskiosa värähtelee. Nopeus seuraa edelleen Hz-suhdetta.
+    path.setAttribute('d', vibrationPath(id, vibrationAnimPhase));
+  }
+
+  function centsBetween(f, target) {
+    return 1200 * Math.log2(f / target);
+  }
+
+  function nearestString(freq) {
+    let best = null;
+    for (const s of STRINGS) {
+      const target = targetHz(s.id);
+      const cents = centsBetween(freq, target);
+      const abs = Math.abs(cents);
+      if (!best || abs < best.abs) best = { ...s, targetHz:target, cents, abs };
+    }
+    return best && best.abs <= 135 ? best : null;
+  }
+
+  // YIN-pohjainen perustaajuusarvio. Optimoitu viulun avoimille kielille G3–E5.
+  function yinPitch(buffer, sampleRate) {
+    const n = buffer.length;
+    let mean = 0;
+    for (let i=0;i<n;i++) mean += buffer[i];
+    mean /= n;
+
+    let rms = 0;
+    for (let i=0;i<n;i++) {
+      const v = buffer[i] - mean;
+      rms += v*v;
+    }
+    rms = Math.sqrt(rms/n);
+    if (rms < 0.008) return {freq:0, rms, clarity:0};
+
+    const minFreq = 170;
+    const maxFreq = 760;
+    const minTau = Math.max(2, Math.floor(sampleRate/maxFreq));
+    const maxTau = Math.min(Math.floor(sampleRate/minFreq), Math.floor(n/2)-1);
+    const diff = new Float32Array(maxTau+1);
+
+    for (let tau=1; tau<=maxTau; tau++) {
+      let sum=0;
+      const lim = n - tau;
+      for (let i=0; i<lim; i++) {
+        const d = (buffer[i]-mean) - (buffer[i+tau]-mean);
+        sum += d*d;
+      }
+      diff[tau] = sum;
+    }
+
+    const cmnd = new Float32Array(maxTau+1);
+    cmnd[0] = 1;
+    let running = 0;
+    for (let tau=1; tau<=maxTau; tau++) {
+      running += diff[tau];
+      cmnd[tau] = running ? diff[tau] * tau / running : 1;
+    }
+
+    const threshold = 0.16;
+    let tau = -1;
+    for (let t=minTau; t<=maxTau; t++) {
+      if (cmnd[t] < threshold) {
+        while (t+1<=maxTau && cmnd[t+1] < cmnd[t]) t++;
+        tau = t;
+        break;
+      }
+    }
+    if (tau < 0) {
+      let bestVal = 1;
+      for (let t=minTau; t<=maxTau; t++) {
+        if (cmnd[t] < bestVal) { bestVal=cmnd[t]; tau=t; }
+      }
+      if (tau < 0 || bestVal > 0.35) return {freq:0, rms, clarity:0};
+    }
+
+    let betterTau = tau;
+    if (tau > 1 && tau < maxTau) {
+      const s0 = cmnd[tau-1], s1 = cmnd[tau], s2 = cmnd[tau+1];
+      const denom = (2*s1 - s2 - s0);
+      if (Math.abs(denom) > 1e-9) betterTau = tau + (s2-s0)/(2*denom);
+    }
+    const freq = sampleRate / betterTau;
+    const clarity = Math.max(0, 1 - cmnd[tau]);
+    return {freq, rms, clarity};
+  }
+
+  function setActive(id) {
+    if (id === active) return;
+    active = id;
+    stage.dataset.active = id;
+    vibrationAnimPhase = 0;
+    vibrationAnimLastTs = performance.now();
+    if (id) {
+      if (!listening) {
+        visualPitchHz = nominalHz(id);
+        if (tunerSettings.preview && devPanel.classList.contains('open') && previewMode) {
+          stage.classList.add('tuner-preview');
+          renderTuner(id, 0, true);
+        }
+      }
+      const s = STRINGS.find(x => x.id === id);
+      announce.textContent = s ? s.name : '';
+    } else {
+      visualPitchHz = 0;
+      resetAnimatedPaths();
+      stage.classList.remove('tuner-preview');
+      resetTunerVisual();
+    }
+  }
+
+  function renderPulse(rms) {
+    rmsSmooth += (rms - rmsSmooth) * 0.18;
+    const t = Math.max(0, Math.min(1, (rmsSmooth - 0.006) / 0.10));
+    const scale = 1 + t * 0.52;
+    pulse.style.transform = `translateX(-50%) scale(${scale.toFixed(3)})`;
+    pulse.style.opacity = listening ? String(0.18 + t*0.48) : '0';
+  }
+
+  function frame() {
+    if (!listening || !analyser) return;
+    analyser.getFloatTimeDomainData(buf);
+    const out = yinPitch(buf, ctx.sampleRate);
+    renderPulse(out.rms);
+
+    let candidate = null;
+    if (out.freq > 0 && out.clarity > 0.55) candidate = nearestString(out.freq);
+
+    const now = performance.now();
+    if (candidate) {
+      lastGoodAt = now;
+      setVisualPitch(out.freq);
+      if (pending === candidate.id) pendingCount++;
+      else { pending = candidate.id; pendingCount = 1; }
+      if (pendingCount >= 2) {
+        setActive(candidate.id);
+        if (active === candidate.id) updateTunerMeasurement(candidate.id, candidate.cents);
+      }
+    } else {
+      pending = '';
+      pendingCount = 0;
+      if (now - lastGoodAt > 260) setActive('');
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function isPhoneLandscape() {
+    return window.matchMedia('(orientation: landscape) and (max-height: 700px)').matches;
+  }
+
+  function handleOrientation() {
+    const blocked = isPhoneLandscape();
+    if (orientationLock) orientationLock.setAttribute('aria-hidden', blocked ? 'false' : 'true');
+    if (blocked && listening) stop();
+  }
+
+  async function start() {
+    if (isPhoneLandscape()) { handleOrientation(); return; }
+    errorBox.classList.remove('show');
+    errorBox.textContent = '';
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 },
+        video:false
+      });
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      await ctx.resume();
+      source = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
+      source.connect(analyser);
+      buf = new Float32Array(analyser.fftSize);
+      listening = true;
+      stage.classList.add('listening');
+      micBtn.setAttribute('aria-label','Lopeta kuuntelu');
+      lastGoodAt = performance.now();
+      raf = requestAnimationFrame(frame);
+    } catch (err) {
+      stop();
+      errorBox.textContent = 'Mikrofonia ei saatu käyttöön. Salli mikrofonin käyttö selaimen asetuksista ja kokeile uudelleen.';
+      errorBox.classList.add('show');
+      console.error(err);
+    }
+  }
+
+  function stop() {
+    listening = false;
+    cancelAnimationFrame(raf);
+    setActive(devPanel.classList.contains('open') && previewMode ? selectedString : '');
+    pending=''; pendingCount=0; rmsSmooth=0;
+    stage.classList.remove('listening');
+    micBtn.setAttribute('aria-label','Aloita kuuntelu');
+    pulse.style.opacity='0';
+    if (source) { try{ source.disconnect(); }catch{} source=null; }
+    if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    if (ctx) { try{ ctx.close(); }catch{} ctx=null; }
+    analyser=null; buf=null;
+  }
+
+  devToggle.addEventListener('click', () => {
+    const open = !devPanel.classList.contains('open');
+    devPanel.classList.toggle('open', open);
+    app.classList.toggle('dev-open', open);
+    devToggle.setAttribute('aria-expanded', String(open));
+    if (open && previewMode && !listening) {
+      visualPitchHz = nominalHz(selectedString);
+      setActive(selectedString);
+      stage.classList.toggle('tuner-preview', tunerSettings.preview);
+      if (tunerSettings.preview) renderTuner(selectedString, 0, true);
+    }
+    if (!open && previewMode && !listening) {
+      stage.classList.remove('tuner-preview');
+      setActive('');
+    }
+  });
+
+  stringTabs.forEach(btn => btn.addEventListener('click', () => {
+    selectedString = btn.dataset.string || 'G';
+    updateDevControls();
+  }));
+
+  [lenSlider, angleSlider, xSlider, ySlider].forEach(slider => slider.addEventListener('input', readDevControls));
+  [ampSlider, speedSlider, fineSlider, followSlider, centerBrightSlider, glowSlider, glowWidthSlider].forEach(slider => slider.addEventListener('input', readMotionControls));
+  [iconXGSlider, iconXDSlider, iconXASlider, iconXESlider].forEach(slider => slider.addEventListener('input', readIconControls));
+  [a4Slider, tunerXSlider, tunerYSlider, tunerHeightSlider, tunerWidthSlider, tunerToleranceSlider, tunerSmoothingSlider].forEach(slider => slider.addEventListener('input', readTunerControls));
+
+  a4DownBtn.addEventListener('click', () => setA4Hz(tunerSettings.a4Hz - 1));
+  a4UpBtn.addEventListener('click', () => setA4Hz(tunerSettings.a4Hz + 1));
+  tunerPreviewToggle.addEventListener('change', readTunerControls);
+
+  stringValueInputs.forEach(input => input.addEventListener('change', () => {
+    const id = input.dataset.string;
+    const prop = input.dataset.prop;
+    if (!id || !prop || !vibration[id]) return;
+    const n = Number(input.value);
+    if (!Number.isFinite(n)) { syncAllValueInputs(); return; }
+    if (prop === 'amplitude') {
+      motion.amplitude[id] = clampNumber(n, 0, 8, motion.amplitude[id]);
+      saveMotion();
+    } else if (prop === 'glow') {
+      motion.glowPercent[id] = clampNumber(n, 0, 100, motion.glowPercent[id]);
+      saveMotion();
+      updateGlowStyles();
+    } else {
+      const ranges = { length:[55,145], angle:[-8,8], x:[-120,120], y:[-180,180] };
+      const [min,max] = ranges[prop] || [-9999,9999];
+      vibration[id][prop] = clampNumber(n, min, max, vibration[id][prop]);
+      applyVibrationTransform(id);
+      saveVibration();
+    }
+    if (id === selectedString) updateDevControls();
+    else syncAllValueInputs();
+  }));
+
+  function readCommonNumberInputs() {
+    motion.speedPercent = clampNumber(commonSpeedInput.value, 25, 200, motion.speedPercent);
+    motion.finePercent = clampNumber(commonFineInput.value, 0, 30, motion.finePercent);
+    motion.followPercent = clampNumber(commonFollowInput.value, 5, 100, motion.followPercent);
+    motion.centerBrightPercent = clampNumber(commonCenterBrightInput.value, 0, 100, motion.centerBrightPercent);
+    motion.glowWidthPx = clampNumber(commonGlowWidthInput.value, 0, 32, motion.glowWidthPx);
+    saveMotion();
+    updateStringGradients();
+    updateGlowStyles();
+    updateDevControls();
+  }
+  [commonSpeedInput, commonFineInput, commonFollowInput, commonCenterBrightInput, commonGlowWidthInput].forEach(input => input.addEventListener('change', readCommonNumberInputs));
+
+  previewBtn.addEventListener('click', () => {
+    previewMode = !previewMode;
+    if (!listening) {
+      if (previewMode) visualPitchHz = nominalHz(selectedString);
+      setActive(previewMode ? selectedString : '');
+    }
+    updateDevControls();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    vibration[selectedString] = JSON.parse(JSON.stringify(VIBRATION_DEFAULTS[selectedString]));
+    motion.amplitude[selectedString] = MOTION_DEFAULTS.amplitude[selectedString];
+    motion.glowPercent[selectedString] = MOTION_DEFAULTS.glowPercent[selectedString];
+    iconSettings.xPercent[selectedString] = ICON_DEFAULTS.xPercent[selectedString];
+    applyVibrationTransform(selectedString);
+    updateIconPositions();
+    saveVibration();
+    saveMotion();
+    saveIcons();
+    updateGlowStyles();
+    updateDevControls();
+    setDevStatus(`${selectedString}-kieli, amplitudi, hehku ja ikonin X nollattu.`);
+  });
+
+  exportJsonBtn.addEventListener('click', exportVibrationJson);
+
+  importJsonBtn.addEventListener('click', () => {
+    importJsonFile.value = '';
+    importJsonFile.click();
+  });
+
+  importJsonFile.addEventListener('change', async () => {
+    const file = importJsonFile.files && importJsonFile.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      importVibrationObject(data);
+    } catch (err) {
+      console.error(err);
+      setDevStatus('JSON-tuonti epäonnistui. Tarkista tiedosto.');
+    } finally {
+      importJsonFile.value = '';
+    }
+  });
+
+  applyAllVibrationTransforms();
+  updateIconPositions();
+  updateTunerLayout();
+  updateStringGradients();
+  updateGlowStyles();
+  updateDevControls();
+  setActive('');
+
+  vibrationAnimRaf = requestAnimationFrame(animateStringVibration);
+
+  micBtn.addEventListener('click', () => listening ? stop() : start());
+  window.addEventListener('resize', handleOrientation);
+  window.addEventListener('orientationchange', handleOrientation);
+  handleOrientation();
+  document.addEventListener('visibilitychange', () => { if (document.hidden && listening) stop(); });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+})();
+</script>
+</body>
+</html>
