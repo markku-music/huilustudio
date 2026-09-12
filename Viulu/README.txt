@@ -68,3 +68,5 @@ DEV 2.8: Puhelimen normaalinäkymä skaalautuu nyt näytön leveyden mukaan ylä
 DEV 2.9: Normaalinäkymä skaalautuu nyt näytön korkeuden mukaan: ylä- ja alareunat osuvat näyttöön, vasen/oikea reuna joustavat ja tarvittaessa rajautuvat.
 
 DEV 3.0: Mikrofoni siirretty oikeaan alakulmaan, Kosketa mikrofonia -teksti poistettu, ja yläreunan hertsinäytöstä poistettu A4-teksti.
+
+DEV 3.1: Service worker korjattu network-first-malliin. skipWaiting + clients.claim + updateViaCache:none estävät vanhan version jumittumisen välimuistiin.

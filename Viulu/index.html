@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Viulukielet">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <title>Viulukielet DEV 3.0</title>
+  <title>Viulukielet DEV 3.1</title>
   <style>
     :root {
       --g:#3FAE5A;
@@ -1097,7 +1097,7 @@
     }
     const payload = {
       app: 'Viulukielet',
-      version: 'DEV 3.0',
+      version: 'DEV 3.1',
       vibration: settings,
       motion: {
         amplitude:{...motion.amplitude},
@@ -1126,7 +1126,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'viulukielet_vibration_DEV_3.0.json';
+    a.download = 'viulukielet_vibration_DEV_3.1.json';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1925,7 +1925,20 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && listening) stop(); });
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('./sw.js?v=3.1', { updateViaCache:'none' });
+        await reg.update();
+        let reloadingForSw = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloadingForSw) return;
+          reloadingForSw = true;
+          location.reload();
+        });
+      } catch (err) {
+        console.warn('Service worker -päivitys epäonnistui', err);
+      }
+    });
   }
 })();
 </script>
