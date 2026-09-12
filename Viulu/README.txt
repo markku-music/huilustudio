@@ -66,3 +66,5 @@ DEV 2.7: Tunnistusmoottori vakautettu: YIN confidence, hysteresis, 3 framen vahv
 DEV 2.8: Puhelimen normaalinäkymä skaalautuu nyt näytön leveyden mukaan yläreunasta alaspäin (top-anchored + width-driven). Kehittäjätila säilyttää tilanjaon, jotta säädöt ja viulu näkyvät yhtä aikaa.
 
 DEV 2.9: Normaalinäkymä skaalautuu nyt näytön korkeuden mukaan: ylä- ja alareunat osuvat näyttöön, vasen/oikea reuna joustavat ja tarvittaessa rajautuvat.
+
+DEV 3.0: Mikrofoni siirretty oikeaan alakulmaan, Kosketa mikrofonia -teksti poistettu, ja yläreunan hertsinäytöstä poistettu A4-teksti.

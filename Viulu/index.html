@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Viulukielet">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <title>Viulukielet DEV 2.9</title>
+  <title>Viulukielet DEV 3.0</title>
   <style>
     :root {
       --g:#3FAE5A;
@@ -156,17 +156,8 @@
     .a4-readout {
       min-width:104px;
       text-align:center;
-      line-height:1.05;
+      line-height:1;
       user-select:none;
-    }
-    .a4-label {
-      display:block;
-      font-size:11px;
-      font-weight:750;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-      color:rgba(255,255,255,.76);
-      margin-bottom:2px;
     }
     .a4-value {
       display:block;
@@ -272,9 +263,8 @@
 
     .mic {
       position:absolute;
-      left:50%;
+      right:max(14px, env(safe-area-inset-right));
       bottom:max(14px, env(safe-area-inset-bottom));
-      transform:translateX(-50%);
       width:68px; height:68px;
       border:0;
       border-radius:999px;
@@ -288,7 +278,7 @@
       cursor:pointer;
       z-index:5;
     }
-    .mic:active { transform:translateX(-50%) scale(.96); }
+    .mic:active { transform:scale(.96); }
     .mic svg { width:31px; height:31px; fill:currentColor; }
     .mic .stop { display:none; }
     .stage.listening .mic .start { display:none; }
@@ -300,10 +290,10 @@
 
     .pulse {
       position:absolute;
-      left:50%;
+      right:max(14px, env(safe-area-inset-right));
       bottom:max(14px, env(safe-area-inset-bottom));
       width:68px; height:68px;
-      transform:translateX(-50%) scale(1);
+      transform:scale(1);
       border-radius:999px;
       border:2px solid rgba(255,255,255,.28);
       opacity:0;
@@ -312,26 +302,6 @@
     }
     .stage.listening .pulse { opacity:.45; }
 
-    .hint {
-      position:absolute;
-      left:50%; bottom:96px;
-      transform:translateX(-50%);
-      padding:7px 12px;
-      border-radius:999px;
-      background:rgba(20,16,14,.62);
-      color:rgba(255,255,255,.92);
-      font-size:13px;
-      font-weight:650;
-      letter-spacing:.01em;
-      backdrop-filter:blur(8px);
-      -webkit-backdrop-filter:blur(8px);
-      pointer-events:none;
-      opacity:1;
-      transition:opacity .25s ease;
-      white-space:nowrap;
-      z-index:4;
-    }
-    .stage.listening .hint { opacity:0; }
 
     .error {
       position:absolute;
@@ -441,7 +411,7 @@
     .all-values-grid > *:nth-last-child(-n+7) { border-bottom:0; }
     .all-values-head {
       font-size:9px;
-      line-height:1.05;
+      line-height:1;
       text-align:center;
       color:rgba(255,255,255,.58);
       font-weight:800;
@@ -651,9 +621,9 @@
       <img class="string-icon" data-string="E" src="assets/lintu_E.webp" alt="">
     </div>
 
-    <div class="a4-topbar" aria-label="A4-virityksen valinta">
+    <div class="a4-topbar" aria-label="Virityksen hertsivalinta">
       <button class="a4-arrow" id="a4DownBtn" type="button" aria-label="Vähennä A4-viritystä yhdellä hertsillä">&#8249;</button>
-      <div class="a4-readout"><span class="a4-label">A4</span><span class="a4-value" id="a4TopValue">440 Hz</span></div>
+      <div class="a4-readout"><span class="a4-value" id="a4TopValue">440 Hz</span></div>
       <button class="a4-arrow" id="a4UpBtn" type="button" aria-label="Lisää A4-viritystä yhdellä hertsillä">&#8250;</button>
     </div>
 
@@ -671,7 +641,6 @@
     </button>
 
     <div class="pulse" id="pulse"></div>
-    <div class="hint">Kosketa mikrofonia</div>
     <button class="mic" id="micBtn" type="button" aria-label="Aloita kuuntelu">
       <svg class="start" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.25a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v4.25a4 4 0 0 0 4 4Zm-2-8.25a2 2 0 1 1 4 0v4.25a2 2 0 1 1-4 0V6Zm8 4.25a1 1 0 1 1 2 0 8 8 0 0 1-7 7.94V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.81a8 8 0 0 1-7-7.94 1 1 0 1 1 2 0 6 6 0 0 0 12 0Z"/></svg>
       <svg class="stop" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7.2A2.2 2.2 0 0 1 9.2 5h5.6A2.2 2.2 0 0 1 17 7.2v5.6a2.2 2.2 0 0 1-2.2 2.2H9.2A2.2 2.2 0 0 1 7 12.8V7.2Z"/></svg>
@@ -1128,7 +1097,7 @@
     }
     const payload = {
       app: 'Viulukielet',
-      version: 'DEV 2.9',
+      version: 'DEV 3.0',
       vibration: settings,
       motion: {
         amplitude:{...motion.amplitude},
@@ -1157,7 +1126,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'viulukielet_vibration_DEV_2.9.json';
+    a.download = 'viulukielet_vibration_DEV_3.0.json';
     document.body.appendChild(a);
     a.click();
     a.remove();
