@@ -73,6 +73,7 @@ let usingBuiltInControlRef=false;
 let trainingSamples=[];
 let singleTriggerLocked=false;
 let singleLastLoudAt=0;
+let singleLastAcceptedAt=0;
 let liveCustomHistory=[];
 let lastHarmonicAnalysisAt=0;
 
@@ -200,6 +201,7 @@ function setControlMode(mode){
   if(mode==='custom'&&!trainedControlRef)return false;
   controlMode=mode;
   singleTriggerLocked=false;
+  singleLastAcceptedAt=0;
   liveCustomHistory=[];
   lastHarmonicAnalysisAt=0;
   clearRecognition();
@@ -827,6 +829,7 @@ async function trainControlSound(){
   trainingSamples=[];
   clearRecognition();
   singleTriggerLocked=false;
+  singleLastAcceptedAt=0;
   resetTrainingUi();
   trainOverlay.classList.add('show');
   try{
@@ -1507,7 +1510,10 @@ function processFrame(){
     // Jos puhallus loppuu ennen 700 ms rajaa, kestobonusta ei anneta.
     if(durationBonusActive)cancelDurationBonusEvaluation();
 
-    if(singleTriggerLocked&&now-singleLastLoudAt>=SINGLE_REARM_SILENCE_MS)singleTriggerLocked=false;
+    if(singleTriggerLocked&&now-singleLastLoudAt>=SINGLE_REARM_SILENCE_MS){
+      singleTriggerLocked=false;
+      singleLastAcceptedAt=0;
+    }
     return;
   }
   singleLastLoudAt=now;
@@ -1519,10 +1525,9 @@ function processFrame(){
     if(!gameRunning||gameFinishing)return;
     if(!trainedControlRef)return;
 
-    // Kun ohjaustriggeri on jo lukittu, analyysiä jatketaan vain
-    // keskeneräistä 300 ms laatumittausta varten.
-    if(singleTriggerLocked&&!qualityEvalActive&&!durationBonusActive)return;
-
+    // Lukittunakin Harmonic Summation jatkaa analyysiä.
+    // Näin ohjaus voidaan virittää uudelleen myös silloin, kun iPadin
+    // mikrofoni ei putoa dB-kynnyksen alle puhallusten välissä.
     if(now-lastHarmonicAnalysisAt<HS_ANALYSIS_INTERVAL_MS)return;
     lastHarmonicAnalysisAt=now;
 
@@ -1551,6 +1556,7 @@ function processFrame(){
       }
 
       singleTriggerLocked=true;
+      singleLastAcceptedAt=now;
 
       // Laatupisteen arviointi alkaa samasta hetkestä, mutta piste
       // päätetään vasta koko 300 ms ikkunan jälkeen.
@@ -1561,6 +1567,12 @@ function processFrame(){
       // hyväksytyn suukappaleäänen.
       beginDurationBonusEvaluation(now);
       return;
+    }
+
+    if(accepted){
+      // Hyväksytty suukappaleääni on edelleen käynnissä.
+      // Yksi pitkä ääni ei siis koskaan vapauta ohjauslukkoa.
+      singleLastAcceptedAt=now;
     }
 
     if(qualityEvalActive){
@@ -1578,6 +1590,20 @@ function processFrame(){
     // Kestobonus on riippumaton concentration-laadusta.
     // Se vaatii vain, että hyväksytty suukappaleääni jatkuu yhtäjaksoisesti.
     updateDurationBonusEvaluation(accepted,now);
+
+    // UUSI iPad-ystävällinen rearm:
+    // dB-hiljaisuutta ei vaadita. Jos Harmonic Summation ei ole
+    // hyväksynyt suukappaleääntä 300 ms:iin, seuraava puhallus saa
+    // jälleen tehdä uuden ohjauskomennon.
+    if(
+      singleTriggerLocked &&
+      !accepted &&
+      singleLastAcceptedAt &&
+      now-singleLastAcceptedAt>=SINGLE_REARM_SILENCE_MS
+    ){
+      singleTriggerLocked=false;
+      singleLastAcceptedAt=0;
+    }
 
     return;
   }
@@ -2212,6 +2238,7 @@ function beginGame(){
   routeTransitionDurationMs=ROUTE_TRANSITION_MS;
   singleTriggerLocked=false;
   singleLastLoudAt=0;
+  singleLastAcceptedAt=0;
   clearRecognition();
   plane.classList.remove('active');
   plane.classList.add('idle');

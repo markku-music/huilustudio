@@ -707,3 +707,38 @@ MUUTOS:
 
 Manifesti oli jo valmiiksi kunnossa, joten ikonipolkuja ei tarvinnut muuttaa.
 Service workerin cache-nimi päivitettiin, jotta uudet ikonit latautuvat helpommin.
+
+
+============================================================
+BASE 6.3.2 IPAD HARMONIC REARM
+============================================================
+
+Pohja:
+- BASE 6.3.1 PWA IKONIT.
+
+ONGELMA:
+- iPadin sisäinen mikrofoni saattoi jäädä puhallusten välissä
+  dB-kynnyksen yläpuolelle.
+- singleTriggerLocked vapautui aiemmin käytännössä vain riittävän
+  pitkän dB-hiljaisuuden kautta.
+- Lisäksi Harmonic Summation -analyysi pysähtyi lukittuna sen jälkeen,
+  kun laatu- ja kestobonusmittaukset olivat valmistuneet.
+- Seurauksena ensimmäinen ääni saattoi ohjata, mutta seuraavat eivät.
+
+MUUTOS:
+- Harmonic Summation jatkaa nyt analyysiä myös ohjauslukon aikana.
+- Jokaisesta hyväksytystä suukappaleäänestä tallennetaan
+  singleLastAcceptedAt.
+- Jos hyväksyttyä suukappaleääntä EI ole havaittu 300 ms:iin:
+  singleTriggerLocked vapautetaan.
+- Tämä EI vaadi mikrofonin putoamista dB-kynnyksen alle.
+- Vanha dB-hiljaisuuteen perustuva vapautus säilyy fallbackina.
+
+TÄRKEÄÄ:
+- Yksi pitkä hyväksytty ääni ei tee useita ohjauskomentoja,
+  koska singleLastAcceptedAt päivittyy jatkuvasti niin kauan kuin
+  Harmonic Summation tunnistaa äänen.
+- 300 ms laatubonus ⭐ ennallaan.
+- 700 ms kestobonus ⏳ ennallaan.
+- PWA-kuvakkeet ennallaan.
+- Muu pelilogiikka ennallaan.

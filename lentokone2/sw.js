@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-6.3.1-pwa-ikonit';
+const CACHE_NAME = 'lentokone-pwa-base-6.3.2-ipad-harmonic-rearm';
 const APP_SHELL = [
   './',
   './index.html',
