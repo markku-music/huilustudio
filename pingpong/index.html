@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pong-yhteispeli · TEST 5.16</title>
+<meta name="theme-color" content="#071019">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pong">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<title>Pong-yhteispeli · TEST 5.17 PWA</title>
 <style>
 :root{
   --bg:#edf2f7;--panel:#fff;--line:#d5dde7;--text:#17212b;--muted:#607083;
@@ -367,7 +374,7 @@ body{background:#071019}
 <div class="app">
   <div class="top">
     <aside class="panel">
-      <h1>Pong-yhteispeli · TEST 5.16</h1>
+      <h1>Pong-yhteispeli · TEST 5.17 PWA</h1>
       <div class="small">Kaksi pelaajaa samalla puolella AI:ta vastaan. Pelaajalla 1 on yksi maila yläpuoliskolla ja pelaajalla 2 yksi maila alapuoliskolla. A-ääni liikuttaa mailaa ylös, B-ääni alas. Kun AI palauttaa pallon, väri ja nuoli määräytyvät vain pallon todellisen paluureitin mukaan ja lukitaan koko paluumatkan ajaksi.</div>
 
       <h2>Käynnistys</h2>
@@ -2010,5 +2017,14 @@ for(const key of SLOT_KEYS)slotEls[key].teach.addEventListener('click',()=>teach
 syncSettings();refreshProfileUI();buildCrossMatrix();refreshStartButton();
 })();
 </script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+
 </body>
 </html>

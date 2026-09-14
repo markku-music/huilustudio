@@ -1,12 +1,14 @@
-Pong-yhteispeli TEST 5.16
+Pong-yhteispeli TEST 5.17 PWA
 
-Muutokset:
-- Crowd gasp -missausääni poistettu kokonaan
-- myös crowd_gasp.mp3 poistettu paketista
-- musiikkisliderin nimeksi muutettu "Taustaääni"
+Lisätty PWA-tuki:
+- manifest.webmanifest
+- service worker (sw.js)
+- offline-välimuisti
+- 180/192/512 px sovelluskuvakkeet
+- standalone-tila
+- landscape-orientaatio
+- iOS:n apple-touch-icon ja web app -metatiedot
 
-Säilytetty:
-- Summer.mp3 taustaäänenä luuppina
-- Tennisball4.wav mailaosumaäänenä
-- mikrofonin avaus ja kalibrointi ennallaan
-- kaikki muu TEST 5.15 -toiminta ennallaan
+Kaikki TEST 5.16 -pelitoiminnot säilyvät ennallaan.
+
+PWA-asennus vaatii HTTPS-yhteyden (esim. GitHub Pages) tai localhostin.
