@@ -1,0 +1,2014 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pong-yhteispeli · TEST 5.16</title>
+<style>
+:root{
+  --bg:#edf2f7;--panel:#fff;--line:#d5dde7;--text:#17212b;--muted:#607083;
+  --blue:#246bd8;--red:#df3d3d;--green:#14944d;--amber:#e49a10;--dark:#202a35;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#071019;color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.app{max-width:none;margin:0;padding:0;min-height:100vh;position:relative}
+.top{display:grid;grid-template-columns:350px 1fr;gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+h1{font-size:1.35rem;margin:0 0 8px} h2{font-size:1rem;margin:16px 0 8px}
+.small{font-size:.88rem;line-height:1.42;color:var(--muted)}
+button{border:0;border-radius:11px;padding:10px 12px;font-weight:850;color:#fff;background:var(--dark);cursor:pointer}
+button.green{background:var(--green)} button.blue{background:var(--blue)} button.red{background:var(--red)} button.secondary{background:#718092}
+button:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+label{display:block;font-weight:800;font-size:.9rem;margin-top:9px}
+input[type=range]{width:100%}
+.val{float:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.status{margin-top:10px;padding:10px;border-radius:11px;border:1px solid var(--line);background:#f5f8fb;font-size:.9rem}
+
+.feedbackCard{display:none;margin-top:10px;padding:11px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.feedbackCard.show{display:block}
+.feedbackHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:7px}
+.feedbackTitle{font-weight:900;font-size:.88rem}
+.feedbackPct{font-weight:900;font-variant-numeric:tabular-nums;color:var(--muted)}
+.feedbackTrack{height:16px;border-radius:999px;overflow:hidden;background:#e2e7ed;border:1px solid #cfd8e2}
+.feedbackFill{height:100%;width:0%;background:linear-gradient(90deg,#9cdbb8,var(--green));transition:width 45ms linear}
+.feedbackFill.wait{background:linear-gradient(90deg,#ffdc8f,var(--amber))}
+.feedbackFill.error{background:linear-gradient(90deg,#ffaaaa,var(--red))}
+.feedbackMeta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:.76rem;color:var(--muted)}
+.feedbackMeta b{color:var(--text);font-variant-numeric:tabular-nums}
+.globalGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.globalBox,.stat{border:1px solid var(--line);border-radius:12px;padding:9px;background:#f8fafc;min-width:0}
+.globalBox span,.stat span{display:block;color:var(--muted);font-size:.72rem}
+.globalBox b,.stat b{font-variant-numeric:tabular-nums;font-size:.96rem}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.player.blue{border-top:5px solid var(--blue)} .player.red{border-top:5px solid var(--red)}
+.playerTitle{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.playerTitle b{font-size:1.1rem}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.slot{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fbfcfe}
+.slot.blue{border-top:4px solid var(--blue)} .slot.red{border-top:4px solid var(--red)}
+.slotHead{display:flex;justify-content:space-between;align-items:start;gap:8px}
+.slotName{font-size:1.35rem;font-weight:950}
+.hz{font-weight:950;font-size:1.1rem;font-variant-numeric:tabular-nums;text-align:right}
+.sub{font-size:.75rem;color:var(--muted)}
+.primaryMeter{margin:10px 0 12px}
+.primaryLabel{display:flex;justify-content:space-between;font-size:.82rem;font-weight:900;margin-bottom:5px}
+.primary{height:28px;border-radius:999px;overflow:hidden;background:#e0e6ed;border:1px solid #cfd8e2;position:relative}
+.primaryFill{height:100%;width:0%;transition:width 60ms linear}
+.primaryFill.blue{background:linear-gradient(90deg,#8db8ff,var(--blue))}
+.primaryFill.red{background:linear-gradient(90deg,#ff9d9d,var(--red))}
+.primary::after,.meter::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),rgba(255,255,255,.7) calc(10% - 1px),rgba(255,255,255,.7) 10%);pointer-events:none}
+.stateRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin:8px 0}
+.mini{border:1px solid var(--line);border-radius:10px;padding:7px;background:#f7f9fc}
+.mini span{display:block;color:var(--muted);font-size:.67rem}.mini b{font-size:.84rem;font-variant-numeric:tabular-nums}
+.statePill{display:inline-block;padding:3px 7px;border-radius:999px;background:#e7ecf1;color:#536273;font-size:.72rem;font-weight:900}
+.statePill.on{background:#d9f3e4;color:#12683b}.statePill.full{background:#fff0c9;color:#805400}
+details{margin-top:8px;border:1px solid var(--line);border-radius:11px;padding:8px;background:#fff}
+summary{font-weight:900;font-size:.82rem;cursor:pointer}
+.meterRow{margin:7px 0}
+.meterLabel{display:flex;justify-content:space-between;font-size:.72rem;font-weight:800;margin-bottom:3px}
+.meter{height:12px;border-radius:999px;overflow:hidden;background:#e2e7ed;border:1px solid #d1d9e2;position:relative}
+.fill{height:100%;width:0%;transition:width 65ms linear}
+.fill.blue{background:linear-gradient(90deg,#9ac0ff,var(--blue))}
+.fill.red{background:linear-gradient(90deg,#ffaaaa,var(--red))}
+.fill.green{background:linear-gradient(90deg,#9cdbb8,var(--green))}
+.fill.amber{background:linear-gradient(90deg,#ffdc8f,var(--amber))}
+.diagGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}
+.diag{border:1px solid var(--line);border-radius:9px;padding:6px;background:#f8fafc}
+.diag span{display:block;font-size:.65rem;color:var(--muted)}.diag b{font-size:.78rem;font-variant-numeric:tabular-nums}
+.crossMatrix{display:grid;grid-template-columns:110px repeat(4,minmax(0,1fr));gap:5px;align-items:center;margin-top:8px;font-size:.75rem}
+.crossMatrix div{padding:6px;border:1px solid var(--line);border-radius:8px;background:#f8fafc;text-align:center}
+.crossMatrix .head{font-weight:900;background:#eef3f8}
+.crossMatrix .rowHead{text-align:left;font-weight:900;background:#eef3f8}
+@media(max-width:1150px){.top{grid-template-columns:1fr}.players{grid-template-columns:1fr}}
+@media(max-width:760px){.slots{grid-template-columns:1fr}.globalGrid{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== PONG TEST 1.3 ===== */
+.pongPanel{margin:0;padding:0;background:transparent;border:0;border-radius:0;color:#fff;position:fixed;inset:0;z-index:0;pointer-events:none}
+.pongHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.pongTitle{font-weight:950;font-size:1.08rem;letter-spacing:.02em}
+.pongStatus{font-size:.82rem;color:#b9c9d7}
+.pongScore{font-size:1.15rem;font-weight:950;font-variant-numeric:tabular-nums}
+.pongHudLabel{font-size:.68rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#a8bdcf}
+.pongHudSub{font-size:.78rem;font-weight:800;color:#d0dbe4;margin-top:3px}
+.pongStage{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;border-radius:0;background:#071019;border:0;margin:0;z-index:0}
+#pongCanvas{display:block;width:100%;height:100%;touch-action:none}
+.pongControls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+.pongControls .left,.pongControls .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pongTest{min-width:58px;padding:9px 12px;border-radius:10px;background:#405265}
+.pongTest.p1{background:#246bd8}.pongTest.p2{background:#df3d3d}
+.pongTest:active,.pongTest.on{transform:translateY(1px);filter:brightness(1.2)}
+.pongStart{background:#14944d}.pongReset{background:#718092}
+.pongLegend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:9px}
+.pongLegend div{padding:7px 9px;border-radius:10px;background:#142231;border:1px solid #26384a;text-align:center;font-size:.76rem}
+.pongLegend b{display:block;font-size:.9rem}
+@media(max-width:700px){
+  .pongLegend{grid-template-columns:1fr 1fr}
+}
+
+
+/* ===== TEST 1.3 · PELKISTETTY UI ===== */
+body{background:#071019}
+.app{max-width:none;padding:0}
+.top,.players{display:none!important}
+.pongPanel{margin-top:0}
+.pongHead,.pongControls,.pongLegend{display:none!important}
+
+.cleanControls{
+  position:relative;
+  z-index:6;
+  width:min(1500px,calc(100vw - 20px));
+  margin:10px auto 8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:8px 10px;
+  margin-bottom:8px;
+  border-radius:14px;
+  background:#101923;
+  border:1px solid #26384a;
+}
+.cleanControls button{
+  padding:9px 12px;
+  min-width:84px;
+}
+.cleanControls #micBtn{
+  background:#14944d;
+  min-width:150px;
+}
+.cleanControls #pongStart{
+  background:#14944d;
+  min-width:118px;
+}
+.cleanControls #teach_1A,.cleanControls #teach_1B{background:#246bd8}
+.cleanControls #teach_2A,.cleanControls #teach_2B{background:#df3d3d}
+
+.arrowToggle{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 9px;
+  margin-left:2px;
+  border:1px solid #31465a;
+  border-radius:10px;
+  background:#162331;
+  color:#dbe7f0;
+  font-size:.78rem;
+  font-weight:850;
+  white-space:nowrap;
+  user-select:none;
+}
+.arrowToggle input{
+  width:18px;
+  height:18px;
+  margin:0;
+  accent-color:#f3c84a;
+}
+
+.musicVolume{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 9px;
+  border:1px solid #31465a;
+  border-radius:10px;
+  background:#162331;
+  color:#dbe7f0;
+  font-size:.78rem;
+  font-weight:850;
+  white-space:nowrap;
+  user-select:none;
+}
+.musicVolume input[type="range"]{
+  width:110px;
+  margin:0;
+  accent-color:#f3c84a;
+}
+.musicVolume #musicVolumeVal{
+  min-width:34px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+.topBarSpacer{
+  flex:1 1 auto;
+  min-width:12px;
+}
+.topBarStats{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-left:auto;
+  flex-wrap:wrap;
+}
+.topBarStat{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-width:92px;
+  padding:7px 10px;
+  border:1px solid #31465a;
+  border-radius:10px;
+  background:#162331;
+}
+.topBarStat.wide{min-width:132px}
+.topBarStatLabel{
+  font-size:.67rem;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#9fb3c5;
+  margin-bottom:3px;
+}
+.topBarStatValue{
+  color:#fff;
+  font-weight:950;
+  line-height:1.05;
+}
+.topBarStatValue.small{
+  font-size:.82rem;
+  font-weight:850;
+  color:#d7e3ec;
+}
+
+.cleanControls [id^="teach_"]{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+}
+.cleanControls [id^="teach_"].teaching{
+  color:transparent !important;
+  --teach-progress:0%;
+  opacity:1 !important;
+  flex:none;
+}
+.cleanControls [id^="teach_"].teaching:disabled{
+  opacity:1 !important;
+}
+.cleanControls [id^="teach_"].teaching::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:var(--teach-progress);
+  background:rgba(255,255,255,.34);
+  z-index:-1;
+  transition:width 45ms linear;
+}
+.cleanControls .feedbackCard{
+  display:none;
+  flex:1 1 300px;
+  min-width:260px;
+  margin:0 0 0 4px;
+  padding:8px 10px;
+  background:#f8fafc;
+}
+.cleanControls .feedbackCard.show{display:block}
+.cleanControls .feedbackHead{margin-bottom:5px}
+.cleanControls .feedbackMeta{margin-top:5px}
+.cleanControls .feedbackTrack{height:14px}
+
+@media(max-width:760px){
+  .cleanControls{gap:6px}
+  .cleanControls button{min-width:72px;padding:8px 9px}
+  .cleanControls #micBtn{min-width:128px}
+  .cleanControls .feedbackCard{flex-basis:100%;margin-left:0}
+  .topBarSpacer{display:none}
+  .topBarStats{width:100%;margin-left:0}
+  .topBarStat{flex:1 1 31%;min-width:0}
+}
+
+
+/* ===== LENTOKONE-TYYLIN KALIBROINTI: VAIN BLUR + RENGAS + dB ===== */
+#calOverlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  align-items:center;
+  justify-content:center;
+  background:rgba(8,16,26,.24);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  opacity:0;
+}
+#calOverlay.show{
+  display:flex;
+  animation:calIn .16s ease-out forwards;
+}
+#calOverlay.closing{
+  animation:calOut .15s ease-in forwards;
+}
+.calMeter{
+  position:relative;
+  width:210px;
+  height:210px;
+  display:grid;
+  place-items:center;
+}
+.calMeter svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  transform:rotate(-90deg);
+  overflow:visible;
+}
+.calTrack,.calProgress{
+  fill:none;
+  stroke-width:12;
+  stroke-linecap:round;
+}
+.calTrack{
+  stroke:rgba(255,255,255,.34);
+}
+.calProgress{
+  stroke:#ffffff;
+  stroke-dasharray:527.79;
+  stroke-dashoffset:527.79;
+  transition:stroke-dashoffset 55ms linear;
+}
+.calInner{
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:rgba(9,23,37,.42);
+  border:1px solid rgba(255,255,255,.30);
+}
+#calDb{
+  font:900 31px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  letter-spacing:-.04em;
+  color:#fff;
+  font-variant-numeric:tabular-nums;
+}
+#calOverlay.complete .calProgress{
+  stroke:#7ee787;
+}
+@keyframes calIn{from{opacity:0}to{opacity:1}}
+@keyframes calOut{from{opacity:1}to{opacity:0}}
+@media(max-width:600px){
+  .calMeter{width:180px;height:180px}
+  .calInner{width:128px;height:128px}
+  #calDb{font-size:27px}
+}
+
+
+
+
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <aside class="panel">
+      <h1>Pong-yhteispeli · TEST 5.16</h1>
+      <div class="small">Kaksi pelaajaa samalla puolella AI:ta vastaan. Pelaajalla 1 on yksi maila yläpuoliskolla ja pelaajalla 2 yksi maila alapuoliskolla. A-ääni liikuttaa mailaa ylös, B-ääni alas. Kun AI palauttaa pallon, väri ja nuoli määräytyvät vain pallon todellisen paluureitin mukaan ja lukitaan koko paluumatkan ajaksi.</div>
+
+      <h2>Käynnistys</h2>
+      <div class="row">
+        <button id="micBtn" class="green">1. Käynnistä mikrofoni</button>
+        <button id="silenceBtn" class="secondary" disabled>Kalibroi hiljaisuus</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="startBtn" disabled>Käynnistä tunnistus</button>
+        <button id="stopBtn" class="secondary" disabled>Pysäytä</button>
+      </div>
+      <div id="status" class="status">Käynnistä mikrofoni.</div>
+
+
+      <h2>Tunnistuksen säädöt</h2>
+      <label>Toleranssi <span id="tolVal" class="val">±45 cent</span></label>
+      <input id="tol" type="range" min="10" max="120" step="1" value="45">
+      <label>Täysi ulostulo <span id="fullGasVal" class="val">±30 cent</span></label>
+      <input id="fullGas" type="range" min="5" max="90" step="1" value="30">
+      <label>Täyden ulostulon pito <span id="fullHoldVal" class="val">±45 cent</span></label>
+      <input id="fullHold" type="range" min="5" max="120" step="1" value="45">
+      <label>Aktivointikynnys <span id="gateVal" class="val">58 %</span></label>
+      <input id="gate" type="range" min="5" max="95" step="1" value="58">
+      <label>Vapautuskynnys <span id="releaseVal" class="val">32 %</span></label>
+      <input id="release" type="range" min="5" max="90" step="1" value="32">
+      <label>Lyhyen äänen pito <span id="impulseHoldVal" class="val">120 ms</span></label>
+      <input id="impulseHold" type="range" min="0" max="400" step="10" value="120">
+    </aside>
+
+    <section class="panel">
+      <h2 style="margin-top:0">Yhteiset arvot</h2>
+      <div class="globalGrid">
+        <div class="globalBox"><span>Mikrofonin RMS</span><b id="rmsText">0.00000</b></div>
+        <div class="globalBox"><span>Hiljaisuustaso</span><b id="noiseText">– dB</b></div>
+        <div class="globalBox"><span>Näytteenottotaajuus</span><b id="sampleRateText">– Hz</b></div>
+        <div class="globalBox"><span>Analyysi-ikkuna</span><b>4096 näytettä</b></div>
+        <div class="globalBox"><span>Tunnistus</span><b id="engineState">POIS</b></div>
+        <div class="globalBox"><span>Analyysiväli</span><b>25 ms</b></div>
+        <div class="globalBox"><span>Opetettuja slotteja</span><b id="trainedCount">0 / 4</b></div>
+        <div class="globalBox"><span>Aktiivisia slotteja</span><b id="activeCount">0 / 4</b></div>
+      </div>
+
+      <details>
+        <summary>Ristiinvuoto opetettujen slottien välillä</summary>
+        <div id="crossMatrix" class="crossMatrix"></div>
+      </details>
+    </section>
+  </div>
+
+
+
+  <div id="cleanControls" class="cleanControls">
+    <div id="micMount"></div>
+    <div id="teachMount1A"></div>
+    <div id="teachMount1B"></div>
+    <div id="teachMount2A"></div>
+    <div id="teachMount2B"></div>
+    <button id="pongStart" class="pongStart" hidden>Aloita peli</button>
+    <label class="arrowToggle" for="pongArrows">
+      <input id="pongArrows" type="checkbox">
+      <span>Nuolet</span>
+    </label>
+    <label class="musicVolume" for="musicVolume">
+      <span>Taustaääni</span>
+      <input id="musicVolume" type="range" min="0" max="100" step="1" value="30">
+      <span id="musicVolumeVal">30 %</span>
+    </label>
+    <div class="topBarSpacer"></div>
+    <div class="topBarStats" aria-label="Pelitiedot">
+      <div class="topBarStat">
+        <div class="topBarStatLabel">Eränumero</div>
+        <div id="pongRound" class="topBarStatValue">1 / 4</div>
+      </div>
+      <div class="topBarStat">
+        <div class="topBarStatLabel">Erän pisteet</div>
+        <div id="pongScore" class="topBarStatValue">0 : 0</div>
+      </div>
+      <div class="topBarStat wide">
+        <div class="topBarStatLabel">Erävoitot</div>
+        <div id="pongWins" class="topBarStatValue small">0 : 0</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="pongPanel" aria-label="Pong-yhteispeli">
+    <div class="pongHead">
+      <div>
+        <div class="pongTitle">PELAAJAT vs AI</div>
+        <div id="pongStatus" class="pongStatus">AI:n palautuksessa väri ja nuoli perustuvat vain todelliseen reittiin, eivät mailan sijaintiin.</div>
+      </div>
+    </div>
+    <div class="pongStage">
+      <canvas id="pongCanvas" width="1366" height="1024"></canvas>
+    </div>
+    <div class="pongControls">
+      <div class="left">
+        <button id="pongReset" class="pongReset">Nollaa</button>
+      </div>
+      <div class="right">
+        <span class="small" style="color:#b9c9d7">Testaa:</span>
+        <button class="pongTest p1" data-pong-key="1A">1A</button>
+        <button class="pongTest p1" data-pong-key="1B">1B</button>
+        <button class="pongTest p2" data-pong-key="2A">2A</button>
+        <button class="pongTest p2" data-pong-key="2B">2B</button>
+      </div>
+    </div>
+    <div class="pongLegend">
+      <div><b>1A</b>ylös</div>
+      <div><b>1B</b>alas</div>
+      <div><b>2A</b>ylös</div>
+      <div><b>2B</b>alas</div>
+    </div>
+  </section>
+
+
+  <div class="players">
+    <section class="panel player blue">
+      <div class="playerTitle"><b>PELAAJA 1</b><span class="small">sininen kanava</span></div>
+      <div class="slots">
+        <div id="slot_1A" class="slot blue"></div>
+        <div id="slot_1B" class="slot blue"></div>
+      </div>
+    </section>
+
+    <section class="panel player red">
+      <div class="playerTitle"><b>PELAAJA 2</b><span class="small">punainen kanava</span></div>
+      <div class="slots">
+        <div id="slot_2A" class="slot red"></div>
+        <div id="slot_2B" class="slot red"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+
+<div id="calOverlay" aria-live="polite" aria-label="Mikrofonin kalibrointi">
+  <div class="calMeter">
+    <svg viewBox="0 0 210 210" aria-hidden="true">
+      <circle class="calTrack" cx="105" cy="105" r="84"></circle>
+      <circle id="calProgress" class="calProgress" cx="105" cy="105" r="84"></circle>
+    </svg>
+    <div class="calInner">
+      <div id="calDb">– dB</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const SLOT_KEYS=['1A','1B','2A','2B'];
+const SLOT_COLOR={'1A':'blue','1B':'blue','2A':'red','2B':'red'};
+const ui={
+  micBtn:$('micBtn'),silenceBtn:$('silenceBtn'),startBtn:$('startBtn'),stopBtn:$('stopBtn'),status:$('status'),
+  tol:$('tol'),fullGas:$('fullGas'),fullHold:$('fullHold'),gate:$('gate'),release:$('release'),impulseHold:$('impulseHold'),
+  tolVal:$('tolVal'),fullGasVal:$('fullGasVal'),fullHoldVal:$('fullHoldVal'),gateVal:$('gateVal'),releaseVal:$('releaseVal'),impulseHoldVal:$('impulseHoldVal'),
+  rmsText:$('rmsText'),noiseText:$('noiseText'),sampleRateText:$('sampleRateText'),engineState:$('engineState'),
+  trainedCount:$('trainedCount'),activeCount:$('activeCount'),crossMatrix:$('crossMatrix'),
+  pongCanvas:$('pongCanvas'),pongStatus:$('pongStatus'),pongScore:$('pongScore'),pongRound:$('pongRound'),pongWins:$('pongWins'),pongStart:$('pongStart'),pongReset:$('pongReset'),calOverlay:$('calOverlay'),calProgress:$('calProgress'),calDb:$('calDb'),pongArrows:$('pongArrows'),
+  musicVolume:$('musicVolume'),musicVolumeVal:$('musicVolumeVal')
+};
+
+const slotEls={};
+for(const key of SLOT_KEYS){
+  const color=SLOT_COLOR[key],root=$(`slot_${key}`);
+  root.innerHTML=`
+    <div class="slotHead">
+      <div><div class="slotName">${key}</div><button id="teach_${key}" class="${color}" disabled>–</button></div>
+      <div><div id="taught_${key}" class="hz">– Hz</div><div class="sub">opetettu</div></div>
+    </div>
+    <div class="primaryMeter">
+      <div class="primaryLabel"><span>ULOSTULO</span><span id="outTxt_${key}">0 %</span></div>
+      <div class="primary"><div id="out_${key}" class="primaryFill ${color}"></div></div>
+    </div>
+    <div class="stateRow">
+      <div class="mini"><span>Mitattu</span><b id="det_${key}">– Hz</b></div>
+      <div class="mini"><span>Vire</span><b id="cents_${key}">0 cent</b></div>
+      <div class="mini"><span>Tila</span><b id="state_${key}" class="statePill">EI AKTIIVINEN</b></div>
+    </div>
+    <details>
+      <summary>Diagnostiikka</summary>
+      <div id="meters_${key}"></div>
+      <div id="diag_${key}" class="diagGrid"></div>
+    </details>`;
+  slotEls[key]={
+    teach:$(`teach_${key}`),taught:$(`taught_${key}`),out:$(`out_${key}`),outTxt:$(`outTxt_${key}`),
+    det:$(`det_${key}`),cents:$(`cents_${key}`),state:$(`state_${key}`),meters:$(`meters_${key}`),diag:$(`diag_${key}`)
+  };
+}
+
+// Pelkistetty käyttöliittymä: siirretään vain mikrofoni, koulutusnapit
+// ja olemassa oleva palautepalkki pelikentän yläpuolelle.
+$('micBtn').textContent='Avaa mikrofoni';
+$('micMount').appendChild($('micBtn'));
+for(const key of SLOT_KEYS){
+  $(`teachMount${key}`).appendChild(slotEls[key].teach);
+}
+
+const meterDefs=[
+ ['raw','Raaka confidence'],['smooth','Siloitettu confidence'],['attack','Attack-signal'],
+ ['target','Target-energia'],['fingerprint','Yläsävelsormenjälki'],['isolation','Sävelen erottuvuus'],
+ ['level','Voimakkuus / opetus'],['noiseGate','Noise gate']
+];
+const diagDefs=[
+ ['targetDb','Target-teho'],['levelRatio','Taso-suhde'],['liveR2','Live H2/H1'],['liveR3','Live H3/H1'],
+ ['profileR2','Opetettu H2/H1'],['profileR3','Opetettu H3/H1'],['profileRms','Opetuksen RMS'],['holdMs','Pitoa jäljellä']
+];
+for(const key of SLOT_KEYS){
+  const color=SLOT_COLOR[key];
+  slotEls[key].meters.innerHTML=meterDefs.map(([id,label])=>`
+    <div class="meterRow"><div class="meterLabel"><span>${label}</span><span id="${key}_${id}_txt">0 %</span></div>
+    <div class="meter"><div id="${key}_${id}" class="fill ${id==='noiseGate'?'amber':color}"></div></div></div>`).join('');
+  slotEls[key].diag.innerHTML=diagDefs.map(([id,label])=>`<div class="diag"><span>${label}</span><b id="${key}_${id}">–</b></div>`).join('');
+}
+
+const MIC_CAL_WARMUP_MS=250;
+const MIC_CAL_MEASURE_MS=1500;
+const MIC_CAL_MARGIN_DB=10;
+let stream=null,audioCtx=null,analyser=null,timeData=null,audioReady=false;
+let noiseFloorDb=-80;
+let dbThreshold=-70;
+let noiseRms=Math.pow(10,noiseFloorDb/20);
+let calibratedThresholdRms=Math.pow(10,dbThreshold/20);
+const profiles={'1A':null,'1B':null,'2A':null,'2B':null};
+const trainFrames={'1A':[],'1B':[],'2A':[],'2B':[]};
+const states={};
+for(const key of SLOT_KEYS)states[key]={active:false,fullGas:false,smooth:0,out:0,history:[],activeUntil:0,last:null,attack:0};
+let running=false,detectTimer=null,teachingBusy=false;
+
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+function median(arr){const a=arr.filter(Number.isFinite).slice().sort((x,y)=>x-y);if(!a.length)return NaN;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+const centsBetween=(a,b)=>1200*Math.log2(a/b);
+const ratioToDb=r=>20*Math.log10(Math.max(r,1e-9));
+const centsFreq=(f,c)=>f*Math.pow(2,c/1200);
+let feedbackHideTimer=null;
+function feedbackShow(title,pct=0,left='–',right='–',mode='normal'){
+  // Ylimääräinen palautepalkki on poistettu. Opetusnapin oma palkki hoitaa etenemisen.
+  return;
+}
+function feedbackHide(ms=1200){
+  clearTimeout(feedbackHideTimer);
+}
+function dbFromRms(v){return 20*Math.log10(Math.max(v,1e-12));}
+
+async function initMic(){
+  if(audioReady)return;
+  try{
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();await audioCtx.resume();
+    const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};
+    const constraints={echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+    if(supported.voiceIsolation)constraints.voiceIsolation=false;
+    stream=await navigator.mediaDevices.getUserMedia({audio:constraints});
+    const src=audioCtx.createMediaStreamSource(stream);
+    analyser=audioCtx.createAnalyser();analyser.fftSize=4096;analyser.smoothingTimeConstant=0;src.connect(analyser);
+    timeData=new Float32Array(analyser.fftSize);audioReady=true;
+    ui.sampleRateText.textContent=`${audioCtx.sampleRate} Hz`;
+    ui.silenceBtn.disabled=false;
+    for(const key of SLOT_KEYS)slotEls[key].teach.disabled=false;
+    ui.status.textContent='Mikrofoni käynnissä. Kalibroidaan hiljaisuus…';
+    await calibrateSilence();
+  }catch(e){
+    console.error(e);ui.status.textContent='Mikrofonia ei saatu käyttöön. Käytä HTTPS:ää tai localhostia ja salli mikrofoni.';
+  }
+}
+function getFrame(){analyser.getFloatTimeDomainData(timeData);return Float32Array.from(timeData);}
+function rms(x){let s=0,mean=0;for(const v of x)mean+=v;mean/=x.length;for(const v of x){const d=v-mean;s+=d*d;}return Math.sqrt(s/x.length);}
+
+function calVisual(db,progress){
+  const p=clamp(progress,0,1);
+  if(ui.calProgress)ui.calProgress.style.strokeDashoffset=(527.79*(1-p)).toFixed(2);
+  if(ui.calDb){
+    const shown=Number.isFinite(db)?Math.max(-99,Math.min(-1,Math.round(db))):null;
+    ui.calDb.textContent=shown===null?'– dB':`${shown} dB`;
+  }
+  ui.calOverlay.classList.toggle('complete',p>=.999);
+}
+
+async function calibrateSilence(){
+  if(!audioReady||!analyser||!timeData)return false;
+  const wasRunning=running;
+  if(wasRunning)stopDetection();
+
+  // Ei palautekorttia eikä ylimääräisiä tekstejä kalibroinnin aikana.
+  ui.calOverlay.classList.remove('complete','closing');
+  ui.calOverlay.classList.add('show');
+  calVisual(NaN,0);
+
+  const totalMs=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS;
+  const allStart=performance.now();
+
+  // Lämmittely
+  while(performance.now()-allStart<MIC_CAL_WARMUP_MS){
+    const rr=rms(getFrame());
+    const db=dbFromRms(rr);
+    calVisual(db,(performance.now()-allStart)/totalMs);
+    await new Promise(r=>setTimeout(r,33));
+  }
+
+  // Hiljaisuuden mittaus
+  const samples=[];
+  const measureStart=performance.now();
+  while(performance.now()-measureStart<MIC_CAL_MEASURE_MS){
+    const rr=rms(getFrame());
+    const db=dbFromRms(rr);
+    if(Number.isFinite(db))samples.push(db);
+    const elapsed=MIC_CAL_WARMUP_MS+(performance.now()-measureStart);
+    calVisual(db,elapsed/totalMs);
+    await new Promise(r=>setTimeout(r,33));
+  }
+
+  if(!samples.length){
+    noiseFloorDb=-80;
+    dbThreshold=-70;
+  }else{
+    noiseFloorDb=median(samples);
+    dbThreshold=Math.max(-70,Math.min(-20,Math.round(noiseFloorDb+MIC_CAL_MARGIN_DB)));
+  }
+
+  noiseRms=Math.pow(10,noiseFloorDb/20);
+  calibratedThresholdRms=Math.pow(10,dbThreshold/20);
+  ui.noiseText.textContent=`${noiseFloorDb.toFixed(1)} dB`;
+
+  calVisual(samples.length?samples[samples.length-1]:noiseFloorDb,1);
+  await new Promise(r=>setTimeout(r,280));
+  ui.calOverlay.classList.add('closing');
+  await new Promise(r=>setTimeout(r,150));
+  ui.calOverlay.classList.remove('show','complete','closing');
+
+  // Piilossa olevan kehitysnäkymän status saa päivittyä,
+  // mutta mitään uutta tekstiä ei tuoda näkyvään pelinäkymään.
+  ui.status.textContent=`Hiljaisuus ${noiseFloorDb.toFixed(1)} dB · tunnistuskynnys ${dbThreshold.toFixed(0)} dB.`;
+
+  if(wasRunning)startDetection();
+  return true;
+}
+function normalizedAutocorrPitch(x,sr,minHz=80,maxHz=1600){
+  let mean=0;for(const v of x)mean+=v;mean/=x.length;
+  const minLag=Math.max(2,Math.floor(sr/maxHz)),maxLag=Math.min(x.length>>1,Math.ceil(sr/minHz));
+  let bestLag=0,best=-1;const scores=[];
+  for(let lag=minLag;lag<=maxLag;lag++){let xy=0,xx=0,yy=0;for(let i=0;i<x.length-lag;i+=2){const a=x[i]-mean,b=x[i+lag]-mean;xy+=a*b;xx+=a*a;yy+=b*b;}const c=xy/Math.sqrt((xx*yy)+1e-12);scores.push(c);if(c>best){best=c;bestLag=lag;}}
+  if(best<.35)return{freq:NaN,score:best};
+  const threshold=Math.max(.50,best*.86);let chosen=bestLag;
+  for(let lag=minLag+1;lag<maxLag;lag++){const i=lag-minLag,c=scores[i];if(c>=threshold&&c>=scores[i-1]&&c>=scores[i+1]){chosen=lag;break;}}
+  const idx=chosen-minLag;let refined=chosen;
+  if(idx>0&&idx<scores.length-1){const y1=scores[idx-1],y2=scores[idx],y3=scores[idx+1],den=y1-2*y2+y3;if(Math.abs(den)>1e-9)refined=chosen+.5*(y1-y3)/den;}
+  return{freq:sr/refined,score:best};
+}
+function goertzelPower(x,sr,f){
+  if(!(f>0)||f>=sr/2)return 0;
+  const w=2*Math.PI*f/sr,coeff=2*Math.cos(w);let s0=0,s1=0,s2=0,N=x.length;
+  for(let i=0;i<N;i++){const win=.5-.5*Math.cos(2*Math.PI*i/(N-1));s0=x[i]*win+coeff*s1-s2;s2=s1;s1=s0;}
+  return Math.max(0,s1*s1+s2*s2-coeff*s1*s2)/(N*N);
+}
+function scanTarget(x,f0,tolCents,steps=11){
+  const anchorP=goertzelPower(x,audioCtx.sampleRate,f0);
+  let best={f:f0,p:anchorP,cents:0,anchorP,score:anchorP};
+  const span=Math.max(1,tolCents);
+  for(let i=0;i<steps;i++){
+    const c=-tolCents+(2*tolCents*i/(steps-1));if(Math.abs(c)<1e-9)continue;
+    const f=centsFreq(f0,c),p=goertzelPower(x,audioCtx.sampleRate,f),d=Math.abs(c)/span;
+    const prior=.18+.82*Math.exp(-2.5*d*d),score=p*prior;
+    if(score>best.score)best={f,p,cents:c,anchorP,score};
+  }
+  return best;
+}
+function isolationDetails(x,f,p){
+  const left=goertzelPower(x,audioCtx.sampleRate,centsFreq(f,-140));
+  const right=goertzelPower(x,audioCtx.sampleRate,centsFreq(f,140));
+  const floor=(left+right)/2+1e-12,ratio=p/floor;
+  return{score:clamp((ratio-1.2)/5),left,right,ratio};
+}
+function fingerprintForFrame(x,f0){
+  const p1=goertzelPower(x,audioCtx.sampleRate,f0)+1e-12,p2=goertzelPower(x,audioCtx.sampleRate,f0*2)+1e-12,p3=goertzelPower(x,audioCtx.sampleRate,f0*3)+1e-12;
+  return{p1,p2,p3,r2:p2/p1,r3:p3/p1};
+}
+function fingerprintMatch(cur,profile){
+  const d2=Math.abs(ratioToDb(cur.r2/profile.r2)),d3=Math.abs(ratioToDb(cur.r3/profile.r3)),d=d2*.58+d3*.42;
+  return clamp(1-d/14);
+}
+
+
+function teachButtonProgress(key,p){
+  const btn=slotEls[key].teach;
+
+  // Lukitaan opetusnapin koko juuri sellaiseksi kuin se oli ennen opetusta.
+  // Näin tekstin katoaminen ei pienennä nappia.
+  if(!btn.classList.contains('teaching')){
+    const r=btn.getBoundingClientRect();
+    btn.style.width=`${Math.round(r.width)}px`;
+    btn.style.height=`${Math.round(r.height)}px`;
+  }
+
+  btn.classList.add('teaching');
+  btn.textContent='';
+  btn.style.setProperty('--teach-progress',`${Math.round(clamp(p)*100)}%`);
+}
+
+function teachButtonDone(key){
+  const btn=slotEls[key].teach;
+  btn.classList.remove('teaching');
+  btn.style.removeProperty('--teach-progress');
+  btn.style.removeProperty('width');
+  btn.style.removeProperty('height');
+  refreshTeachButtonLabel(key);
+}
+
+async function teach(key){
+  if(!audioReady||teachingBusy)return;
+  teachingBusy=true;stopDetection();
+  for(const k of SLOT_KEYS)slotEls[k].teach.disabled=true;
+  ui.startBtn.disabled=true;
+  teachButtonProgress(key,0);
+  ui.status.textContent=`${key}: aloita ääni milloin haluat…`;
+  feedbackShow(`${key} · odotetaan ääntä`,0,'Soita opetettava ääni','enintään 12 s','wait');
+
+  const threshold=Math.max(calibratedThresholdRms,.0003),waitStart=performance.now(),waitUntil=waitStart+12000;
+  let consecutive=0,onsetFrame=null;const pre=[];
+  while(performance.now()<waitUntil){
+    const fr=getFrame(),rr=rms(fr),db=dbFromRms(rr);pre.push({fr,rr});if(pre.length>5)pre.shift();
+    if(rr>threshold)consecutive++;else consecutive=0;
+    const gatePct=clamp(rr/(threshold*1.8));
+    const waitPct=clamp((performance.now()-waitStart)/12000);
+    teachButtonProgress(key,waitPct);
+    feedbackShow(`${key} · odotetaan ääntä`,gatePct,`Mikki ${db.toFixed(1)} dB · kynnys ${dbThreshold.toFixed(0)} dB`,`odotus ${Math.round(waitPct*100)} %`,'wait');
+    if(consecutive>=2){onsetFrame={fr,rr};break;}
+    await new Promise(r=>setTimeout(r,25));
+  }
+  if(!onsetFrame){
+    ui.status.textContent=`${key}: ääntä ei alkanut 12 sekunnissa.`;
+    feedbackShow(`${key} · ääntä ei löytynyt`,1,'Yritä uudelleen','', 'error');
+    teachButtonDone(key);
+    feedbackHide(2200);
+    teachingBusy=false;for(const k of SLOT_KEYS)slotEls[k].teach.disabled=false;refreshStartButton();return;
+  }
+
+  ui.status.textContent=`${key}: ääni havaittu – opetus käynnissä noin 1,2 s…`;
+  teachButtonProgress(key,0);
+  feedbackShow(`${key} · opetus käynnissä`,0,'Pidä ääni mahdollisimman tasaisena','0 / 1,2 s');
+  const frames=[],pitches=[],rmsVals=[];
+  let livePitch=NaN;
+  const addFrame=(fr,rr)=>{
+    if(rr<=threshold)return;
+    const pe=normalizedAutocorrPitch(fr,audioCtx.sampleRate,80,1600);
+    if(Number.isFinite(pe.freq)&&pe.score>.38){frames.push(fr);pitches.push(pe.freq);rmsVals.push(rr);livePitch=pe.freq;}
+  };
+  for(const item of pre.slice(-3))addFrame(item.fr,item.rr);addFrame(onsetFrame.fr,onsetFrame.rr);
+  const teachStart=performance.now(),end=teachStart+1200;
+  while(performance.now()<end){
+    const fr=getFrame(),rr=rms(fr);addFrame(fr,rr);
+    const elapsed=performance.now()-teachStart,p=clamp(elapsed/1200);
+    teachButtonProgress(key,p);
+    feedbackShow(`${key} · opetus käynnissä`,p,Number.isFinite(livePitch)?`Sävel ${livePitch.toFixed(1)} Hz`:'Etsitään sävelkorkeutta…',`${Math.min(1.2,elapsed/1000).toFixed(1)} / 1,2 s`);
+    await new Promise(r=>setTimeout(r,35));
+  }
+
+  if(pitches.length<6){
+    ui.status.textContent=`${key}: opetus epäonnistui, ääni oli liian lyhyt tai epävakaa.`;
+    feedbackShow(`${key} · opetus epäonnistui`,1,'Ääni liian lyhyt tai epävakaa','Yritä uudelleen','error');
+    teachButtonDone(key);
+    feedbackHide(2400);
+    teachingBusy=false;for(const k of SLOT_KEYS)slotEls[k].teach.disabled=false;refreshStartButton();return;
+  }
+  const f0=median(pitches),kept=[];
+  for(let i=0;i<pitches.length;i++)if(Math.abs(centsBetween(pitches[i],f0))<70)kept.push(frames[i]);
+  if(kept.length<4){
+    ui.status.textContent=`${key}: opetus epäonnistui, sävelkorkeus vaihteli liikaa.`;
+    feedbackShow(`${key} · opetus epäonnistui`,1,'Sävelkorkeus vaihteli liikaa','Yritä uudelleen','error');
+    teachButtonDone(key);
+    feedbackHide(2400);
+    teachingBusy=false;for(const k of SLOT_KEYS)slotEls[k].teach.disabled=false;refreshStartButton();return;
+  }
+  const fps=kept.map(fr=>fingerprintForFrame(fr,f0));
+  profiles[key]={f0,p1:median(fps.map(v=>v.p1)),r2:median(fps.map(v=>v.r2)),r3:median(fps.map(v=>v.r3)),rms:median(rmsVals)};
+  trainFrames[key]=kept.slice(0,10);
+  states[key]={active:false,fullGas:false,smooth:0,out:0,history:[],activeUntil:0,last:null,attack:0};
+  ui.status.textContent=`${key} opetettu: ${f0.toFixed(1)} Hz.`;
+  feedbackShow(`${key} · valmis`,1,`Opetettu ${f0.toFixed(1)} Hz`,`${kept.length} hyvää näytettä`);
+  teachButtonDone(key);
+  feedbackHide(1800);
+  refreshProfileUI();buildCrossMatrix();teachingBusy=false;
+  for(const k of SLOT_KEYS)slotEls[k].teach.disabled=false;refreshStartButton();
+
+  // Kun kaikki neljä ääntä on opetettu, voidaan näyttää pelin Aloita-nappi.
+  // Tunnistus saa käynnistyä automaattisesti, mutta peli alkaa vasta napista.
+  if(allProfilesReady()){
+    startDetection();
+    refreshPongStartButton();
+    if(!pong.running && !pong.matchOver){
+      ui.pongStatus.textContent='Sävelet opetettu. Paina Aloita peli.';
+    }
+  }
+}
+
+function detectorScore(frame,profile){
+  const tol=+ui.tol.value,hold=Math.max(+ui.fullGas.value,+ui.fullHold.value),scanRange=Math.max(tol,hold);
+  const hit=scanTarget(frame,profile.f0,scanRange,11),anchorP=hit.anchorP+1e-12;
+  const fp=fingerprintForFrame(frame,profile.f0),isoD=isolationDetails(frame,profile.f0,anchorP);
+  const levelRatio=Math.sqrt(anchorP/(profile.p1+1e-12)),target=clamp((levelRatio-.10)/.70);
+  const fingerprint=fingerprintMatch(fp,profile),rr=rms(frame);
+  const gateFloor=calibratedThresholdRms;
+  const gateTop=Math.max(profile.rms,gateFloor*1.8);
+  const noiseGate=clamp((rr-gateFloor)/(gateTop-gateFloor+1e-12));
+  let raw=(.52*target+.28*fingerprint+.20*isoD.score)*noiseGate;
+  if(Math.abs(hit.cents)>scanRange*.97)raw*=.72;
+  return{raw:clamp(raw),target,fingerprint,isolation:isoD.score,level:clamp(levelRatio/1.25),detected:hit.f,cents:hit.cents,rms:rr,noiseGate,levelRatio,anchorP,currentR2:fp.r2,currentR3:fp.r3};
+}
+function updateTemporal(key,res){
+  const st=states[key],now=performance.now();
+  st.history.push(res.raw);if(st.history.length>2)st.history.shift();
+  const prev=st.history.length>1?st.history[st.history.length-2]:res.raw,fastAvg=.78*res.raw+.22*prev;
+  st.smooth+=(fastAvg-st.smooth)*(fastAvg>st.smooth?.82:.18);
+  const on=(+ui.gate.value)/100,off=(+ui.release.value)/100,impulse=Math.max(0,+ui.impulseHold.value);
+  const attackSignal=Math.max(st.smooth,res.raw*.96);st.attack=attackSignal;
+  if(!st.active&&attackSignal>=on){st.active=true;st.activeUntil=now+impulse;}
+  if(st.active&&res.raw>=off)st.activeUntil=Math.max(st.activeUntil,now+Math.min(impulse,90));
+  if(st.active&&now>=st.activeUntil&&st.smooth<off)st.active=false;
+  const full=Math.max(1,+ui.fullGas.value),hold=Math.max(full,+ui.fullHold.value),cents=Math.abs(res.cents||0);
+  if(!st.active)st.fullGas=false;
+  else{
+    if(!st.fullGas&&cents<=full&&attackSignal>=on)st.fullGas=true;
+    if(st.fullGas&&cents>hold)st.fullGas=false;
+  }
+  const normalBase=st.active?Math.max(clamp((st.smooth-off)/(1-off)),clamp((res.raw-off)/(1-off))*.82):0;
+  const target=st.fullGas?1:normalBase;
+  st.out+=(target-st.out)*(target>st.out?.78:.14);
+  if(st.fullGas&&st.out>.975)st.out=1;
+  st.last=res;
+}
+function detectionTick(){
+  if(!running)return;
+  const trained=SLOT_KEYS.filter(k=>profiles[k]);
+  if(!trained.length)return;
+  const fr=getFrame(),rr=rms(fr);ui.rmsText.textContent=rr.toFixed(5);ui.noiseText.textContent=`${noiseFloorDb.toFixed(1)} dB`;
+  for(const key of trained){const r=detectorScore(fr,profiles[key]);updateTemporal(key,r);renderSlot(key);}
+  ui.activeCount.textContent=`${trained.filter(k=>states[k].active).length} / 4`;
+}
+function startDetection(){
+  if(!SLOT_KEYS.some(k=>profiles[k]))return;
+  running=true;clearInterval(detectTimer);detectTimer=setInterval(detectionTick,25);
+  ui.engineState.textContent='KÄYNNISSÄ';ui.startBtn.disabled=true;ui.stopBtn.disabled=false;
+  ui.status.textContent='Tunnistus käynnissä. Kaikki opetetut slotit analysoidaan yhtä aikaa.';
+}
+function stopDetection(){
+  running=false;clearInterval(detectTimer);detectTimer=null;
+  ui.engineState.textContent='POIS';ui.stopBtn.disabled=true;refreshStartButton();
+  ui.status.textContent='Tunnistus pysäytetty.';
+}
+
+function setPct(id,pct){
+  const el=$(id);if(el)el.style.width=`${Math.round(clamp(pct)*100)}%`;
+  const txt=$(id+'_txt');if(txt)txt.textContent=`${Math.round(clamp(pct)*100)} %`;
+}
+function renderSlot(key){
+  const e=slotEls[key],st=states[key],r=st.last,p=profiles[key];
+  if(!r||!p)return;
+  e.det.textContent=`${r.detected.toFixed(1)} Hz`;
+  e.cents.textContent=`${r.cents>=0?'+':''}${Math.round(r.cents)} cent`;
+  e.state.textContent=st.fullGas?'TÄYSI':st.active?'AKTIIVINEN':'EI AKTIIVINEN';
+  e.state.className='statePill'+(st.fullGas?' full':st.active?' on':'');
+  e.out.style.width=`${Math.round(st.out*100)}%`;e.outTxt.textContent=`${Math.round(st.out*100)} %`;
+  setPct(`${key}_raw`,r.raw);setPct(`${key}_smooth`,st.smooth);setPct(`${key}_attack`,st.attack);
+  setPct(`${key}_target`,r.target);setPct(`${key}_fingerprint`,r.fingerprint);setPct(`${key}_isolation`,r.isolation);
+  setPct(`${key}_level`,r.level);setPct(`${key}_noiseGate`,r.noiseGate);
+  $(`${key}_targetDb`).textContent=`${(10*Math.log10(r.anchorP+1e-15)).toFixed(1)} dB`;
+  $(`${key}_levelRatio`).textContent=`${r.levelRatio.toFixed(2)}×`;
+  $(`${key}_liveR2`).textContent=`${ratioToDb(r.currentR2).toFixed(1)} dB`;
+  $(`${key}_liveR3`).textContent=`${ratioToDb(r.currentR3).toFixed(1)} dB`;
+  $(`${key}_profileR2`).textContent=`${ratioToDb(p.r2).toFixed(1)} dB`;
+  $(`${key}_profileR3`).textContent=`${ratioToDb(p.r3).toFixed(1)} dB`;
+  $(`${key}_profileRms`).textContent=p.rms.toFixed(5);
+  $(`${key}_holdMs`).textContent=`${Math.max(0,Math.round(st.activeUntil-performance.now()))} ms`;
+}
+function refreshTeachButtonLabel(key){
+  const p=profiles[key];
+  slotEls[key].teach.textContent=p ? (pongNoteName(p.f0)||'–') : '–';
+}
+
+function refreshProfileUI(){
+  let count=0;
+  for(const key of SLOT_KEYS){
+    const p=profiles[key];
+    slotEls[key].taught.textContent=p?`${p.f0.toFixed(1)} Hz`:'– Hz';
+    refreshTeachButtonLabel(key);
+    if(p)count++;
+  }
+  ui.trainedCount.textContent=`${count} / 4`;
+  refreshPongStartButton();
+}
+function refreshStartButton(){ui.startBtn.disabled=running||!SLOT_KEYS.some(k=>profiles[k]);}
+function allProfilesReady(){return SLOT_KEYS.every(k=>profiles[k]);}
+function refreshPongStartButton(){
+  const ready=allProfilesReady();
+  ui.pongStart.hidden=!ready;
+  if(!ready){
+    ui.pongStart.disabled=true;
+    ui.pongStart.textContent='Aloita peli';
+    return;
+  }
+  if(pong.countdownUntil>performance.now()){
+    ui.pongStart.disabled=true;
+    return;
+  }
+  ui.pongStart.disabled=false;
+}
+
+function leakageDb(fromKey,toKey){
+  const frames=trainFrames[fromKey],to=profiles[toKey];
+  if(!frames.length||!to)return NaN;
+  const p=median(frames.map(fr=>goertzelPower(fr,audioCtx.sampleRate,to.f0)));
+  return 10*Math.log10((p+1e-12)/(to.p1+1e-12));
+}
+function buildCrossMatrix(){
+  const trained=SLOT_KEYS.filter(k=>profiles[k]);
+  if(!trained.length){ui.crossMatrix.innerHTML='<div class="small">Opeta vähintään yksi slotti.</div>';return;}
+  let html='<div class="head">Lähde ↓ / kohde →</div>'+SLOT_KEYS.map(k=>`<div class="head">${k}</div>`).join('');
+  for(const from of SLOT_KEYS){
+    html+=`<div class="rowHead">${from}</div>`;
+    for(const to of SLOT_KEYS){
+      if(from===to){html+='<div>—</div>';continue;}
+      const db=(profiles[from]&&profiles[to])?leakageDb(from,to):NaN;
+      html+=`<div>${Number.isFinite(db)?db.toFixed(1)+' dB':'–'}</div>`;
+    }
+  }
+  ui.crossMatrix.innerHTML=html;
+}
+
+
+// ===== PONG YHTEISPELI · TEST 1.3 =====
+const pongCtx=ui.pongCanvas.getContext('2d');
+const pongBgImg=new Image();
+pongBgImg.src='assets/tennis_bg_full_ipad.webp';
+
+const pongBallImgs={
+  yellow:new Image(),
+  blue:new Image(),
+  red:new Image()
+};
+pongBallImgs.yellow.src='assets/tennis_ball_yellow.webp';
+pongBallImgs.blue.src='assets/tennis_ball_blue.webp';
+pongBallImgs.red.src='assets/tennis_ball_red.webp';
+
+const pongHitSounds=Array.from({length:4},()=>{
+  const a=new Audio('assets/tennisball_hit.wav');
+  a.preload='auto';
+  a.volume=1;
+  return a;
+});
+let pongHitSoundIndex=0;
+
+function pongPlayHitSound(){
+  const a=pongHitSounds[pongHitSoundIndex];
+  pongHitSoundIndex=(pongHitSoundIndex+1)%pongHitSounds.length;
+  try{
+    a.currentTime=0;
+    const p=a.play();
+    if(p&&typeof p.catch==='function')p.catch(()=>{});
+  }catch(e){}
+}
+
+// Taustamusiikki. Selain sallii äänen käynnistyksen vasta käyttäjän eleen jälkeen.
+const pongMusic=new Audio('assets/Summer.mp3');
+pongMusic.preload='auto';
+pongMusic.loop=true;
+pongMusic.volume=.30;
+let pongMusicStarted=false;
+
+function pongSetMusicVolume(v){
+  const pct=clamp(+v,0,100);
+  pongMusic.volume=pct/100;
+  ui.musicVolumeVal.textContent=`${Math.round(pct)} %`;
+}
+
+function pongStartMusic(){
+  if(pongMusicStarted && !pongMusic.paused)return;
+  try{
+    const p=pongMusic.play();
+    if(p&&typeof p.then==='function'){
+      p.then(()=>{pongMusicStarted=true;}).catch(()=>{});
+    }else{
+      pongMusicStarted=true;
+    }
+  }catch(e){}
+}
+
+
+const PONG_W=1366,PONG_H=1024;
+const PONG_KEYS=['1A','1B','2A','2B'];
+const PONG_COLORS={1:'#4b8df8',2:'#ff6767'};
+const pong={
+  running:false,
+  scoreTeam:0,scoreAI:0,
+  round:1,totalRounds:4,roundTarget:5,
+  roundWinsTeam:0,roundWinsAI:0,
+  betweenRounds:false,matchOver:false,
+  lastTs:performance.now(),
+  serveAt:0,
+  nextRoundTimer:0,
+  countdownUntil:0,
+  manualUntil:{'1A':0,'1B':0,'2A':0,'2B':0},
+  hint:{active:false,playerId:1,dir:'A',targetY:PONG_H/4},
+  nextTargetPlayer:1,
+  paddles:{},
+  ai:{y:PONG_H/2,vy:0,h:112,w:18,target:PONG_H/2,offset:0,nextThink:0,reaction:0.16,maxSpeed:430,missThisRally:false},
+  ball:{x:PONG_W*.53,y:PONG_H*.5,vx:430,vy:80,r:18,arcStartX:PONG_W*.53,arcEndX:PONG_W-66,missArcDone:false,openingServeToAI:true}
+};
+
+
+const pongTune={
+  courtLeft:125,courtRight:128,courtTop:266,courtBottom:303,
+  playerInset:50,aiInset:50,arcHeight:18,paddleWidth:18,perspective:46,showGuides:false
+};
+
+const ballShadowTune={
+  edgeDist:10,
+  centerDist:28
+};
+
+const paddleShadowTune={
+  offsetX:-12,
+  offsetY:12,
+  length:94,
+  width:74,
+  opacity:12
+};
+
+function pongLerp(a,b,t){return a+(b-a)*t;}
+
+function pongPerspectiveInfo(){
+  const c=pongGetCourt();
+  const maxInset=Math.max(0,Math.min(160,c.w*.22));
+  const inset=clamp(pongTune.perspective,0,maxInset);
+  return {
+    inset,
+    topLeftX:c.x+inset,
+    topRightX:c.x+c.w-inset,
+    bottomLeftX:c.x,
+    bottomRightX:c.x+c.w
+  };
+}
+
+function pongProjectPoint(x,y){
+  const c=pongGetCourt();
+  const p=pongPerspectiveInfo();
+  const t=clamp((y-c.y)/c.h,0,1);
+  const leftX=pongLerp(p.topLeftX,p.bottomLeftX,t);
+  const rightX=pongLerp(p.topRightX,p.bottomRightX,t);
+
+  // Vaakasuuntaa EI clampata kentän sisään.
+  // Näin pallo voi näkyä myös kentän vasemman/oikean reunan ulkopuolella.
+  const u=(x-c.x)/c.w;
+  return {x:pongLerp(leftX,rightX,u),y};
+}
+
+
+function pongDrawPerspectivePaddle(ctx,worldX,worldY,worldH,visualW,color,label=''){
+  const top=pongProjectPoint(worldX,worldY-worldH*.5);
+  const bottom=pongProjectPoint(worldX,worldY+worldH*.5);
+
+  const dx=bottom.x-top.x;
+  const dy=bottom.y-top.y;
+  const angle=Math.atan2(dy,dx);
+  const centerX=(top.x+bottom.x)/2;
+  const centerY=(top.y+bottom.y)/2;
+  const visualH=Math.hypot(dx,dy);
+
+  ctx.save();
+  ctx.translate(centerX,centerY);
+  ctx.rotate(angle);
+
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.roundRect(-visualH*.5,-visualW*.5,visualH,visualW,8);
+  ctx.fill();
+
+  if(label){
+    ctx.fillStyle='rgba(255,255,255,.94)';
+    ctx.font='900 13px system-ui';
+    ctx.textAlign='left';
+    ctx.textBaseline='middle';
+    ctx.fillText(label,visualH*.5+10,0);
+    ctx.textAlign='left';
+    ctx.textBaseline='alphabetic';
+  }
+  ctx.restore();
+}
+
+function pongDrawPerspectivePaddleShadow(ctx,worldX,worldY,worldH,visualW){
+  const top=pongProjectPoint(worldX,worldY-worldH*.5);
+  const bottom=pongProjectPoint(worldX,worldY+worldH*.5);
+
+  const dx=bottom.x-top.x;
+  const dy=bottom.y-top.y;
+  const angle=Math.atan2(dy,dx);
+  const centerX=(top.x+bottom.x)/2 + paddleShadowTune.offsetX;
+  const centerY=(top.y+bottom.y)/2 + paddleShadowTune.offsetY;
+  const visualH=Math.hypot(dx,dy) * (paddleShadowTune.length/100);
+  const shadowW=visualW * (paddleShadowTune.width/100);
+
+  ctx.save();
+  ctx.translate(centerX,centerY);
+  ctx.rotate(angle);
+  ctx.fillStyle=`rgba(0,0,0,${(paddleShadowTune.opacity/100).toFixed(3)})`;
+  ctx.beginPath();
+  ctx.roundRect(-visualH*.5,-shadowW*.5,visualH,shadowW,Math.max(4,shadowW*.45));
+  ctx.fill();
+  ctx.restore();
+}
+
+function pongPerspectiveScaleAtY(y){
+  const c=pongGetCourt();
+  const p=pongPerspectiveInfo();
+  const t=clamp((y-c.y)/c.h,0,1);
+  const rowLeft=pongLerp(p.topLeftX,p.bottomLeftX,t);
+  const rowRight=pongLerp(p.topRightX,p.bottomRightX,t);
+  return (rowRight-rowLeft)/c.w;
+}
+
+function pongGetCourt(){
+  const left=clamp(pongTune.courtLeft,20,280);
+  const right=clamp(pongTune.courtRight,20,280);
+  const top=clamp(pongTune.courtTop,20,500);
+  const bottom=clamp(pongTune.courtBottom,20,500);
+
+  const x=left,y=top;
+  const w=Math.max(720,PONG_W-left-right);
+  const h=Math.max(320,PONG_H-top-bottom);
+  const midY=y+h/2;
+
+  const playerX=clamp(x+pongTune.playerInset,x+14,x+w*.38);
+  const aiX=clamp(x+w-pongTune.aiInset,x+w*.62,x+w-14);
+
+  return {x,y,w,h,left,top,right,bottom,midY,playerX,aiX};
+}
+
+function pongSetBallArc(targetX){
+  pong.ball.arcStartX=pong.ball.x;
+  pong.ball.arcEndX=targetX;
+}
+
+function pongGetPlayerHitX(){
+  const p=pong.paddles[1];
+  return p.x + p.w*.5 + pong.ball.r + .5;
+}
+
+function pongGetAIHitX(){
+  const c=pongGetCourt();
+  return c.aiX - pong.ai.w*.5 - pong.ball.r - .5;
+}
+
+function pongTriggerMissArcIfNeeded(){
+  const b=pong.ball;
+  if(b.missArcDone)return;
+
+  const c=pongGetCourt();
+  const playerRight=pong.paddles[1].x + pong.paddles[1].w*.5 + b.r;
+  const aiLeft=c.aiX - pong.ai.w*.5 - b.r;
+
+  // Kun pallo menee mailan ohi, se ei pomppaa takaisin kentältä,
+  // vaan saa vain samanlaisen visuaalisen ylöspäin suuntautuvan kaaren
+  // kuin onnistuneessa palautuksessa.
+  if(b.vx<0 && b.x<playerRight){
+    b.missArcDone=true;
+    b.arcStartX=b.x;
+    b.arcEndX=-28;
+  }else if(b.vx>0 && b.x>aiLeft){
+    b.missArcDone=true;
+    b.arcStartX=b.x;
+    b.arcEndX=PONG_W+28;
+  }
+}
+
+
+
+function pongInitPaddles(preserve=false){
+  const c=pongGetCourt();
+
+  // Pelaajan mailan korkeus = 25 % sinisen kenttäalueen korkeudesta.
+  const paddleH=c.h*.25;
+  const topMin=c.y;
+  const topMax=c.midY;
+  const botMin=c.midY;
+  const botMax=c.y+c.h;
+  const prev=pong.paddles||{};
+
+  const makePaddle=(id,minY,maxY)=>{
+    const upperY=minY+paddleH/2;
+    const lowerY=maxY-paddleH/2;
+    const old=prev[id]||{};
+    const keepY=preserve ? clamp(old.y||((upperY+lowerY)/2),upperY,lowerY) : ((upperY+lowerY)/2);
+    const keepTarget=preserve ? clamp(old.targetY||keepY,upperY,lowerY) : keepY;
+    return {
+      id,
+      x:c.playerX,
+      y:keepY,
+      vy:preserve?(old.vy||0):0,
+      h:paddleH,
+      w:pongTune.paddleWidth,
+      minY:upperY,maxY:lowerY,
+      upperY,lowerY,targetY:keepTarget
+    };
+  };
+
+  pong.paddles={
+    1:makePaddle(1,topMin,topMax),
+    2:makePaddle(2,botMin,botMax)
+  };
+}
+pongInitPaddles();
+
+function pongSlotActive(key){
+  const now=performance.now();
+  return now<(pong.manualUntil[key]||0) || !!states[key]?.active;
+}
+
+function pongActivateManual(key,ms=260){
+  pong.manualUntil[key]=performance.now()+ms;
+}
+
+
+function pongNoteName(freq){
+  if(!(freq>0)||!Number.isFinite(freq))return null;
+  const midi=Math.round(69+12*Math.log2(freq/440));
+  const pcs=['C','Cis','D','Dis','E','F','Fis','G','Gis','A','B','H'];
+  const pc=((midi%12)+12)%12;
+  const octave=Math.floor(midi/12)-1;
+  return `${pcs[pc]}${octave}`;
+}
+
+function pongSlotLabel(key){
+  const p=profiles[key];
+  return p ? (pongNoteName(p.f0)||key) : key;
+}
+
+function pongReflectY(y,vy,dt){
+  const c=pongGetCourt();
+  const minY=c.y+pong.ball.r;
+  const maxY=c.y+c.h-pong.ball.r;
+  const span=maxY-minY;
+  if(span<=0)return c.midY;
+  let u=(y-minY)+vy*dt;
+  const period=span*2;
+  u=((u%period)+period)%period;
+  return minY+(u<=span?u:period-u);
+}
+
+function pongClearHint(){
+  pong.hint.active=false;
+}
+
+function pongLockHint(){
+  const b=pong.ball;
+  if(!(b.vx<0)){pongClearHint();return;}
+
+  const c=pongGetCourt();
+  const speedX=Math.max(60,Math.abs(b.vx));
+  const travelTime=Math.max(0,(b.x-c.playerX)/speedX);
+  const targetY=pongReflectY(b.y,b.vy,travelTime);
+
+  const safe=14;
+  let playerId;
+  if(Math.abs(targetY-c.midY)<=safe && pong.hint?.active){
+    playerId=pong.hint.playerId;
+  }else{
+    playerId=targetY<c.midY?1:2;
+  }
+
+  const topHalfMid=c.y+c.h*.25;
+  const bottomHalfMid=c.y+c.h*.75;
+  const zoneMid=playerId===1 ? topHalfMid : bottomHalfMid;
+  const dir=targetY<zoneMid?'A':'B';
+
+  pong.hint={active:true,playerId,dir,targetY};
+}
+
+
+function pongRoundDifficulty(){
+  // Erä erältä AI tekee vähemmän virheitä, reagoi nopeammin ja liikkuu kovempaa.
+  // round 1 -> helpoin, round 6 -> vaikein.
+  const r=clamp((pong.round-1)/5,0,1);
+  return {
+    missChance:.42 + (.06-.42)*r,     // 42 % -> 6 %
+    thinkMin:330 + (150-330)*r,       // päätökset tihenevät
+    thinkMax:720 + (330-720)*r,
+    minSpeed:330 + (455-330)*r,
+    maxSpeed:485 + (620-485)*r,
+    biasMax:95 + (38-95)*r,           // tähtäysvirhe pienenee
+    reactionMin:.09 + (.16-.09)*r,
+    reactionMax:.17 + (.27-.17)*r
+  };
+}
+
+
+function fitPongStageToWindow(){
+  const stage=ui.pongCanvas?.parentElement;
+  if(!stage)return;
+  stage.style.width=`${window.innerWidth}px`;
+  stage.style.height=`${window.innerHeight}px`;
+}
+
+function pongUpdateRoundHud(){
+  ui.pongRound.textContent=`${pong.round} / ${pong.totalRounds}`;
+  ui.pongScore.textContent=`${pong.scoreTeam} : ${pong.scoreAI}`;
+  ui.pongWins.textContent=`Erävoitot ${pong.roundWinsTeam} : ${pong.roundWinsAI}`;
+}
+
+function pongCountdownValue(){
+  if(!pong.countdownUntil)return 0;
+  return Math.max(1,Math.ceil((pong.countdownUntil-performance.now())/1000));
+}
+
+function pongStartCountdown(statusText){
+  clearTimeout(pong.nextRoundTimer);
+  pong.nextRoundTimer=0;
+  pong.running=false;
+  pong.betweenRounds=true;
+  pong.countdownUntil=performance.now()+3000;
+  ui.pongStart.disabled=true;
+  ui.pongStart.textContent='3';
+  ui.pongStatus.textContent=statusText;
+
+  pong.nextRoundTimer=setTimeout(()=>{
+    pong.nextRoundTimer=0;
+    pong.countdownUntil=0;
+    if(!running)startDetection();
+    pong.running=true;
+    pong.betweenRounds=false;
+    pongResetBall(1,0);
+    ui.pongStart.textContent='Pysäytä';
+    ui.pongStatus.textContent=`Erä ${pong.round}/${pong.totalRounds} käynnissä. Jokainen aloitus menee ensin AI:lle.`;
+    refreshPongStartButton();
+  },3000);
+}
+
+function pongResetBall(dir=1,delay=650){
+  const b=pong.ball;
+  const c=pongGetCourt();
+  b.x=PONG_W*.53;b.y=c.midY;
+  const angle=(Math.random()*.72-.36);
+  const speed=455;
+
+  // JOKAINEN aloitus lähtee ensin oikealle AI:lle.
+  b.vx=Math.cos(angle)*speed;
+  b.vy=Math.sin(angle)*speed;
+
+  pong.ai.missThisRally=false;
+  b.missArcDone=false;
+  b.openingServeToAI=true;
+  pongSetBallArc(pongGetAIHitX());
+  pong.serveAt=performance.now()+delay;
+  pongClearHint();
+}
+
+function pongResetGame(){
+  clearTimeout(pong.nextRoundTimer);
+  pong.nextRoundTimer=0;
+  pong.countdownUntil=0;
+  pong.running=false;
+  pong.scoreTeam=0;pong.scoreAI=0;
+  pong.round=1;pong.roundWinsTeam=0;pong.roundWinsAI=0;
+  pong.betweenRounds=false;pong.matchOver=false;
+  pong.ai.y=pongGetCourt().midY;pong.ai.vy=0;pong.ai.target=pongGetCourt().midY;pong.ai.offset=0;pong.ai.nextThink=0;pong.ai.missThisRally=false;
+  pong.nextTargetPlayer=1;
+  pongInitPaddles();
+  pongResetBall(1,0);
+  pongUpdateRoundHud();
+  ui.pongStatus.textContent='Valmis. 4 erää. Jokainen aloitus menee ensin AI:lle. AI vaikeutuu erä erältä.';
+  ui.pongStart.textContent='Aloita peli';
+  refreshPongStartButton();
+  fitPongStageToWindow();
+}
+
+function pongStartGame(){
+  if(!allProfilesReady()){
+    ui.pongStatus.textContent='Opeta ensin kaikkien pelaajien sävelet.';
+    return;
+  }
+
+  if(pong.matchOver){
+    pongResetGame();
+  }
+
+  if(pong.countdownUntil>performance.now())return;
+
+  clearTimeout(pong.nextRoundTimer);
+  pong.nextRoundTimer=0;
+
+  if(!pong.running){
+    pongStartCountdown(`Erä ${pong.round}/${pong.totalRounds} alkaa 3 sekunnissa.`);
+  }else{
+    pong.running=false;
+    ui.pongStart.textContent='Jatka peliä';
+    ui.pongStatus.textContent='Peli pysäytetty.';
+    refreshPongStartButton();
+  }
+}
+
+function pongBounceFromPaddle(ball,paddle,fromLeft=true){
+  const rel=clamp((ball.y-paddle.cy)/(paddle.h*.5),-1,1);
+  const maxAngle=58*Math.PI/180;
+  const angle=rel*maxAngle;
+  const speed=Math.min(760,Math.hypot(ball.vx,ball.vy)*1.045+5);
+  const sign=fromLeft?1:-1;
+  ball.vx=Math.cos(angle)*speed*sign;
+  ball.vy=Math.sin(angle)*speed;
+}
+
+function pongUpdatePaddles(dt){
+  for(const id of [1,2]){
+    const p=pong.paddles[id];
+    const up=pongSlotActive(id===1?'1A':'2A');
+    const down=pongSlotActive(id===1?'1B':'2B');
+
+    // A valitsee oman alueen ylemmän puoliskon, B alemman.
+    // Kun ääntä ei soiteta, maila jää viimeiseen tavoiteasentoonsa.
+    if(up&&!down)p.targetY=p.upperY;
+    else if(down&&!up)p.targetY=p.lowerY;
+
+    // Nopea mutta pehmeä jousiliike kohti valittua paikkaa.
+    const stiffness=190;
+    const damping=26;
+    const ay=(p.targetY-p.y)*stiffness-p.vy*damping;
+    p.vy+=ay*dt;
+    p.y+=p.vy*dt;
+
+    if(p.y<p.minY){p.y=p.minY;if(p.vy<0)p.vy=0;}
+    if(p.y>p.maxY){p.y=p.maxY;if(p.vy>0)p.vy=0;}
+    if(Math.abs(p.targetY-p.y)<.04&&Math.abs(p.vy)<.08){p.y=p.targetY;p.vy=0;}
+  }
+}
+
+function pongUpdateAI(dt){
+  const ai=pong.ai,b=pong.ball;
+  const now=performance.now();
+  const c=pongGetCourt();
+  const d=pongRoundDifficulty();
+
+  // Kun pallo lähtee joka pisteen alussa AI:lle, päätetään rallille yksi
+  // puolustusvirhe. Alkuerissä AI päästää enemmän palloja ohi,
+  // loppuerissä yhä harvemmin.
+  if(b.vx>0 && !ai._incomingMarked){
+    ai._incomingMarked=true;
+    ai.missThisRally=Math.random()<d.missChance;
+  }
+  if(b.vx<0)ai._incomingMarked=false;
+
+  if(now>=ai.nextThink){
+    ai.nextThink=now+(d.thinkMin+Math.random()*(d.thinkMax-d.thinkMin));
+
+    if(b.vx>0){
+      let purposeful;
+      if(ai.missThisRally){
+        // Tahallinen puolustusvirhe: AI hakeutuu pallosta poispäin.
+        const away=b.y<c.midY?1:-1;
+        purposeful=away*(110+Math.random()*90);
+      }else{
+        // Normaali puolustus. Erä erältä tähtäysvirhe pienenee.
+        purposeful=(Math.random()*2-1)*d.biasMax;
+      }
+
+      ai.offset=purposeful;
+      ai.reaction=d.reactionMin+Math.random()*(d.reactionMax-d.reactionMin);
+      ai.maxSpeed=d.minSpeed+Math.random()*(d.maxSpeed-d.minSpeed);
+      ai.target=clamp(b.y+ai.offset,c.y+ai.h*.5,c.y+c.h-ai.h*.5);
+    }else{
+      ai.target=clamp(
+        c.midY+(Math.random()*2-1)*(110-8*pong.round),
+        c.y+ai.h*.5,
+        c.y+c.h-ai.h*.5
+      );
+      ai.reaction=d.reactionMin;
+      ai.maxSpeed=d.minSpeed;
+    }
+  }
+
+  if(b.vx>0){
+    const corrected=clamp(b.y+ai.offset,c.y+ai.h*.5,c.y+c.h-ai.h*.5);
+    const correction=ai.missThisRally ? .65 : (2.4+ai.reaction*8);
+    ai.target += (corrected-ai.target)*Math.min(1,dt*correction);
+  }
+
+  const err=ai.target-ai.y;
+  const accel=err*(11+ai.reaction*42)-ai.vy*(6.2+ai.reaction*10);
+  ai.vy+=accel*dt;
+  ai.vy=clamp(ai.vy,-ai.maxSpeed,ai.maxSpeed);
+  ai.y+=ai.vy*dt;
+  ai.y=clamp(ai.y,c.y+ai.h*.5,c.y+c.h-ai.h*.5);
+}
+
+function pongPlayerCollision(){
+  const b=pong.ball;
+  if(b.vx>=0)return false;
+
+  for(const id of [1,2]){
+    const p=pong.paddles[id];
+    const left=p.x-p.w*.5,right=p.x+p.w*.5,top=p.y-p.h*.5,bottom=p.y+p.h*.5;
+    if(b.x-b.r<=right && b.x+b.r>=left && b.y+b.r>=top && b.y-b.r<=bottom){
+      b.x=right+b.r+.5;
+      pongPlayHitSound();
+      pongBounceFromPaddle(b,{cy:p.y,h:p.h},true);
+      b.missArcDone=false;
+      b.openingServeToAI=false;
+      pongSetBallArc(pongGetAIHitX());
+      pongClearHint();
+      return true;
+    }
+  }
+  return false;
+}
+
+
+function pongChooseEmptyTarget(playerId){
+  const c=pongGetCourt();
+  const p=pong.paddles[playerId];
+  const zoneMin=playerId===1 ? c.y : c.midY;
+  const zoneMax=playerId===1 ? c.midY : (c.y+c.h);
+
+  const paddleTop=p.y-p.h*.5;
+  const paddleBottom=p.y+p.h*.5;
+
+  const free=[];
+  const topFree=Math.max(0,paddleTop-zoneMin);
+  const bottomFree=Math.max(0,zoneMax-paddleBottom);
+
+  if(topFree>8)free.push({minY:zoneMin+4,maxY:paddleTop-4,size:topFree});
+  if(bottomFree>8)free.push({minY:paddleBottom+4,maxY:zoneMax-4,size:bottomFree});
+
+  let cnd;
+  if(free.length){
+    cnd=free[Math.floor(Math.random()*free.length)];
+  }else{
+    const topY=zoneMin+6;
+    const bottomY=zoneMax-6;
+    cnd=Math.abs(topY-p.y)>Math.abs(bottomY-p.y)
+      ? {minY:topY,maxY:topY,size:0}
+      : {minY:bottomY,maxY:bottomY,size:0};
+  }
+
+  const span=Math.max(0,cnd.maxY-cnd.minY);
+  const inset=Math.min(14,span*.22);
+  const lo=cnd.minY+inset;
+  const hi=cnd.maxY-inset;
+  const targetY=hi>lo ? lo+Math.random()*(hi-lo) : (cnd.minY+cnd.maxY)/2;
+
+  return {playerId,targetY};
+}
+
+function pongAimBallAtEmptySpace(){
+  const b=pong.ball;
+  const c=pongGetCourt();
+
+  const playerId=pong.nextTargetPlayer;
+  const target=pongChooseEmptyTarget(playerId);
+  pong.nextTargetPlayer=playerId===1?2:1;
+
+  const dx=Math.max(1,b.x-c.playerX);
+  const speedX=Math.max(360,Math.abs(b.vx));
+  b.vx=-speedX;
+
+  const travelTime=dx/speedX;
+  b.vy=(target.targetY-b.y)/Math.max(.05,travelTime);
+  b.vy=clamp(b.vy,-560,560);
+  b.missArcDone=false;
+  b.openingServeToAI=false;
+
+  pongSetBallArc(pongGetPlayerHitX());
+}
+
+function pongAICollision(){
+  const b=pong.ball,ai=pong.ai;
+  if(b.vx<=0)return false;
+  const c=pongGetCourt();
+  const x=c.aiX;
+  const left=x-ai.w*.5,right=x+ai.w*.5,top=ai.y-ai.h*.5,bottom=ai.y+ai.h*.5;
+  if(b.x+b.r>=left && b.x-b.r<=right && b.y+b.r>=top && b.y-b.r<=bottom){
+    b.x=left-b.r-.5;
+    pongPlayHitSound();
+    ai.missThisRally=false;
+    pongAimBallAtEmptySpace();
+    pongLockHint();
+    return true;
+  }
+  return false;
+}
+
+
+function pongFinishRound(){
+  const playersWon=pong.scoreTeam>pong.scoreAI;
+  if(playersWon)pong.roundWinsTeam++;
+  else pong.roundWinsAI++;
+
+  pong.running=false;
+  pong.betweenRounds=true;
+  pongUpdateRoundHud();
+  clearTimeout(pong.nextRoundTimer);
+  pong.nextRoundTimer=0;
+  pong.countdownUntil=0;
+
+  if(pong.round>=pong.totalRounds){
+    pong.matchOver=true;
+    pong.betweenRounds=false;
+    const result=pong.roundWinsTeam>pong.roundWinsAI
+      ? 'PELAAJAT VOITTIVAT OTTELUN!'
+      : pong.roundWinsAI>pong.roundWinsTeam
+        ? 'AI VOITTI OTTELUN.'
+        : 'OTTELU PÄÄTTYI TASAN.';
+    ui.pongStatus.textContent=`${result} Erävoitot ${pong.roundWinsTeam} : ${pong.roundWinsAI}.`;
+    ui.pongStart.textContent='Uusi ottelu';
+    refreshPongStartButton();
+    return;
+  }
+
+  const oldRound=pong.round;
+  pong.round++;
+  pong.scoreTeam=0;
+  pong.scoreAI=0;
+  pongUpdateRoundHud();
+  pongStartCountdown(`Erä ${oldRound} päättyi. Seuraava erä ${pong.round}/${pong.totalRounds} alkaa 3 sekunnissa.`);
+}
+
+function pongUpdate(dt){
+  pongUpdatePaddles(dt);
+  pongUpdateAI(dt);
+  if(!pong.running || performance.now()<pong.serveAt)return;
+
+  const b=pong.ball;
+  b.x+=b.vx*dt;b.y+=b.vy*dt;
+
+  const c=pongGetCourt();
+  const topWall=c.y;
+  const bottomWall=c.y+c.h;
+
+  if(b.y-b.r<topWall){b.y=topWall+b.r;b.vy=Math.abs(b.vy);}
+  if(b.y+b.r>bottomWall){b.y=bottomWall-b.r;b.vy=-Math.abs(b.vy);}
+
+  pongPlayerCollision();
+  pongAICollision();
+  pongTriggerMissArcIfNeeded();
+
+  // Jos pallo ei osu mailaan, se menee edelleen normaalisti reunoista yli.
+  // Mutta ohituksessa se saa visuaalisen ylöspäin suuntautuvan pomppukaaren.
+  // Piste kirjataan vasta, kun pallo poistuu koko näytön ulkopuolelle.
+  if(b.x<-28){
+    pongClearHint();
+    pong.scoreAI++;
+    pongUpdateRoundHud();
+    ui.pongStatus.textContent=`AI sai pisteen · erä ${pong.round}/4.`;
+    if(pong.scoreAI>=pong.roundTarget){
+      pongFinishRound();
+      return;
+    }
+    // Jokainen uusi pallo alkaa AINA kohti AI:ta.
+    pongResetBall(1,700);
+  }else if(b.x>PONG_W+28){
+    pong.scoreTeam++;
+    pongUpdateRoundHud();
+    ui.pongStatus.textContent=`Pelaajat saivat pisteen · erä ${pong.round}/4.`;
+    if(pong.scoreTeam>=pong.roundTarget){
+      pongFinishRound();
+      return;
+    }
+    // Myös pelaajien pisteen jälkeen uusi pallo menee ensin AI:lle.
+    pongResetBall(1,700);
+  }
+}
+
+function pongDraw(){
+  const ctx=pongCtx,w=PONG_W,h=PONG_H;
+  const c=pongGetCourt();
+  const pinfo=pongPerspectiveInfo();
+  ctx.clearRect(0,0,w,h);
+
+  // Koko tausta: lasten puistokenttäkuva.
+  if(pongBgImg.complete && pongBgImg.naturalWidth){
+    // Kuva skaalataan kokonaisena koko pelialueen taustaksi.
+    // Canvas on 4:3 ja taustakuva on tehty samaan ipad 12,9 -suhteeseen.
+    ctx.drawImage(pongBgImg,0,0,w,h);
+  }else{
+    ctx.fillStyle='#66b85e';
+    ctx.fillRect(0,0,w,h);
+  }
+
+  // Aktiivinen kenttä piirretään perspektiivisenä puolisuunnikkaana.
+  const topLeft={x:pinfo.topLeftX,y:c.y};
+  const topRight={x:pinfo.topRightX,y:c.y};
+  const bottomRight={x:pinfo.bottomRightX,y:c.y+c.h};
+  const bottomLeft={x:pinfo.bottomLeftX,y:c.y+c.h};
+
+  ctx.fillStyle='rgba(44,175,235,.14)';
+  ctx.beginPath();
+  ctx.moveTo(topLeft.x,topLeft.y);
+  ctx.lineTo(topRight.x,topRight.y);
+  ctx.lineTo(bottomRight.x,bottomRight.y);
+  ctx.lineTo(bottomLeft.x,bottomLeft.y);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle='rgba(255,255,255,.95)';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(topLeft.x,topLeft.y);
+  ctx.lineTo(topRight.x,topRight.y);
+  ctx.lineTo(bottomRight.x,bottomRight.y);
+  ctx.lineTo(bottomLeft.x,bottomLeft.y);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Keskilinja
+  const midL=pongProjectPoint(c.x,c.midY);
+  const midR=pongProjectPoint(c.x+c.w,c.midY);
+  ctx.beginPath();
+  ctx.moveTo(midL.x,midL.y);
+  ctx.lineTo(midR.x,midR.y);
+  ctx.stroke();
+
+  // Verkko
+  const netTop=pongProjectPoint(c.x+c.w/2,c.y+8);
+  const netBottom=pongProjectPoint(c.x+c.w/2,c.y+c.h-8);
+  ctx.beginPath();
+  ctx.moveTo(netTop.x,netTop.y);
+  ctx.lineTo(netBottom.x,netBottom.y);
+  ctx.strokeStyle='rgba(255,255,255,.82)';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // Apuviivat säätöä varten.
+  if(pongTune.showGuides){
+    ctx.setLineDash([8,8]);
+    ctx.strokeStyle='rgba(255,255,255,.28)';
+    ctx.lineWidth=2;
+
+    const pTop=pongProjectPoint(c.playerX,c.y);
+    const pBottom=pongProjectPoint(c.playerX,c.y+c.h);
+    const aTop=pongProjectPoint(c.aiX,c.y);
+    const aBottom=pongProjectPoint(c.aiX,c.y+c.h);
+
+    ctx.beginPath();
+    ctx.moveTo(pTop.x,pTop.y);
+    ctx.lineTo(pBottom.x,pBottom.y);
+    ctx.moveTo(aTop.x,aTop.y);
+    ctx.lineTo(aBottom.x,aBottom.y);
+    ctx.stroke();
+
+    for(const yy of [c.y+c.h*.25,c.y+c.h*.5,c.y+c.h*.75]){
+      const g1=pongProjectPoint(c.x,yy);
+      const g2=pongProjectPoint(c.x+c.w*.24,yy);
+      ctx.beginPath();
+      ctx.moveTo(g1.x,g1.y);
+      ctx.lineTo(g2.x,g2.y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  // Kentän sisäinen HUD.
+  ctx.font='900 18px system-ui';
+  ctx.fillStyle='rgba(255,255,255,.78)';
+  ctx.fillText('PELAAJAT',c.x+8,31);
+  ctx.textAlign='right';
+  ctx.fillText('AI',w-22,31);
+
+  ctx.textAlign='center';
+  ctx.font='900 21px system-ui';
+  ctx.fillStyle='rgba(255,255,255,.90)';
+  ctx.fillText(`${pong.scoreTeam} : ${pong.scoreAI}`,w*.5,31);
+  ctx.font='700 11px system-ui';
+  ctx.fillStyle='rgba(255,255,255,.62)';
+  ctx.fillText(`ERÄ ${pong.round} / ${pong.totalRounds}`,w*.5,48);
+  ctx.textAlign='left';
+
+  // Pelaajien mailat: myös kallistuvat perspektiivin suuntaan.
+  for(const id of [1,2]){
+    const pad=pong.paddles[id];
+    const scl=Math.max(.72,pongPerspectiveScaleAtY(pad.y));
+    const visualW=pad.w*scl;
+    const visualH=pad.h*(0.92+0.16*scl);
+    pongDrawPerspectivePaddleShadow(ctx,pad.x,pad.y,visualH,visualW);
+    pongDrawPerspectivePaddle(ctx,pad.x,pad.y,visualH,visualW,PONG_COLORS[id]);
+  }
+
+  // AI-maila: myös kallistuu perspektiivin suuntaan.
+  const ai=pong.ai;
+  const aiScl=Math.max(.72,pongPerspectiveScaleAtY(ai.y));
+  const aiW=ai.w*aiScl;
+  const aiH=ai.h*(0.92+0.16*aiScl);
+  pongDrawPerspectivePaddleShadow(ctx,c.aiX,ai.y,aiH,aiW);
+  pongDrawPerspectivePaddle(ctx,c.aiX,ai.y,aiH,aiW,'#ffd84a');
+
+  // Pallo, kevyt kaari verkon yli ja kenttään piirtyvä varjo.
+  const b=pong.ball;
+  const comingFromAI=b.vx<0 && pong.hint.active;
+
+  let ballImg=pongBallImgs.yellow;
+  if(comingFromAI){
+    ballImg=pong.hint.playerId===1 ? pongBallImgs.blue : pongBallImgs.red;
+  }
+
+  let drawY=b.y;
+  let drawR=b.r;
+  let arcLift=0;
+  if(Number.isFinite(b.arcStartX) && Number.isFinite(b.arcEndX) && Math.abs(b.arcEndX-b.arcStartX)>1){
+    const s=clamp((b.x-b.arcStartX)/(b.arcEndX-b.arcStartX),0,1);
+    arcLift=4*s*(1-s);
+    drawY-=pongTune.arcHeight*arcLift;
+    drawR=b.r*(1+0.10*arcLift);
+  }
+
+  // Varjo piirretään kentän "pintaan" eli nostamattomaan pallon paikkaan.
+  // Näin varjo on lähellä mailoja, mutta etäämpänä kentän keskivaiheilla.
+  const shadowPoint=pongProjectPoint(b.x,b.y);
+  const bp=pongProjectPoint(b.x,drawY);
+
+  const bScale=Math.max(.78,pongPerspectiveScaleAtY(drawY));
+  drawR*= (0.90+0.18*bScale);
+
+  const shadowScale=Math.max(.76,pongPerspectiveScaleAtY(b.y));
+
+  let distMix=arcLift; // normaalisti 0 mailojen kohdalla, 1 keskikentällä
+  if(b.openingServeToAI && b.vx>0 && Number.isFinite(b.arcStartX) && Number.isFinite(b.arcEndX) && Math.abs(b.arcEndX-b.arcStartX)>1){
+    const serveS=clamp((b.x-b.arcStartX)/(b.arcEndX-b.arcStartX),0,1);
+    // Alkusyöttö lähtee keskikentältä, joten varjon kuuluu olla alussa
+    // keskikentän asetuksessa ja lähestyä reunasäätöä vasta kohti AI-mailaa.
+    distMix=1-serveS;
+  }
+
+  const shadowDist=pongLerp(ballShadowTune.edgeDist,ballShadowTune.centerDist,distMix);
+  const shadowRx=drawR*0.78*shadowScale;
+  const shadowRy=drawR*0.28*shadowScale;
+
+  ctx.fillStyle='rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(shadowPoint.x,shadowPoint.y+shadowDist,shadowRx,shadowRy,0,0,Math.PI*2);
+  ctx.fill();
+
+  if(ballImg.complete && ballImg.naturalWidth){
+    ctx.drawImage(ballImg,bp.x-drawR,bp.y-drawR,drawR*2,drawR*2);
+  }else{
+    ctx.fillStyle=comingFromAI ? (pong.hint.playerId===1?'#4b8df8':'#ff6767') : '#d8ff4a';
+    ctx.beginPath();
+    ctx.arc(bp.x,bp.y,drawR,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  if(comingFromAI && ui.pongArrows.checked){
+    ctx.fillStyle='#ffffff';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font='950 20px system-ui';
+    ctx.fillText(pong.hint.dir==='A'?'↑':'↓',bp.x,bp.y+.5);
+    ctx.textAlign='left';
+    ctx.textBaseline='alphabetic';
+  }
+
+  if(pong.countdownUntil>performance.now()){
+    const n=pongCountdownValue();
+    ui.pongStart.textContent=String(n);
+    ctx.fillStyle='rgba(0,0,0,.32)';
+    ctx.fillRect(w*.405,h*.405,w*.19,h*.19);
+    ctx.fillStyle='#fff';
+    ctx.font='900 64px system-ui';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(String(n),w*.5,h*.49);
+    ctx.font='700 16px system-ui';
+    ctx.fillStyle='#d7e3ec';
+    ctx.fillText('Valmiina...',w*.5,h*.565);
+    ctx.textAlign='left';
+    ctx.textBaseline='alphabetic';
+  }
+}
+
+function pongLoop(ts){
+  const dt=Math.min(.032,(ts-pong.lastTs)/1000||0);
+  pong.lastTs=ts;
+  pongUpdate(dt);
+  pongDraw();
+  requestAnimationFrame(pongLoop);
+}
+
+ui.musicVolume.addEventListener('input',()=>{
+  pongSetMusicVolume(ui.musicVolume.value);
+});
+pongSetMusicVolume(ui.musicVolume.value);
+
+// Taustamusiikki käynnistyy vasta Aloita peli -napista.
+// Näin Avaa mikrofoni -painallus ja kalibrointi pysyvät täysin puhtaina.
+ui.pongStart.addEventListener('click',()=>{
+  pongStartMusic();
+  pongStartGame();
+});
+ui.pongReset.addEventListener('click',pongResetGame);
+
+for(const btn of document.querySelectorAll('[data-pong-key]')){
+  const key=btn.dataset.pongKey;
+  const down=e=>{
+    e.preventDefault();
+    btn.classList.add('on');
+    pongActivateManual(key,320);
+  };
+  const up=e=>{
+    e.preventDefault();
+    btn.classList.remove('on');
+  };
+  btn.addEventListener('pointerdown',down);
+  btn.addEventListener('pointerup',up);
+  btn.addEventListener('pointercancel',up);
+  btn.addEventListener('pointerleave',up);
+}
+
+// Näppäimistötesti: Q/W = P1, O/P = P2.
+const pongKeyMap={KeyQ:'1A',KeyW:'1B',KeyO:'2A',KeyP:'2B'};
+window.addEventListener('keydown',e=>{
+  const key=pongKeyMap[e.code];if(!key)return;
+  pongActivateManual(key,260);
+});
+
+window.addEventListener('resize',fitPongStageToWindow);
+window.addEventListener('orientationchange',fitPongStageToWindow);
+
+
+pongResetGame();
+fitPongStageToWindow();
+requestAnimationFrame(pongLoop);
+
+
+function syncSettings(){
+  ui.tolVal.textContent=`±${ui.tol.value} cent`;
+  if(+ui.fullHold.value<+ui.fullGas.value)ui.fullHold.value=ui.fullGas.value;
+  ui.fullGasVal.textContent=`±${ui.fullGas.value} cent`;ui.fullHoldVal.textContent=`±${ui.fullHold.value} cent`;
+  ui.gateVal.textContent=`${ui.gate.value} %`;ui.releaseVal.textContent=`${ui.release.value} %`;
+  ui.impulseHoldVal.textContent=`${ui.impulseHold.value} ms`;
+}
+for(const id of ['tol','fullGas','fullHold','gate','release','impulseHold'])ui[id].addEventListener('input',syncSettings);
+
+ui.micBtn.addEventListener('click',initMic);
+ui.silenceBtn.addEventListener('click',calibrateSilence);
+ui.startBtn.addEventListener('click',startDetection);
+ui.stopBtn.addEventListener('click',stopDetection);
+for(const key of SLOT_KEYS)slotEls[key].teach.addEventListener('click',()=>teach(key));
+
+syncSettings();refreshProfileUI();buildCrossMatrix();refreshStartButton();
+})();
+</script>
+</body>
+</html>
