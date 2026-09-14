@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#8ed9ff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Huilukaverit" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <title>Huilukaverit</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #8ed9ff;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    /*
+      Kiinteä 1366×1024-suunnittelutaso (iPad Pro 12,9" vaaka).
+      OSMD renderöidään AINA tähän samaan loogiseen kokoon.
+      Ikkunan koon muuttuessa skaalataan vain koko appi yhtenä kuvana,
+      joten OSMD:n suhteellinen koko ei enää muutu selainikkunan mukana.
+    */
+    #app {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 1366px;
+      height: 1024px;
+      transform: translate(-50%, -50%) scale(var(--app-scale, 1));
+      transform-origin: center center;
+      background-image: url('assets/huilukaverit_bg.png');
+      background-position: center center;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      overflow: hidden;
+    }
+
+    /* OSMD sijoitetaan taustakuvan suureen valkoiseen yläkenttään. */
+    #scoreArea {
+      position: absolute;
+      left: 3.0%;
+      top: 22.0%;
+      width: 94.0%;
+      height: 45.8%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Otsikko ja säveltäjä piirretään OSMD:n kautta MusicXML-metadatasta.
+       Näkymättömät kosketusalueet vain avaavat editorin, eivät piirrä tekstiä. */
+    #scoreMetaTapLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .scoreMetaTap {
+      position: absolute;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      pointer-events: auto;
+      cursor: text;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #scoreTitleTap {
+      left: 5%;
+      top: 0;
+      width: 90%;
+      height: 18%;
+      z-index: 2;
+    }
+
+    #scoreComposerTap {
+      right: 2%;
+      top: 18%;
+      width: 48%;
+      height: 16%;
+      z-index: 3;
+    }
+
+    #scoreMetaEditor {
+      position: absolute;
+      z-index: 24;
+      display: none;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 0;
+      border-bottom: 2px solid rgba(47, 128, 237, .45);
+      outline: none;
+      background: rgba(255, 255, 255, .94);
+      color: #27384b;
+      border-radius: 8px 8px 2px 2px;
+      padding: 4px 8px 5px;
+      -webkit-user-select: text;
+      user-select: text;
+      touch-action: manipulation;
+      caret-color: #2f80ed;
+      box-shadow: 0 4px 14px rgba(38, 85, 125, .15);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    #scoreMetaEditor.is-title {
+      left: 18%;
+      top: 3.2%;
+      width: 64%;
+      height: 48px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+
+    #scoreMetaEditor.is-composer {
+      right: 5.2%;
+      top: 12%;
+      width: 31%;
+      height: 38px;
+      text-align: right;
+      font-size: 18px;
+      font-weight: 650;
+      line-height: 1.15;
+    }
+
+    #osmd {
+      width: 100%;
+      max-width: none;
+      max-height: 100%;
+      pointer-events: none;
+      transform: translateY(0px);
+      transform-origin: center center;
+    }
+
+    #osmd svg {
+      display: block;
+      width: 100% !important;
+      height: auto !important;
+      overflow: visible;
+    }
+
+    #sizeControl {
+      position: absolute;
+      right: 2.2%;
+      bottom: 9.3%;
+      z-index: 30;
+      display: grid;
+      gap: 7px;
+      width: 392px;
+      padding: 13px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .94);
+      box-shadow: 0 8px 28px rgba(38, 85, 125, .23);
+      font: 700 14px/1 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #24558f;
+      pointer-events: none;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px) scale(.98);
+      transform-origin: right bottom;
+      transition: opacity 130ms ease, transform 130ms ease, visibility 0s linear 130ms;
+    }
+
+    #sizeControl.is-open {
+      pointer-events: auto;
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      transition: opacity 130ms ease, transform 130ms ease, visibility 0s;
+    }
+
+    .roundToolButton {
+      position: absolute;
+      bottom: 2.25%;
+      z-index: 31;
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      appearance: none;
+      border: 2px solid rgba(80, 139, 191, .28);
+      border-radius: 50%;
+      background: rgba(255,255,255,.92);
+      color: #24558f;
+      box-shadow: 0 4px 16px rgba(38, 85, 125, .20);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .roundToolButton:active { transform: scale(.95); }
+    .roundToolButton svg { width: 31px; height: 31px; display: block; }
+
+    #settingsButton { right: 2.2%; }
+    #playbackButton { left: 2.2%; }
+    #playbackButton[disabled] { opacity: .42; cursor: default; }
+    #playbackButton.is-playing { background: rgba(232, 246, 255, .96); }
+
+    .controlRow {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr) 58px;
+      align-items: center;
+      gap: 9px;
+    }
+
+    #sizeSlider, #ySlider, #titleDistanceSlider, #cursorXSlider, #labelSizeSlider, #labelXSlider, #labelYSlider {
+      width: 100%;
+      accent-color: #5d9ed8;
+    }
+
+    #sizeValue, #yValue, #titleDistanceValue, #cursorXValue, #labelSizeValue, #labelXValue, #labelYValue {
+      min-width: 3.5em;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .jsonRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .jsonButton {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #eaf4ff;
+      color: #24558f;
+      font: 800 13px/1 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(36,85,143,.12);
+    }
+
+    .jsonButton:active { transform: translateY(1px); }
+
+
+
+    /*
+      Viisi sormitusta taustakuvan korttien SISÄKENTTIIN: D, C, H, A, G.
+      Koordinaatit vastaavat suoraan 2732×2048-taustakuvan vaaleita
+      sisäalueita. Kortit myös leikkaavat kaiken sisällön omiin rajoihinsa.
+    */
+    #fingeringLabels,
+    #fingeringArea {
+      position: absolute;
+      left: 3.075%;
+      width: 93.997%;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      column-gap: 1.674%;
+      align-items: stretch;
+    }
+
+    /* Nimet osuvat taustakuvan korttien värilliseen yläosaan. */
+    #fingeringLabels {
+      top: 71.45%;
+      height: 2.55%;
+      z-index: 6;
+      pointer-events: none;
+      transform: translate(var(--label-x, 0px), var(--label-y, 0px));
+    }
+
+    .fingeringLabel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 900 var(--label-size, 25px)/1 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #153f76;
+      text-shadow: 0 1px 0 rgba(255,255,255,.85);
+    }
+
+    /*
+      KOKO taustakuvassa näkyvä sormituskortti on kosketusalue.
+      Itse SVG-sormitus pidetään silti täsmälleen kortin vaaleassa
+      sisäkentässä, joten visuaalinen asettelu ei muutu.
+    */
+    #fingeringArea {
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      display: block;
+    }
+
+    .fingeringCard {
+      position: absolute;
+      top: 69.34%;
+      height: 11.72%;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border-radius: 11%;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      pointer-events: auto;
+    }
+
+    /* Korttien ulkoreunat suoraan hyväksytystä 2732×2048-taustasta. */
+    .fingeringCard:nth-child(1) { left: 2.416%; width: 18.851%; }
+    .fingeringCard:nth-child(2) { left: 21.852%; width: 18.558%; }
+    .fingeringCard:nth-child(3) { left: 40.922%; width: 18.448%; }
+    .fingeringCard:nth-child(4) { left: 59.883%; width: 18.558%; }
+    .fingeringCard:nth-child(5) { left: 78.990%; width: 18.594%; }
+
+    .fingeringCard img {
+      position: absolute;
+      left: 3.2%;
+      top: 34.9%;
+      width: 93.6%;
+      height: 60.4%;
+      max-width: none;
+      max-height: none;
+      object-fit: contain;
+      object-position: center center;
+      pointer-events: none;
+      transition: transform 90ms ease, filter 90ms ease;
+      transform-origin: center center;
+    }
+
+    .fingeringCard.is-pressed img {
+      transform: scale(.96);
+      filter: brightness(1.04);
+    }
+
+    .fingeringCard.is-full img {
+      animation: cardNudge 180ms ease-in-out 0s 2 alternate;
+    }
+
+    @keyframes cardNudge {
+      from { transform: translateX(-3px); }
+      to   { transform: translateX(3px); }
+    }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 600 18px/1.2 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: rgba(17, 65, 120, .55);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Jos selainikkunan kuvasuhde poikkeaa iPadin 4:3-suhteesta paljon,
+       pidetään sisältö silti keskellä. */
+    @media (orientation: portrait) {
+      #app { background-color: #8ed9ff; }
+    }
+  </style>
+</head>
+<body>
+  <main id="app" aria-label="Huilukaverit">
+    <section id="scoreArea" aria-label="Nuottialue">
+      <div id="scoreMetaTapLayer" aria-label="Kappaleen tiedot">
+        <button id="scoreTitleTap" class="scoreMetaTap" type="button" aria-label="Muokkaa kappaleen otsikkoa"></button>
+        <button id="scoreComposerTap" class="scoreMetaTap" type="button" aria-label="Muokkaa säveltäjää"></button>
+        <input id="scoreMetaEditor" type="text" inputmode="text" autocomplete="off" maxlength="60" aria-label="Muokkaa kappaleen tietoa" />
+      </div>
+      <div id="osmd"></div>
+      <div id="loading">Ladataan nuottiviivastoa…</div>
+    </section>
+
+    <section id="fingeringLabels" aria-hidden="true">
+      <div class="fingeringLabel">D</div>
+      <div class="fingeringLabel">C</div>
+      <div class="fingeringLabel">H</div>
+      <div class="fingeringLabel">A</div>
+      <div class="fingeringLabel">G</div>
+    </section>
+
+    <section id="fingeringArea" aria-label="Huilun sormitukset">
+      <div class="fingeringCard" data-note="D" role="button" aria-label="D. Napauta neljäsosanuotti, pyyhkäise oikealle puolinuotti, alas kahdeksasosanuotti, vasemmalle kumoa."><img src="assets/fingering-D.svg" alt="D-sormitus" /></div>
+      <div class="fingeringCard" data-note="C" role="button" aria-label="C. Napauta neljäsosanuotti, pyyhkäise oikealle puolinuotti, alas kahdeksasosanuotti, vasemmalle kumoa."><img src="assets/fingering-C.svg" alt="C-sormitus" /></div>
+      <div class="fingeringCard" data-note="H" role="button" aria-label="H. Napauta neljäsosanuotti, pyyhkäise oikealle puolinuotti, alas kahdeksasosanuotti, vasemmalle kumoa."><img src="assets/fingering-H.svg" alt="H-sormitus" /></div>
+      <div class="fingeringCard" data-note="A" role="button" aria-label="A. Napauta neljäsosanuotti, pyyhkäise oikealle puolinuotti, alas kahdeksasosanuotti, vasemmalle kumoa."><img src="assets/fingering-A.svg" alt="A-sormitus" /></div>
+      <div class="fingeringCard" data-note="G" role="button" aria-label="G. Napauta neljäsosanuotti, pyyhkäise oikealle puolinuotti, alas kahdeksasosanuotti, vasemmalle kumoa."><img src="assets/fingering-G.svg" alt="G-sormitus" /></div>
+    </section>
+
+    <div id="sizeControl" aria-label="Nuottiviivaston säädöt">
+        <label class="controlRow">
+          <span>Koko</span>
+          <input id="sizeSlider" type="range" min="55" max="250" step="1" value="180" aria-label="Nuottiviivaston koko" />
+          <span id="sizeValue">180 %</span>
+        </label>
+        <label class="controlRow">
+          <span>Y</span>
+          <input id="ySlider" type="range" min="-250" max="250" step="1" value="-40" aria-label="Nuottiviivaston Y-sijainti" />
+          <span id="yValue">-40 px</span>
+        </label>
+        <label class="controlRow">
+          <span>Otsikko väli</span>
+          <input id="titleDistanceSlider" type="range" min="0" max="10" step="0.1" value="4.9" aria-label="Otsikon etäisyys nuottiviivastosta" />
+          <span id="titleDistanceValue">4.9</span>
+        </label>
+        <label class="controlRow">
+          <span>Kursori X</span>
+          <input id="cursorXSlider" type="range" min="-100" max="100" step="1" value="22" aria-label="Playback-kursorin X-sijainti" />
+          <span id="cursorXValue">22 px</span>
+        </label>
+        <label class="controlRow">
+          <span>Nimi</span>
+          <input id="labelSizeSlider" type="range" min="10" max="80" step="1" value="39" aria-label="Nuottinimien koko" />
+          <span id="labelSizeValue">39 px</span>
+        </label>
+        <label class="controlRow">
+          <span>Nimi X</span>
+          <input id="labelXSlider" type="range" min="-150" max="150" step="1" value="0" aria-label="Nuottinimien X-sijainti" />
+          <span id="labelXValue">0 px</span>
+        </label>
+        <label class="controlRow">
+          <span>Nimi Y</span>
+          <input id="labelYSlider" type="range" min="-150" max="150" step="1" value="-19" aria-label="Nuottinimien Y-sijainti" />
+          <span id="labelYValue">-19 px</span>
+        </label>
+        <div class="jsonRow">
+          <button id="exportJson" class="jsonButton" type="button">Vie JSON</button>
+          <button id="importJson" class="jsonButton" type="button">Tuo JSON</button>
+        </div>
+        <input id="jsonFileInput" type="file" accept="application/json,.json" hidden />
+    </div>
+
+    <button id="playbackButton" class="roundToolButton" type="button" aria-label="Kuuntele sävellys" title="Kuuntele" disabled>
+      <svg class="playIcon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.4v13.2c0 .8.9 1.3 1.6.9l10-6.6a1.05 1.05 0 0 0 0-1.8l-10-6.6A1.05 1.05 0 0 0 8 5.4Z"/></svg>
+      <svg class="stopIcon" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg>
+    </button>
+
+    <button id="settingsButton" class="roundToolButton" type="button" aria-label="Asetukset" title="Asetukset" aria-expanded="false" aria-controls="sizeControl">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.8 7.8 0 0 0 .05-1 7.8 7.8 0 0 0-.05-1l2.05-1.6a.6.6 0 0 0 .14-.76l-1.94-3.36a.6.6 0 0 0-.73-.27l-2.42.98a7.4 7.4 0 0 0-1.73-1L14.4 2.4a.6.6 0 0 0-.59-.5H9.93a.6.6 0 0 0-.59.5L8.97 5a7.4 7.4 0 0 0-1.73 1l-2.42-.98a.6.6 0 0 0-.73.27L2.15 8.64a.6.6 0 0 0 .14.76L4.34 11a7.8 7.8 0 0 0-.05 1 7.8 7.8 0 0 0 .05 1l-2.05 1.6a.6.6 0 0 0-.14.76l1.94 3.36a.6.6 0 0 0 .73.27l2.42-.98a7.4 7.4 0 0 0 1.73 1l.37 2.6a.6.6 0 0 0 .59.5h3.88a.6.6 0 0 0 .59-.5l.37-2.6a7.4 7.4 0 0 0 1.73-1l2.42.98a.6.6 0 0 0 .73-.27l1.94-3.36a.6.6 0 0 0-.14-.76L19.4 13ZM11.87 15.2A3.2 3.2 0 1 1 11.87 8.8a3.2 3.2 0 0 1 0 6.4Z"/></svg>
+    </button>
+  </main>
+
+  <!-- OpenSheetMusicDisplay 2.1.2, paikallinen -->
+  <script src="assets/opensheetmusicdisplay.min.js"></script>
+  <!-- Pikakirjoittimen alkuperäinen Web Audio -äänimoottori -->
+  <script src="assets/audio-engine.js"></script>
+  <script>
+    const PITCHES = {
+      G: { step: 'G', octave: 4, midi: 67 },
+      A: { step: 'A', octave: 4, midi: 69 },
+      H: { step: 'B', octave: 4, midi: 71 },
+      C: { step: 'C', octave: 5, midi: 72 },
+      D: { step: 'D', octave: 5, midi: 74 }
+    };
+
+    const composition = [];
+    const MEASURE_UNITS = 8; // yksi yksikkö = 1/8; 4/4-tahti = 8 yksikköä
+    const HINT_COLOR = '#808080';
+    let pieceTitle = 'Otsikko';
+    let pieceComposer = 'Säveltäjä';
+
+    let osmd = null;
+    let renderChain = Promise.resolve();
+    let hintNote = null;
+    let hintTimer = null;
+
+    // Sama triangle-oskillaattoriäänimoottori kuin Pikakirjoittimessa.
+    const audio = window.PikakirjoitinAudio ? new window.PikakirjoitinAudio.AudioEngine() : null;
+    const PLAYBACK_BPM = 96;
+    let playbackRunId = 0;
+    let isPlaying = false;
+    let fingeringSoundToken = 0;
+
+    function applyPlaybackCursorOffset() {
+      const slider = document.getElementById('cursorXSlider');
+      const value = document.getElementById('cursorXValue');
+      if (!slider) return;
+      const x = Number(slider.value);
+      if (value) value.textContent = `${x} px`;
+      try {
+        const cursorElement = osmd?.cursor?.cursorElement || document.querySelector('[id^="cursorImg-"]');
+        if (cursorElement) {
+          cursorElement.style.marginLeft = `${x}px`;
+
+          // Lyhyempi kursori: 50 % OSMD:n normaalista korkeudesta,
+          // mutta kokonaan nuottiviivaston YLÄPUOLELLA.
+          // OSMD kirjoittaa top- ja height-arvot uudelleen jokaisessa cursor.next()-kutsussa,
+          // joten talletetaan aina sen tuore geometria ennen oman siirron tekemistä.
+          const currentTop = Number.parseFloat(cursorElement.style.top) || 0;
+          const currentHeight = Number(cursorElement.height) || cursorElement.getBoundingClientRect().height || 0;
+          const lastAppliedTop = Number.parseFloat(cursorElement.dataset.hkAppliedTop);
+          const lastAppliedHeight = Number.parseFloat(cursorElement.dataset.hkAppliedHeight);
+          const isOurPreviousGeometry = Number.isFinite(lastAppliedTop)
+            && Number.isFinite(lastAppliedHeight)
+            && Math.abs(currentTop - lastAppliedTop) < 0.1
+            && Math.abs(currentHeight - lastAppliedHeight) < 0.1;
+
+          let baseTop = Number.parseFloat(cursorElement.dataset.hkBaseTop);
+          let baseHeight = Number.parseFloat(cursorElement.dataset.hkBaseHeight);
+          if (!isOurPreviousGeometry || !Number.isFinite(baseTop) || !Number.isFinite(baseHeight)) {
+            baseTop = currentTop;
+            baseHeight = currentHeight;
+            cursorElement.dataset.hkBaseTop = String(baseTop);
+            cursorElement.dataset.hkBaseHeight = String(baseHeight);
+          }
+
+          const shortHeight = baseHeight * 0.5;
+          const topAboveStaff = baseTop - shortHeight;
+          cursorElement.height = shortHeight;
+          cursorElement.style.top = `${topAboveStaff}px`;
+          cursorElement.style.transform = 'none';
+          cursorElement.style.transformOrigin = 'center center';
+          cursorElement.dataset.hkAppliedTop = String(topAboveStaff);
+          cursorElement.dataset.hkAppliedHeight = String(shortHeight);
+
+          // Pidetään kursori näkyvänä muun grafiikan päällä, vaikka se sijaitsee viivaston yläpuolella.
+          cursorElement.style.zIndex = '50';
+          cursorElement.style.pointerEvents = 'none';
+        }
+      } catch (error) {
+        console.warn('Playback-kursorin X-säätö epäonnistui:', error);
+      }
+    }
+
+    function hidePlaybackCursor() {
+      try {
+        if (osmd?.cursor) osmd.cursor.hide();
+      } catch (error) {
+        console.warn('Playback-kursorin piilotus epäonnistui:', error);
+      }
+    }
+
+    function resetPlaybackCursor() {
+      try {
+        if (!osmd?.cursor) return false;
+        osmd.cursor.SkipInvisibleNotes = true;
+        osmd.cursor.reset();
+        return true;
+      } catch (error) {
+        console.warn('Playback-kursorin nollaus epäonnistui:', error);
+        return false;
+      }
+    }
+
+    function showPlaybackCursor() {
+      try {
+        if (!osmd?.cursor) return false;
+        osmd.cursor.show();
+        applyPlaybackCursorOffset();
+        return true;
+      } catch (error) {
+        console.warn('Playback-kursorin näyttäminen epäonnistui:', error);
+        return false;
+      }
+    }
+
+    function advancePlaybackCursor() {
+      try {
+        if (!osmd?.cursor) return;
+        osmd.cursor.next();
+        applyPlaybackCursorOffset();
+      } catch (error) {
+        console.warn('Playback-kursorin siirto epäonnistui:', error);
+      }
+    }
+
+    function fitAppToViewport() {
+      const DESIGN_W = 1366;
+      const DESIGN_H = 1024;
+      const scale = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+      document.documentElement.style.setProperty('--app-scale', String(scale));
+    }
+
+    function layoutComposition(notes = composition) {
+      const measures = [[], [], [], []];
+      let measureIndex = 0;
+      let used = 0;
+
+      for (const note of notes) {
+        const duration = note.duration;
+        if (![1, 2, 4].includes(duration)) return null;
+        if (measureIndex >= 4) return null;
+        if (used + duration > MEASURE_UNITS) return null;
+
+        measures[measureIndex].push(note);
+        used += duration;
+
+        if (used === MEASURE_UNITS) {
+          measureIndex += 1;
+          used = 0;
+        }
+      }
+      return measures;
+    }
+
+    function getCompositionState(notes = composition) {
+      let measureIndex = 0;
+      let used = 0;
+
+      for (const note of notes) {
+        if (measureIndex >= 4 || used + note.duration > MEASURE_UNITS) {
+          return { valid: false, measureIndex, used, remaining: Math.max(0, MEASURE_UNITS - used), complete: false };
+        }
+        used += note.duration;
+        if (used === MEASURE_UNITS) {
+          measureIndex += 1;
+          used = 0;
+        }
+      }
+
+      if (measureIndex >= 4) {
+        return { valid: true, measureIndex: 3, used: MEASURE_UNITS, remaining: 0, complete: true };
+      }
+
+      return { valid: true, measureIndex, used, remaining: MEASURE_UNITS - used, complete: false };
+    }
+
+    function bestFittingDuration(remaining) {
+      if (remaining >= 4) return 4; // 1/2
+      if (remaining >= 2) return 2; // 1/4
+      if (remaining >= 1) return 1; // 1/8
+      return 0;
+    }
+
+    function clearHint(render = false) {
+      if (hintTimer) {
+        clearTimeout(hintTimer);
+        hintTimer = null;
+      }
+      if (hintNote) {
+        hintNote = null;
+        if (render) renderComposition();
+      }
+    }
+
+    function showTooLongHint(name) {
+      const state = getCompositionState();
+      if (!state.valid || state.complete || state.remaining <= 0) return;
+
+      const duration = bestFittingDuration(state.remaining);
+      if (!duration) return;
+
+      if (hintTimer) clearTimeout(hintTimer);
+      hintNote = {
+        name,
+        duration,
+        measureIndex: state.measureIndex,
+        hint: true
+      };
+
+      renderComposition();
+      hintTimer = setTimeout(() => {
+        hintTimer = null;
+        hintNote = null;
+        renderComposition();
+      }, 2000);
+    }
+
+    function noteXml(note, beam = null) {
+      const pitch = PITCHES[note.name];
+      const type = note.duration === 4 ? 'half' : note.duration === 2 ? 'quarter' : 'eighth';
+      const noteColor = note.hint ? ` color="${HINT_COLOR}"` : '';
+      const noteheadXml = note.hint ? `\n        <notehead color="${HINT_COLOR}">normal</notehead>` : '';
+      const beamXml = beam ? `\n        <beam number="1">${beam}</beam>` : '';
+
+      return `
+      <note${noteColor}>
+        <pitch><step>${pitch.step}</step><octave>${pitch.octave}</octave></pitch>
+        <duration>${note.duration}</duration>
+        <voice>1</voice>
+        <type>${type}</type>
+        ${noteheadXml}${beamXml}
+      </note>`;
+    }
+
+    function notesXmlWithPairedEighths(notes) {
+      const beams = new Array(notes.length).fill(null);
+      let i = 0;
+
+      while (i < notes.length) {
+        if (notes[i].duration !== 1) {
+          i += 1;
+          continue;
+        }
+
+        const start = i;
+        while (i < notes.length && notes[i].duration === 1) i += 1;
+        const runLength = i - start;
+
+        // Kahdeksasosat palkitetaan aina peräkkäisinä pareina.
+        for (let offset = 0; offset + 1 < runLength; offset += 2) {
+          beams[start + offset] = 'begin';
+          beams[start + offset + 1] = 'end';
+        }
+      }
+
+      return notes.map((note, index) => noteXml(note, beams[index])).join('');
+    }
+
+    function hiddenRestXml(duration, wholeMeasure = false) {
+      if (duration <= 0) return '';
+      if (wholeMeasure && duration === MEASURE_UNITS) {
+        return `
+      <note print-object="no" print-spacing="yes"><rest measure="yes"/><duration>8</duration><voice>1</voice><type>whole</type></note>`;
+      }
+
+      let left = duration;
+      let xml = '';
+      const parts = [
+        { units: 4, type: 'half' },
+        { units: 2, type: 'quarter' },
+        { units: 1, type: 'eighth' }
+      ];
+      for (const part of parts) {
+        while (left >= part.units) {
+          xml += `
+      <note print-object="no" print-spacing="yes"><rest/><duration>${part.units}</duration><voice>1</voice><type>${part.type}</type></note>`;
+          left -= part.units;
+        }
+      }
+      return xml;
+    }
+
+    function escapeXml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    function buildMusicXML() {
+      const measures = layoutComposition() || [[], [], [], []];
+      let xml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+  <work><work-title>${escapeXml(pieceTitle)}</work-title></work>
+  <identification><creator type="composer">${escapeXml(pieceComposer)}</creator></identification>
+  <part-list><score-part id="P1"><part-name>Huilu</part-name></score-part></part-list>
+  <part id="P1">`;
+
+      measures.forEach((baseMeasureNotes, index) => {
+        const number = index + 1;
+        const measureNotes = [...baseMeasureNotes];
+
+        if (hintNote && hintNote.measureIndex === index) {
+          const usedBeforeHint = measureNotes.reduce((sum, note) => sum + note.duration, 0);
+          if (usedBeforeHint + hintNote.duration <= MEASURE_UNITS) {
+            measureNotes.push(hintNote);
+          }
+        }
+
+        const used = measureNotes.reduce((sum, note) => sum + note.duration, 0);
+        xml += `\n    <measure number="${number}">`;
+        if (index === 0) {
+          xml += `
+      <attributes>
+        <divisions>2</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>`;
+        }
+
+        if (measureNotes.length === 0) {
+          xml += hiddenRestXml(MEASURE_UNITS, true);
+        } else {
+          xml += notesXmlWithPairedEighths(measureNotes);
+          xml += hiddenRestXml(MEASURE_UNITS - used, false);
+        }
+
+        if (index === 3) {
+          xml += `\n      <barline location="right"><bar-style>light-heavy</bar-style></barline>`;
+        }
+        xml += `\n    </measure>`;
+      });
+
+      xml += `\n  </part>\n</score-partwise>`;
+      return xml;
+    }
+
+    function applyEngravingRules() {
+      osmd.EngravingRules.RenderMultipleRestMeasures = false;
+      osmd.EngravingRules.AutoGenerateMultipleRestMeasuresFromRestMeasures = false;
+      osmd.EngravingRules.PageLeftMargin = 0;
+      osmd.EngravingRules.PageRightMargin = 0;
+      osmd.EngravingRules.SystemLeftMargin = 0;
+      osmd.EngravingRules.SystemRightMargin = 0;
+      osmd.EngravingRules.StretchLastSystemLine = true;
+      osmd.EngravingRules.SheetTitleHeight = 4;
+      const titleDistanceSlider = document.getElementById('titleDistanceSlider');
+      if (titleDistanceSlider) osmd.EngravingRules.TitleBottomDistance = Number(titleDistanceSlider.value);
+      osmd.EngravingRules.ColoringEnabled = true;
+      osmd.EngravingRules.ColorBeams = true;
+      osmd.EngravingRules.ColorFlags = true;
+    }
+
+    function restoreViewSettings() {
+      const sizeSlider = document.getElementById('sizeSlider');
+      const ySlider = document.getElementById('ySlider');
+      const osmdElement = document.getElementById('osmd');
+      osmd.Zoom = Number(sizeSlider.value) / 100;
+      osmdElement.style.transform = `translateY(${Number(ySlider.value)}px)`;
+    }
+
+    function renderComposition() {
+      if (!osmd) return Promise.resolve();
+      const xml = buildMusicXML();
+      renderChain = renderChain.then(async () => {
+        await osmd.load(xml);
+        applyEngravingRules();
+        restoreViewSettings();
+        osmd.render();
+        hidePlaybackCursor();
+        const svg = document.querySelector('#osmd svg');
+        if (svg) svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        requestAnimationFrame(syncScoreMetadataTapTargets);
+      }).catch(err => console.error('OSMD renderöinti epäonnistui:', err));
+      return renderChain;
+    }
+
+    function waitMs(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function updatePlaybackButton() {
+      const button = document.getElementById('playbackButton');
+      if (!button) return;
+      button.disabled = composition.length === 0 && !isPlaying;
+      button.classList.toggle('is-playing', isPlaying);
+      const playIcon = button.querySelector('.playIcon');
+      const stopIcon = button.querySelector('.stopIcon');
+      if (playIcon) playIcon.style.display = isPlaying ? 'none' : 'block';
+      if (stopIcon) stopIcon.style.display = isPlaying ? 'block' : 'none';
+      button.setAttribute('aria-label', isPlaying ? 'Pysäytä soitto' : 'Kuuntele sävellys');
+      button.title = isPlaying ? 'Pysäytä' : 'Kuuntele';
+    }
+
+    function stopPlayback() {
+      playbackRunId += 1;
+      if (audio) audio.noteOff();
+      hidePlaybackCursor();
+      isPlaying = false;
+      updatePlaybackButton();
+    }
+
+    async function playComposition() {
+      if (!composition.length || !audio) return;
+      if (isPlaying) {
+        stopPlayback();
+        return;
+      }
+
+      const unlocked = await audio.unlock();
+      if (!unlocked) return;
+
+      const runId = ++playbackRunId;
+      isPlaying = true;
+      updatePlaybackButton();
+
+      // OSMD:n oma kursori seuraa näkyviä nuotteja. Piilotetut täyttötauot ohitetaan.
+      const cursorReady = resetPlaybackCursor();
+      if (cursorReady) showPlaybackCursor();
+
+      const eighthMs = (60000 / PLAYBACK_BPM) / 2;
+      for (let noteIndex = 0; noteIndex < composition.length; noteIndex += 1) {
+        if (runId !== playbackRunId) break;
+        const note = composition[noteIndex];
+        const pitch = PITCHES[note.name];
+        if (!pitch) continue;
+        const totalMs = eighthMs * note.duration;
+        audio.noteOn(pitch.midi);
+        await waitMs(Math.max(40, totalMs * 0.88));
+        if (runId !== playbackRunId) break;
+        audio.noteOff();
+        await waitMs(Math.max(20, totalMs * 0.12));
+        if (runId !== playbackRunId) break;
+        if (cursorReady && noteIndex < composition.length - 1) advancePlaybackCursor();
+      }
+
+      if (runId === playbackRunId) {
+        audio.noteOff();
+        hidePlaybackCursor();
+        isPlaying = false;
+        updatePlaybackButton();
+      }
+    }
+
+    async function startFingeringSound(name) {
+      if (!audio) return;
+      const pitch = PITCHES[name];
+      if (!pitch) return;
+
+      // Sormituskortti toimii samalla pienenä kuuntelunappina.
+      // Jos koko sävellys soi, kortin painaminen pysäyttää playbackin ensin.
+      if (isPlaying) stopPlayback();
+
+      const token = ++fingeringSoundToken;
+      const unlocked = await audio.unlock();
+      if (!unlocked || token !== fingeringSoundToken) return;
+      audio.noteOn(pitch.midi);
+    }
+
+    function stopFingeringSound() {
+      fingeringSoundToken += 1;
+      if (audio) audio.noteOff();
+    }
+
+    function tryAddNote(name, duration) {
+      if (isPlaying) stopPlayback();
+      const state = getCompositionState();
+      if (!state.valid || state.complete) return false;
+
+      if (duration > state.remaining) {
+        showTooLongHint(name);
+        return false;
+      }
+
+      clearHint(false);
+      composition.push({ name, duration });
+      renderComposition();
+      updatePlaybackButton();
+      return true;
+    }
+
+    function undoLastNote() {
+      if (isPlaying) stopPlayback();
+      clearHint(false);
+      if (!composition.length) return;
+      composition.pop();
+      renderComposition();
+      updatePlaybackButton();
+    }
+
+    function bindFingeringGestures() {
+      const SWIPE_THRESHOLD = 42;
+      const TAP_MOVE_LIMIT = 18;
+
+      document.querySelectorAll('.fingeringCard').forEach(card => {
+        let startX = 0;
+        let startY = 0;
+        let pointerId = null;
+
+        card.addEventListener('pointerdown', event => {
+          pointerId = event.pointerId;
+          startX = event.clientX;
+          startY = event.clientY;
+          card.classList.add('is-pressed');
+          try { card.setPointerCapture(pointerId); } catch (_) {}
+          startFingeringSound(card.dataset.note);
+        });
+
+        card.addEventListener('pointerup', event => {
+          if (pointerId !== event.pointerId) return;
+          const dx = event.clientX - startX;
+          const dy = event.clientY - startY;
+          const absX = Math.abs(dx);
+          const absY = Math.abs(dy);
+          card.classList.remove('is-pressed');
+          try { card.releasePointerCapture(pointerId); } catch (_) {}
+          pointerId = null;
+          stopFingeringSound();
+
+          if (absX >= SWIPE_THRESHOLD && absX > absY * 1.15) {
+            if (dx < 0) undoLastNote();
+            else tryAddNote(card.dataset.note, 4);
+            return;
+          }
+
+          if (absY >= SWIPE_THRESHOLD && absY > absX * 1.15) {
+            if (dy > 0) tryAddNote(card.dataset.note, 1);
+            return;
+          }
+
+          if (absX <= TAP_MOVE_LIMIT && absY <= TAP_MOVE_LIMIT) {
+            tryAddNote(card.dataset.note, 2);
+          }
+        });
+
+        card.addEventListener('pointercancel', () => {
+          pointerId = null;
+          card.classList.remove('is-pressed');
+          stopFingeringSound();
+        });
+      });
+    }
+
+    function applyLabelSettings() {
+      const labels = document.getElementById('fingeringLabels');
+      const size = Number(document.getElementById('labelSizeSlider').value);
+      const x = Number(document.getElementById('labelXSlider').value);
+      const y = Number(document.getElementById('labelYSlider').value);
+      labels.style.setProperty('--label-size', `${size}px`);
+      labels.style.setProperty('--label-x', `${x}px`);
+      labels.style.setProperty('--label-y', `${y}px`);
+      document.getElementById('labelSizeValue').textContent = `${size} px`;
+      document.getElementById('labelXValue').textContent = `${x} px`;
+      document.getElementById('labelYValue').textContent = `${y} px`;
+    }
+
+    function currentSettings() {
+      return {
+        version: 1,
+        osmdSizePercent: Number(document.getElementById('sizeSlider').value),
+        osmdYpx: Number(document.getElementById('ySlider').value),
+        titleDistance: Number(document.getElementById('titleDistanceSlider').value),
+        playbackCursorXpx: Number(document.getElementById('cursorXSlider').value),
+        noteNameSizePx: Number(document.getElementById('labelSizeSlider').value),
+        noteNameXpx: Number(document.getElementById('labelXSlider').value),
+        noteNameYpx: Number(document.getElementById('labelYSlider').value)
+      };
+    }
+
+    function exportSettingsJson() {
+      const blob = new Blob([JSON.stringify(currentSettings(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'huilukaverit-asetukset.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function importSettingsJson(file) {
+      const settings = JSON.parse(await file.text());
+      const setRange = (id, value) => {
+        if (value === undefined || value === null || !Number.isFinite(Number(value))) return;
+        const input = document.getElementById(id);
+        const min = Number(input.min);
+        const max = Number(input.max);
+        input.value = String(Math.min(max, Math.max(min, Number(value))));
+      };
+
+      setRange('sizeSlider', settings.osmdSizePercent);
+      setRange('ySlider', settings.osmdYpx);
+      setRange('titleDistanceSlider', settings.titleDistance ?? settings.titleBottomDistance);
+      setRange('cursorXSlider', settings.playbackCursorXpx);
+      setRange('labelSizeSlider', settings.noteNameSizePx);
+      setRange('labelXSlider', settings.noteNameXpx);
+      setRange('labelYSlider', settings.noteNameYpx);
+
+      const sizeSlider = document.getElementById('sizeSlider');
+      const ySlider = document.getElementById('ySlider');
+      const osmdElement = document.getElementById('osmd');
+      document.getElementById('sizeValue').textContent = `${Number(sizeSlider.value)} %`;
+      document.getElementById('yValue').textContent = `${Number(ySlider.value)} px`;
+      const titleDistanceSlider = document.getElementById('titleDistanceSlider');
+      document.getElementById('titleDistanceValue').textContent = Number(titleDistanceSlider.value).toFixed(1);
+      applyPlaybackCursorOffset();
+      osmd.Zoom = Number(sizeSlider.value) / 100;
+      osmdElement.style.transform = `translateY(${Number(ySlider.value)}px)`;
+      applyLabelSettings();
+      await renderComposition();
+    }
+
+    function bindSettingsControls() {
+      ['labelSizeSlider', 'labelXSlider', 'labelYSlider'].forEach(id => {
+        document.getElementById(id).addEventListener('input', applyLabelSettings);
+      });
+      applyLabelSettings();
+
+      const cursorXSlider = document.getElementById('cursorXSlider');
+      cursorXSlider.addEventListener('input', applyPlaybackCursorOffset);
+      applyPlaybackCursorOffset();
+
+      const titleDistanceSlider = document.getElementById('titleDistanceSlider');
+      const titleDistanceValue = document.getElementById('titleDistanceValue');
+      let titleDistanceRenderTimer = null;
+      const updateTitleDistance = () => {
+        titleDistanceValue.textContent = Number(titleDistanceSlider.value).toFixed(1);
+        if (!osmd) return;
+        clearTimeout(titleDistanceRenderTimer);
+        titleDistanceRenderTimer = setTimeout(() => { void renderComposition(); }, 70);
+      };
+      titleDistanceSlider.addEventListener('input', updateTitleDistance);
+      titleDistanceValue.textContent = Number(titleDistanceSlider.value).toFixed(1);
+
+      document.getElementById('exportJson').addEventListener('click', exportSettingsJson);
+      const jsonInput = document.getElementById('jsonFileInput');
+      document.getElementById('importJson').addEventListener('click', () => jsonInput.click());
+      jsonInput.addEventListener('change', async () => {
+        const file = jsonInput.files && jsonInput.files[0];
+        if (!file) return;
+        try {
+          await importSettingsJson(file);
+        } catch (error) {
+          console.error('JSON-asetusten tuonti epäonnistui:', error);
+          alert('JSON-tiedostoa ei voitu lukea.');
+        } finally {
+          jsonInput.value = '';
+        }
+      });
+    }
+
+    function syncScoreMetadataTapTargets() {
+      const area = document.getElementById('scoreArea');
+      const titleTap = document.getElementById('scoreTitleTap');
+      const composerTap = document.getElementById('scoreComposerTap');
+      const svg = document.querySelector('#osmd svg');
+      if (!area || !titleTap || !composerTap || !svg) return;
+
+      const areaRect = area.getBoundingClientRect();
+      if (!areaRect.width || !areaRect.height) return;
+      const sx = area.offsetWidth / areaRect.width;
+      const sy = area.offsetHeight / areaRect.height;
+
+      const nodes = Array.from(svg.querySelectorAll('text, tspan'));
+      const findTextNode = value => {
+        const wanted = String(value || '').trim();
+        if (!wanted) return null;
+        return nodes.find(node => String(node.textContent || '').trim() === wanted) ||
+               nodes.find(node => String(node.textContent || '').trim().includes(wanted));
+      };
+
+      const place = (button, node, padX, padY, minW, minH) => {
+        if (!node) return false;
+        const r = node.getBoundingClientRect();
+        if (!r.width || !r.height) return false;
+        let left = (r.left - areaRect.left) * sx - padX;
+        let top = (r.top - areaRect.top) * sy - padY;
+        let width = r.width * sx + padX * 2;
+        let height = r.height * sy + padY * 2;
+        if (width < minW) { left -= (minW - width) / 2; width = minW; }
+        if (height < minH) { top -= (minH - height) / 2; height = minH; }
+        button.style.left = `${left}px`;
+        button.style.top = `${top}px`;
+        button.style.width = `${width}px`;
+        button.style.height = `${height}px`;
+        button.style.right = 'auto';
+        return true;
+      };
+
+      // Jos OSMD käyttää SVG-tekstiä, osuma-alue seuraa täsmälleen näkyvää tekstiä.
+      // Jos tekstiä ei löydy DOMista, CSS:n isot varavyöhykkeet jäävät käyttöön.
+      place(titleTap, findTextNode(pieceTitle), 28, 18, 220, 64);
+      place(composerTap, findTextNode(pieceComposer), 24, 16, 180, 54);
+    }
+
+    function bindScoreMetadataEditor() {
+      const titleTap = document.getElementById('scoreTitleTap');
+      const composerTap = document.getElementById('scoreComposerTap');
+      const editor = document.getElementById('scoreMetaEditor');
+      if (!titleTap || !composerTap) return;
+
+      // Käytetään tarkoituksella selaimen omaa tekstidialogia.
+      // Se toimii luotettavasti sekä hiirellä että iPadin kosketuksella, eikä
+      // fokuksen siirtyminen OSMD:n SVG:n / skaalauksen kanssa voi sulkea kenttää.
+      if (editor) editor.style.display = 'none';
+
+      const editField = async field => {
+        const isTitle = field === 'title';
+        const current = isTitle ? pieceTitle : pieceComposer;
+        const label = isTitle ? 'Otsikko' : 'Säveltäjä';
+        const value = window.prompt(label, current);
+        if (value === null) return;
+        const cleaned = value.trim();
+        if (isTitle) pieceTitle = cleaned || 'Otsikko';
+        else pieceComposer = cleaned || 'Säveltäjä';
+        await renderComposition();
+      };
+
+      titleTap.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        void editField('title');
+      });
+      composerTap.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        void editField('composer');
+      });
+
+      // Näppäimistökäyttö säilyy painikkeiden normaalin click-toiminnan kautta.
+      updatePlaybackButton();
+    }
+
+    function bindToolButtons() {
+      const panel = document.getElementById('sizeControl');
+      const settingsButton = document.getElementById('settingsButton');
+      const playbackButton = document.getElementById('playbackButton');
+
+      settingsButton.addEventListener('click', event => {
+        event.stopPropagation();
+        const open = !panel.classList.contains('is-open');
+        panel.classList.toggle('is-open', open);
+        settingsButton.setAttribute('aria-expanded', String(open));
+      });
+
+      panel.addEventListener('pointerdown', event => event.stopPropagation());
+      document.addEventListener('pointerdown', event => {
+        if (!panel.classList.contains('is-open')) return;
+        if (event.target === settingsButton || settingsButton.contains(event.target)) return;
+        if (panel.contains(event.target)) return;
+        panel.classList.remove('is-open');
+        settingsButton.setAttribute('aria-expanded', 'false');
+      });
+
+      playbackButton.addEventListener('click', () => { void playComposition(); });
+    }
+
+    async function initOSMD() {
+      const loading = document.getElementById('loading');
+      if (!window.opensheetmusicdisplay) {
+        loading.style.opacity = '1';
+        loading.textContent = 'OSMD-kirjastoa ei voitu ladata.';
+        return;
+      }
+
+      osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay('osmd', {
+        backend: 'svg',
+        autoResize: false,
+        drawTitle: true,
+        drawSubtitle: false,
+        drawComposer: true,
+        drawLyricist: false,
+        drawCredits: false,
+        drawPartNames: false,
+        drawPartAbbreviations: false,
+        drawMeasureNumbers: false,
+        drawFingerings: false,
+        drawMetronomeMarks: false,
+        drawTimeSignatures: true,
+        drawSlurs: true,
+        autoGenerateMultipleRestMeasuresFromRestMeasures: false,
+        stretchLastSystemLine: true,
+        cursorsOptions: [{ type: 1, color: '#2f80ed', alpha: 0.72, follow: false }],
+        drawingParameters: 'compacttight'
+      });
+
+      await osmd.load(buildMusicXML());
+      applyEngravingRules();
+      osmd.Zoom = Number(document.getElementById('sizeSlider').value) / 100;
+      osmd.render();
+      hidePlaybackCursor();
+      applyPlaybackCursorOffset();
+      requestAnimationFrame(syncScoreMetadataTapTargets);
+
+      const sizeSlider = document.getElementById('sizeSlider');
+      const sizeValue = document.getElementById('sizeValue');
+      const ySlider = document.getElementById('ySlider');
+      const yValue = document.getElementById('yValue');
+      const osmdElement = document.getElementById('osmd');
+
+      sizeSlider.addEventListener('input', () => {
+        const percent = Number(sizeSlider.value);
+        sizeValue.textContent = `${percent} %`;
+        osmd.Zoom = percent / 100;
+        osmd.render();
+        requestAnimationFrame(syncScoreMetadataTapTargets);
+      });
+
+      ySlider.addEventListener('input', () => {
+        const y = Number(ySlider.value);
+        yValue.textContent = `${y} px`;
+        osmdElement.style.transform = `translateY(${y}px)`;
+      });
+
+      bindSettingsControls();
+
+      const svg = document.querySelector('#osmd svg');
+      if (svg) svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    }
+
+    window.addEventListener('resize', fitAppToViewport);
+    window.addEventListener('orientationchange', fitAppToViewport);
+
+    window.addEventListener('load', async () => {
+      fitAppToViewport();
+      bindFingeringGestures();
+      bindScoreMetadataEditor();
+      bindToolButtons();
+      await initOSMD();
+    });
+
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
