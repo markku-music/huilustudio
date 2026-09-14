@@ -1,10 +1,11 @@
-Pong-yhteispeli TEST 5.20 PWA
+Pong-yhteispeli TEST 5.23 PWA
 
-Muutos:
-- Avaa mikrofoni ja kaikki neljä opetusnappia on siirretty yläpalkin
-  "Mikrofoni ja opetus" -pudotusvalikkoon.
-- Aloita peli, Nollaa, Nuolet, Taustaääni ja erätiedot pysyvät yläpalkissa.
-- Mikrofonin, kalibroinnin ja opetuksen logiikkaa ei muutettu.
+Muutokset:
+- "Mikrofoni ja opetus" -pudotusnapin nimi on nyt "Opeta".
+- Opeta-napin painaminen avaa valikon JA pyytää samalla mikrofoniluvan.
+- Erillistä näkyvää "Avaa mikrofoni" -painiketta ei enää ole.
+- Kun neljäs eli viimeinen opetussävel on opetettu onnistuneesti,
+  Opeta-valikko sulkeutuu automaattisesti.
+- Mikrofonin kalibrointi ja analyysimoottori jätetty ennalleen.
 
-PWA:
-- service worker cache päivitetty v5.20:aan.
+PWA cache päivitetty v5.23:een.

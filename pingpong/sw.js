@@ -1,4 +1,4 @@
-const CACHE='pong-yhteispeli-v5.20';
+const CACHE='pong-yhteispeli-v5.23';
 const APP_FILES=[
   "./",
   "./index.html",

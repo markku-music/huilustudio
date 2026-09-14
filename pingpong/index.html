@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Pong">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-180.png">
-<title>Pong-yhteispeli · TEST 5.20 PWA</title>
+<title>Pong-yhteispeli · TEST 5.23 PWA</title>
 <style>
 :root{
   --bg:#edf2f7;--panel:#fff;--line:#d5dde7;--text:#17212b;--muted:#607083;
@@ -158,6 +158,13 @@ body{background:#071019}
 .trainingDropdown{
   position:relative;
   flex:0 0 auto;
+
+  /* Kumotaan yleinen details-korttityyli vain tästä pudotusvalikosta. */
+  margin-top:0;
+  border:0;
+  border-radius:0;
+  padding:0;
+  background:transparent;
 }
 .trainingDropdown > summary{
   list-style:none;
@@ -432,7 +439,7 @@ body{background:#071019}
 <div class="app">
   <div class="top">
     <aside class="panel">
-      <h1>Pong-yhteispeli · TEST 5.20 PWA</h1>
+      <h1>Pong-yhteispeli · TEST 5.23 PWA</h1>
       <div class="small">Kaksi pelaajaa samalla puolella AI:ta vastaan. Pelaajalla 1 on yksi maila yläpuoliskolla ja pelaajalla 2 yksi maila alapuoliskolla. A-ääni liikuttaa mailaa ylös, B-ääni alas. Kun AI palauttaa pallon, väri ja nuoli määräytyvät vain pallon todellisen paluureitin mukaan ja lukitaan koko paluumatkan ajaksi.</div>
 
       <h2>Käynnistys</h2>
@@ -485,10 +492,9 @@ body{background:#071019}
 
 
   <div id="cleanControls" class="cleanControls">
-    <details class="trainingDropdown">
-      <summary>Mikrofoni ja opetus</summary>
+    <details id="trainingDropdown" class="trainingDropdown">
+      <summary id="trainingDropdownSummary">Opeta</summary>
       <div class="trainingDropdownBody">
-        <div id="micMount"></div>
         <div id="teachMount1A"></div>
         <div id="teachMount1B"></div>
         <div id="teachMount2A"></div>
@@ -596,7 +602,8 @@ const ui={
   rmsText:$('rmsText'),noiseText:$('noiseText'),sampleRateText:$('sampleRateText'),engineState:$('engineState'),
   trainedCount:$('trainedCount'),activeCount:$('activeCount'),crossMatrix:$('crossMatrix'),
   pongCanvas:$('pongCanvas'),pongStatus:$('pongStatus'),pongScore:$('pongScore'),pongRound:$('pongRound'),pongWins:$('pongWins'),pongStart:$('pongStart'),pongReset:$('pongReset'),calOverlay:$('calOverlay'),calProgress:$('calProgress'),calDb:$('calDb'),pongArrows:$('pongArrows'),
-  musicVolume:$('musicVolume'),musicVolumeVal:$('musicVolumeVal')
+  musicVolume:$('musicVolume'),musicVolumeVal:$('musicVolumeVal'),
+  trainingDropdown:$('trainingDropdown'),trainingDropdownSummary:$('trainingDropdownSummary')
 };
 
 const slotEls={};
@@ -630,7 +637,8 @@ for(const key of SLOT_KEYS){
 // Pelkistetty käyttöliittymä: siirretään vain mikrofoni, koulutusnapit
 // ja olemassa oleva palautepalkki pelikentän yläpuolelle.
 $('micBtn').textContent='Avaa mikrofoni';
-$('micMount').appendChild($('micBtn'));
+// Avaa mikrofoni -painike jää alkuperäiseen piilotettuun kehitysnäkymään.
+// Käyttäjän näkyvä "Opeta"-nappi pyytää mikrofoniluvan suoraan.
 for(const key of SLOT_KEYS){
   $(`teachMount${key}`).appendChild(slotEls[key].teach);
 }
@@ -928,6 +936,7 @@ async function teach(key){
   if(allProfilesReady()){
     startDetection();
     refreshPongStartButton();
+    ui.trainingDropdown.open=false;
     if(!pong.running && !pong.matchOver){
       ui.pongStatus.textContent='Sävelet opetettu. Paina Aloita peli.';
     }
@@ -2129,6 +2138,14 @@ function syncSettings(){
   ui.impulseHoldVal.textContent=`${ui.impulseHold.value} ms`;
 }
 for(const id of ['tol','fullGas','fullHold','gate','release','impulseHold'])ui[id].addEventListener('input',syncSettings);
+
+let opetaMicOpening=false;
+ui.trainingDropdownSummary.addEventListener('click',()=>{
+  if(!audioReady && !opetaMicOpening){
+    opetaMicOpening=true;
+    Promise.resolve(initMic()).finally(()=>{opetaMicOpening=false;});
+  }
+});
 
 ui.micBtn.addEventListener('click',initMic);
 ui.silenceBtn.addEventListener('click',calibrateSilence);
