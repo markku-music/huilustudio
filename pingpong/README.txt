@@ -1,14 +1,10 @@
-Pong-yhteispeli TEST 5.17 PWA
+Pong-yhteispeli TEST 5.20 PWA
 
-Lisätty PWA-tuki:
-- manifest.webmanifest
-- service worker (sw.js)
-- offline-välimuisti
-- 180/192/512 px sovelluskuvakkeet
-- standalone-tila
-- landscape-orientaatio
-- iOS:n apple-touch-icon ja web app -metatiedot
+Muutos:
+- Avaa mikrofoni ja kaikki neljä opetusnappia on siirretty yläpalkin
+  "Mikrofoni ja opetus" -pudotusvalikkoon.
+- Aloita peli, Nollaa, Nuolet, Taustaääni ja erätiedot pysyvät yläpalkissa.
+- Mikrofonin, kalibroinnin ja opetuksen logiikkaa ei muutettu.
 
-Kaikki TEST 5.16 -pelitoiminnot säilyvät ennallaan.
-
-PWA-asennus vaatii HTTPS-yhteyden (esim. GitHub Pages) tai localhostin.
+PWA:
+- service worker cache päivitetty v5.20:aan.

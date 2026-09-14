@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Pong">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-180.png">
-<title>Pong-yhteispeli · TEST 5.17 PWA</title>
+<title>Pong-yhteispeli · TEST 5.20 PWA</title>
 <style>
 :root{
   --bg:#edf2f7;--panel:#fff;--line:#d5dde7;--text:#17212b;--muted:#607083;
@@ -148,8 +148,58 @@ body{background:#071019}
   background:#14944d;
   min-width:118px;
 }
+.cleanControls #pongReset{
+  background:#718092;
+  min-width:92px;
+}
 .cleanControls #teach_1A,.cleanControls #teach_1B{background:#246bd8}
 .cleanControls #teach_2A,.cleanControls #teach_2B{background:#df3d3d}
+
+.trainingDropdown{
+  position:relative;
+  flex:0 0 auto;
+}
+.trainingDropdown > summary{
+  list-style:none;
+  cursor:pointer;
+  padding:9px 12px;
+  min-width:158px;
+  border-radius:10px;
+  background:#405265;
+  color:#fff;
+  font-size:.82rem;
+  font-weight:900;
+  text-align:center;
+  user-select:none;
+}
+.trainingDropdown > summary::-webkit-details-marker{display:none}
+.trainingDropdown > summary::after{
+  content:" ▾";
+  opacity:.8;
+}
+.trainingDropdown[open] > summary::after{
+  content:" ▴";
+}
+.trainingDropdownBody{
+  position:absolute;
+  top:calc(100% + 8px);
+  left:0;
+  z-index:30;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  width:max-content;
+  max-width:min(620px,calc(100vw - 28px));
+  padding:10px;
+  border-radius:12px;
+  background:#101923;
+  border:1px solid #31465a;
+}
+.trainingDropdownBody > div{
+  display:flex;
+  align-items:center;
+}
 
 .arrowToggle{
   display:inline-flex;
@@ -283,6 +333,14 @@ body{background:#071019}
   .cleanControls button{min-width:72px;padding:8px 9px}
   .cleanControls #micBtn{min-width:128px}
   .cleanControls .feedbackCard{flex-basis:100%;margin-left:0}
+  .trainingDropdownBody{
+    position:fixed;
+    left:10px;
+    right:10px;
+    top:auto;
+    width:auto;
+    max-width:none;
+  }
   .topBarSpacer{display:none}
   .topBarStats{width:100%;margin-left:0}
   .topBarStat{flex:1 1 31%;min-width:0}
@@ -374,7 +432,7 @@ body{background:#071019}
 <div class="app">
   <div class="top">
     <aside class="panel">
-      <h1>Pong-yhteispeli · TEST 5.17 PWA</h1>
+      <h1>Pong-yhteispeli · TEST 5.20 PWA</h1>
       <div class="small">Kaksi pelaajaa samalla puolella AI:ta vastaan. Pelaajalla 1 on yksi maila yläpuoliskolla ja pelaajalla 2 yksi maila alapuoliskolla. A-ääni liikuttaa mailaa ylös, B-ääni alas. Kun AI palauttaa pallon, väri ja nuoli määräytyvät vain pallon todellisen paluureitin mukaan ja lukitaan koko paluumatkan ajaksi.</div>
 
       <h2>Käynnistys</h2>
@@ -427,12 +485,18 @@ body{background:#071019}
 
 
   <div id="cleanControls" class="cleanControls">
-    <div id="micMount"></div>
-    <div id="teachMount1A"></div>
-    <div id="teachMount1B"></div>
-    <div id="teachMount2A"></div>
-    <div id="teachMount2B"></div>
+    <details class="trainingDropdown">
+      <summary>Mikrofoni ja opetus</summary>
+      <div class="trainingDropdownBody">
+        <div id="micMount"></div>
+        <div id="teachMount1A"></div>
+        <div id="teachMount1B"></div>
+        <div id="teachMount2A"></div>
+        <div id="teachMount2B"></div>
+      </div>
+    </details>
     <button id="pongStart" class="pongStart" hidden>Aloita peli</button>
+    <button id="pongReset" class="pongReset" hidden>Nollaa</button>
     <label class="arrowToggle" for="pongArrows">
       <input id="pongArrows" type="checkbox">
       <span>Nuolet</span>
@@ -470,9 +534,7 @@ body{background:#071019}
       <canvas id="pongCanvas" width="1366" height="1024"></canvas>
     </div>
     <div class="pongControls">
-      <div class="left">
-        <button id="pongReset" class="pongReset">Nollaa</button>
-      </div>
+      <div class="left"></div>
       <div class="right">
         <span class="small" style="color:#b9c9d7">Testaa:</span>
         <button class="pongTest p1" data-pong-key="1A">1A</button>
@@ -635,6 +697,10 @@ async function initMic(){
     for(const key of SLOT_KEYS)slotEls[key].teach.disabled=false;
     ui.status.textContent='Mikrofoni käynnissä. Kalibroidaan hiljaisuus…';
     await calibrateSilence();
+
+    // Esiladataan mailaosumaääni samaan jo toimivaan AudioContextiin.
+    // Ei muuta mikrofonin analyysiketjua eikä kalibrointia.
+    pongPrepareHitSound();
   }catch(e){
     console.error(e);ui.status.textContent='Mikrofonia ei saatu käyttöön. Käytä HTTPS:ää tai localhostia ja salli mikrofoni.';
   }
@@ -968,16 +1034,18 @@ function allProfilesReady(){return SLOT_KEYS.every(k=>profiles[k]);}
 function refreshPongStartButton(){
   const ready=allProfilesReady();
   ui.pongStart.hidden=!ready;
+  ui.pongReset.hidden=!ready;
+
   if(!ready){
     ui.pongStart.disabled=true;
+    ui.pongReset.disabled=true;
     ui.pongStart.textContent='Aloita peli';
     return;
   }
-  if(pong.countdownUntil>performance.now()){
-    ui.pongStart.disabled=true;
-    return;
-  }
-  ui.pongStart.disabled=false;
+
+  const counting=pong.countdownUntil>performance.now();
+  ui.pongStart.disabled=counting;
+  ui.pongReset.disabled=counting;
 }
 
 function leakageDb(fromKey,toKey){
@@ -1016,20 +1084,57 @@ pongBallImgs.yellow.src='assets/tennis_ball_yellow.webp';
 pongBallImgs.blue.src='assets/tennis_ball_blue.webp';
 pongBallImgs.red.src='assets/tennis_ball_red.webp';
 
-const pongHitSounds=Array.from({length:4},()=>{
-  const a=new Audio('assets/tennisball_hit.wav');
-  a.preload='auto';
-  a.volume=1;
-  return a;
-});
-let pongHitSoundIndex=0;
+let pongHitBuffer=null;
+let pongHitLoadPromise=null;
+
+// Fallback vain siltä varalta, ettei Web Audio -bufferi ole vielä ehtinyt latautua.
+const pongHitFallback=new Audio('assets/tennisball_hit.wav');
+pongHitFallback.preload='auto';
+pongHitFallback.volume=1;
+
+async function pongPrepareHitSound(){
+  if(pongHitBuffer)return pongHitBuffer;
+  if(pongHitLoadPromise)return pongHitLoadPromise;
+  if(!audioCtx)return null;
+
+  pongHitLoadPromise=(async()=>{
+    try{
+      const response=await fetch('assets/tennisball_hit.wav');
+      const bytes=await response.arrayBuffer();
+      pongHitBuffer=await audioCtx.decodeAudioData(bytes.slice(0));
+      return pongHitBuffer;
+    }catch(e){
+      console.warn('Mailaosumaäänen esilataus epäonnistui:',e);
+      pongHitLoadPromise=null;
+      return null;
+    }
+  })();
+
+  return pongHitLoadPromise;
+}
 
 function pongPlayHitSound(){
-  const a=pongHitSounds[pongHitSoundIndex];
-  pongHitSoundIndex=(pongHitSoundIndex+1)%pongHitSounds.length;
   try{
-    a.currentTime=0;
-    const p=a.play();
+    if(audioCtx && pongHitBuffer){
+      if(audioCtx.state==='suspended'){
+        audioCtx.resume().catch(()=>{});
+      }
+      const src=audioCtx.createBufferSource();
+      const gain=audioCtx.createGain();
+      gain.gain.value=1;
+      src.buffer=pongHitBuffer;
+      src.connect(gain);
+      gain.connect(audioCtx.destination);
+      src.start(0);
+      return;
+    }
+
+    // Jos bufferi ei ole vielä valmis, yritetään valmistella se seuraavaa osumaa varten
+    // ja soitetaan tämä osuma fallbackilla.
+    if(audioCtx)pongPrepareHitSound();
+
+    pongHitFallback.currentTime=0;
+    const p=pongHitFallback.play();
     if(p&&typeof p.catch==='function')p.catch(()=>{});
   }catch(e){}
 }
@@ -1444,6 +1549,21 @@ function pongResetGame(){
   ui.pongStart.textContent='Aloita peli';
   refreshPongStartButton();
   fitPongStageToWindow();
+}
+
+function pongRestartFromBeginning(){
+  if(!allProfilesReady()){
+    ui.pongStatus.textContent='Opeta ensin kaikkien pelaajien sävelet.';
+    return;
+  }
+
+  pongResetGame();
+
+  if(audioCtx && audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  pongPrepareHitSound();
+  pongStartMusic();
+
+  pongStartCountdown(`Uusi peli alkaa 3 sekunnissa.`);
 }
 
 function pongStartGame(){
@@ -1961,10 +2081,12 @@ pongSetMusicVolume(ui.musicVolume.value);
 // Taustamusiikki käynnistyy vasta Aloita peli -napista.
 // Näin Avaa mikrofoni -painallus ja kalibrointi pysyvät täysin puhtaina.
 ui.pongStart.addEventListener('click',()=>{
+  if(audioCtx && audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  pongPrepareHitSound();
   pongStartMusic();
   pongStartGame();
 });
-ui.pongReset.addEventListener('click',pongResetGame);
+ui.pongReset.addEventListener('click',pongRestartFromBeginning);
 
 for(const btn of document.querySelectorAll('[data-pong-key]')){
   const key=btn.dataset.pongKey;
