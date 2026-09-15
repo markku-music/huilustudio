@@ -99,3 +99,15 @@ PROFILE 29:
 - OSMD:n tyhjät sivumarginaalit rajataan viewBoxista pois viivaston geometrian perusteella
 - viivasto pysyy vaakasuunnassa keskellä
 - ikkunan resize ei enää käynnistä OSMD:n uudelleenrenderöintiä; selain skaalaa SVG:n suoraan
+
+
+PROFILE 30:
+- 'Näytettävä sävel' -kenttä poistettu kokonaan käyttöliittymästä
+- Taajuus- ja Soiva sävel -kentät säilytetty
+- tunnistus-, nuottinäyttö- ja virelogiikka ennallaan
+
+
+PROFILE 31:
+- koko palaute-/readout-kortti poistettu
+- Taajuus- ja Soiva sävel -kentät poistettu käyttöliittymästä
+- tunnistus- ja nuottinäyttölogiikka säilytetty ennallaan

@@ -131,15 +131,6 @@ select{
 .setupGrid{
   display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:stretch
 }
-.metric{
-  border:1px solid var(--line);border-radius:15px;padding:10px 12px;min-width:0
-}
-.metric span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
-.metric strong{font-size:19px}
-
-.readout{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px
-}
 .scoreAndTuner{
   display:grid;
   grid-template-columns:minmax(0,1fr) 112px;
@@ -388,15 +379,6 @@ select{
     </div>
   </section>
 
-  <!-- 4. PALAUTE -->
-  <section class="card">
-    <div class="readout">
-      <div class="metric"><span>Näytettävä sävel</span><strong id="noteName">–</strong></div>
-      <div class="metric"><span>Taajuus</span><strong id="freq">– Hz</strong></div>
-      <div class="metric"><span>Soiva sävel</span><strong id="concertName">–</strong></div>
-    </div>
-  </section>
-
   <!-- 5. KOSKETTIMISTO AIVAN ALAREUNASSA -->
   <section class="card keyboardCard">
     <div class="keyboardHead">
@@ -529,9 +511,6 @@ const instrumentButtons = [...document.querySelectorAll('.instrumentBtn')];
 let currentClef = 'G';
 const pianoEl = document.getElementById('piano');
 
-const noteNameEl = document.getElementById('noteName');
-const freqEl = document.getElementById('freq');
-const concertNameEl = document.getElementById('concertName');
 const needleEl = document.getElementById('needle');
 
 const scoreEl = document.getElementById('score');
@@ -840,9 +819,6 @@ function updateTuner(cents) {
 }
 
 function clearDisplay() {
-  noteNameEl.textContent = '–';
-  freqEl.textContent = '– Hz';
-  concertNameEl.textContent = '–';
   updateTuner(null);
 }
 
@@ -867,11 +843,8 @@ engine.addEventListener('pitch', async e => {
     return;
   }
 
-  noteNameEl.textContent = formatFinnishMidi(writtenMidi);
-  concertNameEl.textContent = formatFinnishMidi(concertMidi);
 
   const f0 = Number.isFinite(d.outputF0) ? d.outputF0 : d.f0;
-  freqEl.textContent = Number.isFinite(f0) ? `${f0.toFixed(1)} Hz` : '– Hz';
   updateTuner(Number.isFinite(d.note?.cents) ? d.note.cents : null);
 
   try {

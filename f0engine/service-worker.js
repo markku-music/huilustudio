@@ -1,4 +1,4 @@
-const CACHE_NAME = 'f0-engine-pwa-v21-responsive-score';
+const CACHE_NAME = 'f0-engine-pwa-v23-no-readout-card';
 
 const APP_SHELL = [
   './',
