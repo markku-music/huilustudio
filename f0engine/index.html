@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>F0 Engine · OSMD + viritysmittari + pianovalinta</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#17202a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="F0 Engine">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -740,6 +746,15 @@ buildPiano();
 controller.applyProfile();
 applyOsmdZoom();
 drawMidi(60);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(error => {
+      console.warn('Service workerin rekisteröinti epäonnistui:', error);
+    });
+  });
+}
+
 </script>
 </body>
 </html>

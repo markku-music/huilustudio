@@ -22,3 +22,15 @@ Tärkeää
 - f0-engine.js on säilytetty tavutasolla muuttamattomana.
 - instrument-controller.js on säilytetty tavutasolla muuttamattomana.
 - audio-engine.js on kopioitu tavutasolla Pikakirjoitin-paketista.
+
+
+PWA / asennettava web-app
+- manifest.webmanifest lisätty
+- service-worker.js lisätty
+- icon-192.png ja icon-512.png lisätty
+- toimii asennettavana PWA:na HTTPS-palvelimelta, esim. GitHub Pagesista
+- service worker välimuistittaa appin rungon offline-käyttöä varten
+
+Huom:
+- file://-osoitteesta avattuna service worker ei käynnisty.
+- Käytä paikallista HTTP-palvelinta tai HTTPS-julkaisua.
