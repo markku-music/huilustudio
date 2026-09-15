@@ -13,6 +13,12 @@ class AudioEngine {
   #gain = null;
   #started = false;
   #active = false;
+  #externalContext = null;
+  #ownsContext = false;
+
+  constructor(options = {}) {
+    this.#externalContext = options.audioContext || null;
+  }
 
   async unlock() {
     if (!this.#ensureGraph()) return false;
@@ -60,13 +66,34 @@ class AudioEngine {
 
   get state() { return this.#context?.state ?? 'uninitialized'; }
 
+  dispose() {
+    try { if (this.#oscillator && this.#started) this.#oscillator.stop(); } catch {}
+    try { this.#oscillator?.disconnect(); } catch {}
+    try { this.#gain?.disconnect(); } catch {}
+    if (this.#ownsContext && this.#context && this.#context.state !== 'closed') {
+      try { this.#context.close(); } catch {}
+    }
+    this.#context = null;
+    this.#oscillator = null;
+    this.#gain = null;
+    this.#started = false;
+    this.#active = false;
+    this.#ownsContext = false;
+  }
+
   #ensureGraph() {
     if (this.#context && this.#context.state !== 'closed' && this.#oscillator && this.#gain) return true;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return false;
     try {
-      try { this.#context = new AudioContextClass({ latencyHint: 'interactive' }); }
-      catch { this.#context = new AudioContextClass(); }
+      if (this.#externalContext && this.#externalContext.state !== 'closed') {
+        this.#context = this.#externalContext;
+        this.#ownsContext = false;
+      } else {
+        try { this.#context = new AudioContextClass({ latencyHint: 'interactive' }); }
+        catch { this.#context = new AudioContextClass(); }
+        this.#ownsContext = true;
+      }
       this.#oscillator = this.#context.createOscillator();
       this.#gain = this.#context.createGain();
       this.#oscillator.type = 'triangle';

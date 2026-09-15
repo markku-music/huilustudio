@@ -227,7 +227,7 @@ select{
   border:1px solid #12171c;border-radius:0 0 8px 8px;z-index:3;
   align-items:flex-end;padding-bottom:8px;font-size:10px
 }
-.key.selected{background:var(--select)!important;color:#fff!important;border-color:var(--select-dark)!important}
+.key.selected,.key.pressed{background:var(--select)!important;color:#fff!important;border-color:var(--select-dark)!important}
 .key:active{transform:translateY(1px)}
 .keyLabel{pointer-events:none;text-align:center;line-height:1.05}
 .concertDot{
@@ -375,7 +375,39 @@ const controller = new InstrumentController(engine, {
   fastAcceptToleranceCents: 49
 });
 
-const keyboardAudio = new window.PikakirjoitinAudio.AudioEngine();
+let keyboardAudio = new window.PikakirjoitinAudio.AudioEngine();
+let pianoResumeTimer = null;
+let pianoPreviewActive = false;
+
+function bindKeyboardAudioToMicContext() {
+  try { keyboardAudio.dispose(); } catch {}
+  keyboardAudio = new window.PikakirjoitinAudio.AudioEngine({
+    audioContext: engine.audioContext
+  });
+}
+
+function beginPianoPreview() {
+  pianoPreviewActive = true;
+  if (pianoResumeTimer) {
+    clearTimeout(pianoResumeTimer);
+    pianoResumeTimer = null;
+  }
+  engine.pauseInput();
+  engine.ensureAudioRunning();
+}
+
+function endPianoPreview() {
+  pianoEl?.querySelectorAll('.key.pressed').forEach(el => el.classList.remove('pressed'));
+  if (!pianoPreviewActive) return;
+  pianoPreviewActive = false;
+  keyboardAudio.noteOff();
+  if (pianoResumeTimer) clearTimeout(pianoResumeTimer);
+  // Pieni jälkivartio: kaiuttimen release + huonekaiku eivät pääse F0-analyysiin.
+  pianoResumeTimer = setTimeout(() => {
+    pianoResumeTimer = null;
+    engine.resumeInput();
+  }, 180);
+}
 
 /* Oikea kolmen oktaavin alue suomalaisessa merkinnässä:
    c = MIDI 48, c³ = MIDI 84. */
@@ -529,8 +561,8 @@ function applyOsmdZoom() {
 }
 
 osmdZoomEl.addEventListener('input', applyOsmdZoom);
-window.addEventListener('pointerup', () => keyboardAudio.noteOff());
-window.addEventListener('pointercancel', () => keyboardAudio.noteOff());
+window.addEventListener('pointerup', endPianoPreview);
+window.addEventListener('pointercancel', endPianoPreview);
 
 function isBlack(midi) {
   return BLACK_PCS.has(((midi % 12) + 12) % 12);
@@ -568,15 +600,17 @@ function buildPiano() {
 
     key.addEventListener('pointerdown', async event => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      key.classList.add('pressed');
+      beginPianoPreview();
       const ok = await keyboardAudio.unlock();
       if (!ok) return;
       keyboardAudio.noteOn(controller.writtenToConcert(midi));
     });
 
-    key.addEventListener('pointerup', () => keyboardAudio.noteOff());
-    key.addEventListener('pointercancel', () => keyboardAudio.noteOff());
+    key.addEventListener('pointerup', endPianoPreview);
+    key.addEventListener('pointercancel', endPianoPreview);
     key.addEventListener('pointerleave', event => {
-      if (event.buttons) keyboardAudio.noteOff();
+      if (event.buttons) endPianoPreview();
     });
 
     key.addEventListener('click', () => toggleMidi(midi));
@@ -710,6 +744,9 @@ startBtn.addEventListener('click', async () => {
 
   try {
     await engine.start();
+    // Kun mikrofoni on käynnissä, piano käyttää samaa AudioContextia.
+    // Tämä on erityisen tärkeää iOS/iPadOS:ssa.
+    bindKeyboardAudioToMicContext();
     stopBtn.disabled = false;
   } catch (err) {
     console.error(err);
@@ -719,6 +756,12 @@ startBtn.addEventListener('click', async () => {
 });
 
 stopBtn.addEventListener('click', () => {
+  pianoPreviewActive = false;
+  if (pianoResumeTimer) {
+    clearTimeout(pianoResumeTimer);
+    pianoResumeTimer = null;
+  }
+  keyboardAudio.noteOff();
   engine.stop();
   statusEl.textContent = 'Pysäytetty.';
   startBtn.disabled = false;

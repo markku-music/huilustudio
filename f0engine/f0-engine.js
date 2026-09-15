@@ -124,6 +124,7 @@
       this.noiseFloorDb = null;
       this.calibrated = false;
       this.running = false;
+      this.inputPaused = false;
 
       this.yinDiffBuffer = null;
       this.yinCmndBuffer = null;
@@ -193,6 +194,7 @@
 
       this._stopLoop();
       this.calibrated = false;
+      this.inputPaused = false;
       this.f0History = [];
       this.lastSnapshot = null;
       this._resetTransitionGate();
@@ -252,6 +254,32 @@
       };
     }
 
+    pauseInput() {
+      this.inputPaused = true;
+      this.f0History = [];
+      this.lastSnapshot = null;
+      this._resetTransitionGate();
+      return this;
+    }
+
+    async resumeInput() {
+      this.inputPaused = false;
+      this.f0History = [];
+      this.lastSnapshot = null;
+      this._silenceSent = false;
+      this._resetTransitionGate();
+      await this.ensureAudioRunning();
+      return this;
+    }
+
+    async ensureAudioRunning() {
+      if (!this.audioContext || this.audioContext.state === 'closed') return false;
+      try {
+        if (this.audioContext.state !== 'running') await this.audioContext.resume();
+      } catch (_) {}
+      return this.audioContext.state === 'running';
+    }
+
     stop() {
       this._stopLoop();
       if (this.stream) {
@@ -265,6 +293,7 @@
       this.analyser = null;
       this.timeData = null;
       this.calibrated = false;
+      this.inputPaused = false;
       this.f0History = [];
       this.lastSnapshot = null;
       this._resetTransitionGate();
@@ -330,7 +359,8 @@
     }
 
     _processFrame() {
-      if (!this.analyser || !this.calibrated) return;
+      if (!this.analyser || !this.calibrated || this.inputPaused) return;
+      if (this.audioContext?.state !== 'running') return;
 
       this.analyser.getFloatTimeDomainData(this.timeData);
       const level = rmsDb(this.timeData);

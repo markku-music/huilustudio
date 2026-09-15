@@ -34,3 +34,7 @@ PWA / asennettava web-app
 Huom:
 - file://-osoitteesta avattuna service worker ei käynnisty.
 - Käytä paikallista HTTP-palvelinta tai HTTPS-julkaisua.
+
+PROFILE 11 - KEY PRESS BLUE
+- Pianokosketin muuttuu siniseksi heti pointerdown-hetkellä ja pysyy sinisenä painalluksen ajan.
+- MIC GUARD ja muu toiminnallisuus ennallaan.
