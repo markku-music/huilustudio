@@ -1,4 +1,4 @@
-const CACHE_NAME = 'f0-engine-pwa-v5-mic-guard-display';
+const CACHE_NAME = 'f0-engine-pwa-v21-responsive-score';
 
 const APP_SHELL = [
   './',
@@ -9,7 +9,17 @@ const APP_SHELL = [
   './opensheetmusicdisplay.min.js',
   './manifest.webmanifest',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './instruments/huilu.png',
+  './instruments/oboe.png',
+  './instruments/klarinetti.png',
+  './instruments/alttosaksofoni.png',
+  './instruments/fagotti.png',
+  './instruments/kayratorvi.png',
+  './instruments/trumpetti.png',
+  './instruments/alttotorvi.png',
+  './instruments/pasuuna.png',
+  './instruments/tuuba.png'
 ];
 
 self.addEventListener('install', event => {

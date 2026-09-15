@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>F0 Engine · OSMD + viritysmittari + pianovalinta</title>
+<title>F0 Engine</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#17202a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -53,6 +53,35 @@ select{
 .micGuardDisplay.tail{background:#fff4df;color:#8a5a00;border-color:#efd6a7}
 .micGuardDisplay.tail .micGuardDot{background:#d69215}
 
+/* SOITINVALINTA: kaksi viiden soittimen riviä */
+.instrumentSelector{padding:14px}
+.instrumentRows{display:grid;gap:10px}
+.instrumentRow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.instrumentBtn{
+  min-width:0;min-height:142px;padding:8px 7px 7px;
+  border:2px solid var(--line);border-radius:16px;background:#fff;color:var(--text);
+  display:grid;grid-template-rows:92px auto auto;align-items:center;justify-items:center;
+  gap:2px;overflow:hidden;
+  transition:border-color .1s ease,background .1s ease,transform .08s ease,box-shadow .1s ease
+}
+.instrumentBtn:hover{background:#f8fafc}
+.instrumentBtn:active{transform:translateY(1px)}
+.instrumentBtn.selected{
+  border-color:var(--select);background:#eef5ff;
+  box-shadow:0 0 0 1px rgba(47,126,247,.12)
+}
+.instrumentImg{
+  width:100%;height:92px;object-fit:contain;display:block;pointer-events:none
+}
+.instrumentName{
+  max-width:100%;font-size:12px;font-weight:800;line-height:1.08;text-align:center;
+  overflow-wrap:anywhere;pointer-events:none
+}
+.instrumentPitch{
+  font-size:11px;line-height:1;color:var(--muted);font-weight:800;pointer-events:none
+}
+.instrumentBtn.selected .instrumentPitch{color:var(--select-dark)}
+
 /* OSMD YLÄREUNASSA */
 .scoreTop{padding:12px 14px 14px}
 .scoreTopHead{
@@ -60,18 +89,12 @@ select{
   margin-bottom:8px;
 }
 .scoreTopHead strong{font-size:17px}
-.zoomControl{
-  display:grid;grid-template-columns:auto minmax(180px,360px) 64px;
-  gap:10px;align-items:center;min-width:min(100%,520px);
-}
-.zoomControl label,.zoomValue{font-size:13px;color:var(--muted)}
-.zoomValue{font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:var(--text)}
-#osmdZoom{width:100%;accent-color:var(--accent)}
 .scoreViewport{
   width:100%;
   min-height:440px;
   max-height:760px;
-  overflow:auto;
+  overflow-x:hidden;
+  overflow-y:auto;
   border:1px solid var(--line);
   border-radius:16px;
   background:#fff;
@@ -81,14 +104,29 @@ select{
 }
 #score{
   width:100%;
-  min-width:100%;
+  min-width:0;
   min-height:280px;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
+  overflow:hidden;
 }
-#score svg{display:block;margin:0 auto}
+#score [id^="osmdCanvasPage"]{
+  width:100%!important;
+  max-width:100%!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+#score svg{
+  display:block;
+  width:100%!important;
+  max-width:100%!important;
+  height:auto!important;
+  margin:0 auto!important;
+  transform:none!important;
+  transform-origin:center center;
+}
 
 .setupGrid{
   display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:stretch
@@ -98,8 +136,6 @@ select{
 }
 .metric span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
 .metric strong{font-size:19px}
-.selectedNotes{font-size:13px;color:var(--muted);line-height:1.45;margin-top:4px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 
 .readout{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px
@@ -119,11 +155,6 @@ select{
   display:flex;
   flex-direction:column;
   align-items:center;
-}
-.verticalTunerTitle{
-  font-size:13px;
-  font-weight:750;
-  margin-bottom:7px;
 }
 .verticalMeter{
   position:relative;
@@ -196,18 +227,6 @@ select{
   border-top:5px solid transparent;
   border-bottom:5px solid transparent;
 }
-.verticalCents{
-  font-size:14px;
-  font-weight:800;
-  font-variant-numeric:tabular-nums;
-}
-.verticalTunerInfo{
-  margin-top:3px;
-  font-size:10px;
-  line-height:1.2;
-  color:var(--muted);
-  text-align:center;
-}
 
 /* 3 OKTAAVIN KOSKETTIMISTO ALAREUNASSA: c – c³ */
 .keyboardCard{margin-bottom:0}
@@ -217,28 +236,31 @@ select{
 }
 .keyboardHead strong{font-size:17px}
 .keyboardHead span{font-size:12px;color:var(--muted)}
-.pianoWrap{overflow-x:auto;padding:2px 0 8px}
+.pianoWrap{overflow:hidden;padding:2px 0 8px;width:100%}
 .piano{
   position:relative;
-  width:1320px;
-  height:180px;
+  width:100%;
+  height:clamp(112px,13.64vw,180px);
   user-select:none;
 }
 .white-keys{
   display:grid;
-  grid-template-columns:repeat(22,60px);
-  position:absolute;inset:0 auto auto 0;
+  grid-template-columns:repeat(22,minmax(0,1fr));
+  position:absolute;inset:0;
+  width:100%;height:100%;
 }
 .key{
   border:1px solid #cfd7df;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;
-  padding:8px 4px;font-size:12px;font-weight:650;position:relative;
+  padding:clamp(4px,.65vw,8px) 2px;
+  font-size:clamp(7px,1vw,12px);font-weight:650;position:relative;
   transition:background .08s ease,border-color .08s ease,transform .08s ease
 }
-.white.key{width:60px;height:180px;background:#fff;color:#1d2730;border-radius:0 0 9px 9px}
+.white.key{width:100%;height:100%;background:#fff;color:#1d2730;border-radius:0 0 9px 9px}
 .black.key{
-  position:absolute;width:36px;height:112px;background:#232b33;color:#fff;
+  position:absolute;width:calc((100% / 22) * .6);height:62.222%;
+  background:#232b33;color:#fff;
   border:1px solid #12171c;border-radius:0 0 8px 8px;z-index:3;
-  align-items:flex-end;padding-bottom:8px;font-size:10px
+  align-items:flex-end;padding:0 1px clamp(4px,.55vw,8px);font-size:clamp(6px,.82vw,10px)
 }
 .key.selected,.key.pressed{background:var(--select)!important;color:#fff!important;border-color:var(--select-dark)!important}
 .key:active{transform:translateY(1px)}
@@ -248,17 +270,15 @@ select{
   border-radius:50%;background:#000;border:2px solid #fff;display:none;z-index:5
 }
 .key.concert-mark .concertDot{display:block}
-.legend{margin-top:9px;font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
-.legendItem{display:flex;align-items:center;gap:6px}
-.legendSwatch,.legendDot{width:14px;height:14px;border-radius:4px;border:1px solid #b7c0c8;background:#fff}
-.legendSwatch.selected{background:var(--select);border-color:var(--select-dark)}
-.legendDot{border-radius:50%;background:#000;border:2px solid #fff;box-shadow:0 0 0 1px #adb8c4}
-.foot{margin-top:9px;color:var(--muted);font-size:12px}
 
 @media(max-width:760px){
+  .instrumentRow{gap:6px}
+  .instrumentBtn{min-height:120px;padding:6px 4px;grid-template-rows:74px auto auto;border-radius:13px}
+  .instrumentImg{height:74px}
+  .instrumentName{font-size:10px}
+  .instrumentPitch{font-size:10px}
   .setupGrid{grid-template-columns:1fr}
   .readout{grid-template-columns:1fr 1fr}
-  .zoomControl{grid-template-columns:auto minmax(130px,1fr) 56px;width:100%}
   .scoreAndTuner{grid-template-columns:minmax(0,1fr) 96px}
   .verticalTuner{min-height:440px}
   .verticalMeter{width:76px}
@@ -270,18 +290,73 @@ select{
 </head>
 <body>
 <main>
-  <h1>OSMD + viritysmittari + pianovalinta</h1>
-  <div class="sub">OSMD on ylhäällä ja pystysuuntainen viritysmittari sen vieressä. Alareunan koskettimisto soi Pikakirjoittimen äänimoottorilla.</div>
+  <!-- 2. KÄYNNISTYS -->
+  <div class="toolbar">
+    <button id="startBtn">Käynnistä</button>
+    <button id="stopBtn" class="secondary" disabled>Lopeta</button>
+    <span id="status">Valmiina.</span>
+    <div id="micGuardDisplay" class="micGuardDisplay listening" role="status" aria-live="polite">
+      <span class="micGuardDot" aria-hidden="true"></span>
+      <span id="micGuardText">MIC GUARD · KUUNTELEE</span>
+    </div>
+  </div>
+
+  <!-- SOITINVALINTA: puupuhaltimet + vasket -->
+  <section class="card instrumentSelector" aria-label="Soitinvalinta">
+    <div class="instrumentRows">
+      <div class="instrumentRow" aria-label="Puupuhaltimet">
+        <button class="instrumentBtn selected" type="button" data-instrument="C" data-name="Huilu" data-clef="G" aria-pressed="true">
+          <img class="instrumentImg" src="instruments/huilu.png" alt="Huilu">
+          <span class="instrumentName">Huilu</span><span class="instrumentPitch">C</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="C" data-name="Oboe" data-clef="G" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/oboe.png" alt="Oboe">
+          <span class="instrumentName">Oboe</span><span class="instrumentPitch">C</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="Bb" data-name="Klarinetti" data-clef="G" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/klarinetti.png" alt="Klarinetti">
+          <span class="instrumentName">Klarinetti</span><span class="instrumentPitch">B♭</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="Eb" data-name="Alttosaksofoni" data-clef="G" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/alttosaksofoni.png" alt="Alttosaksofoni">
+          <span class="instrumentName">Alttosaksofoni</span><span class="instrumentPitch">E♭</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="C" data-name="Fagotti" data-clef="F" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/fagotti.png" alt="Fagotti">
+          <span class="instrumentName">Fagotti</span><span class="instrumentPitch">C</span>
+        </button>
+      </div>
+
+      <div class="instrumentRow" aria-label="Vaskipuhaltimet">
+        <button class="instrumentBtn" type="button" data-instrument="F" data-name="Käyrätorvi" data-clef="G" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/kayratorvi.png" alt="Käyrätorvi">
+          <span class="instrumentName">Käyrätorvi</span><span class="instrumentPitch">F</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="Bb" data-name="Trumpetti" data-clef="G" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/trumpetti.png" alt="Trumpetti">
+          <span class="instrumentName">Trumpetti</span><span class="instrumentPitch">B♭</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="Eb" data-name="Alttotorvi" data-clef="G" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/alttotorvi.png" alt="Alttotorvi">
+          <span class="instrumentName">Alttotorvi</span><span class="instrumentPitch">E♭</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="C" data-name="Pasuuna" data-clef="F" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/pasuuna.png" alt="Pasuuna">
+          <span class="instrumentName">Pasuuna</span><span class="instrumentPitch">C</span>
+        </button>
+        <button class="instrumentBtn" type="button" data-instrument="C" data-name="Tuuba" data-clef="F" aria-pressed="false">
+          <img class="instrumentImg" src="instruments/tuuba.png" alt="Tuuba">
+          <span class="instrumentName">Tuuba</span><span class="instrumentPitch">C</span>
+        </button>
+      </div>
+    </div>
+
+  </section>
 
   <!-- 1. OSMD + PYSTYSUUNTAINEN VIRITYSMITTARI YLÄOSASSA -->
   <section class="card scoreTop">
     <div class="scoreTopHead">
       <strong>Nuottinäyttö</strong>
-      <div class="zoomControl">
-        <label for="osmdZoom">Koko</label>
-        <input id="osmdZoom" type="range" min="50" max="600" step="10" value="330">
-        <div id="osmdZoomValue" class="zoomValue">330 %</div>
-      </div>
     </div>
 
     <div class="scoreAndTuner">
@@ -290,7 +365,6 @@ select{
       </div>
 
       <aside class="verticalTuner" aria-label="Viritysmittari">
-        <div class="verticalTunerTitle">Viritys</div>
         <div class="verticalMeter">
           <div class="vRail"></div>
 
@@ -310,45 +384,7 @@ select{
             <span></span>
           </div>
         </div>
-        <div id="centsValue" class="verticalCents">– cent</div>
-        <div id="tunerInfo" class="verticalTunerInfo">Vain valituille</div>
       </aside>
-    </div>
-  </section>
-
-  <!-- 2. KÄYNNISTYS -->
-  <div class="toolbar">
-    <button id="startBtn">Käynnistä</button>
-    <button id="stopBtn" class="secondary" disabled>Lopeta</button>
-    <span id="status">Valmiina.</span>
-    <div id="micGuardDisplay" class="micGuardDisplay listening" role="status" aria-live="polite">
-      <span class="micGuardDot" aria-hidden="true"></span>
-      <span id="micGuardText">MIC GUARD · KUUNTELEE</span>
-    </div>
-  </div>
-
-  <!-- 3. SOITINVIRE JA VALINNAN TIEDOT -->
-  <section class="card">
-    <div class="setupGrid">
-      <div class="metric">
-        <span>Soitinvire</span>
-        <select id="instrumentSelect">
-          <option value="C">C-soitin</option>
-          <option value="Bb">B♭-soitin</option>
-          <option value="Eb">E♭-soitin</option>
-          <option value="F">F-soitin</option>
-        </select>
-      </div>
-
-      <div class="metric">
-        <span>Valitut sävelet</span>
-        <strong id="selectedCount">0 kpl</strong>
-        <div class="selectedNotes" id="selectedNotesText">Ei valittuja säveliä.</div>
-        <div class="actions">
-          <button id="clearBtn" class="secondary" type="button">Tyhjennä</button>
-          <button id="commonBtn" class="secondary" type="button">Huilu G-A-H-C-D</button>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -370,11 +406,6 @@ select{
     <div class="pianoWrap">
       <div id="piano" class="piano"></div>
     </div>
-    <div class="legend">
-      <div class="legendItem"><span class="legendSwatch selected"></span> valittu kirjoitettu sävel</div>
-      <div class="legendItem"><span class="legendDot"></span> musta pallo = soiva kosketin</div>
-    </div>
-    <div class="foot">Koskettimisto on kirjoitetun sävelen mukaan. Musta pallo näyttää soivan paikan, ja kosketinta painettaessa kuuluu valitun soitinvireen mukainen soiva sävel.</div>
   </section>
 </main>
 
@@ -494,27 +525,20 @@ const WHITE_ORDER = [0,2,4,5,7,9,11];
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusEl = document.getElementById('status');
-const instrumentSelect = document.getElementById('instrumentSelect');
+const instrumentButtons = [...document.querySelectorAll('.instrumentBtn')];
+let currentClef = 'G';
 const pianoEl = document.getElementById('piano');
-const selectedCountEl = document.getElementById('selectedCount');
-const selectedNotesTextEl = document.getElementById('selectedNotesText');
-const clearBtn = document.getElementById('clearBtn');
-const commonBtn = document.getElementById('commonBtn');
 
 const noteNameEl = document.getElementById('noteName');
 const freqEl = document.getElementById('freq');
-const centsValueEl = document.getElementById('centsValue');
 const concertNameEl = document.getElementById('concertName');
-const tunerInfoEl = document.getElementById('tunerInfo');
 const needleEl = document.getElementById('needle');
 
-const osmdZoomEl = document.getElementById('osmdZoom');
-const osmdZoomValueEl = document.getElementById('osmdZoomValue');
 const scoreEl = document.getElementById('score');
 
 const OSMD = opensheetmusicdisplay.OpenSheetMusicDisplay;
 const osmd = new OSMD(scoreEl, {
-  autoResize: true,
+  autoResize: false,
   drawTitle: false,
   drawSubtitle: false,
   drawComposer: false,
@@ -524,8 +548,10 @@ const osmd = new OSMD(scoreEl, {
 });
 
 let currentDrawnMidi = null;
-let osmdZoomPercent = Number(osmdZoomEl.value) || 330;
+const osmdZoomPercent = 600;
+const staffLengthPercent = 250;
 osmd.Zoom = osmdZoomPercent / 100;
+osmd.EngravingRules.LastSystemMaxScalingFactor = 1.4 * (staffLengthPercent / 100);
 
 function digitsTo(value, table) {
   return String(value).split('').map(ch => table[ch] || ch).join('');
@@ -562,6 +588,12 @@ function midiToMusicXMLPitch(midi) {
   return { step, alter, octave };
 }
 
+function clefMusicXML() {
+  return currentClef === 'F'
+    ? '<clef><sign>F</sign><line>4</line></clef>'
+    : '<clef><sign>G</sign><line>2</line></clef>';
+}
+
 function musicXMLForQuarterNote(midi) {
   const p = midiToMusicXMLPitch(midi);
   const alter = p.alter ? `<alter>${p.alter}</alter>` : '';
@@ -573,17 +605,97 @@ function musicXMLForQuarterNote(midi) {
       <attributes>
         <divisions>1</divisions>
         <key><fifths>0</fifths></key>
-        <time><beats>4</beats><beat-type>4</beat-type></time>
-        <clef><sign>G</sign><line>2</line></clef>
+        ${clefMusicXML()}
       </attributes>
       <note>
         <pitch><step>${p.step}</step>${alter}<octave>${p.octave}</octave></pitch>
         <duration>1</duration><type>quarter</type>
       </note>
+      <barline location="right"><bar-style>none</bar-style></barline>
     </measure></part>
   </score-partwise>`;
 }
 
+
+function getStaffScreenBounds(svg) {
+  if (!svg) return null;
+
+  const candidates = [...svg.querySelectorAll('path, line, rect')]
+    .map(el => ({ el, rect: el.getBoundingClientRect() }))
+    .filter(({ rect }) =>
+      Number.isFinite(rect.width) &&
+      Number.isFinite(rect.height) &&
+      rect.width > 50 &&
+      rect.height <= 8
+    );
+
+  if (!candidates.length) return null;
+
+  const maxWidth = Math.max(...candidates.map(({ rect }) => rect.width));
+  const staffLines = candidates
+    .filter(({ rect }) => rect.width >= maxWidth * 0.88)
+    .sort((a, b) => a.rect.top - b.rect.top)
+    .slice(0, 12);
+
+  if (!staffLines.length) return null;
+
+  return {
+    left: Math.min(...staffLines.map(({ rect }) => rect.left)),
+    right: Math.max(...staffLines.map(({ rect }) => rect.right))
+  };
+}
+
+function clientXToSvgX(svg, clientX) {
+  const matrix = svg.getScreenCTM();
+  if (!matrix) return null;
+
+  const point = svg.createSVGPoint();
+  point.x = clientX;
+  point.y = svg.getBoundingClientRect().top;
+
+  const converted = point.matrixTransform(matrix.inverse());
+  return Number.isFinite(converted.x) ? converted.x : null;
+}
+
+function makeScoreResponsive() {
+  const viewport = document.querySelector('.scoreViewport');
+  const svg = scoreEl.querySelector('svg');
+  if (!viewport || !svg) return;
+
+  // CSS hoitaa tästä eteenpäin koon muutokset ilman uutta OSMD-renderöintiä.
+  svg.style.transform = 'none';
+  svg.style.width = '100%';
+  svg.style.maxWidth = '100%';
+  svg.style.height = 'auto';
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  const bounds = getStaffScreenBounds(svg);
+  const viewBoxAttr = svg.getAttribute('viewBox');
+  if (!bounds || !viewBoxAttr) return;
+
+  const vb = viewBoxAttr.trim().split(/\s+/).map(Number);
+  if (vb.length !== 4 || !vb.every(Number.isFinite)) return;
+
+  const staffLeft = clientXToSvgX(svg, bounds.left);
+  const staffRight = clientXToSvgX(svg, bounds.right);
+  if (!Number.isFinite(staffLeft) || !Number.isFinite(staffRight)) return;
+
+  const staffWidth = staffRight - staffLeft;
+  if (!(staffWidth > 0)) return;
+
+  // Pieni hengitystila molemmille sivuille. Itse viivasto jää täsmälleen keskelle.
+  const horizontalPadding = staffWidth * 0.08;
+  const newX = staffLeft - horizontalPadding;
+  const newWidth = staffWidth + horizontalPadding * 2;
+
+  svg.setAttribute(
+    'viewBox',
+    `${newX} ${vb[1]} ${newWidth} ${vb[3]}`
+  );
+
+  // Scrollaus ei enää osallistu vaakakeskitykseen.
+  viewport.scrollLeft = 0;
+}
 function addOsmdVerticalHeadroom() {
   const svg = scoreEl.querySelector('svg');
   if (!svg) return;
@@ -616,20 +728,11 @@ async function drawMidi(midi) {
   osmd.Zoom = osmdZoomPercent / 100;
   osmd.render();
   addOsmdVerticalHeadroom();
+  makeScoreResponsive();
 }
 
-function applyOsmdZoom() {
-  osmdZoomPercent = Math.max(50, Math.min(600, Number(osmdZoomEl.value) || 330));
-  osmdZoomValueEl.textContent = `${osmdZoomPercent} %`;
-  osmd.Zoom = osmdZoomPercent / 100;
 
-  if (osmd.Sheet) {
-    osmd.render();
-    addOsmdVerticalHeadroom();
-  }
-}
 
-osmdZoomEl.addEventListener('input', applyOsmdZoom);
 window.addEventListener('pointerup', endPianoPreview);
 window.addEventListener('pointercancel', endPianoPreview);
 
@@ -689,7 +792,8 @@ function buildPiano() {
 
     if (isBlack(midi)) {
       const previousWhiteIndex = whiteIndexFromMidi(midi);
-      key.style.left = `${previousWhiteIndex * 60 - 18}px`;
+      const leftPercent = ((previousWhiteIndex - 0.3) / 22) * 100;
+      key.style.left = `${leftPercent}%`;
       pianoEl.appendChild(key);
     } else {
       whiteKeys.appendChild(key);
@@ -721,42 +825,23 @@ function getSelectedWrittenMidiSorted() {
 }
 
 function updateSelectionInfo() {
-  const written = getSelectedWrittenMidiSorted();
-
-  if (!written.length) {
-    selectedCountEl.textContent = '0 kpl';
-    selectedNotesTextEl.textContent = 'Ei valittuja säveliä.';
-    tunerInfoEl.textContent = 'Vain valituille sävelille';
-    return;
-  }
-
-  const instrument = controller.getInstrument();
-  const pairs = written.map(m =>
-    `${formatFinnishMidi(m)} → ${formatFinnishMidi(controller.writtenToConcert(m))}`
-  );
-
-  selectedCountEl.textContent = `${written.length} kpl`;
-  selectedNotesTextEl.textContent = pairs.join(' · ');
-  tunerInfoEl.textContent = `${instrument.label} · ${written.length} valittua säveltä`;
+  // Sävelvalinta näkyy suoraan koskettimistossa. Erillistä infokorttia ei tarvita.
 }
 
 function updateTuner(cents) {
   if (!Number.isFinite(cents)) {
     needleEl.style.top = '50%';
-    centsValueEl.textContent = '– cent';
     return;
   }
 
   const clamped = Math.max(-50, Math.min(50, cents));
   const topPercent = 50 - clamped;
   needleEl.style.top = `${topPercent}%`;
-  centsValueEl.textContent = `${cents > 0 ? '+' : ''}${cents.toFixed(1)} cent`;
 }
 
 function clearDisplay() {
   noteNameEl.textContent = '–';
   freqEl.textContent = '– Hz';
-  centsValueEl.textContent = '– cent';
   concertNameEl.textContent = '–';
   updateTuner(null);
 }
@@ -844,26 +929,33 @@ stopBtn.addEventListener('click', () => {
   stopBtn.disabled = true;
 });
 
-instrumentSelect.addEventListener('change', () => {
-  controller.setInstrument(instrumentSelect.value);
+function selectInstrumentButton(button) {
+  const instrumentId = button.dataset.instrument;
+  const clef = button.dataset.clef === 'F' ? 'F' : 'G';
+  if (!controller.setInstrument(instrumentId)) return;
+
+  currentClef = clef;
+  instrumentButtons.forEach(btn => {
+    const selected = btn === button;
+    btn.classList.toggle('selected', selected);
+    btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+
   refreshKeyboardSelection();
   clearDisplay();
-});
 
-clearBtn.addEventListener('click', () => {
-  controller.clearSelection();
-  refreshKeyboardSelection();
-  clearDisplay();
-});
+  // Nuottiavain seuraa soitinvalintaa heti, myös ennen seuraavaa soitettua ääntä.
+  const midiToRedraw = Number.isFinite(currentDrawnMidi) ? currentDrawnMidi : 60;
+  currentDrawnMidi = null;
+  drawMidi(midiToRedraw);
+}
 
-commonBtn.addEventListener('click', () => {
-  controller.setSelection([67,69,71,72,74]);
-  refreshKeyboardSelection();
+instrumentButtons.forEach(button => {
+  button.addEventListener('click', () => selectInstrumentButton(button));
 });
 
 buildPiano();
 controller.applyProfile();
-applyOsmdZoom();
 drawMidi(60);
 
 if ('serviceWorker' in navigator) {
