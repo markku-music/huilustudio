@@ -1,5 +1,5 @@
 /*
- * F0 ENGINE BASE
+ * F0 ENGINE BASE 2.0 · PROFILE FAST 1 (KOKEILU)
  * UI-riippumaton selaimen F0-/sävelkorkeusmoottori.
  *
  * Ketju:
@@ -36,7 +36,12 @@
     transitionSettleVelocityCents: 10,
     transitionSettleSpreadCents: 18,
     transitionMinMs: 48,
-    transitionMaxMs: 320
+    transitionMaxMs: 320,
+
+    // PROFILE FAST 1
+    // null = täsmälleen normaali BASE 2.0 -käyttäytyminen.
+    // Profiili saa nopeuttaa vain uuden SALLITUN sävelen hyväksyntää.
+    profile: null
   });
 
   const NOTE_NAMES = ['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'];
@@ -133,6 +138,11 @@
       this._transitionActive = false;
       this._transitionStartedAt = 0;
       this._transitionSettleValues = [];
+
+      // PROFILE FAST 1: vapaaehtoinen peliprofiili.
+      this.profile = this._normalizeProfile(this.config.profile);
+      this._profileFastCandidateMidi = null;
+      this._profileFastCandidateValues = [];
     }
 
     _emit(type, detail = {}) {
@@ -141,6 +151,22 @@
 
     _setState(state, extra = {}) {
       this._emit('state', { state, ...extra });
+    }
+
+    setProfile(profile = null) {
+      this.profile = this._normalizeProfile(profile);
+      this._resetProfileFastCandidate();
+      this._emit('profilechange', { profile: this.getProfile() });
+      return this;
+    }
+
+    getProfile() {
+      if (!this.profile) return null;
+      return {
+        ...this.profile,
+        allowedMidi: [...this.profile.allowedMidi],
+        fastAccept: { ...this.profile.fastAccept }
+      };
     }
 
     async start() {
@@ -353,7 +379,11 @@
             Math.abs(velocityCents) >= this.config.transitionStartVelocityCents;
           const crossedNoteBoundary = detectedNote.midi !== this._acceptedMidi;
 
-          if (fastMotion || crossedNoteBoundary) {
+          // PROFILE FAST 1 voi avata siirtymän jo raakaa YIN-F0:aa käyttäen,
+          // mutta vain jos arvo osuu lähelle profiilissa sallittua UUTTA säveltä.
+          const profileCue = this._profileRawCue(rawF0);
+
+          if (fastMotion || crossedNoteBoundary || profileCue) {
             this._transitionActive = true;
             this._transitionStartedAt = now;
             this._transitionSettleValues = [];
@@ -362,6 +392,13 @@
             // liikettä, mutta sävelen MIDI-identiteetti pysyy hyväksyttynä.
             this._acceptedF0 = stableF0;
           }
+        }
+
+        if (this._transitionActive) {
+          // Ensin kokeillaan profiilin nopeaa VIP-kaistaa. Kaksi (oletus)
+          // peräkkäistä raakaa F0-framea samassa sallitussa sävelessä riittää.
+          // Jos ehto ei täyty, alkuperäinen TRANSITION 1 jatkaa normaalisti.
+          this._tryProfileFastAccept(rawF0, now);
         }
 
         if (this._transitionActive) {
@@ -435,6 +472,9 @@
         transitionActive: this._transitionActive,
         transitionVelocityCents: velocityCents,
         transitionElapsedMs: this._transitionActive ? now - this._transitionStartedAt : 0,
+        profileName: this.profile?.name ?? null,
+        profileFastCandidateMidi: this._profileFastCandidateMidi,
+        profileFastCandidateFrames: this._profileFastCandidateValues.length,
         timestamp: now
       };
 
@@ -449,6 +489,117 @@
       this._transitionActive = false;
       this._transitionStartedAt = 0;
       this._transitionSettleValues = [];
+      this._resetProfileFastCandidate();
+    }
+
+    _normalizeProfile(profile) {
+      if (!profile || typeof profile !== 'object') return null;
+
+      const allowedMidi = [...new Set(
+        (Array.isArray(profile.allowedMidi) ? profile.allowedMidi : [])
+          .filter(Number.isFinite)
+          .map(v => Math.round(v))
+      )];
+
+      const fast = profile.fastAccept || {};
+      const frames = clamp(
+        Number.isFinite(fast.frames) ? Math.round(fast.frames) : 2,
+        2,
+        8
+      );
+      const toleranceCents = clamp(
+        Number.isFinite(fast.toleranceCents) ? fast.toleranceCents : 30,
+        1,
+        100
+      );
+
+      return {
+        name: String(profile.name || 'Profiili'),
+        minHz: Number.isFinite(profile.minHz) ? profile.minHz : null,
+        maxHz: Number.isFinite(profile.maxHz) ? profile.maxHz : null,
+        allowedMidi,
+        fastAccept: {
+          enabled: fast.enabled !== false && allowedMidi.length > 0,
+          frames,
+          toleranceCents
+        }
+      };
+    }
+
+    _resetProfileFastCandidate() {
+      this._profileFastCandidateMidi = null;
+      this._profileFastCandidateValues = [];
+    }
+
+    _profileRawCue(rawF0) {
+      const p = this.profile;
+      if (!p?.fastAccept?.enabled || !Number.isFinite(rawF0)) return false;
+      if (p.minHz !== null && rawF0 < p.minHz) return false;
+      if (p.maxHz !== null && rawF0 > p.maxHz) return false;
+
+      const n = noteFromFrequency(rawF0);
+      return n.midi !== this._acceptedMidi &&
+        p.allowedMidi.includes(n.midi) &&
+        Math.abs(n.cents) <= p.fastAccept.toleranceCents;
+    }
+
+    _tryProfileFastAccept(rawF0, now) {
+      const p = this.profile;
+      if (!p?.fastAccept?.enabled || !this._profileRawCue(rawF0)) {
+        this._resetProfileFastCandidate();
+        return false;
+      }
+
+      const rawNote = noteFromFrequency(rawF0);
+      if (this._profileFastCandidateMidi !== rawNote.midi) {
+        this._profileFastCandidateMidi = rawNote.midi;
+        this._profileFastCandidateValues = [rawF0];
+      } else {
+        this._profileFastCandidateValues.push(rawF0);
+        if (this._profileFastCandidateValues.length > p.fastAccept.frames) {
+          this._profileFastCandidateValues.shift();
+        }
+      }
+
+      this._emit('profilecandidate', {
+        profileName: p.name,
+        midi: this._profileFastCandidateMidi,
+        frames: this._profileFastCandidateValues.length,
+        requiredFrames: p.fastAccept.frames,
+        rawF0,
+        cents: rawNote.cents,
+        timestamp: now
+      });
+
+      if (this._profileFastCandidateValues.length < p.fastAccept.frames) return false;
+
+      const acceptedF0 = median(this._profileFastCandidateValues);
+      const acceptedNote = noteFromFrequency(acceptedF0);
+      if (acceptedNote.midi !== this._profileFastCandidateMidi ||
+          Math.abs(acceptedNote.cents) > p.fastAccept.toleranceCents) {
+        this._resetProfileFastCandidate();
+        return false;
+      }
+
+      const fromMidi = this._acceptedMidi;
+      this._acceptedF0 = acceptedF0;
+      this._acceptedMidi = acceptedNote.midi;
+      this._transitionActive = false;
+      this._transitionStartedAt = 0;
+      this._transitionSettleValues = [];
+
+      this._emit('profilefastaccept', {
+        profileName: p.name,
+        fromMidi,
+        toMidi: acceptedNote.midi,
+        outputF0: acceptedF0,
+        frames: p.fastAccept.frames,
+        toleranceCents: p.fastAccept.toleranceCents,
+        timestamp: now
+      });
+
+      this._resetProfileFastCandidate();
+      return true;
     }
 
     _yin(buf, sampleRate) {
@@ -515,5 +666,5 @@
   F0Engine.noteFromFrequency = noteFromFrequency;
   F0Engine.median = median;
 
-  global.F0EngineBase = F0Engine;
+  global.F0Engine = F0Engine;
 })(window);

@@ -3,325 +3,601 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>BASE 2.0 vs PROFILE FAST 1 · OSMD</title>
+<title>F0 Engine · OSMD + viritysmittari + pianovalinta</title>
 <style>
-  :root{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    color-scheme:light;
-    --bg:#f4f6f8;
-    --card:#fff;
-    --text:#17202a;
-    --muted:#6b7480;
-    --line:#dde3e8;
-    --good:#176b3a;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}
-  main{width:min(1180px,96vw);margin:0 auto;padding:22px 0 38px}
-  h1{margin:0;font-size:clamp(24px,3.7vw,40px);letter-spacing:-.03em}
-  .sub{margin:7px 0 16px;color:var(--muted)}
-  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-  button{
-    border:0;border-radius:12px;padding:11px 16px;font:inherit;font-weight:750;
-    cursor:pointer;background:#17202a;color:white
-  }
-  button.secondary{background:#e7ebef;color:#17202a}
-  button:disabled{opacity:.45;cursor:default}
-  #status{font-size:14px;color:var(--muted)}
-  .compare{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-    gap:14px;
-  }
-  .panel{
-    background:var(--card);
-    border:2px solid var(--line);
-    border-radius:22px;
-    padding:16px;
-    min-width:0;
-    transition:border-color .12s ease, transform .12s ease;
-  }
-  .panel.changed{
-    border-color:var(--good);
-    transform:translateY(-1px);
-  }
-  .panel h2{margin:0 0 2px;font-size:20px}
-  .desc{font-size:13px;color:var(--muted);margin-bottom:8px}
-  .score{
-    width:100%;
-    min-height:260px;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .score svg{width:100% !important;height:auto !important;display:block}
-  .readout{
-    display:grid;
-    grid-template-columns:1.1fr 1fr 1fr;
-    gap:8px;
-    margin-top:8px
-  }
-  .metric{
-    border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0
-  }
-  .metric span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
-  .metric strong{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .speedbox{
-    margin:14px 0 0;
-    background:white;
-    border:1px solid var(--line);
-    border-radius:18px;
-    padding:13px 15px;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
-  }
-  .speedbox strong{font-size:20px}
-  .speedbox span{color:var(--muted)}
-  .winner{color:var(--good)}
-  .foot{margin-top:11px;color:var(--muted);font-size:13px}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-  @media(max-width:760px){
-    .compare{grid-template-columns:1fr}
-    .score{min-height:215px}
-  }
-  @media(max-width:460px){
-    .readout{grid-template-columns:1fr}
-  }
+:root{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color-scheme:light;
+  --bg:#f4f6f8; --card:#fff; --text:#17202a; --muted:#6b7480;
+  --line:#dde3e8; --accent:#17202a; --select:#2f7ef7; --select-dark:#195bbf;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text)}
+main{width:min(1220px,96vw);margin:0 auto;padding:16px 0 30px}
+h1{margin:0;font-size:clamp(22px,3.4vw,34px);letter-spacing:-.03em}
+.sub{margin:5px 0 12px;color:var(--muted);font-size:14px}
+
+.card,.toolbar{
+  background:var(--card);border:1px solid var(--line);border-radius:20px;
+  padding:14px;margin-bottom:12px;
+}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button,select,input{font:inherit}
+button{
+  border:0;border-radius:12px;padding:10px 15px;font-weight:750;cursor:pointer;
+  background:var(--accent);color:#fff;
+}
+button.secondary{background:#e7ebef;color:var(--text)}
+button:disabled{opacity:.45;cursor:default}
+select{
+  border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;color:var(--text)
+}
+#status{font-size:14px;color:var(--muted)}
+
+/* OSMD YLÄREUNASSA */
+.scoreTop{padding:12px 14px 14px}
+.scoreTopHead{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-bottom:8px;
+}
+.scoreTopHead strong{font-size:17px}
+.zoomControl{
+  display:grid;grid-template-columns:auto minmax(180px,360px) 64px;
+  gap:10px;align-items:center;min-width:min(100%,520px);
+}
+.zoomControl label,.zoomValue{font-size:13px;color:var(--muted)}
+.zoomValue{font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:var(--text)}
+#osmdZoom{width:100%;accent-color:var(--accent)}
+.scoreViewport{
+  width:100%;
+  min-height:460px;
+  max-height:760px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fff;
+  padding:90px 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#score{
+  width:100%;
+  min-width:100%;
+  min-height:280px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+#score svg{display:block;margin:0 auto}
+
+.setupGrid{
+  display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:stretch
+}
+.metric{
+  border:1px solid var(--line);border-radius:15px;padding:10px 12px;min-width:0
+}
+.metric span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.metric strong{font-size:19px}
+.selectedNotes{font-size:13px;color:var(--muted);line-height:1.45;margin-top:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+.readout{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px
+}
+.tuner{border:1px solid var(--line);border-radius:16px;padding:12px}
+.tunerHead{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:8px}
+.tunerHead strong{font-size:16px}
+.tunerHead span{font-size:12px;color:var(--muted)}
+.meter{position:relative;height:70px}
+.rail{
+  position:absolute;left:0;right:0;top:31px;height:8px;
+  background:linear-gradient(90deg,#dd6a6a 0%,#efc86a 20%,#dbe4ec 40%,#bdd6c4 50%,#dbe4ec 60%,#efc86a 80%,#dd6a6a 100%);
+  border-radius:999px
+}
+.tick{position:absolute;top:23px;width:1px;height:23px;background:#9aa6b2}
+.tick.center{height:31px;top:19px;background:#17202a;width:2px}
+.label{position:absolute;top:50px;transform:translateX(-50%);font-size:10px;color:var(--muted)}
+.needle{position:absolute;top:8px;left:50%;width:0;height:0;transform:translateX(-50%)}
+.needle::before{
+  content:"";display:block;width:0;height:0;
+  border-left:9px solid transparent;border-right:9px solid transparent;border-top:18px solid #17202a
+}
+
+/* 3 OKTAAVIN KOSKETTIMISTO ALAREUNASSA: c – c³ */
+.keyboardCard{margin-bottom:0}
+.keyboardHead{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  margin-bottom:9px
+}
+.keyboardHead strong{font-size:17px}
+.keyboardHead span{font-size:12px;color:var(--muted)}
+.pianoWrap{overflow-x:auto;padding:2px 0 8px}
+.piano{
+  position:relative;
+  width:1320px;
+  height:180px;
+  user-select:none;
+}
+.white-keys{
+  display:grid;
+  grid-template-columns:repeat(22,60px);
+  position:absolute;inset:0 auto auto 0;
+}
+.key{
+  border:1px solid #cfd7df;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;
+  padding:8px 4px;font-size:12px;font-weight:650;position:relative;
+  transition:background .08s ease,border-color .08s ease,transform .08s ease
+}
+.white.key{width:60px;height:180px;background:#fff;color:#1d2730;border-radius:0 0 9px 9px}
+.black.key{
+  position:absolute;width:36px;height:112px;background:#232b33;color:#fff;
+  border:1px solid #12171c;border-radius:0 0 8px 8px;z-index:3;
+  align-items:flex-end;padding-bottom:8px;font-size:10px
+}
+.key.selected{background:var(--select)!important;color:#fff!important;border-color:var(--select-dark)!important}
+.key:active{transform:translateY(1px)}
+.keyLabel{pointer-events:none;text-align:center;line-height:1.05}
+.concertDot{
+  position:absolute;top:8px;left:50%;width:10px;height:10px;margin-left:-5px;
+  border-radius:50%;background:#000;border:2px solid #fff;display:none;z-index:5
+}
+.key.concert-mark .concertDot{display:block}
+.legend{margin-top:9px;font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.legendItem{display:flex;align-items:center;gap:6px}
+.legendSwatch,.legendDot{width:14px;height:14px;border-radius:4px;border:1px solid #b7c0c8;background:#fff}
+.legendSwatch.selected{background:var(--select);border-color:var(--select-dark)}
+.legendDot{border-radius:50%;background:#000;border:2px solid #fff;box-shadow:0 0 0 1px #adb8c4}
+.foot{margin-top:9px;color:var(--muted);font-size:12px}
+
+@media(max-width:760px){
+  .setupGrid{grid-template-columns:1fr}
+  .readout{grid-template-columns:1fr 1fr}
+  .zoomControl{grid-template-columns:auto minmax(130px,1fr) 56px;width:100%}
+}
+@media(max-width:460px){
+  .readout{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <main>
-  <h1>BASE 2.0 vs PROFILE FAST 1</h1>
-  <div class="sub">Molemmilla oma OSMD-nuottinäyttö. Kun sama uusi sävel näkyy molemmissa, sivu näyttää kumpi ehti ensin ja kuinka paljon.</div>
+  <h1>OSMD + viritysmittari + pianovalinta</h1>
+  <div class="sub">OSMD on ylhäällä, koskettimisto alhaalla. Nuottinäyttö ja viritysmittari reagoivat vain valittuihin säveliin.</div>
 
+  <!-- 1. OSMD AIVAN YLÄOSASSA -->
+  <section class="card scoreTop">
+    <div class="scoreTopHead">
+      <strong>Nuottinäyttö</strong>
+      <div class="zoomControl">
+        <label for="osmdZoom">Koko</label>
+        <input id="osmdZoom" type="range" min="50" max="600" step="10" value="330">
+        <div id="osmdZoomValue" class="zoomValue">330 %</div>
+      </div>
+    </div>
+    <div class="scoreViewport">
+      <div id="score"></div>
+    </div>
+  </section>
+
+  <!-- 2. KÄYNNISTYS -->
   <div class="toolbar">
-    <button id="startBtn">Käynnistä molemmat</button>
+    <button id="startBtn">Käynnistä</button>
     <button id="stopBtn" class="secondary" disabled>Lopeta</button>
     <span id="status">Valmiina.</span>
   </div>
 
-  <div class="compare">
-    <section class="panel" id="basePanel">
-      <h2>BASE 2.0</h2>
-      <div class="desc">Nykyinen transition-logiikka ilman profiilia</div>
-      <div id="baseScore" class="score"></div>
-      <div class="readout">
-        <div class="metric"><span>Sävel</span><strong id="baseNote">–</strong></div>
-        <div class="metric"><span>F0</span><strong id="baseF0">– Hz</strong></div>
-        <div class="metric"><span>Vaihto</span><strong id="baseTime">–</strong></div>
+  <!-- 3. SOITINVIRE JA VALINNAN TIEDOT -->
+  <section class="card">
+    <div class="setupGrid">
+      <div class="metric">
+        <span>Soitinvire</span>
+        <select id="instrumentSelect">
+          <option value="C">C-soitin</option>
+          <option value="Bb">B♭-soitin</option>
+          <option value="Eb">E♭-soitin</option>
+          <option value="F">F-soitin</option>
+        </select>
       </div>
-    </section>
 
-    <section class="panel" id="profilePanel">
-      <h2>PROFILE FAST 1</h2>
-      <div class="desc">g¹ · a¹ · h¹ · c² · d², 2 framea, ±30 cent</div>
-      <div id="profileScore" class="score"></div>
-      <div class="readout">
-        <div class="metric"><span>Sävel</span><strong id="profileNote">–</strong></div>
-        <div class="metric"><span>F0</span><strong id="profileF0">– Hz</strong></div>
-        <div class="metric"><span>Vaihto</span><strong id="profileTime">–</strong></div>
+      <div class="metric">
+        <span>Valitut sävelet</span>
+        <strong id="selectedCount">0 kpl</strong>
+        <div class="selectedNotes" id="selectedNotesText">Ei valittuja säveliä.</div>
+        <div class="actions">
+          <button id="clearBtn" class="secondary" type="button">Tyhjennä</button>
+          <button id="commonBtn" class="secondary" type="button">Huilu G-A-H-C-D</button>
+        </div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
-  <div class="speedbox">
-    <strong id="speedResult">Soita ensimmäinen sävel.</strong>
-    <span id="speedDetail">Vertailu alkaa ensimmäisen yhteisen sävelen jälkeen.</span>
-  </div>
+  <!-- 4. PALAUTE + VIRITYSMITTARI -->
+  <section class="card">
+    <div class="readout">
+      <div class="metric"><span>Näytettävä sävel</span><strong id="noteName">–</strong></div>
+      <div class="metric"><span>Taajuus</span><strong id="freq">– Hz</strong></div>
+      <div class="metric"><span>Virepoikkeama</span><strong id="centsValue">– cent</strong></div>
+      <div class="metric"><span>Soiva sävel</span><strong id="concertName">–</strong></div>
+    </div>
 
-  <div class="foot">
-    Moottorit ovat erillisissä tiedostoissa: <code>f0-engine-base.js</code> ja <code>f0-engine-profile.js</code>.
-    OSMD piirtää kummankin moottorin hyväksytyn ulostulosävelen.
-  </div>
+    <div class="tuner">
+      <div class="tunerHead">
+        <strong>Viritysmittari</strong>
+        <span id="tunerInfo">Vain valituille sävelille</span>
+      </div>
+      <div class="meter">
+        <div class="rail"></div>
+        <div class="tick" style="left:0%"></div>
+        <div class="tick" style="left:25%"></div>
+        <div class="tick center" style="left:50%"></div>
+        <div class="tick" style="left:75%"></div>
+        <div class="tick" style="left:100%"></div>
+        <div class="label" style="left:0%">-50</div>
+        <div class="label" style="left:25%">-25</div>
+        <div class="label" style="left:50%">0</div>
+        <div class="label" style="left:75%">+25</div>
+        <div class="label" style="left:100%">+50</div>
+        <div id="needle" class="needle"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. KOSKETTIMISTO AIVAN ALAREUNASSA -->
+  <section class="card keyboardCard">
+    <div class="keyboardHead">
+      <strong>Sävelvalinta · 3 oktaavia</strong>
+      <span>c – c³</span>
+    </div>
+    <div class="pianoWrap">
+      <div id="piano" class="piano"></div>
+    </div>
+    <div class="legend">
+      <div class="legendItem"><span class="legendSwatch selected"></span> valittu kirjoitettu sävel</div>
+      <div class="legendItem"><span class="legendDot"></span> musta pallo = soiva kosketin</div>
+    </div>
+    <div class="foot">Koskettimisto on kirjoitetun sävelen mukaan. Musta pallo näyttää valitun sävelen soivan paikan valitulla soitinvireellä.</div>
+  </section>
 </main>
 
 <script src="opensheetmusicdisplay.min.js"></script>
-<script src="profiles.js"></script>
-<script src="f0-engine-base.js"></script>
-<script src="f0-engine-profile.js"></script>
+<script src="f0-engine.js"></script>
+<script src="instrument-controller.js"></script>
 <script>
 'use strict';
 
-const baseEngine = new F0EngineBase();
-const profileEngine = new F0EngineProfile({
-  profile: F0_PROFILES.fluteBeginner5
+const engine = new F0Engine();
+const controller = new InstrumentController(engine, {
+  instrumentId: 'C',
+  fastAcceptFrames: 1,
+  fastAcceptToleranceCents: 49
 });
 
-const $ = id => document.getElementById(id);
-const startBtn = $('startBtn');
-const stopBtn = $('stopBtn');
-const statusEl = $('status');
-const speedResult = $('speedResult');
-const speedDetail = $('speedDetail');
+/* Oikea kolmen oktaavin alue suomalaisessa merkinnässä:
+   c = MIDI 48, c³ = MIDI 84. */
+const WRITTEN_START_MIDI = 48;
+const WRITTEN_END_MIDI = 84;
 
-const OSMD = opensheetmusicdisplay.OpenSheetMusicDisplay;
-const baseOSMD = new OSMD($('baseScore'), {
-  autoResize:true, drawTitle:false, drawSubtitle:false, drawComposer:false,
-  drawLyricist:false, drawPartNames:false, drawingParameters:"compacttight"
-});
-const profileOSMD = new OSMD($('profileScore'), {
-  autoResize:true, drawTitle:false, drawSubtitle:false, drawComposer:false,
-  drawLyricist:false, drawPartNames:false, drawingParameters:"compacttight"
-});
-
-const state = {
-  sessionStart:0,
-  base:{midi:null, display:'–', changedAt:null},
-  profile:{midi:null, display:'–', changedAt:null},
-  lastComparedMidi:null,
-  flashTimers:{base:null, profile:null}
-};
-
-function midiToPitch(midi){
-  const pcs=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]];
-  const pc=((midi%12)+12)%12;
-  const octave=Math.floor(midi/12)-1;
-  const [step,alter]=pcs[pc];
-  return {step,alter,octave};
+const PIANO_NOTES = [];
+for (let midi = WRITTEN_START_MIDI; midi <= WRITTEN_END_MIDI; midi++) {
+  PIANO_NOTES.push(midi);
 }
 
-function xmlForMidi(midi){
-  const p=midiToPitch(midi);
-  const alter=p.alter ? `<alter>${p.alter}</alter>` : '';
+const BLACK_PCS = new Set([1,3,6,8,10]);
+const WHITE_ORDER = [0,2,4,5,7,9,11];
+
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusEl = document.getElementById('status');
+const instrumentSelect = document.getElementById('instrumentSelect');
+const pianoEl = document.getElementById('piano');
+const selectedCountEl = document.getElementById('selectedCount');
+const selectedNotesTextEl = document.getElementById('selectedNotesText');
+const clearBtn = document.getElementById('clearBtn');
+const commonBtn = document.getElementById('commonBtn');
+
+const noteNameEl = document.getElementById('noteName');
+const freqEl = document.getElementById('freq');
+const centsValueEl = document.getElementById('centsValue');
+const concertNameEl = document.getElementById('concertName');
+const tunerInfoEl = document.getElementById('tunerInfo');
+const needleEl = document.getElementById('needle');
+
+const osmdZoomEl = document.getElementById('osmdZoom');
+const osmdZoomValueEl = document.getElementById('osmdZoomValue');
+const scoreEl = document.getElementById('score');
+
+const OSMD = opensheetmusicdisplay.OpenSheetMusicDisplay;
+const osmd = new OSMD(scoreEl, {
+  autoResize: true,
+  drawTitle: false,
+  drawSubtitle: false,
+  drawComposer: false,
+  drawLyricist: false,
+  drawPartNames: false,
+  drawingParameters: "compacttight"
+});
+
+let currentDrawnMidi = null;
+let osmdZoomPercent = Number(osmdZoomEl.value) || 330;
+osmd.Zoom = osmdZoomPercent / 100;
+
+function digitsTo(value, table) {
+  return String(value).split('').map(ch => table[ch] || ch).join('');
+}
+const SUPER = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+const SUB   = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+
+function formatFinnishMidi(midi) {
+  const names = ['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'];
+  const pc = ((midi % 12) + 12) % 12;
+  const scientificOctave = Math.floor(midi / 12) - 1;
+  const lower = names[pc];
+
+  if (scientificOctave >= 4) {
+    return lower + digitsTo(scientificOctave - 3, SUPER);
+  }
+  if (scientificOctave === 3) {
+    return lower;
+  }
+  if (scientificOctave === 2) {
+    return lower.toUpperCase();
+  }
+  return lower.toUpperCase() + digitsTo(2 - scientificOctave, SUB);
+}
+
+function midiToMusicXMLPitch(midi) {
+  const pcs = [
+    ['C',0], ['C',1], ['D',0], ['D',1], ['E',0], ['F',0],
+    ['F',1], ['G',0], ['G',1], ['A',0], ['A',1], ['B',0]
+  ];
+  const pc = ((midi % 12) + 12) % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  const [step, alter] = pcs[pc];
+  return { step, alter, octave };
+}
+
+function musicXMLForQuarterNote(midi) {
+  const p = midiToMusicXMLPitch(midi);
+  const alter = p.alter ? `<alter>${p.alter}</alter>` : '';
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-  <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN"
-  "http://www.musicxml.org/dtds/partwise.dtd">
+  <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
   <score-partwise version="3.1">
     <part-list><score-part id="P1"><part-name>Nuotti</part-name></score-part></part-list>
-    <part id="P1">
-      <measure number="1">
-        <attributes>
-          <divisions>1</divisions>
-          <key><fifths>0</fifths></key>
-          <time><beats>4</beats><beat-type>4</beat-type></time>
-          <clef><sign>G</sign><line>2</line></clef>
-        </attributes>
-        <note>
-          <pitch><step>${p.step}</step>${alter}<octave>${p.octave}</octave></pitch>
-          <duration>1</duration><type>quarter</type>
-        </note>
-      </measure>
-    </part>
+    <part id="P1"><measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>${p.step}</step>${alter}<octave>${p.octave}</octave></pitch>
+        <duration>1</duration><type>quarter</type>
+      </note>
+    </measure></part>
   </score-partwise>`;
 }
 
-async function draw(osmd,midi){
-  if(!Number.isFinite(midi)) return;
-  await osmd.load(xmlForMidi(midi));
+async function drawMidi(midi) {
+  if (!Number.isFinite(midi) || midi === currentDrawnMidi) return;
+  currentDrawnMidi = midi;
+  await osmd.load(musicXMLForQuarterNote(midi));
+  osmd.Zoom = osmdZoomPercent / 100;
   osmd.render();
 }
 
-function flash(which){
-  const panel=$(which+'Panel');
-  panel.classList.add('changed');
-  clearTimeout(state.flashTimers[which]);
-  state.flashTimers[which]=setTimeout(()=>panel.classList.remove('changed'),180);
+function applyOsmdZoom() {
+  osmdZoomPercent = Math.max(50, Math.min(600, Number(osmdZoomEl.value) || 330));
+  osmdZoomValueEl.textContent = `${osmdZoomPercent} %`;
+  osmd.Zoom = osmdZoomPercent / 100;
+
+  if (osmd.Sheet) {
+    osmd.render();
+  }
 }
 
-function updateSpeed(){
-  const b=state.base, p=state.profile;
-  if(!Number.isFinite(b.midi) || !Number.isFinite(p.midi)) return;
+osmdZoomEl.addEventListener('input', applyOsmdZoom);
 
-  if(b.midi === p.midi && b.midi !== state.lastComparedMidi &&
-     Number.isFinite(b.changedAt) && Number.isFinite(p.changedAt)){
-    const diff = b.changedAt - p.changedAt;
-    state.lastComparedMidi = b.midi;
+function isBlack(midi) {
+  return BLACK_PCS.has(((midi % 12) + 12) % 12);
+}
 
-    if(Math.abs(diff) < 8){
-      speedResult.textContent = 'Käytännössä yhtä aikaa';
-      speedResult.className = '';
-      speedDetail.textContent = `ero ${Math.abs(diff).toFixed(0)} ms · ${b.display}`;
-    }else if(diff > 0){
-      speedResult.textContent = `PROFILE FAST 1 ensin · ${diff.toFixed(0)} ms`;
-      speedResult.className = 'winner';
-      speedDetail.textContent = `${p.display} ilmestyi profiiliin aikaisemmin`;
-    }else{
-      speedResult.textContent = `BASE 2.0 ensin · ${Math.abs(diff).toFixed(0)} ms`;
-      speedResult.className = 'winner';
-      speedDetail.textContent = `${b.display} ilmestyi BASEen aikaisemmin`;
+function whiteIndexFromMidi(midi) {
+  let whiteCount = 0;
+  for (let m = WRITTEN_START_MIDI; m < midi; m++) {
+    if (!isBlack(m)) whiteCount++;
+  }
+  return whiteCount;
+}
+
+function buildPiano() {
+  pianoEl.innerHTML = '';
+  const whiteKeys = document.createElement('div');
+  whiteKeys.className = 'white-keys';
+  pianoEl.appendChild(whiteKeys);
+
+  for (const midi of PIANO_NOTES) {
+    const key = document.createElement('button');
+    key.type = 'button';
+    key.className = `key ${isBlack(midi) ? 'black' : 'white'}`;
+    key.dataset.midi = String(midi);
+
+    const label = document.createElement('div');
+    label.className = 'keyLabel';
+    label.textContent = formatFinnishMidi(midi);
+
+    const dot = document.createElement('div');
+    dot.className = 'concertDot';
+
+    key.appendChild(label);
+    key.appendChild(dot);
+    key.addEventListener('click', () => toggleMidi(midi));
+
+    if (isBlack(midi)) {
+      const previousWhiteIndex = whiteIndexFromMidi(midi);
+      key.style.left = `${previousWhiteIndex * 60 - 18}px`;
+      pianoEl.appendChild(key);
+    } else {
+      whiteKeys.appendChild(key);
     }
   }
+
+  refreshKeyboardSelection();
 }
 
-function handlePitch(which, osmd, detail){
-  const midi=detail.note?.midi;
-  if(!Number.isFinite(midi)) return;
+function refreshKeyboardSelection() {
+  const concertSet = new Set(controller.getSelectedConcertMidi());
 
-  const s=state[which];
-  const changed = midi !== s.midi;
+  pianoEl.querySelectorAll('.key').forEach(el => {
+    const midi = Number(el.dataset.midi);
+    el.classList.toggle('selected', controller.isWrittenSelected(midi));
+    el.classList.toggle('concert-mark', concertSet.has(midi));
+  });
 
-  if(changed){
-    s.midi=midi;
-    s.display=detail.note?.display || String(midi);
-    s.changedAt=performance.now();
-    $(which+'Time').textContent = `${(s.changedAt-state.sessionStart).toFixed(0)} ms`;
-    $(which+'Note').textContent = s.display;
-    draw(osmd,midi).catch(console.error);
-    flash(which);
-    updateSpeed();
+  updateSelectionInfo();
+}
+
+function toggleMidi(midi) {
+  controller.toggleWrittenMidi(midi);
+  refreshKeyboardSelection();
+}
+
+function getSelectedWrittenMidiSorted() {
+  return controller.getSelectedWrittenMidi();
+}
+
+function updateSelectionInfo() {
+  const written = getSelectedWrittenMidiSorted();
+
+  if (!written.length) {
+    selectedCountEl.textContent = '0 kpl';
+    selectedNotesTextEl.textContent = 'Ei valittuja säveliä.';
+    tunerInfoEl.textContent = 'Vain valituille sävelille';
+    return;
   }
 
-  const f = Number.isFinite(detail.outputF0) ? detail.outputF0 : detail.f0;
-  $(which+'F0').textContent = Number.isFinite(f) ? `${f.toFixed(1)} Hz` : '– Hz';
+  const instrument = controller.getInstrument();
+  const pairs = written.map(m =>
+    `${formatFinnishMidi(m)} → ${formatFinnishMidi(controller.writtenToConcert(m))}`
+  );
+
+  selectedCountEl.textContent = `${written.length} kpl`;
+  selectedNotesTextEl.textContent = pairs.join(' · ');
+  tunerInfoEl.textContent = `${instrument.label} · ${written.length} valittua säveltä`;
 }
 
-baseEngine.addEventListener('pitch', e => handlePitch('base', baseOSMD, e.detail));
-profileEngine.addEventListener('pitch', e => handlePitch('profile', profileOSMD, e.detail));
-
-let baseCal=0, profileCal=0;
-function showCalibration(){
-  const p=Math.round(((baseCal+profileCal)/2)*100);
-  statusEl.textContent=`Kalibroidaan… ${p} %`;
-}
-baseEngine.addEventListener('calibrationprogress', e=>{baseCal=e.detail.progress||0;showCalibration();});
-profileEngine.addEventListener('calibrationprogress', e=>{profileCal=e.detail.progress||0;showCalibration();});
-
-baseEngine.addEventListener('calibrated', ()=>{baseCal=1;showCalibration();});
-profileEngine.addEventListener('calibrated', ()=>{profileCal=1;showCalibration();});
-
-function resetView(){
-  state.base={midi:null,display:'–',changedAt:null};
-  state.profile={midi:null,display:'–',changedAt:null};
-  state.lastComparedMidi=null;
-  $('baseNote').textContent='–';
-  $('profileNote').textContent='–';
-  $('baseF0').textContent='– Hz';
-  $('profileF0').textContent='– Hz';
-  $('baseTime').textContent='–';
-  $('profileTime').textContent='–';
-  speedResult.textContent='Soita ensimmäinen sävel.';
-  speedResult.className='';
-  speedDetail.textContent='Vertailu alkaa ensimmäisen yhteisen sävelen jälkeen.';
+function updateTuner(cents) {
+  if (!Number.isFinite(cents)) {
+    needleEl.style.left = '50%';
+    centsValueEl.textContent = '– cent';
+    return;
+  }
+  const clamped = Math.max(-50, Math.min(50, cents));
+  needleEl.style.left = `${clamped + 50}%`;
+  centsValueEl.textContent = `${cents > 0 ? '+' : ''}${cents.toFixed(1)} cent`;
 }
 
-startBtn.addEventListener('click', async ()=>{
-  resetView();
-  startBtn.disabled=true;
-  stopBtn.disabled=true;
-  baseCal=0; profileCal=0;
-  statusEl.textContent='Käynnistetään molemmat…';
-  try{
-    await Promise.all([baseEngine.start(), profileEngine.start()]);
-    state.sessionStart=performance.now();
-    statusEl.textContent='Valmis. Soita.';
-    stopBtn.disabled=false;
-  }catch(err){
+function clearDisplay() {
+  noteNameEl.textContent = '–';
+  freqEl.textContent = '– Hz';
+  centsValueEl.textContent = '– cent';
+  concertNameEl.textContent = '–';
+  updateTuner(null);
+}
+
+engine.addEventListener('calibrationprogress', e => {
+  statusEl.textContent = `Kalibroidaan… ${Math.round((e.detail.progress || 0) * 100)} %`;
+});
+
+engine.addEventListener('calibrated', () => {
+  statusEl.textContent = 'Kalibroitu. Soita.';
+});
+
+engine.addEventListener('pitch', async e => {
+  const d = e.detail;
+  const concertMidi = d.note?.midi;
+  const writtenMidi = Number.isFinite(concertMidi)
+    ? controller.concertToWritten(concertMidi)
+    : null;
+
+  if (!Number.isFinite(writtenMidi) || !controller.isWrittenSelected(writtenMidi)) {
+    return;
+  }
+
+  noteNameEl.textContent = formatFinnishMidi(writtenMidi);
+  concertNameEl.textContent = formatFinnishMidi(concertMidi);
+
+  const f0 = Number.isFinite(d.outputF0) ? d.outputF0 : d.f0;
+  freqEl.textContent = Number.isFinite(f0) ? `${f0.toFixed(1)} Hz` : '– Hz';
+  updateTuner(Number.isFinite(d.note?.cents) ? d.note.cents : null);
+
+  try {
+    await drawMidi(writtenMidi);
+  } catch (err) {
     console.error(err);
-    statusEl.textContent='Mikrofonia ei saatu käyntiin.';
-    startBtn.disabled=false;
+    statusEl.textContent = 'Nuottia ei saatu piirrettyä.';
+  }
+
+  statusEl.textContent = d.transitionActive
+    ? 'Siirtymä · pidetään edellinen valittu sävel'
+    : 'Vakaa';
+});
+
+engine.addEventListener('silence', () => {
+  statusEl.textContent = 'Hiljaisuus';
+});
+
+engine.addEventListener('error', e => {
+  console.error(e.detail);
+  statusEl.textContent = 'Virhe mikrofonissa.';
+});
+
+startBtn.addEventListener('click', async () => {
+  controller.applyProfile();
+  startBtn.disabled = true;
+  stopBtn.disabled = true;
+  statusEl.textContent = 'Käynnistetään…';
+
+  try {
+    await engine.start();
+    stopBtn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Mikrofonia ei saatu käyntiin.';
+    startBtn.disabled = false;
   }
 });
 
-stopBtn.addEventListener('click', ()=>{
-  baseEngine.stop();
-  profileEngine.stop();
-  stopBtn.disabled=true;
-  startBtn.disabled=false;
-  statusEl.textContent='Pysäytetty.';
+stopBtn.addEventListener('click', () => {
+  engine.stop();
+  statusEl.textContent = 'Pysäytetty.';
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
 });
+
+instrumentSelect.addEventListener('change', () => {
+  controller.setInstrument(instrumentSelect.value);
+  refreshKeyboardSelection();
+  clearDisplay();
+});
+
+clearBtn.addEventListener('click', () => {
+  controller.clearSelection();
+  refreshKeyboardSelection();
+  clearDisplay();
+});
+
+commonBtn.addEventListener('click', () => {
+  controller.setSelection([67,69,71,72,74]);
+  refreshKeyboardSelection();
+});
+
+buildPiano();
+controller.applyProfile();
+applyOsmdZoom();
+drawMidi(60);
 </script>
 </body>
 </html>
