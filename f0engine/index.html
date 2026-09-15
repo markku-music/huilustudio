@@ -39,6 +39,19 @@ select{
   border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;color:var(--text)
 }
 #status{font-size:14px;color:var(--muted)}
+.micGuardDisplay{
+  display:inline-flex;align-items:center;gap:7px;
+  min-height:36px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;
+  background:#f3f5f7;color:var(--muted);font-size:12px;font-weight:800;
+  font-variant-numeric:tabular-nums;white-space:nowrap
+}
+.micGuardDot{width:9px;height:9px;border-radius:50%;background:#6f7b86;flex:0 0 auto}
+.micGuardDisplay.listening{background:#edf7f0;color:#24643a;border-color:#cde6d3}
+.micGuardDisplay.listening .micGuardDot{background:#35a85a}
+.micGuardDisplay.guarding{background:#eaf2ff;color:#195bbf;border-color:#bfd3f4}
+.micGuardDisplay.guarding .micGuardDot{background:var(--select)}
+.micGuardDisplay.tail{background:#fff4df;color:#8a5a00;border-color:#efd6a7}
+.micGuardDisplay.tail .micGuardDot{background:#d69215}
 
 /* OSMD YLÄREUNASSA */
 .scoreTop{padding:12px 14px 14px}
@@ -308,6 +321,10 @@ select{
     <button id="startBtn">Käynnistä</button>
     <button id="stopBtn" class="secondary" disabled>Lopeta</button>
     <span id="status">Valmiina.</span>
+    <div id="micGuardDisplay" class="micGuardDisplay listening" role="status" aria-live="polite">
+      <span class="micGuardDot" aria-hidden="true"></span>
+      <span id="micGuardText">MIC GUARD · KUUNTELEE</span>
+    </div>
   </div>
 
   <!-- 3. SOITINVIRE JA VALINNAN TIEDOT -->
@@ -379,6 +396,45 @@ let keyboardAudio = new window.PikakirjoitinAudio.AudioEngine();
 let pianoResumeTimer = null;
 let pianoPreviewActive = false;
 let pianoGuardUntil = 0;
+let micGuardFrame = 0;
+
+function updateMicGuardDisplay(mode, remainingMs = 0) {
+  const display = document.getElementById('micGuardDisplay');
+  const text = document.getElementById('micGuardText');
+  if (!display || !text) return;
+
+  display.classList.remove('listening', 'guarding', 'tail');
+  if (mode === 'guarding') {
+    display.classList.add('guarding');
+    text.textContent = 'MIC GUARD · SUOJAA';
+  } else if (mode === 'tail') {
+    display.classList.add('tail');
+    text.textContent = `MIC GUARD · JÄLKISUOJA ${Math.max(0, Math.ceil(remainingMs))} ms`;
+  } else {
+    display.classList.add('listening');
+    text.textContent = 'MIC GUARD · KUUNTELEE';
+  }
+}
+
+function animateMicGuardTail() {
+  if (micGuardFrame) cancelAnimationFrame(micGuardFrame);
+  const tick = () => {
+    if (pianoPreviewActive) {
+      updateMicGuardDisplay('guarding');
+      micGuardFrame = 0;
+      return;
+    }
+    const left = pianoGuardUntil - performance.now();
+    if (left > 0) {
+      updateMicGuardDisplay('tail', left);
+      micGuardFrame = requestAnimationFrame(tick);
+    } else {
+      updateMicGuardDisplay('listening');
+      micGuardFrame = 0;
+    }
+  };
+  tick();
+}
 
 function bindKeyboardAudioToMicContext() {
   try { keyboardAudio.dispose(); } catch {}
@@ -390,6 +446,11 @@ function bindKeyboardAudioToMicContext() {
 function beginPianoPreview() {
   pianoPreviewActive = true;
   pianoGuardUntil = Number.POSITIVE_INFINITY;
+  if (micGuardFrame) {
+    cancelAnimationFrame(micGuardFrame);
+    micGuardFrame = 0;
+  }
+  updateMicGuardDisplay('guarding');
   if (pianoResumeTimer) {
     clearTimeout(pianoResumeTimer);
     pianoResumeTimer = null;
@@ -407,9 +468,13 @@ function endPianoPreview() {
   // Kovempi jälkivartio: myös lyhyt napautus, kaiuttimen release ja huonekaiku
   // pysyvät poissa F0-analyysistä.
   pianoGuardUntil = performance.now() + 450;
+  animateMicGuardTail();
   pianoResumeTimer = setTimeout(() => {
     pianoResumeTimer = null;
     engine.resumeInput();
+    if (!pianoPreviewActive && performance.now() >= pianoGuardUntil) {
+      updateMicGuardDisplay('listening');
+    }
   }, 450);
 }
 
