@@ -50,13 +50,12 @@ select{
 #osmdZoom{width:100%;accent-color:var(--accent)}
 .scoreViewport{
   width:100%;
-  min-height:460px;
+  min-height:440px;
   max-height:760px;
   overflow:auto;
   border:1px solid var(--line);
   border-radius:16px;
   background:#fff;
-  padding:90px 0;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -84,25 +83,111 @@ select{
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 
 .readout{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px
 }
-.tuner{border:1px solid var(--line);border-radius:16px;padding:12px}
-.tunerHead{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:8px}
-.tunerHead strong{font-size:16px}
-.tunerHead span{font-size:12px;color:var(--muted)}
-.meter{position:relative;height:70px}
-.rail{
-  position:absolute;left:0;right:0;top:31px;height:8px;
-  background:linear-gradient(90deg,#dd6a6a 0%,#efc86a 20%,#dbe4ec 40%,#bdd6c4 50%,#dbe4ec 60%,#efc86a 80%,#dd6a6a 100%);
-  border-radius:999px
+.scoreAndTuner{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 112px;
+  gap:12px;
+  align-items:stretch;
 }
-.tick{position:absolute;top:23px;width:1px;height:23px;background:#9aa6b2}
-.tick.center{height:31px;top:19px;background:#17202a;width:2px}
-.label{position:absolute;top:50px;transform:translateX(-50%);font-size:10px;color:var(--muted)}
-.needle{position:absolute;top:8px;left:50%;width:0;height:0;transform:translateX(-50%)}
-.needle::before{
-  content:"";display:block;width:0;height:0;
-  border-left:9px solid transparent;border-right:9px solid transparent;border-top:18px solid #17202a
+.verticalTuner{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fff;
+  padding:10px 8px 9px;
+  min-height:440px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.verticalTunerTitle{
+  font-size:13px;
+  font-weight:750;
+  margin-bottom:7px;
+}
+.verticalMeter{
+  position:relative;
+  width:90px;
+  flex:1;
+  min-height:320px;
+  margin:4px 0 8px;
+}
+.vRail{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:50%;
+  width:10px;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background:linear-gradient(
+    to bottom,
+    #dd6a6a 0%,
+    #efc86a 20%,
+    #dbe4ec 40%,
+    #bdd6c4 50%,
+    #dbe4ec 60%,
+    #efc86a 80%,
+    #dd6a6a 100%
+  );
+}
+.vTick{
+  position:absolute;
+  left:50%;
+  width:28px;
+  height:1px;
+  background:#9aa6b2;
+  transform:translate(-50%,-50%);
+}
+.vTick.major{width:36px}
+.vTick.center{width:46px;height:2px;background:#17202a}
+.vLabel{
+  position:absolute;
+  right:1px;
+  transform:translateY(-50%);
+  font-size:10px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.vLabel.centerLabel{font-weight:750;color:var(--text)}
+.vNeedle{
+  position:absolute;
+  left:3px;
+  top:50%;
+  width:46px;
+  height:0;
+  transform:translateY(-50%);
+  transition:top .055s linear;
+}
+.vNeedle span{
+  display:block;
+  width:46px;
+  height:3px;
+  border-radius:999px;
+  background:#17202a;
+  box-shadow:0 1px 2px rgba(0,0,0,.18);
+}
+.vNeedle::after{
+  content:"";
+  position:absolute;
+  right:-2px;
+  top:-5px;
+  border-left:8px solid #17202a;
+  border-top:5px solid transparent;
+  border-bottom:5px solid transparent;
+}
+.verticalCents{
+  font-size:14px;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+.verticalTunerInfo{
+  margin-top:3px;
+  font-size:10px;
+  line-height:1.2;
+  color:var(--muted);
+  text-align:center;
 }
 
 /* 3 OKTAAVIN KOSKETTIMISTO ALAREUNASSA: c – c³ */
@@ -155,6 +240,9 @@ select{
   .setupGrid{grid-template-columns:1fr}
   .readout{grid-template-columns:1fr 1fr}
   .zoomControl{grid-template-columns:auto minmax(130px,1fr) 56px;width:100%}
+  .scoreAndTuner{grid-template-columns:minmax(0,1fr) 96px}
+  .verticalTuner{min-height:440px}
+  .verticalMeter{width:76px}
 }
 @media(max-width:460px){
   .readout{grid-template-columns:1fr}
@@ -164,9 +252,9 @@ select{
 <body>
 <main>
   <h1>OSMD + viritysmittari + pianovalinta</h1>
-  <div class="sub">OSMD on ylhäällä, koskettimisto alhaalla. Nuottinäyttö ja viritysmittari reagoivat vain valittuihin säveliin.</div>
+  <div class="sub">OSMD on ylhäällä ja pystysuuntainen viritysmittari sen vieressä. Alareunan koskettimisto soi Pikakirjoittimen äänimoottorilla.</div>
 
-  <!-- 1. OSMD AIVAN YLÄOSASSA -->
+  <!-- 1. OSMD + PYSTYSUUNTAINEN VIRITYSMITTARI YLÄOSASSA -->
   <section class="card scoreTop">
     <div class="scoreTopHead">
       <strong>Nuottinäyttö</strong>
@@ -176,8 +264,36 @@ select{
         <div id="osmdZoomValue" class="zoomValue">330 %</div>
       </div>
     </div>
-    <div class="scoreViewport">
-      <div id="score"></div>
+
+    <div class="scoreAndTuner">
+      <div class="scoreViewport">
+        <div id="score"></div>
+      </div>
+
+      <aside class="verticalTuner" aria-label="Viritysmittari">
+        <div class="verticalTunerTitle">Viritys</div>
+        <div class="verticalMeter">
+          <div class="vRail"></div>
+
+          <div class="vTick major" style="top:0%"></div>
+          <div class="vTick" style="top:25%"></div>
+          <div class="vTick center" style="top:50%"></div>
+          <div class="vTick" style="top:75%"></div>
+          <div class="vTick major" style="top:100%"></div>
+
+          <div class="vLabel" style="top:0%">+50</div>
+          <div class="vLabel" style="top:25%">+25</div>
+          <div class="vLabel centerLabel" style="top:50%">0</div>
+          <div class="vLabel" style="top:75%">−25</div>
+          <div class="vLabel" style="top:100%">−50</div>
+
+          <div id="needle" class="vNeedle">
+            <span></span>
+          </div>
+        </div>
+        <div id="centsValue" class="verticalCents">– cent</div>
+        <div id="tunerInfo" class="verticalTunerInfo">Vain valituille</div>
+      </aside>
     </div>
   </section>
 
@@ -213,34 +329,12 @@ select{
     </div>
   </section>
 
-  <!-- 4. PALAUTE + VIRITYSMITTARI -->
+  <!-- 4. PALAUTE -->
   <section class="card">
     <div class="readout">
       <div class="metric"><span>Näytettävä sävel</span><strong id="noteName">–</strong></div>
       <div class="metric"><span>Taajuus</span><strong id="freq">– Hz</strong></div>
-      <div class="metric"><span>Virepoikkeama</span><strong id="centsValue">– cent</strong></div>
       <div class="metric"><span>Soiva sävel</span><strong id="concertName">–</strong></div>
-    </div>
-
-    <div class="tuner">
-      <div class="tunerHead">
-        <strong>Viritysmittari</strong>
-        <span id="tunerInfo">Vain valituille sävelille</span>
-      </div>
-      <div class="meter">
-        <div class="rail"></div>
-        <div class="tick" style="left:0%"></div>
-        <div class="tick" style="left:25%"></div>
-        <div class="tick center" style="left:50%"></div>
-        <div class="tick" style="left:75%"></div>
-        <div class="tick" style="left:100%"></div>
-        <div class="label" style="left:0%">-50</div>
-        <div class="label" style="left:25%">-25</div>
-        <div class="label" style="left:50%">0</div>
-        <div class="label" style="left:75%">+25</div>
-        <div class="label" style="left:100%">+50</div>
-        <div id="needle" class="needle"></div>
-      </div>
     </div>
   </section>
 
@@ -257,13 +351,14 @@ select{
       <div class="legendItem"><span class="legendSwatch selected"></span> valittu kirjoitettu sävel</div>
       <div class="legendItem"><span class="legendDot"></span> musta pallo = soiva kosketin</div>
     </div>
-    <div class="foot">Koskettimisto on kirjoitetun sävelen mukaan. Musta pallo näyttää valitun sävelen soivan paikan valitulla soitinvireellä.</div>
+    <div class="foot">Koskettimisto on kirjoitetun sävelen mukaan. Musta pallo näyttää soivan paikan, ja kosketinta painettaessa kuuluu valitun soitinvireen mukainen soiva sävel.</div>
   </section>
 </main>
 
 <script src="opensheetmusicdisplay.min.js"></script>
 <script src="f0-engine.js"></script>
 <script src="instrument-controller.js"></script>
+<script src="audio-engine.js"></script>
 <script>
 'use strict';
 
@@ -273,6 +368,8 @@ const controller = new InstrumentController(engine, {
   fastAcceptFrames: 1,
   fastAcceptToleranceCents: 49
 });
+
+const keyboardAudio = new window.PikakirjoitinAudio.AudioEngine();
 
 /* Oikea kolmen oktaavin alue suomalaisessa merkinnässä:
    c = MIDI 48, c³ = MIDI 84. */
@@ -380,12 +477,38 @@ function musicXMLForQuarterNote(midi) {
   </score-partwise>`;
 }
 
+function addOsmdVerticalHeadroom() {
+  const svg = scoreEl.querySelector('svg');
+  if (!svg) return;
+
+  svg.style.overflow = 'visible';
+
+  const viewBox = svg.getAttribute('viewBox');
+  if (viewBox) {
+    const parts = viewBox.trim().split(/\s+/).map(Number);
+    if (parts.length === 4 && parts.every(Number.isFinite)) {
+      const extraTop = 12;
+      const extraBottom = 28;
+      svg.setAttribute(
+        'viewBox',
+        `${parts[0]} ${parts[1] - extraTop} ${parts[2]} ${parts[3] + extraTop + extraBottom}`
+      );
+    }
+  }
+
+  const rawHeight = parseFloat(svg.getAttribute('height'));
+  if (Number.isFinite(rawHeight)) {
+    svg.setAttribute('height', String(rawHeight + 40));
+  }
+}
+
 async function drawMidi(midi) {
   if (!Number.isFinite(midi) || midi === currentDrawnMidi) return;
   currentDrawnMidi = midi;
   await osmd.load(musicXMLForQuarterNote(midi));
   osmd.Zoom = osmdZoomPercent / 100;
   osmd.render();
+  addOsmdVerticalHeadroom();
 }
 
 function applyOsmdZoom() {
@@ -395,10 +518,13 @@ function applyOsmdZoom() {
 
   if (osmd.Sheet) {
     osmd.render();
+    addOsmdVerticalHeadroom();
   }
 }
 
 osmdZoomEl.addEventListener('input', applyOsmdZoom);
+window.addEventListener('pointerup', () => keyboardAudio.noteOff());
+window.addEventListener('pointercancel', () => keyboardAudio.noteOff());
 
 function isBlack(midi) {
   return BLACK_PCS.has(((midi % 12) + 12) % 12);
@@ -433,6 +559,20 @@ function buildPiano() {
 
     key.appendChild(label);
     key.appendChild(dot);
+
+    key.addEventListener('pointerdown', async event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      const ok = await keyboardAudio.unlock();
+      if (!ok) return;
+      keyboardAudio.noteOn(controller.writtenToConcert(midi));
+    });
+
+    key.addEventListener('pointerup', () => keyboardAudio.noteOff());
+    key.addEventListener('pointercancel', () => keyboardAudio.noteOff());
+    key.addEventListener('pointerleave', event => {
+      if (event.buttons) keyboardAudio.noteOff();
+    });
+
     key.addEventListener('click', () => toggleMidi(midi));
 
     if (isBlack(midi)) {
@@ -490,12 +630,14 @@ function updateSelectionInfo() {
 
 function updateTuner(cents) {
   if (!Number.isFinite(cents)) {
-    needleEl.style.left = '50%';
+    needleEl.style.top = '50%';
     centsValueEl.textContent = '– cent';
     return;
   }
+
   const clamped = Math.max(-50, Math.min(50, cents));
-  needleEl.style.left = `${clamped + 50}%`;
+  const topPercent = 50 - clamped;
+  needleEl.style.top = `${topPercent}%`;
   centsValueEl.textContent = `${cents > 0 ? '+' : ''}${cents.toFixed(1)} cent`;
 }
 
