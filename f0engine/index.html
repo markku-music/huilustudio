@@ -2,89 +2,326 @@
 <html lang="fi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>F0 ENGINE BASE 2.0 · PROFILE FAST 1</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BASE 2.0 vs PROFILE FAST 1 · OSMD</title>
 <style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17202a;background:#f3f5f7}
-*{box-sizing:border-box}body{margin:0}main{width:min(900px,94vw);margin:auto;padding:24px 0 40px}
-h1{margin:0;font-size:clamp(25px,4vw,38px)}.sub{color:#68727d;margin:7px 0 18px}
-.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-button,select{font:inherit;border-radius:11px;padding:10px 13px;border:1px solid #d5dbe0;background:white}
-button{background:#17202a;color:white;border:0;font-weight:750;cursor:pointer}button.alt{background:#e7ebef;color:#17202a}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:#fff;border:1px solid #dfe4e8;border-radius:18px;padding:15px}
-.label{font-size:12px;color:#727b84}.big{font-size:34px;font-weight:800;margin-top:3px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-#allowed{font-weight:700}.good{color:#087b45}.wait{color:#995d00}.muted{color:#68727d}@media(max-width:620px){.grid{grid-template-columns:1fr}}
+  :root{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color-scheme:light;
+    --bg:#f4f6f8;
+    --card:#fff;
+    --text:#17202a;
+    --muted:#6b7480;
+    --line:#dde3e8;
+    --good:#176b3a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}
+  main{width:min(1180px,96vw);margin:0 auto;padding:22px 0 38px}
+  h1{margin:0;font-size:clamp(24px,3.7vw,40px);letter-spacing:-.03em}
+  .sub{margin:7px 0 16px;color:var(--muted)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  button{
+    border:0;border-radius:12px;padding:11px 16px;font:inherit;font-weight:750;
+    cursor:pointer;background:#17202a;color:white
+  }
+  button.secondary{background:#e7ebef;color:#17202a}
+  button:disabled{opacity:.45;cursor:default}
+  #status{font-size:14px;color:var(--muted)}
+  .compare{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:14px;
+  }
+  .panel{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:22px;
+    padding:16px;
+    min-width:0;
+    transition:border-color .12s ease, transform .12s ease;
+  }
+  .panel.changed{
+    border-color:var(--good);
+    transform:translateY(-1px);
+  }
+  .panel h2{margin:0 0 2px;font-size:20px}
+  .desc{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .score{
+    width:100%;
+    min-height:260px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .score svg{width:100% !important;height:auto !important;display:block}
+  .readout{
+    display:grid;
+    grid-template-columns:1.1fr 1fr 1fr;
+    gap:8px;
+    margin-top:8px
+  }
+  .metric{
+    border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0
+  }
+  .metric span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
+  .metric strong{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .speedbox{
+    margin:14px 0 0;
+    background:white;
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:13px 15px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .speedbox strong{font-size:20px}
+  .speedbox span{color:var(--muted)}
+  .winner{color:var(--good)}
+  .foot{margin-top:11px;color:var(--muted);font-size:13px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  @media(max-width:760px){
+    .compare{grid-template-columns:1fr}
+    .score{min-height:215px}
+  }
+  @media(max-width:460px){
+    .readout{grid-template-columns:1fr}
+  }
 </style>
 </head>
-<body><main>
-<h1>PROFILE FAST 1</h1>
-<div class="sub">BASE 2.0 + vapaaehtoinen nopea peliprofiili. YIN ja 6 arvon mediaani ovat ennallaan.</div>
-<div class="toolbar">
-  <select id="profileSelect">
-    <option value="off">Ei profiilia · BASE 2.0</option>
-    <option value="fluteBeginner5" selected>Huilu · g¹ a¹ h¹ c² d² · 2 framea</option>
-  </select>
-  <button id="start">Käynnistä</button>
-  <button id="stop" class="alt" disabled>Lopeta</button>
-  <span id="status" class="muted">Valmiina.</span>
-</div>
-<div class="card" style="margin-bottom:12px">
-  <div class="label">Sallitut nopeat sävelet</div>
-  <div id="allowed">g¹ · a¹ · h¹ · c² · d²</div>
-</div>
-<div class="grid">
-  <div class="card"><div class="label">ULOSTULO</div><div class="big" id="outNote">–</div><div id="outHz" class="mono">– Hz</div></div>
-  <div class="card"><div class="label">HETKELLINEN MEDIAANI</div><div class="big" id="detNote">–</div><div id="medianHz" class="mono">– Hz</div></div>
-  <div class="card"><div class="label">RAAKA YIN</div><div class="big mono" id="rawHz">–</div></div>
-  <div class="card"><div class="label">PROFILE FAST</div><div class="big" id="fastState">–</div><div id="fastDetail" class="mono muted">–</div></div>
-</div>
+<body>
+<main>
+  <h1>BASE 2.0 vs PROFILE FAST 1</h1>
+  <div class="sub">Molemmilla oma OSMD-nuottinäyttö. Kun sama uusi sävel näkyy molemmissa, sivu näyttää kumpi ehti ensin ja kuinka paljon.</div>
+
+  <div class="toolbar">
+    <button id="startBtn">Käynnistä molemmat</button>
+    <button id="stopBtn" class="secondary" disabled>Lopeta</button>
+    <span id="status">Valmiina.</span>
+  </div>
+
+  <div class="compare">
+    <section class="panel" id="basePanel">
+      <h2>BASE 2.0</h2>
+      <div class="desc">Nykyinen transition-logiikka ilman profiilia</div>
+      <div id="baseScore" class="score"></div>
+      <div class="readout">
+        <div class="metric"><span>Sävel</span><strong id="baseNote">–</strong></div>
+        <div class="metric"><span>F0</span><strong id="baseF0">– Hz</strong></div>
+        <div class="metric"><span>Vaihto</span><strong id="baseTime">–</strong></div>
+      </div>
+    </section>
+
+    <section class="panel" id="profilePanel">
+      <h2>PROFILE FAST 1</h2>
+      <div class="desc">g¹ · a¹ · h¹ · c² · d², 2 framea, ±30 cent</div>
+      <div id="profileScore" class="score"></div>
+      <div class="readout">
+        <div class="metric"><span>Sävel</span><strong id="profileNote">–</strong></div>
+        <div class="metric"><span>F0</span><strong id="profileF0">– Hz</strong></div>
+        <div class="metric"><span>Vaihto</span><strong id="profileTime">–</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="speedbox">
+    <strong id="speedResult">Soita ensimmäinen sävel.</strong>
+    <span id="speedDetail">Vertailu alkaa ensimmäisen yhteisen sävelen jälkeen.</span>
+  </div>
+
+  <div class="foot">
+    Moottorit ovat erillisissä tiedostoissa: <code>f0-engine-base.js</code> ja <code>f0-engine-profile.js</code>.
+    OSMD piirtää kummankin moottorin hyväksytyn ulostulosävelen.
+  </div>
 </main>
+
+<script src="opensheetmusicdisplay.min.js"></script>
 <script src="profiles.js"></script>
-<script src="f0-engine.js"></script>
+<script src="f0-engine-base.js"></script>
+<script src="f0-engine-profile.js"></script>
 <script>
 'use strict';
-const engine = new F0Engine({ profile: F0_PROFILES.fluteBeginner5 });
+
+const baseEngine = new F0EngineBase();
+const profileEngine = new F0EngineProfile({
+  profile: F0_PROFILES.fluteBeginner5
+});
+
 const $ = id => document.getElementById(id);
-const noteName = midi => {
-  if (!Number.isFinite(midi)) return '–';
-  const hz = 440*Math.pow(2,(midi-69)/12);
-  return F0Engine.noteFromFrequency(hz).display;
+const startBtn = $('startBtn');
+const stopBtn = $('stopBtn');
+const statusEl = $('status');
+const speedResult = $('speedResult');
+const speedDetail = $('speedDetail');
+
+const OSMD = opensheetmusicdisplay.OpenSheetMusicDisplay;
+const baseOSMD = new OSMD($('baseScore'), {
+  autoResize:true, drawTitle:false, drawSubtitle:false, drawComposer:false,
+  drawLyricist:false, drawPartNames:false, drawingParameters:"compacttight"
+});
+const profileOSMD = new OSMD($('profileScore'), {
+  autoResize:true, drawTitle:false, drawSubtitle:false, drawComposer:false,
+  drawLyricist:false, drawPartNames:false, drawingParameters:"compacttight"
+});
+
+const state = {
+  sessionStart:0,
+  base:{midi:null, display:'–', changedAt:null},
+  profile:{midi:null, display:'–', changedAt:null},
+  lastComparedMidi:null,
+  flashTimers:{base:null, profile:null}
 };
-function setProfile(){
-  const key=$('profileSelect').value;
-  engine.setProfile(key==='off'?null:F0_PROFILES[key]);
-  $('allowed').textContent = key==='off' ? 'Ei rajausta' : 'g¹ · a¹ · h¹ · c² · d²';
-  $('fastState').textContent = key==='off' ? 'POIS' : 'VALMIS';
-  $('fastDetail').textContent = key==='off' ? 'BASE 2.0 -käyttäytyminen' : '2 peräkkäistä framea · ±30 cent';
+
+function midiToPitch(midi){
+  const pcs=[['C',0],['C',1],['D',0],['D',1],['E',0],['F',0],['F',1],['G',0],['G',1],['A',0],['A',1],['B',0]];
+  const pc=((midi%12)+12)%12;
+  const octave=Math.floor(midi/12)-1;
+  const [step,alter]=pcs[pc];
+  return {step,alter,octave};
 }
-$('profileSelect').addEventListener('change',setProfile);
-engine.addEventListener('calibrationprogress',e=>{$('status').textContent=`Kalibroidaan ${Math.round((e.detail.progress||0)*100)} %`;});
-engine.addEventListener('calibrated',()=>{$('status').textContent='Soita.';});
-engine.addEventListener('pitch',e=>{
-  const d=e.detail;
-  $('outNote').textContent=d.note?.display??'–';
-  $('outHz').textContent=Number.isFinite(d.outputF0)?`${d.outputF0.toFixed(1)} Hz`:'– Hz';
-  $('detNote').textContent=d.detectedNote?.display??'–';
-  $('medianHz').textContent=Number.isFinite(d.f0)?`${d.f0.toFixed(1)} Hz`:'– Hz';
-  $('rawHz').textContent=Number.isFinite(d.rawF0)?`${d.rawF0.toFixed(1)} Hz`:'–';
-  if(d.profileFastCandidateFrames>0){
-    $('fastState').textContent=`${d.profileFastCandidateFrames}/2`;
-    $('fastDetail').textContent=`ehdokas ${noteName(d.profileFastCandidateMidi)}`;
-  }else if(d.transitionActive){
-    $('fastState').textContent='SIIRTYMÄ';
-    $('fastDetail').textContent='BASE-portti odottaa';
-  }else if(engine.getProfile()){
-    $('fastState').textContent='VALMIS';
-    $('fastDetail').textContent='2 framea · ±30 cent';
+
+function xmlForMidi(midi){
+  const p=midiToPitch(midi);
+  const alter=p.alter ? `<alter>${p.alter}</alter>` : '';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+  <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN"
+  "http://www.musicxml.org/dtds/partwise.dtd">
+  <score-partwise version="3.1">
+    <part-list><score-part id="P1"><part-name>Nuotti</part-name></score-part></part-list>
+    <part id="P1">
+      <measure number="1">
+        <attributes>
+          <divisions>1</divisions>
+          <key><fifths>0</fifths></key>
+          <time><beats>4</beats><beat-type>4</beat-type></time>
+          <clef><sign>G</sign><line>2</line></clef>
+        </attributes>
+        <note>
+          <pitch><step>${p.step}</step>${alter}<octave>${p.octave}</octave></pitch>
+          <duration>1</duration><type>quarter</type>
+        </note>
+      </measure>
+    </part>
+  </score-partwise>`;
+}
+
+async function draw(osmd,midi){
+  if(!Number.isFinite(midi)) return;
+  await osmd.load(xmlForMidi(midi));
+  osmd.render();
+}
+
+function flash(which){
+  const panel=$(which+'Panel');
+  panel.classList.add('changed');
+  clearTimeout(state.flashTimers[which]);
+  state.flashTimers[which]=setTimeout(()=>panel.classList.remove('changed'),180);
+}
+
+function updateSpeed(){
+  const b=state.base, p=state.profile;
+  if(!Number.isFinite(b.midi) || !Number.isFinite(p.midi)) return;
+
+  if(b.midi === p.midi && b.midi !== state.lastComparedMidi &&
+     Number.isFinite(b.changedAt) && Number.isFinite(p.changedAt)){
+    const diff = b.changedAt - p.changedAt;
+    state.lastComparedMidi = b.midi;
+
+    if(Math.abs(diff) < 8){
+      speedResult.textContent = 'Käytännössä yhtä aikaa';
+      speedResult.className = '';
+      speedDetail.textContent = `ero ${Math.abs(diff).toFixed(0)} ms · ${b.display}`;
+    }else if(diff > 0){
+      speedResult.textContent = `PROFILE FAST 1 ensin · ${diff.toFixed(0)} ms`;
+      speedResult.className = 'winner';
+      speedDetail.textContent = `${p.display} ilmestyi profiiliin aikaisemmin`;
+    }else{
+      speedResult.textContent = `BASE 2.0 ensin · ${Math.abs(diff).toFixed(0)} ms`;
+      speedResult.className = 'winner';
+      speedDetail.textContent = `${b.display} ilmestyi BASEen aikaisemmin`;
+    }
+  }
+}
+
+function handlePitch(which, osmd, detail){
+  const midi=detail.note?.midi;
+  if(!Number.isFinite(midi)) return;
+
+  const s=state[which];
+  const changed = midi !== s.midi;
+
+  if(changed){
+    s.midi=midi;
+    s.display=detail.note?.display || String(midi);
+    s.changedAt=performance.now();
+    $(which+'Time').textContent = `${(s.changedAt-state.sessionStart).toFixed(0)} ms`;
+    $(which+'Note').textContent = s.display;
+    draw(osmd,midi).catch(console.error);
+    flash(which);
+    updateSpeed();
+  }
+
+  const f = Number.isFinite(detail.outputF0) ? detail.outputF0 : detail.f0;
+  $(which+'F0').textContent = Number.isFinite(f) ? `${f.toFixed(1)} Hz` : '– Hz';
+}
+
+baseEngine.addEventListener('pitch', e => handlePitch('base', baseOSMD, e.detail));
+profileEngine.addEventListener('pitch', e => handlePitch('profile', profileOSMD, e.detail));
+
+let baseCal=0, profileCal=0;
+function showCalibration(){
+  const p=Math.round(((baseCal+profileCal)/2)*100);
+  statusEl.textContent=`Kalibroidaan… ${p} %`;
+}
+baseEngine.addEventListener('calibrationprogress', e=>{baseCal=e.detail.progress||0;showCalibration();});
+profileEngine.addEventListener('calibrationprogress', e=>{profileCal=e.detail.progress||0;showCalibration();});
+
+baseEngine.addEventListener('calibrated', ()=>{baseCal=1;showCalibration();});
+profileEngine.addEventListener('calibrated', ()=>{profileCal=1;showCalibration();});
+
+function resetView(){
+  state.base={midi:null,display:'–',changedAt:null};
+  state.profile={midi:null,display:'–',changedAt:null};
+  state.lastComparedMidi=null;
+  $('baseNote').textContent='–';
+  $('profileNote').textContent='–';
+  $('baseF0').textContent='– Hz';
+  $('profileF0').textContent='– Hz';
+  $('baseTime').textContent='–';
+  $('profileTime').textContent='–';
+  speedResult.textContent='Soita ensimmäinen sävel.';
+  speedResult.className='';
+  speedDetail.textContent='Vertailu alkaa ensimmäisen yhteisen sävelen jälkeen.';
+}
+
+startBtn.addEventListener('click', async ()=>{
+  resetView();
+  startBtn.disabled=true;
+  stopBtn.disabled=true;
+  baseCal=0; profileCal=0;
+  statusEl.textContent='Käynnistetään molemmat…';
+  try{
+    await Promise.all([baseEngine.start(), profileEngine.start()]);
+    state.sessionStart=performance.now();
+    statusEl.textContent='Valmis. Soita.';
+    stopBtn.disabled=false;
+  }catch(err){
+    console.error(err);
+    statusEl.textContent='Mikrofonia ei saatu käyntiin.';
+    startBtn.disabled=false;
   }
 });
-engine.addEventListener('profilefastaccept',e=>{
-  $('fastState').textContent='FAST ✓';
-  $('fastDetail').textContent=`${noteName(e.detail.fromMidi)} → ${noteName(e.detail.toMidi)}`;
+
+stopBtn.addEventListener('click', ()=>{
+  baseEngine.stop();
+  profileEngine.stop();
+  stopBtn.disabled=true;
+  startBtn.disabled=false;
+  statusEl.textContent='Pysäytetty.';
 });
-engine.addEventListener('silence',()=>{$('status').textContent='Hiljaisuus';});
-engine.addEventListener('error',e=>{console.error(e.detail);$('status').textContent='Virhe';});
-$('start').addEventListener('click',async()=>{try{$('start').disabled=true;$('profileSelect').disabled=true;await engine.start();$('stop').disabled=false;}catch(e){$('start').disabled=false;$('profileSelect').disabled=false;}});
-$('stop').addEventListener('click',()=>{engine.stop();$('start').disabled=false;$('stop').disabled=true;$('profileSelect').disabled=false;$('status').textContent='Pysäytetty.';});
-setProfile();
-</script></body></html>
+</script>
+</body>
+</html>
