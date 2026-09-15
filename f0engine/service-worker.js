@@ -1,4 +1,4 @@
-const CACHE_NAME = 'f0-engine-pwa-v3-key-press-blue';
+const CACHE_NAME = 'f0-engine-pwa-v4-hard-mic-guard';
 
 const APP_SHELL = [
   './',

@@ -378,6 +378,7 @@ const controller = new InstrumentController(engine, {
 let keyboardAudio = new window.PikakirjoitinAudio.AudioEngine();
 let pianoResumeTimer = null;
 let pianoPreviewActive = false;
+let pianoGuardUntil = 0;
 
 function bindKeyboardAudioToMicContext() {
   try { keyboardAudio.dispose(); } catch {}
@@ -388,6 +389,7 @@ function bindKeyboardAudioToMicContext() {
 
 function beginPianoPreview() {
   pianoPreviewActive = true;
+  pianoGuardUntil = Number.POSITIVE_INFINITY;
   if (pianoResumeTimer) {
     clearTimeout(pianoResumeTimer);
     pianoResumeTimer = null;
@@ -402,11 +404,13 @@ function endPianoPreview() {
   pianoPreviewActive = false;
   keyboardAudio.noteOff();
   if (pianoResumeTimer) clearTimeout(pianoResumeTimer);
-  // Pieni jälkivartio: kaiuttimen release + huonekaiku eivät pääse F0-analyysiin.
+  // Kovempi jälkivartio: myös lyhyt napautus, kaiuttimen release ja huonekaiku
+  // pysyvät poissa F0-analyysistä.
+  pianoGuardUntil = performance.now() + 450;
   pianoResumeTimer = setTimeout(() => {
     pianoResumeTimer = null;
     engine.resumeInput();
-  }, 180);
+  }, 450);
 }
 
 /* Oikea kolmen oktaavin alue suomalaisessa merkinnässä:
@@ -602,6 +606,9 @@ function buildPiano() {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
       key.classList.add('pressed');
       beginPianoPreview();
+      // Anna MIC GUARDin astua varmasti voimaan ennen kaiutinäänen attackia.
+      await new Promise(requestAnimationFrame);
+      if (!pianoPreviewActive) return;
       const ok = await keyboardAudio.unlock();
       if (!ok) return;
       keyboardAudio.noteOn(controller.writtenToConcert(midi));
@@ -698,6 +705,8 @@ engine.addEventListener('calibrated', () => {
 });
 
 engine.addEventListener('pitch', async e => {
+  // Varmistus UI-tasolla: pianon oma ääni ei saa koskaan päivittää tunnistusta.
+  if (pianoPreviewActive || performance.now() < pianoGuardUntil) return;
   const d = e.detail;
   const concertMidi = d.note?.midi;
   const writtenMidi = Number.isFinite(concertMidi)
@@ -728,6 +737,7 @@ engine.addEventListener('pitch', async e => {
 });
 
 engine.addEventListener('silence', () => {
+  if (pianoPreviewActive || performance.now() < pianoGuardUntil) return;
   statusEl.textContent = 'Hiljaisuus';
 });
 
@@ -757,6 +767,7 @@ startBtn.addEventListener('click', async () => {
 
 stopBtn.addEventListener('click', () => {
   pianoPreviewActive = false;
+  pianoGuardUntil = 0;
   if (pianoResumeTimer) {
     clearTimeout(pianoResumeTimer);
     pianoResumeTimer = null;
