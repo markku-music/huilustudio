@@ -316,6 +316,11 @@ const PLANE_SWAY_BASE_PERIOD_MS=1850;
 
 let gameFxBuffers={coin:null,chest:null,diamond:null,cow:null,rock:null};
 let gameAudioMuted=false;
+// PWA:n elinkaaritila: iOS voi jättää Web Audio -kontekstin eloon taustalle,
+// joten ääni pysäytetään itse heti kun sovellus ei ole näkyvissä.
+let appAudioBackgrounded=document.visibilityState==='hidden';
+let resumeEngineAfterBackground=false;
+let foregroundAudioResumeInFlight=false;
 const activeGameFxSources=new Set();
 const GAME_FX_GAIN={coin:.92,chest:.82,diamond:.54};
 function gameFxGainForKey(key){
@@ -326,11 +331,11 @@ function gameFxGainForKey(key){
 let gameFxLoading={};
 const GAME_FX_KEYS=['coin','chest','diamond','cow','rock'];
 async function ensureAudioContextRunning(){
-  if(!ctx)return false;
+  if(!ctx||appAudioBackgrounded)return false;
   if(ctx.state!=='running'){
     try{await ctx.resume()}catch(err){console.warn('AudioContextin palautus epäonnistui:',err)}
   }
-  return ctx.state==='running';
+  return !appAudioBackgrounded&&ctx.state==='running';
 }
 async function loadGameFxBuffer(key){
   if(!ctx||!GAME_FX_BASE64[key])return null;
@@ -493,10 +498,11 @@ async function loadEngineBuffer(){
   finally{engineLoadingPromise=null}
 }
 async function startEngineAudioFromBeginning(){
-  if(!ctx)return;
+  if(!ctx||appAudioBackgrounded)return;
   if(ctx.state!=='running')await ctx.resume();
   const buffer=await loadEngineBuffer();
-  if(!buffer)return;
+  // Sovellus on voinut mennä taustalle bufferin latauksen aikana.
+  if(!buffer||appAudioBackgrounded)return;
   if(engineSource){
     try{engineSource.stop()}catch{}
     try{engineSource.disconnect()}catch{}
@@ -524,6 +530,45 @@ function stopEngineAudio(){
     engineSource=null;
   }
   engineAudioStarted=false;
+}
+function stopActiveGameFx(){
+  for(const source of activeGameFxSources){
+    try{source.stop()}catch{}
+    try{source.disconnect()}catch{}
+  }
+  activeGameFxSources.clear();
+}
+async function pauseAudioForBackground(){
+  appAudioBackgrounded=true;
+  // Muistetaan vain, oliko moottori oikeasti käynnissä ennen taustalle menoa.
+  // pagehide voi tulla visibilitychange-tapahtuman jälkeen, joten true-arvoa ei nollata täällä.
+  if(engineAudioStarted&&engineSource)resumeEngineAfterBackground=true;
+  stopEngineAudio();
+  stopActiveGameFx();
+  if(ctx&&ctx.state==='running'){
+    try{await ctx.suspend()}catch(err){console.warn('AudioContextin pysäytys taustalla epäonnistui:',err)}
+  }
+}
+async function resumeAudioAfterBackground(){
+  if(foregroundAudioResumeInFlight)return;
+  appAudioBackgrounded=false;
+  if(!ctx)return;
+  foregroundAudioResumeInFlight=true;
+  const shouldRestoreEngine=resumeEngineAfterBackground;
+  resumeEngineAfterBackground=false;
+  try{
+    const running=await ensureAudioContextRunning();
+    if(!running){
+      if(shouldRestoreEngine)resumeEngineAfterBackground=true;
+      return;
+    }
+    const timerStillAlive=!gameTimerStarted||performance.now()<gameEndsAt;
+    if(shouldRestoreEngine&&gameRunning&&!gameFinishing&&timerStillAlive){
+      await startEngineAudioFromBeginning();
+    }
+  }finally{
+    foregroundAudioResumeInFlight=false;
+  }
 }
 function setGameAudioMuted(muted){
   gameAudioMuted=!!muted;
@@ -2567,12 +2612,16 @@ $('#refreshBtn').addEventListener('click',async()=>{
 });
 $('#recalBtn').addEventListener('click',async()=>{if(analyser)await calibrateWithAllGameAudioMuted()});
 
-// iOS voi keskeyttää Web Audio -kontekstin väliaikaisesti sovelluksen vaihtaessa tilaa.
-// Palautetaan sama jo käyttäjän Start-painalluksella avattu konteksti näkyviin palatessa.
+// PWA:n mennessä taustalle pysäytetään ääni itse. Pelkkä iOS:n/WebKitin oma
+// elinkaarikäsittely ei aina katkaise looppaavaa Web Audio -moottoriääntä.
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible')void ensureAudioContextRunning();
+  if(document.visibilityState==='hidden')void pauseAudioForBackground();
+  else if(document.visibilityState==='visible')void resumeAudioAfterBackground();
 });
-window.addEventListener('pageshow',()=>{void ensureAudioContextRunning()});
+window.addEventListener('pagehide',()=>{void pauseAudioForBackground()});
+window.addEventListener('pageshow',()=>{
+  if(document.visibilityState!=='hidden')void resumeAudioAfterBackground();
+});
 
 void preloadStartupAssets();
 

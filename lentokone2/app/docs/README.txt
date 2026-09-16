@@ -742,3 +742,21 @@ TÄRKEÄÄ:
 - 700 ms kestobonus ⏳ ennallaan.
 - PWA-kuvakkeet ennallaan.
 - Muu pelilogiikka ennallaan.
+
+============================================================
+BASE 6.3.3 BACKGROUND AUDIO STOP
+============================================================
+
+Pohja:
+- BASE 6.3.2 IPAD HARMONIC REARM.
+
+KORJAUS:
+- PWA:n mennessä taustalle tai sulkeutuessa moottoriäänen loop pysäytetään.
+- Myös sillä hetkellä soivat peliefektit pysäytetään.
+- AudioContext suspendataan taustalla, jotta Web Audio ei jää soimaan iOS:ssa.
+- Taustalla oleva sovellus ei saa käynnistää AudioContextia uudelleen asynkronisen äänen kautta.
+- Kun sovellus palaa näkyviin kesken käynnissä olevan pelin, AudioContext palautetaan ja moottori käynnistetään uudelleen vain jos se oli ennen taustalle menoa käynnissä.
+- Service workerin cache-avain päivitetty, jotta korjattu app.js päivittyy myös asennettuun PWA:han.
+
+MUU:
+- Pelilogiikkaa, tunnistusta, Harmonic Summationia, pisteytystä tai grafiikkaa ei muutettu.

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-pwa-base-6.3.2-ipad-harmonic-rearm';
+const CACHE_NAME = 'lentokone-pwa-base-6.3.3-background-audio-stop';
 const APP_SHELL = [
   './',
   './index.html',
