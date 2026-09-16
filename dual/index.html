@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>F0 + Plane Engine · Testipenkki</title>
+<style>
+  :root {
+    --night:#eaf0ff; --mist:#f8f5ff; --card:rgba(255,255,255,.84); --text:#343858;
+    --muted:#747995; --line:#d9dcef; --lavender:#8f86d9; --blue:#7897c9;
+    --gold:#c79a45; --green:#4f9b79; --red:#c86f7c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);
+    background:radial-gradient(circle at 20% 0%,#fff7df 0,transparent 32%),linear-gradient(180deg,var(--mist),var(--night));min-height:100vh}
+  main{width:min(760px,calc(100% - 28px));margin:28px auto 44px;display:grid;gap:16px}
+  .card{border:1px solid rgba(143,134,217,.22);border-radius:22px;padding:19px;background:var(--card);
+    backdrop-filter:blur(8px);box-shadow:0 14px 36px rgba(66,70,120,.11)}
+  .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  button,select{font:inherit;border:1px solid #d2d6e8;background:rgba(255,255,255,.92);color:var(--text);border-radius:13px;padding:10px 12px}
+  button{font-weight:700;cursor:pointer;background:linear-gradient(180deg,#f0edff,#dcd8fb);color:#4d4f77;border-color:#cfc9ee;box-shadow:0 4px 12px rgba(99,91,156,.12)}
+  button:disabled{opacity:.55;cursor:default}
+  .status{margin-left:auto;font-size:14px;color:var(--muted)}
+  .selectors{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.selectors label,#countWrap,.top label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+  .result{min-height:190px;display:grid;place-items:center;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.93),rgba(249,247,255,.88));position:relative}
+  .result:before{content:"✦";position:absolute;top:18px;right:26px;font-size:24px;color:rgba(199,154,69,.38)}
+  .result:after{content:"✧";position:absolute;bottom:18px;left:28px;font-size:28px;color:rgba(143,134,217,.25)}
+  #resultText{font-size:clamp(62px,15vw,132px);line-height:.95;font-weight:760;letter-spacing:-.035em;color:var(--lavender);text-shadow:0 2px 16px rgba(143,134,217,.08)}
+  #resultText.ok{color:var(--green)} #resultText.no{color:var(--red)} #resultText.neutral{color:var(--lavender)}
+  #subText{margin-top:12px;font-variant-numeric:tabular-nums;color:var(--muted);min-height:1.3em}
+  .meter-wrap{padding:10px 2px 0}.meter-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px}
+  .meter{position:relative;height:44px;border-radius:14px;border:1px solid #d8d9ea;background:linear-gradient(to right,transparent 49.75%,rgba(143,134,217,.36) 49.75%,rgba(143,134,217,.36) 50.25%,transparent 50.25%),linear-gradient(90deg,#f4eef7,#fbf7ea,#eef5fa);overflow:hidden}
+  #needle{position:absolute;left:50%;top:5px;bottom:5px;width:4px;border-radius:4px;background:var(--gold);transform:translateX(-50%);transition:left 55ms linear}
+  #cents{text-align:center;margin-top:9px;font-size:24px;font-weight:680;font-variant-numeric:tabular-nums;min-height:1.4em;color:var(--blue)}
+  .plane-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap} #trainingStatus{font-size:14px;color:var(--muted)}
+  .tiny{font-size:12px;color:var(--muted);margin-top:8px} [hidden]{display:none!important}
+  @media(max-width:520px){.status{width:100%;margin-left:0}.selectors label{flex:1 1 44%}.selectors select{width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <div class="top">
+      <button id="micBtn" type="button">Avaa mikrofoni</button>
+      <label>
+        Moottori
+        <select id="engineSelect" aria-label="Moottori">
+          <option value="f0">F0 ENGINE 36</option>
+          <option value="plane">PLANE ENGINE</option>
+        </select>
+      </label>
+      <label id="countWrap">
+        Säveliä
+        <select id="count" aria-label="Sävelten määrä">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        </select>
+      </label>
+      <div class="status" id="status">Mikrofoni ei käytössä</div>
+    </div>
+    <div class="selectors" id="selectors"></div>
+  </section>
+
+  <section class="card" id="planeTrainingCard" hidden>
+    <div class="plane-controls">
+      <button id="trainBtn" type="button" disabled>Opeta referenssi · 3 puhallusta</button>
+      <div id="trainingStatus">Avaa mikrofoni ja opeta referenssi.</div>
+    </div>
+    <div class="tiny">Puhalla kolme erillistä ääntä. Pidä pieni tauko puhallusten välissä.</div>
+  </section>
+
+  <section class="card result" aria-live="polite">
+    <div>
+      <div id="resultText">–</div>
+      <div id="subText"></div>
+    </div>
+  </section>
+
+  <section class="card" id="meterCard">
+    <div class="meter-wrap">
+      <div class="meter-labels"><span>−50</span><span>0</span><span>+50 senttiä</span></div>
+      <div class="meter"><div id="needle"></div></div>
+      <div id="cents">–</div>
+    </div>
+    <div class="tiny">Mittari seuraa F0 ENGINE 36:n ulostuloa.</div>
+  </section>
+</main>
+
+<script src="f0-engine.js"></script>
+<script src="plane-engine.js"></script>
+<script src="plane-engine-adapter.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const micBtn = document.getElementById('micBtn');
+  const engineSelect = document.getElementById('engineSelect');
+  const statusEl = document.getElementById('status');
+  const countWrap = document.getElementById('countWrap');
+  const countEl = document.getElementById('count');
+  const selectorsEl = document.getElementById('selectors');
+  const planeTrainingCard = document.getElementById('planeTrainingCard');
+  const trainBtn = document.getElementById('trainBtn');
+  const trainingStatus = document.getElementById('trainingStatus');
+  const resultText = document.getElementById('resultText');
+  const subText = document.getElementById('subText');
+  const meterCard = document.getElementById('meterCard');
+  const needleEl = document.getElementById('needle');
+  const centsEl = document.getElementById('cents');
+
+  const defaults = [67, 69, 71, 72, 74];
+  const selectEls = [];
+  let engine = null;
+  let engineKind = null;
+  let starting = false;
+  let planeTrained = false;
+  let planeTraining = false;
+
+  const NAMES = ['c','cis','d','dis','e','f','fis','g','gis','a','ais','h'];
+  const SUPER = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  const SUB = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+
+  function digitsTo(value, table) {
+    return String(value).split('').map(ch => table[ch] || ch).join('');
+  }
+
+  function labelForMidi(midi) {
+    const pc = ((midi % 12) + 12) % 12;
+    const scientificOctave = Math.floor(midi / 12) - 1;
+    const lower = NAMES[pc];
+    if (scientificOctave >= 4) return lower + digitsTo(scientificOctave - 3, SUPER);
+    if (scientificOctave === 3) return lower;
+    if (scientificOctave === 2) return lower.toUpperCase();
+    return lower.toUpperCase() + digitsTo(2 - scientificOctave, SUB);
+  }
+
+  function buildNoteSelectors() {
+    selectorsEl.textContent = '';
+    selectEls.length = 0;
+    for (let i = 0; i < 5; i++) {
+      const label = document.createElement('label');
+      label.textContent = `Sävel ${i + 1}`;
+      const sel = document.createElement('select');
+      for (let midi = 48; midi <= 96; midi++) {
+        const opt = document.createElement('option');
+        opt.value = String(midi);
+        opt.textContent = labelForMidi(midi);
+        if (midi === defaults[i]) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', applyProfile);
+      label.appendChild(sel);
+      selectorsEl.appendChild(label);
+      selectEls.push(sel);
+    }
+    updateSelectorVisibility();
+  }
+
+  function selectedMidis() {
+    const count = Number(countEl.value);
+    return selectEls.slice(0, count).map(s => Number(s.value));
+  }
+
+  function applyProfile() {
+    if (!engine || engineKind !== 'f0') return;
+    engine.setProfile({
+      name: 'Testipenkki',
+      allowedMidi: selectedMidis(),
+      fastAccept: { enabled: true, frames: 2, toleranceCents: 30 }
+    });
+  }
+
+  function updateSelectorVisibility() {
+    const count = Number(countEl.value);
+    [...selectorsEl.children].forEach((label, i) => { label.hidden = i >= count; });
+    applyProfile();
+  }
+
+  function setResultTone(tone = 'neutral') {
+    resultText.className = tone;
+  }
+
+  function clearF0Readout() {
+    setResultTone('neutral');
+    resultText.textContent = '–';
+    subText.textContent = '';
+    centsEl.textContent = '–';
+    needleEl.style.left = '50%';
+  }
+
+  function clearPlaneDecision() {
+    setResultTone('neutral');
+    resultText.textContent = planeTraining ? `PUHALLA ${Math.min((engine?._trainingBlows?.length || 0) + 1, 3)}/3` : (planeTrained ? 'PUHALLA' : 'OPETA');
+    subText.textContent = '';
+  }
+
+  function renderPitch(d) {
+    if (engineKind !== 'f0' || !d?.note) return;
+    setResultTone('neutral');
+    resultText.textContent = d.note.display || '–';
+    subText.textContent = Number.isFinite(d.outputF0) ? `${d.outputF0.toFixed(1)} Hz` : '';
+    const cents = Number.isFinite(d.note.cents) ? d.note.cents : 0;
+    const clipped = Math.max(-50, Math.min(50, cents));
+    needleEl.style.left = `${50 + clipped}%`;
+    centsEl.textContent = `${cents >= 0 ? '+' : ''}${cents.toFixed(0)} ¢`;
+  }
+
+  function renderDecision(d) {
+    if (engineKind !== 'plane' || planeTraining) return;
+    if (!d?.ready) {
+      setResultTone('neutral');
+      setResultTone('neutral');
+      resultText.textContent = 'OPETA';
+      subText.textContent = 'Referenssi puuttuu';
+      return;
+    }
+    if (d.accepted === null || d.analyzing) {
+      setResultTone('neutral');
+      resultText.textContent = ' ';
+      subText.textContent = '';
+      return;
+    }
+    setResultTone(d.accepted ? 'ok' : 'no');
+    resultText.textContent = d.accepted ? 'HYVÄKSYTTY' : 'HYLÄTTY';
+    subText.textContent = '';
+  }
+
+  function updateModeUI() {
+    const plane = engineSelect.value === 'plane';
+    countWrap.hidden = plane;
+    selectorsEl.hidden = plane;
+    meterCard.hidden = plane;
+    planeTrainingCard.hidden = !plane;
+    if (plane) clearPlaneDecision();
+    else clearF0Readout();
+  }
+
+  function createEngine() {
+    engineKind = engineSelect.value;
+    engine = engineKind === 'plane' ? new PlaneEngineAdapter() : new F0Engine();
+    planeTrained = false;
+    planeTraining = false;
+    bindEngineEvents(engine);
+    applyProfile();
+  }
+
+  function bindEngineEvents(boundEngine) {
+    boundEngine.addEventListener('state', e => {
+      const state = e.detail?.state;
+      if (state === 'requesting-microphone') statusEl.textContent = 'Pyydetään mikrofonilupaa…';
+      if (state === 'microphone-ready') statusEl.textContent = 'Mikrofoni avattu';
+      if (state === 'calibrating') statusEl.textContent = 'Kalibroidaan… ole hetki hiljaa';
+      if (state === 'running') {
+        statusEl.textContent = 'Valmis';
+        micBtn.textContent = 'Sulje mikrofoni';
+        micBtn.disabled = false;
+        if (engineKind === 'plane') trainBtn.disabled = false;
+      }
+      if (state === 'stopped') {
+        statusEl.textContent = 'Mikrofoni ei käytössä';
+        micBtn.textContent = 'Avaa mikrofoni';
+        micBtn.disabled = false;
+        trainBtn.disabled = true;
+      }
+    });
+
+    boundEngine.addEventListener('calibrationprogress', e => {
+      const p = Math.round((e.detail?.progress || 0) * 100);
+      statusEl.textContent = `Kalibroidaan… ${p} %`;
+    });
+
+    boundEngine.addEventListener('calibrated', e => {
+      const threshold = e.detail?.thresholdDb;
+      statusEl.textContent = Number.isFinite(threshold)
+        ? `Valmis · portti ${threshold.toFixed(0)} dB`
+        : 'Valmis';
+    });
+
+    boundEngine.addEventListener('pitch', e => renderPitch(e.detail));
+    boundEngine.addEventListener('decision', e => renderDecision(e.detail));
+    boundEngine.addEventListener('soundstart', () => {
+      if (engineKind === 'plane' && !planeTraining && planeTrained) {
+        setResultTone('neutral');
+        resultText.textContent = ' ';
+        subText.textContent = '';
+      }
+    });
+
+    boundEngine.addEventListener('silence', () => {
+      if (engineKind === 'f0') clearF0Readout();
+      else if (!planeTraining) clearPlaneDecision();
+    });
+
+    boundEngine.addEventListener('trainingstart', () => {
+      planeTraining = true;
+      planeTrained = false;
+      trainBtn.disabled = true;
+      trainingStatus.textContent = 'Puhalla 1/3';
+      setResultTone('neutral');
+      resultText.textContent = 'PUHALLA 1/3';
+      subText.textContent = 'Pidä pieni tauko puhalluksen jälkeen';
+    });
+
+    boundEngine.addEventListener('trainingprogress', e => {
+      const done = e.detail?.completedBlows || 0;
+      if (done < 3) {
+        const next = done + 1;
+        trainingStatus.textContent = `${done}/3 tallennettu · puhalla ${next}/3`;
+        setResultTone('neutral');
+      resultText.textContent = `PUHALLA ${next}/3`;
+        subText.textContent = 'Pidä pieni tauko puhalluksen jälkeen';
+      }
+    });
+
+    boundEngine.addEventListener('trainingretry', e => {
+      const done = e.detail?.completedBlows || 0;
+      const next = done + 1;
+      trainingStatus.textContent = `Puhallus jäi liian lyhyeksi · puhalla ${next}/3 uudelleen`;
+      setResultTone('neutral');
+      resultText.textContent = `PUHALLA ${next}/3`;
+      subText.textContent = 'Hieman pidempi ääni';
+    });
+
+    boundEngine.addEventListener('trained', e => {
+      planeTraining = false;
+      planeTrained = true;
+      trainBtn.disabled = false;
+      trainBtn.textContent = 'Opeta uudelleen · 3 puhallusta';
+      trainingStatus.textContent = 'Referenssi valmis · 3/3';
+      setResultTone('neutral');
+      resultText.textContent = 'VALMIS';
+      subText.textContent = 'Puhalla testattava ääni';
+    });
+
+    boundEngine.addEventListener('trainingerror', () => {
+      planeTraining = false;
+      planeTrained = false;
+      trainBtn.disabled = false;
+      trainingStatus.textContent = 'Referenssin muodostus epäonnistui · opeta uudelleen';
+      setResultTone('neutral');
+      resultText.textContent = 'OPETA';
+      subText.textContent = '';
+    });
+
+    boundEngine.addEventListener('error', e => {
+      const msg = e.detail?.error?.message || 'Mikrofonin avaus epäonnistui.';
+      statusEl.textContent = msg;
+      micBtn.disabled = false;
+      micBtn.textContent = 'Yritä uudelleen';
+      if (engineKind === 'plane') trainBtn.disabled = true;
+    });
+  }
+
+  async function openMicrophone() {
+    if (starting) return;
+    if (engine?.running) {
+      engine.stop();
+      engine = null;
+      engineKind = null;
+      planeTrained = false;
+      planeTraining = false;
+      trainBtn.disabled = true;
+      trainBtn.textContent = 'Opeta referenssi · 3 puhallusta';
+      trainingStatus.textContent = 'Avaa mikrofoni ja opeta referenssi.';
+      updateModeUI();
+      return;
+    }
+
+    starting = true;
+    micBtn.disabled = true;
+    statusEl.textContent = 'Avataan mikrofonia…';
+
+    try {
+      if (!window.isSecureContext) throw new Error('Mikrofoni vaatii HTTPS:n tai localhostin.');
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Selain ei tarjoa mikrofonikäyttöä tällä sivulla.');
+      if (!engine) createEngine();
+      await engine.start();
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = err?.message || 'Mikrofonin avaus epäonnistui.';
+      micBtn.disabled = false;
+      micBtn.textContent = 'Yritä uudelleen';
+    } finally {
+      starting = false;
+    }
+  }
+
+  function startPlaneTraining() {
+    if (engineKind !== 'plane' || !engine?.running) {
+      trainingStatus.textContent = 'Avaa mikrofoni ensin.';
+      return;
+    }
+    try {
+      engine.startReferenceTraining();
+    } catch (err) {
+      trainingStatus.textContent = err?.message || 'Opetuksen käynnistys epäonnistui.';
+    }
+  }
+
+  function changeEngine() {
+    if (engine) {
+      try { engine.stop(); } catch (_) {}
+      engine = null;
+      engineKind = null;
+    }
+    planeTrained = false;
+    planeTraining = false;
+    trainBtn.disabled = true;
+    trainBtn.textContent = 'Opeta referenssi · 3 puhallusta';
+    trainingStatus.textContent = 'Avaa mikrofoni ja opeta referenssi.';
+    statusEl.textContent = `Valittu: ${engineSelect.options[engineSelect.selectedIndex].text}`;
+    micBtn.textContent = 'Avaa mikrofoni';
+    micBtn.disabled = false;
+    updateModeUI();
+  }
+
+  countEl.value = '1';
+  countEl.addEventListener('change', updateSelectorVisibility);
+  engineSelect.addEventListener('change', changeEngine);
+  micBtn.addEventListener('click', openMicrophone);
+  trainBtn.addEventListener('click', startPlaneTraining);
+
+  buildNoteSelectors();
+  updateModeUI();
+})();
+</script>
+</body>
+</html>
