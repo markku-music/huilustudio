@@ -6,32 +6,35 @@
 <title>F0 + Plane Engine · Testipenkki</title>
 <style>
   :root {
-    --night:#eaf0ff; --mist:#f8f5ff; --card:rgba(255,255,255,.84); --text:#343858;
-    --muted:#747995; --line:#d9dcef; --lavender:#8f86d9; --blue:#7897c9;
-    --gold:#c79a45; --green:#4f9b79; --red:#c86f7c;
+    --bg-a:#fff3c9; --bg-b:#dff6ff; --card:#fffdf8; --text:#3f4163;
+    --muted:#777a9b; --line:#ded8ef; --pink:#ff9ec4; --blue:#8fc9ff;
+    --yellow:#ffd96f; --violet:#a98cff; --green:#52b788; --red:#e76f83;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);
-    background:radial-gradient(circle at 20% 0%,#fff7df 0,transparent 32%),linear-gradient(180deg,var(--mist),var(--night));min-height:100vh}
-  main{width:min(760px,calc(100% - 28px));margin:28px auto 44px;display:grid;gap:16px}
-  .card{border:1px solid rgba(143,134,217,.22);border-radius:22px;padding:19px;background:var(--card);
-    backdrop-filter:blur(8px);box-shadow:0 14px 36px rgba(66,70,120,.11)}
+    background:linear-gradient(160deg,var(--bg-a),var(--bg-b));min-height:100vh}
+  main{width:min(760px,calc(100% - 28px));margin:24px auto 40px;display:grid;gap:16px}
+  .card{border:2px solid rgba(169,140,255,.18);border-radius:26px;padding:18px;background:rgba(255,253,248,.94);
+    box-shadow:0 10px 28px rgba(94,95,150,.12)}
   .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  button,select{font:inherit;border:1px solid #d2d6e8;background:rgba(255,255,255,.92);color:var(--text);border-radius:13px;padding:10px 12px}
-  button{font-weight:700;cursor:pointer;background:linear-gradient(180deg,#f0edff,#dcd8fb);color:#4d4f77;border-color:#cfc9ee;box-shadow:0 4px 12px rgba(99,91,156,.12)}
-  button:disabled{opacity:.55;cursor:default}
+  button,select{font:inherit;border:2px solid rgba(100,110,160,.16);background:white;color:var(--text);border-radius:16px;padding:10px 13px}
+  button{font-weight:800;cursor:pointer;background:linear-gradient(180deg,#bfe6ff,var(--blue));box-shadow:0 4px 0 #6baee8}
+  button:active{transform:translateY(2px);box-shadow:0 2px 0 #6baee8}
+  button:disabled{opacity:.55;cursor:default;transform:none}
   .status{margin-left:auto;font-size:14px;color:var(--muted)}
-  .selectors{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.selectors label,#countWrap,.top label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
-  .result{min-height:190px;display:grid;place-items:center;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.93),rgba(249,247,255,.88));position:relative}
-  .result:before{content:"✦";position:absolute;top:18px;right:26px;font-size:24px;color:rgba(199,154,69,.38)}
-  .result:after{content:"✧";position:absolute;bottom:18px;left:28px;font-size:28px;color:rgba(143,134,217,.25)}
-  #resultText{font-size:clamp(62px,15vw,132px);line-height:.95;font-weight:760;letter-spacing:-.035em;color:var(--lavender);text-shadow:0 2px 16px rgba(143,134,217,.08)}
-  #resultText.ok{color:var(--green)} #resultText.no{color:var(--red)} #resultText.neutral{color:var(--lavender)}
+  .selectors{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .selectors label,#countWrap,.top label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+  .result{min-height:190px;display:grid;place-items:center;text-align:center;
+    background:linear-gradient(180deg,#fff,#fff8fd);position:relative;overflow:hidden}
+  .result:before,.result:after{content:"♪";position:absolute;font-size:58px;color:rgba(169,140,255,.10);font-weight:800}
+  .result:before{left:24px;top:14px;transform:rotate(-12deg)} .result:after{right:28px;bottom:10px;transform:rotate(14deg)}
+  #resultText{font-size:clamp(62px,15vw,132px);line-height:.95;font-weight:850;letter-spacing:-.04em;color:var(--violet)}
+  #resultText.ok{color:var(--green)} #resultText.no{color:var(--red)} #resultText.neutral{color:var(--violet)}
   #subText{margin-top:12px;font-variant-numeric:tabular-nums;color:var(--muted);min-height:1.3em}
   .meter-wrap{padding:10px 2px 0}.meter-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px}
-  .meter{position:relative;height:44px;border-radius:14px;border:1px solid #d8d9ea;background:linear-gradient(to right,transparent 49.75%,rgba(143,134,217,.36) 49.75%,rgba(143,134,217,.36) 50.25%,transparent 50.25%),linear-gradient(90deg,#f4eef7,#fbf7ea,#eef5fa);overflow:hidden}
-  #needle{position:absolute;left:50%;top:5px;bottom:5px;width:4px;border-radius:4px;background:var(--gold);transform:translateX(-50%);transition:left 55ms linear}
-  #cents{text-align:center;margin-top:9px;font-size:24px;font-weight:680;font-variant-numeric:tabular-nums;min-height:1.4em;color:var(--blue)}
+  .meter{position:relative;height:46px;border-radius:16px;border:2px solid #ddd4f4;background:linear-gradient(to right,transparent 49.75%,rgba(169,140,255,.4) 49.75%,rgba(169,140,255,.4) 50.25%,transparent 50.25%),linear-gradient(90deg,#ffe3ef,#fff4b5,#dff6ff);overflow:hidden}
+  #needle{position:absolute;left:50%;top:5px;bottom:5px;width:5px;border-radius:5px;background:var(--violet);transform:translateX(-50%);transition:left 55ms linear}
+  #cents{text-align:center;margin-top:9px;font-size:24px;font-weight:760;font-variant-numeric:tabular-nums;min-height:1.4em;color:var(--violet)}
   .plane-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap} #trainingStatus{font-size:14px;color:var(--muted)}
   .tiny{font-size:12px;color:var(--muted);margin-top:8px} [hidden]{display:none!important}
   @media(max-width:520px){.status{width:100%;margin-left:0}.selectors label{flex:1 1 44%}.selectors select{width:100%}}
@@ -52,7 +55,7 @@
       <label id="countWrap">
         Säveliä
         <select id="count" aria-label="Sävelten määrä">
-          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
         </select>
       </label>
       <div class="status" id="status">Mikrofoni ei käytössä</div>
@@ -107,7 +110,7 @@
   const needleEl = document.getElementById('needle');
   const centsEl = document.getElementById('cents');
 
-  const defaults = [67, 69, 71, 72, 74];
+  const defaults = [67, 69, 71, 72, 74, 76, 77, 79];
   const selectEls = [];
   let engine = null;
   let engineKind = null;
@@ -136,7 +139,7 @@
   function buildNoteSelectors() {
     selectorsEl.textContent = '';
     selectEls.length = 0;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const label = document.createElement('label');
       label.textContent = `Sävel ${i + 1}`;
       const sel = document.createElement('select');
@@ -195,6 +198,33 @@
 
   function renderPitch(d) {
     if (engineKind !== 'f0' || !d?.note) return;
+
+    const allowed = selectedMidis();
+    const outputMidi = Number(d.note.midi);
+    const detectedMidi = Number(d.detectedNote?.midi ?? outputMidi);
+
+    // Nykyinen havainto määrää heti, onko ääni sallittu. Näin edellinen
+    // hyväksytty sävel ei jää vilahtamaan uuden hylättävän äänen alkuun.
+    if (!allowed.includes(detectedMidi)) {
+      setResultTone('no');
+      resultText.textContent = 'HYLÄTTY';
+      subText.textContent = '';
+      centsEl.textContent = '–';
+      needleEl.style.left = '50%';
+      return;
+    }
+
+    // Sallitusta sävelestä näytetään vasta moottorin hyväksytty ulostulo.
+    // Sävelenvaihdon aikana vanhaa sallittua säveltä ei jätetä ruudulle.
+    if (!allowed.includes(outputMidi) || outputMidi !== detectedMidi) {
+      setResultTone('neutral');
+      resultText.textContent = ' ';
+      subText.textContent = '';
+      centsEl.textContent = '–';
+      needleEl.style.left = '50%';
+      return;
+    }
+
     setResultTone('neutral');
     resultText.textContent = d.note.display || '–';
     subText.textContent = Number.isFinite(d.outputF0) ? `${d.outputF0.toFixed(1)} Hz` : '';
