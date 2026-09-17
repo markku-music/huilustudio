@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lentokone-game-audio-engine-1.1-integrated-1.0';
+const CACHE_NAME = 'lentokone-pwa-1.0';
 const APP_SHELL = [
   './',
   './index.html',

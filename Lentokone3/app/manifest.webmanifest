@@ -1,8 +1,8 @@
 {
-  "id": "./",
+  "id": "../",
   "name": "Lentokone",
   "short_name": "Lentokone",
-  "description": "Hiirellä tai kosketuksella ohjattava lentopeli.",
+  "description": "Lentokonepeli hiiri-, kosketus- ja ääniohjauksella.",
   "lang": "fi",
   "start_url": "../",
   "scope": "../",
