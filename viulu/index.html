@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#17120f">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Viulun avoimien kielten tunnistus ja visualisointi.">
+<meta name="application-name" content="Viulukielet">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Viulukielet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <title>Viulukielet · ResonatorEngine</title>
 <style>
 :root{--g:#3FAE5A;--d:#E84B4B;--a:#3F82D7;--e:#F4C542}
@@ -265,6 +276,13 @@ body{display:flex;justify-content:center;color:white;overflow:hidden}
   updateMicButton();
   requestAnimationFrame(animate);
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(() => {});
+  });
+}
 </script>
 </body>
 </html>

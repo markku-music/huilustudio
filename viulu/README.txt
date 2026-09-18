@@ -1,6 +1,9 @@
-VIULUKIELET · RESONATORENGINE 0.1
+VIULUKIELET · RESONATORENGINE 0.2.1 PWA
 
-Viulukielet_MOUSE_TEST-pohjaan yhdistetty hyväksytty ResonatorEngine BASE.
+Viulukielet_MOUSE_TEST-pohjaan yhdistetty hyväksytty ResonatorEngine BASE,
+nyt asennettavana Progressive Web App -sovelluksena.
+
+Versiossa 0.2.1 sovelluskuvake on vaihdettu aidomman näköiseen viuluun.
 
 RAKENNE
 
@@ -11,7 +14,10 @@ mikrofoni → ResonatorEngine → note-stability → viulun kielianimaatio
 - note-stability.js on erillinen suojakerros lyhyitä äänen lopun virhehyppyjä
   varten.
 - index.html sisältää viulunäkymän, käyttöliittymän ja moottorin
-  tapahtumakytkennät.
+  tapahtumakytkennät sekä PWA-rekisteröinnin.
+- manifest.webmanifest määrittää sovelluksen nimen, värit ja kuvakkeet.
+- sw.js tallentaa sovelluksen paikalliseen välimuistiin offline-käyttöä varten.
+- icons-kansio sisältää asennuskuvakkeet.
 - Vanhaa YIN-äänianalyysiä ei ole mukana.
 
 TUNNISTETTAVAT AVOIMET KIELET
@@ -34,8 +40,15 @@ KÄYTTÖ
 Kieliä voi kokeilla ilman mikrofonia myös napauttamalla niitä tai näppäimillä
 G, D, A ja E. Escape tyhjentää näkymän.
 
-Mikrofonikäyttö vaatii HTTPS-yhteyden tai localhostin. Paikallisen palvelimen
-voi käynnistää kansion sisältä esimerkiksi komennolla:
+PWA-ASENNUS
+
+- Androidissa ja työpöytäselaimissa avaa selaimen valikosta Asenna sovellus.
+- iPhonessa ja iPadissa avaa Safarin Jaa-valikko ja valitse Lisää Koti-valikkoon.
+- Offline-käyttö aktivoituu, kun sovellus on avattu kerran verkkoyhteydellä.
+
+Mikrofoni ja PWA-asennus vaativat HTTPS-yhteyden tai localhostin. Pelkkä
+index.html-tiedoston avaaminen file://-osoitteesta ei käynnistä service workeria.
+Paikallisen palvelimen voi käynnistää kansion sisältä esimerkiksi komennolla:
 
 python3 -m http.server 8000
 
