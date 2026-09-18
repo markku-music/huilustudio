@@ -549,7 +549,7 @@
     const pitchAudio = new ResonatorStringEngine({
       targets: PITCH_TARGETS,
       blockSize: 256,
-      calibrationMs: 280,
+      calibrationMs: 1500,
       responseMs: 1.8,
       toleranceCents: 40,
       centerMatch: 0.955,
@@ -571,6 +571,8 @@
     let inhale = 0;
     let raf = 0;
     let blowSource = '';
+    const AUDIO_RELEASE_GRACE_MS = 120;
+    let audioReleaseTimer = 0;
 
     let metroRunning = false;
     let audioCtx = null;
@@ -614,6 +616,7 @@
     async function startPitchAudio() {
       const request = ++micStartRequest;
       micOpening = true;
+      cancelAudioRelease();
       clearPitch();
       setPitchStatus('Avataan mikrofonia…');
       updateMicButton();
@@ -642,22 +645,40 @@
       setPitchStatus(`${pitchPretty(detail.action)} tunnistettu${centsText}`);
     }
 
+    function cancelAudioRelease() {
+      if (!audioReleaseTimer) return;
+      window.clearTimeout(audioReleaseTimer);
+      audioReleaseTimer = 0;
+    }
+
+    function scheduleAudioRelease() {
+      if (phase !== 'blow' || blowSource !== 'audio' || audioReleaseTimer) return;
+      const releaseAt = performance.now();
+      audioReleaseTimer = window.setTimeout(() => {
+        audioReleaseTimer = 0;
+        // Use the original disappearance time, so the 120 ms transition
+        // protection does not lengthen the measured blow.
+        beginInhale('audio', releaseAt);
+      }, AUDIO_RELEASE_GRACE_MS);
+    }
+
     function bindPitchEngine() {
       pitchAudio.addEventListener('input', event => {
         const detail = event.detail || {};
         if (detail.accepted === true) {
+          cancelAudioRelease();
           beginBlow(null, 'audio');
           const stable = pitchStability.accept(detail);
           if (stable) acceptPitch(stable);
         } else if (detail.accepted === false) {
-          beginInhale('audio');
+          scheduleAudioRelease();
           pitchStability.reject();
           setPitchStatus('Ääntä ei hyväksytty · käytä G-duuriasteikon säveliä g1–g2');
         }
       });
 
       pitchAudio.addEventListener('silence', () => {
-        beginInhale('audio');
+        scheduleAudioRelease();
         pitchStability.silence();
         if (pitchAudio.running) {
           setPitchStatus(activePitch
@@ -675,6 +696,7 @@
         } else if (state === 'running') {
           setPitchStatus('Kuuntelu päällä · soita G-duuriasteikkoa g1–g2');
         } else if (state === 'stopped') {
+          cancelAudioRelease();
           beginInhale('audio');
           clearPitch();
           setPitchStatus('Mikrofoni suljettu.');
@@ -690,6 +712,8 @@
       });
 
       pitchAudio.addEventListener('error', event => {
+        cancelAudioRelease();
+        beginInhale('audio');
         setPitchStatus(event.detail?.error?.message || event.detail?.message || 'Äänimoottorin virhe.');
       });
     }
@@ -926,14 +950,15 @@
       raf = requestAnimationFrame(render);
     }
 
-    function beginInhale(source = 'manual') {
+    function beginInhale(source = 'manual', transitionAt = performance.now()) {
       if (phase !== 'blow') return;
       if (blowSource && source !== blowSource) return;
 
-      blow = Math.max(.05, (performance.now() - phaseStart) / 1000);
+      const at = Number.isFinite(transitionAt) ? transitionAt : performance.now();
+      blow = Math.max(.05, (at - phaseStart) / 1000);
       phase = 'inhale';
       blowSource = '';
-      phaseStart = performance.now();
+      phaseStart = at;
       inhale = 0;
 
       instruction.textContent = 'Sisäänhengitystä mitataan.';
@@ -941,6 +966,7 @@
 
     function reset() {
       cancelAnimationFrame(raf);
+      cancelAudioRelease();
       phase = 'idle';
       phaseStart = 0;
       blow = 0;
@@ -1036,6 +1062,7 @@
     window.addEventListener('pagehide', () => {
       ++micStartRequest;
       micOpening = false;
+      cancelAudioRelease();
       pitchAudio.stop();
       stopMetro();
     });

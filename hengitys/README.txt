@@ -1,4 +1,4 @@
-HENGITYSAPPI + RESONATORENGINE · G-DUURI g1–g2 · 0.8
+HENGITYSAPPI + RESONATORENGINE · G-DUURI g1–g2 · 0.9
 
 Tässä versiossa Hengitysappi 0.6:n puhallus-/hengitysmittari ja audiokelloon
 synkronoitu metronomi on yhdistetty ResonatorEngineen ja OSMD-nuottinäyttöön.
@@ -21,7 +21,7 @@ sävelen lopun lyhyitä ja hiipuvia virhetunnistuksia suodatetaan.
 KÄYTTÖ
 1. Pura koko ZIP-paketti niin, että kansiorakenne säilyy.
 2. Avaa index.html HTTPS-osoitteesta tai paikalliselta palvelimelta.
-3. Paina Avaa mikrofoni ja ole lyhyen kalibroinnin ajan hiljaa.
+3. Paina Avaa mikrofoni ja ole 1,5 sekunnin kalibroinnin ajan hiljaa.
 4. Soita jokin G-duuriasteikon sävelistä g1–g2.
 5. Nuotti ja suomalainen sävelnimi näkyvät appin yläosassa.
 6. Hyväksytty sävel aloittaa puhallusmittauksen. Kun sävel loppuu tai vaihtuu
@@ -31,15 +31,21 @@ KÄYTTÖ
 
 ÄÄNIOHJAUS
 - Hyväksytty g1–g2-sävel vastaa hiiren painamista.
-- Hiljaisuus tai hylätty ääni vastaa hiiren vapauttamista.
+- Jatkuva hiljaisuus tai hylätty ääni vastaa hiiren vapauttamista.
 - Vaihto kahden hyväksytyn asteikkosävelen välillä jatkaa samaa puhallusta.
+- Sävelenvaihdon enintään 120 ms:n tunnistuskatkos ei katkaise animaatiota tai
+  aloita puhallusmittausta uudelleen. Jos katkos jatkuu, sisäänhengitys alkaa
+  katkoksen todellisesta alkuhetkestä, joten suoja ei pidennä mittausaikaa.
 - Hiiri ja ääni on erotettu toisistaan, joten mikrofonin tapahtuma ei katkaise
   hiirellä aloitettua mittausta eikä hiiren vapautus äänellä aloitettua mittausta.
 
 MIKROFONI
 Mikrofoni tarvitsee HTTPS-osoitteen tai localhost-palvelimen. Pelkkä
 index.html-tiedoston kaksoisnapsautus ei takaa mikrofonin toimintaa kaikissa
-selaimissa. Paikallisen palvelimen voi käynnistää tämän kansion sisältä:
+selaimissa. Taustamelu mitataan jokaisella mikrofonin avauksella 1,5 sekunnin
+ajan. Kalibroinnin aikana tulee olla hiljaa ja metronomin pois päältä.
+
+Paikallisen palvelimen voi käynnistää tämän kansion sisältä:
 
 python3 -m http.server 8000
 
