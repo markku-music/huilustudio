@@ -1,5 +1,5 @@
 /*
- * ResonatorStringEngine 0.2
+ * ResonatorStringEngine 0.2.3
  * Jatkuva, ennalta määritellyille sävelille tarkoitettu periodiresonaattori.
  *
  * Idea:
@@ -22,6 +22,8 @@
     A: 440.0000,
     E: 659.2551
   };
+  const DEFAULT_NOISE_GATE_DB = 10;
+  const MIN_NOISE_RMS = 0.0022 / Math.pow(10, DEFAULT_NOISE_GATE_DB / 20);
 
   function makeEvent(type, detail) {
     return new CustomEvent(type, { detail });
@@ -34,10 +36,11 @@
   class ResonatorStringEngine extends EventTarget {
     constructor(options = {}) {
       super();
-      this.version = '0.2';
+      this.version = '0.2.3';
       this.targets = { ...(options.targets || DEFAULT_TARGETS) };
       this.blockSize = Math.max(256, Math.round(options.blockSize || 256));
       this.calibrationMs = Number.isFinite(+options.calibrationMs) ? Math.max(0, +options.calibrationMs) : 280;
+      this.noiseGateDb = Number.isFinite(+options.noiseGateDb) ? clamp(+options.noiseGateDb, 0, 40) : DEFAULT_NOISE_GATE_DB;
       this.responseMs = Number.isFinite(+options.responseMs) ? clamp(+options.responseMs, 0.8, 8) : 1.8;
       this.rmsResponseMs = Number.isFinite(+options.rmsResponseMs) ? clamp(+options.rmsResponseMs, 0.5, 10) : 2.0;
       this.centerMatch = Number.isFinite(+options.centerMatch) ? clamp(+options.centerMatch, 0.5, 0.9999) : 0.955;
@@ -77,6 +80,29 @@
       this._resetDecisionTiming();
       this._voiced = false;
       this._gate = 0.0022;
+    }
+
+    getNoiseRms() {
+      return Math.max(MIN_NOISE_RMS, this._noiseRms);
+    }
+
+    _gateForDb(value) {
+      const db = Number.isFinite(+value) ? clamp(+value, 0, 40) : this.noiseGateDb;
+      return this.getNoiseRms() * Math.pow(10, db / 20);
+    }
+
+    _gateFromNoise() {
+      return this._gateForDb(this.noiseGateDb);
+    }
+
+    setNoiseGateDb(value) {
+      const db = Number(value);
+      if (!Number.isFinite(db)) return this.noiseGateDb;
+      this.noiseGateDb = clamp(db, 0, 40);
+      if (this.running && this._calibrationSamples >= this._calibrationTargetSamples) {
+        this._gate = this._gateFromNoise();
+      }
+      return this.noiseGateDb;
     }
 
     _resetDecisionTiming() {
@@ -280,7 +306,7 @@
         const progress = Math.min(1, this._calibrationSamples / Math.max(1, this._calibrationTargetSamples));
         this._emit('calibrationprogress', { progress, noiseRms: this._noiseRms });
         if (progress >= 1) {
-          this._gate = Math.max(0.0022, this._noiseRms * 3.2);
+          this._gate = this._gateFromNoise();
           this._resetAnalysisStates();
           this._emit('state', { state: 'running' });
         }
@@ -292,7 +318,35 @@
       const m = this._measure();
       const blockMs = input.length / this.sampleRate * 1000;
 
+      // Resonanssi tutkitaan myös nykyisen dB-rajan alapuolella. Tällöin
+      // käyttöliittymän oppija voi tunnistaa uuden, aiempaa hiljaisemman mutta
+      // muuten vahvan viulusävelen ja laskea rajaa ilman uutta kalibrointia.
+      const octaveSafe = m.halfEnergy >= this.minHalfPeriodEnergy;
+      const centerBand = Math.abs(m.offsetCents) <= this.toleranceCents / 2 + 1e-9;
+      const neededMatch = centerBand ? this.centerMatch : this.edgeMatch;
+      const acceptedNow = octaveSafe && m.match >= neededMatch;
+      const noiseRms = this.getNoiseRms();
+      const levelAboveNoiseDb = 20 * Math.log10(Math.max(1e-12, m.rms) / noiseRms);
+
       if (!this._voiced || m.rms < this._gate) {
+        if (m.rms >= this._gateForDb(4) && acceptedNow) {
+          this._emit('probe', {
+            probe: true,
+            action: m.best,
+            frequency: this.targets[m.best] * Math.pow(2, m.offsetCents / 1200),
+            targetFrequency: this.targets[m.best],
+            offsetCents: m.offsetCents,
+            rms: m.rms,
+            gate: this._gate,
+            levelAboveNoiseDb,
+            match: m.match,
+            secondMatch: m.secondMatch,
+            separation: m.separation,
+            halfEnergy: m.halfEnergy,
+            blockMs,
+            engine: 'string-resonator'
+          });
+        }
         this._silentFrames++;
         this._rejectedFrames = 0;
         this._candidate = '';
@@ -319,11 +373,6 @@
       // Keskialue (-20...+20 c) saa nopean hyväksynnän. Toleranssin reunoilla
       // (+/-40 c) vaaditaan paljon vahvempi periodiosuma, jotta viereinen
       // puolisävelaskel ei pääse livahtamaan sisään.
-      const octaveSafe = m.halfEnergy >= this.minHalfPeriodEnergy;
-      const centerBand = Math.abs(m.offsetCents) <= this.toleranceCents / 2 + 1e-9;
-      const neededMatch = centerBand ? this.centerMatch : this.edgeMatch;
-      const acceptedNow = octaveSafe && m.match >= neededMatch;
-
       if (acceptedNow) {
         this._candidate = m.best;
         this._candidateFrames = 1;
@@ -338,6 +387,7 @@
           offsetCents: m.offsetCents,
           rms: m.rms,
           gate: this._gate,
+          levelAboveNoiseDb,
           match: m.match,
           secondMatch: m.secondMatch,
           separation: m.separation,
@@ -368,6 +418,7 @@
           action: null,
           rms: m.rms,
           gate: this._gate,
+          levelAboveNoiseDb,
           match: m.match,
           secondMatch: m.secondMatch,
           separation: m.separation,
@@ -445,7 +496,7 @@
         this._starting = false;
         if (this.calibrationMs > 0) this._emit('state', { state: 'calibrating' });
         else {
-          this._gate = 0.0022;
+          this._gate = this._gateFromNoise();
           this._emit('state', { state: 'running' });
         }
         return this;

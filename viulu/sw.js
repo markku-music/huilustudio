@@ -1,9 +1,10 @@
 const CACHE_PREFIX = 'viulukielet-resonator-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v2`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
 const APP_SHELL = [
   './index.html',
   './note-stability.js',
-  './resonator-engine.js',
+  './sensitivity-learner.js?v=0.1.0',
+  './resonator-engine.js?v=0.2.3',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -1,18 +1,29 @@
-VIULUKIELET · RESONATORENGINE 0.2.1 PWA
+VIULUKIELET · RESONATORENGINE 0.2.4 PWA
 
 Viulukielet_MOUSE_TEST-pohjaan yhdistetty hyväksytty ResonatorEngine BASE,
 nyt asennettavana Progressive Web App -sovelluksena.
 
-Versiossa 0.2.1 sovelluskuvake on vaihdettu aidomman näköiseen viuluun.
+Versiossa 0.2.4 herkkyys oppii soittajalta. Taustakohinan kalibrointi kestää
+edelleen 1,5 sekuntia ja pysyy muuttumattomana koko mikrofonisession ajan.
+Ensimmäiset kolme vakaasti tunnistettua säveltä muodostavat soittajan oman
+4–10 dB:n aktivointirajan. Raja ei palaudu sävelten välissä, vaan tarkentuu
+myöhemmistä sävelistä vähitellen. Myös selvästi hiljaisempi uusi sävel voidaan
+oppia nykyisen rajan alapuolelta ilman uutta taustakohinan mittausta.
+
+Oikean reunan graafinen asteikko näyttää ensin oppimisen etenemisen ja sen
+jälkeen opitun dB-rajan hehkuvana pisteenä. Oppiminen alkaa alusta vasta, kun
+mikrofoni avataan uudelleen.
 
 RAKENNE
 
-mikrofoni → ResonatorEngine → note-stability → viulun kielianimaatio
+mikrofoni → ResonatorEngine → note-stability → herkkyysoppija → kielianimaatio
 
-- resonator-engine.js on kopioitu hyväksytystä ResonatorEngine BASEsta
-  muuttamattomana.
+- resonator-engine.js perustuu hyväksyttyyn ResonatorEngine BASEen. Versiossa
+  0.2.3 moottori ilmoittaa tunnistetun sävelen voimakkuuden taustaan nähden ja
+  löytää myös nykyisen rajan alapuolisen, vahvasti resonoivan viulusävelen.
 - note-stability.js on erillinen suojakerros lyhyitä äänen lopun virhehyppyjä
   varten.
+- sensitivity-learner.js oppii ja säilyttää soittajan 4–10 dB:n rajan.
 - index.html sisältää viulunäkymän, käyttöliittymän ja moottorin
   tapahtumakytkennät sekä PWA-rekisteröinnin.
 - manifest.webmanifest määrittää sovelluksen nimen, värit ja kuvakkeet.
@@ -32,10 +43,13 @@ KÄYTTÖ
 1. Pura koko ZIP-paketti.
 2. Avaa kansio HTTPS-osoitteesta tai localhost-palvelimelta.
 3. Paina oikean alakulman mikrofonipainiketta.
-4. Ole lyhyen taustakohinan kalibroinnin ajan hiljaa.
-5. Soita viulun avointa kieltä. Tunnistettu kieli alkaa värähdellä ja sen
+4. Ole 1,5 sekunnin taustakohinan kalibroinnin ajan hiljaa.
+5. Soita vähintään kolme vakaata avointa kieltä. Oikean reunan asteikko näyttää
+   oppimisen etenemisen ja syttyy opitun 4–10 dB:n rajan kohdalle.
+6. Jatka soittamista. Raja säilyy sävelten välissä ja tarkentuu soittosi mukaan.
+   Tunnistettu kieli alkaa värähdellä ja sen
    hahmo tulee näkyviin.
-6. Sulje mikrofoni painamalla samaa painiketta uudelleen.
+7. Sulje mikrofoni painamalla samaa painiketta uudelleen.
 
 Kieliä voi kokeilla ilman mikrofonia myös napauttamalla niitä tai näppäimillä
 G, D, A ja E. Escape tyhjentää näkymän.
