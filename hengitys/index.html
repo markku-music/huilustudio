@@ -485,7 +485,7 @@
           </div>
         </section>
 
-        <div id="instruction" class="instruction">Pidä painettuna puhalluksen ajan.</div>
+        <div id="instruction" class="instruction">Soita tai pidä painettuna puhalluksen ajan.</div>
 
         <button id="pad" class="pad" type="button" aria-label="Pidä painettuna puhalluksen ajan">
           <div class="bar">
@@ -505,7 +505,7 @@
           </div>
         </button>
 
-        <div id="feedback" class="feedback" aria-live="polite">Paina ja aloita puhallus.</div>
+        <div id="feedback" class="feedback" aria-live="polite">Soita tai paina ja aloita puhallus.</div>
       </div>
     </section>
 
@@ -570,6 +570,7 @@
     let blow = 0;
     let inhale = 0;
     let raf = 0;
+    let blowSource = '';
 
     let metroRunning = false;
     let audioCtx = null;
@@ -645,15 +646,18 @@
       pitchAudio.addEventListener('input', event => {
         const detail = event.detail || {};
         if (detail.accepted === true) {
+          beginBlow(null, 'audio');
           const stable = pitchStability.accept(detail);
           if (stable) acceptPitch(stable);
         } else if (detail.accepted === false) {
+          beginInhale('audio');
           pitchStability.reject();
           setPitchStatus('Ääntä ei hyväksytty · käytä G-duuriasteikon säveliä g1–g2');
         }
       });
 
       pitchAudio.addEventListener('silence', () => {
+        beginInhale('audio');
         pitchStability.silence();
         if (pitchAudio.running) {
           setPitchStatus(activePitch
@@ -671,6 +675,7 @@
         } else if (state === 'running') {
           setPitchStatus('Kuuntelu päällä · soita G-duuriasteikkoa g1–g2');
         } else if (state === 'stopped') {
+          beginInhale('audio');
           clearPitch();
           setPitchStatus('Mikrofoni suljettu.');
         }
@@ -906,11 +911,12 @@
       }
     }
 
-    function beginBlow(ev) {
+    function beginBlow(ev, source = 'manual') {
       if (ev && typeof ev.button === 'number' && ev.button !== 0) return;
       if (phase === 'blow') return;
 
       phase = 'blow';
+      blowSource = source;
       phaseStart = performance.now();
       blow = 0;
       inhale = 0;
@@ -920,11 +926,13 @@
       raf = requestAnimationFrame(render);
     }
 
-    function beginInhale() {
+    function beginInhale(source = 'manual') {
       if (phase !== 'blow') return;
+      if (blowSource && source !== blowSource) return;
 
       blow = Math.max(.05, (performance.now() - phaseStart) / 1000);
       phase = 'inhale';
+      blowSource = '';
       phaseStart = performance.now();
       inhale = 0;
 
@@ -937,8 +945,9 @@
       phaseStart = 0;
       blow = 0;
       inhale = 0;
-      instruction.textContent = 'Pidä painettuna puhalluksen ajan.';
-      feedback.textContent = 'Paina ja aloita puhallus.';
+      blowSource = '';
+      instruction.textContent = 'Soita tai pidä painettuna puhalluksen ajan.';
+      feedback.textContent = 'Soita tai paina ja aloita puhallus.';
       blowTime.style.opacity = '1';
       updateBar();
     }
@@ -948,27 +957,30 @@
       if (pad.setPointerCapture && ev.pointerId != null) {
         try { pad.setPointerCapture(ev.pointerId); } catch (_) {}
       }
-      beginBlow(ev);
+      beginBlow(ev, 'manual');
     });
 
     pad.addEventListener('pointerup', ev => {
       ev.preventDefault();
-      beginInhale();
+      beginInhale('manual');
     });
 
-    pad.addEventListener('pointercancel', beginInhale);
+    pad.addEventListener('pointercancel', ev => {
+      ev.preventDefault();
+      beginInhale('manual');
+    });
 
     pad.addEventListener('keydown', ev => {
       if ((ev.code === 'Space' || ev.code === 'Enter') && !ev.repeat) {
         ev.preventDefault();
-        beginBlow();
+        beginBlow(null, 'manual');
       }
     });
 
     pad.addEventListener('keyup', ev => {
       if (ev.code === 'Space' || ev.code === 'Enter') {
         ev.preventDefault();
-        beginInhale();
+        beginInhale('manual');
       }
     });
 

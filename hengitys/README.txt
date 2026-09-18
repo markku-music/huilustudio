@@ -1,4 +1,4 @@
-HENGITYSAPPI + RESONATORENGINE · G-DUURI g1–g2 · 0.7
+HENGITYSAPPI + RESONATORENGINE · G-DUURI g1–g2 · 0.8
 
 Tässä versiossa Hengitysappi 0.6:n puhallus-/hengitysmittari ja audiokelloon
 synkronoitu metronomi on yhdistetty ResonatorEngineen ja OSMD-nuottinäyttöön.
@@ -24,8 +24,17 @@ KÄYTTÖ
 3. Paina Avaa mikrofoni ja ole lyhyen kalibroinnin ajan hiljaa.
 4. Soita jokin G-duuriasteikon sävelistä g1–g2.
 5. Nuotti ja suomalainen sävelnimi näkyvät appin yläosassa.
-6. Puhallus-/hengitysmittari toimii edelleen pitämällä mittaria painettuna
-   puhalluksen ajan ja vapauttamalla sen sisäänhengityksen alkaessa.
+6. Hyväksytty sävel aloittaa puhallusmittauksen. Kun sävel loppuu tai vaihtuu
+   asteikon ulkopuoliseen ääneen, sisäänhengityksen mittaus alkaa.
+7. Hiiriohjaus toimii rinnalla kuten ennen: pidä mittaria painettuna
+   puhalluksen ajan ja vapauta se sisäänhengityksen alkaessa.
+
+ÄÄNIOHJAUS
+- Hyväksytty g1–g2-sävel vastaa hiiren painamista.
+- Hiljaisuus tai hylätty ääni vastaa hiiren vapauttamista.
+- Vaihto kahden hyväksytyn asteikkosävelen välillä jatkaa samaa puhallusta.
+- Hiiri ja ääni on erotettu toisistaan, joten mikrofonin tapahtuma ei katkaise
+  hiirellä aloitettua mittausta eikä hiiren vapautus äänellä aloitettua mittausta.
 
 MIKROFONI
 Mikrofoni tarvitsee HTTPS-osoitteen tai localhost-palvelimen. Pelkkä
