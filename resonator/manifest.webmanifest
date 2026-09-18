@@ -1,0 +1,35 @@
+{
+  "id": "./",
+  "name": "ResonatorEngine · Nuottinäyttö",
+  "short_name": "Resonator",
+  "description": "Tunnistaa soitetun sävelen ja näyttää sen nuottiviivastolla.",
+  "lang": "fi",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef7fb",
+  "theme_color": "#2d789f",
+  "categories": ["music", "education", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
