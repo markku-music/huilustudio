@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7898ad">
+  <title>Puhallus / hengitys</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      color: #17344a;
+      background: #8faabd;
+    }
+
+    body {
+      min-height: 100vh;
+      background-image:
+        linear-gradient(rgba(245,249,252,.12), rgba(245,249,252,.12)),
+        url("tausta.jpg");
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding:
+        max(24px, env(safe-area-inset-top))
+        max(28px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom))
+        max(28px, env(safe-area-inset-left));
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .top {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .reset {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,.60);
+      background: rgba(255,255,255,.38);
+      color: #17344a;
+      font: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 10px 17px;
+      border-radius: 999px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 5px 22px rgba(25,50,65,.10);
+      cursor: pointer;
+    }
+
+    .reset:active { transform: translateY(1px); }
+
+    .center {
+      display: grid;
+      place-items: center;
+      width: 100%;
+    }
+
+    .panel {
+      width: min(88vw, 1280px);
+      padding: clamp(22px, 3vw, 44px);
+      border: 1px solid rgba(255,255,255,.55);
+      border-radius: 38px;
+      background: rgba(244,249,252,.28);
+      box-shadow: 0 22px 70px rgba(28,57,72,.13);
+      backdrop-filter: blur(18px) saturate(.9);
+      -webkit-backdrop-filter: blur(18px) saturate(.9);
+    }
+
+    .instruction {
+      text-align: center;
+      margin-bottom: clamp(18px, 2.5vw, 30px);
+      font-size: clamp(17px, 1.7vw, 26px);
+      font-weight: 650;
+      letter-spacing: .01em;
+      color: rgba(18,50,69,.83);
+      text-shadow: 0 1px 8px rgba(255,255,255,.35);
+    }
+
+    .pad {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      display: block;
+      width: 100%;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      touch-action: none;
+      outline: none;
+    }
+
+    .bar {
+      position: relative;
+      width: 100%;
+      height: clamp(96px, 10.5vw, 145px);
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(239,245,248,.76);
+      border: 3px solid rgba(255,255,255,.82);
+      box-shadow:
+        0 14px 40px rgba(34,65,80,.16),
+        inset 0 1px 0 rgba(255,255,255,.85);
+    }
+
+    .blue, .green {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      transition: width .035s linear;
+    }
+
+    .blue {
+      left: 0;
+      width: 0%;
+      background: linear-gradient(90deg, #3a9de8 0%, #57b3ed 100%);
+    }
+
+    .green {
+      right: 0;
+      width: 0%;
+      background: linear-gradient(90deg, #68c979 0%, #39ad67 100%);
+    }
+
+    .target {
+      position: absolute;
+      z-index: 10;
+      top: 0;
+      bottom: 0;
+      left: 75%;
+      width: 4px;
+      transform: translateX(-50%);
+      background: rgba(21,49,67,.88);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.35);
+    }
+
+    .target-label {
+      position: absolute;
+      z-index: 15;
+      top: 9px;
+      left: 75%;
+      transform: translateX(-50%);
+      padding: 5px 9px;
+      border-radius: 9px;
+      background: rgba(255,255,255,.86);
+      color: #19384d;
+      font-size: clamp(12px, 1.2vw, 18px);
+      font-weight: 850;
+      letter-spacing: .02em;
+      box-shadow: 0 2px 10px rgba(20,42,57,.12);
+    }
+
+    .time {
+      position: absolute;
+      z-index: 20;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-weight: 800;
+      font-size: clamp(28px, 4vw, 58px);
+      letter-spacing: -.025em;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 2px 12px rgba(18,53,75,.20);
+      white-space: nowrap;
+    }
+
+    .blow-time { left: clamp(26px, 3vw, 44px); }
+    .inhale-time { right: clamp(26px, 3vw, 44px); }
+
+    .hidden { display: none; }
+
+    .labels {
+      display: grid;
+      grid-template-columns: 3fr 1fr;
+      margin-top: 10px;
+      font-size: clamp(12px, 1.15vw, 17px);
+      font-weight: 800;
+      letter-spacing: .14em;
+      color: rgba(24,54,72,.68);
+    }
+
+    .labels span:last-child { text-align: right; }
+
+    .feedback {
+      margin-top: clamp(20px, 2vw, 28px);
+      min-height: 1.4em;
+      text-align: center;
+      font-size: clamp(17px, 1.8vw, 27px);
+      font-weight: 720;
+      color: #17384e;
+      text-shadow: 0 1px 8px rgba(255,255,255,.5);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(23,52,74,.58);
+      padding-top: 10px;
+    }
+
+
+    .metro {
+      position: absolute;
+      top: max(24px, env(safe-area-inset-top));
+      left: max(28px, env(safe-area-inset-left));
+      z-index: 40;
+      width: min(360px, calc(100vw - 190px));
+      padding: 11px 14px 12px;
+      border: 1px solid rgba(255,255,255,.62);
+      border-radius: 22px;
+      background: rgba(246,250,252,.40);
+      box-shadow: 0 8px 30px rgba(25,50,65,.11);
+      backdrop-filter: blur(16px) saturate(.9);
+      -webkit-backdrop-filter: blur(16px) saturate(.9);
+    }
+
+    .metro-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .metro-play {
+      appearance: none;
+      width: 46px;
+      height: 46px;
+      border: 1px solid rgba(255,255,255,.7);
+      border-radius: 50%;
+      background: rgba(255,255,255,.58);
+      color: #17344a;
+      font: inherit;
+      font-size: 19px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 3px 14px rgba(24,52,70,.09);
+    }
+
+    .metro-play:active { transform: scale(.97); }
+    .metro-play { transition: none; }
+
+    .metro-name {
+      min-width: 0;
+      color: rgba(23,52,74,.78);
+      font-size: 13px;
+      font-weight: 780;
+      letter-spacing: .03em;
+    }
+
+    .metro-bpm {
+      color: #17344a;
+      font-size: 18px;
+      font-weight: 820;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .metro-slider {
+      display: block;
+      width: 100%;
+      margin: 8px 0 0;
+      accent-color: #477e9d;
+      cursor: pointer;
+    }
+
+    .metro-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1px;
+      color: rgba(23,52,74,.48);
+      font-size: 10px;
+      font-weight: 650;
+    }
+
+    .metro.pulse .metro-play {
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 0 0 7px rgba(255,255,255,.28);
+      transform: scale(.91);
+    }
+
+    @media (max-width: 800px), (max-height: 620px) {
+      .app { padding: 15px; }
+      .panel {
+        width: min(94vw, 980px);
+        padding: 18px;
+        border-radius: 26px;
+      }
+      .instruction { margin-bottom: 14px; }
+      .feedback { margin-top: 14px; }
+      .bar { height: 92px; }
+      .metro {
+        top: 15px;
+        left: 15px;
+        width: min(320px, calc(100vw - 125px));
+        padding: 8px 10px 9px;
+      }
+      .metro-play { width: 40px; height: 40px; }
+      .metro-bpm { font-size: 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .blue, .green { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+
+    <section id="metro" class="metro" aria-label="Metronomi">
+      <div class="metro-head">
+        <button id="metroPlay" class="metro-play" type="button" aria-label="Käynnistä metronomi" aria-pressed="false">▶</button>
+        <div class="metro-name">METRONOMI</div>
+        <div class="metro-bpm"><span id="bpmValue">75</span> BPM</div>
+      </div>
+      <input id="bpmSlider" class="metro-slider" type="range" min="40" max="180" step="1" value="75" aria-label="Metronomin tempo">
+      <div class="metro-scale"><span>40</span><span>180</span></div>
+    </section>
+
+    <header class="top">
+      <button id="resetBtn" class="reset" type="button">Nollaa</button>
+    </header>
+
+    <section class="center">
+      <div class="panel">
+        <div id="instruction" class="instruction">Pidä painettuna puhalluksen ajan.</div>
+
+        <button id="pad" class="pad" type="button" aria-label="Pidä painettuna puhalluksen ajan">
+          <div class="bar">
+            <div id="bluePart" class="blue"></div>
+            <div id="greenPart" class="green"></div>
+
+            <div class="target"></div>
+            <div class="target-label">3:1</div>
+
+            <div id="blowTime" class="time blow-time">0,00 s</div>
+            <div id="inhaleTime" class="time inhale-time hidden">0,00 s</div>
+          </div>
+
+          <div class="labels">
+            <span>PUHALLUS</span>
+            <span>SISÄÄNHENGITYS</span>
+          </div>
+        </button>
+
+        <div id="feedback" class="feedback" aria-live="polite">Paina ja aloita puhallus.</div>
+      </div>
+    </section>
+
+    <footer class="footer">Puhallus / hengitys</footer>
+  </main>
+<script>
+  (() => {
+    const pad = document.getElementById('pad');
+    const resetBtn = document.getElementById('resetBtn');
+    const instruction = document.getElementById('instruction');
+    const bluePart = document.getElementById('bluePart');
+    const greenPart = document.getElementById('greenPart');
+    const blowTime = document.getElementById('blowTime');
+    const inhaleTime = document.getElementById('inhaleTime');
+    const feedback = document.getElementById('feedback');
+
+    const metro = document.getElementById('metro');
+    const metroPlay = document.getElementById('metroPlay');
+    const bpmSlider = document.getElementById('bpmSlider');
+    const bpmValue = document.getElementById('bpmValue');
+    let phase = 'idle';
+    let phaseStart = 0;
+    let blow = 0;
+    let inhale = 0;
+    let raf = 0;
+
+    let metroRunning = false;
+    let audioCtx = null;
+    let metroBuffer = null;
+    let metroSchedulerTimer = 0;
+    let nextBeatTime = 0;
+    let visualBeatQueue = [];
+    let visualRaf = 0;
+
+    const METRO_WAV_BASE64 = "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";
+
+    const fmt = s =>
+      Math.max(0, s || 0).toFixed(2).replace('.', ',') + ' s';
+
+
+    function bpm() {
+      return Math.max(40, Math.min(180, Number(bpmSlider.value) || 75));
+    }
+
+    function metroIntervalSec() {
+      return 60 / bpm();
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    async function ensureAudioReady() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx({ latencyHint: 'interactive' });
+      }
+
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      if (!metroBuffer) {
+        const raw = base64ToArrayBuffer(METRO_WAV_BASE64);
+        metroBuffer = await audioCtx.decodeAudioData(raw.slice(0));
+      }
+    }
+
+    function pulseMetroButton() {
+      metro.classList.remove('pulse');
+      void metro.offsetWidth;
+      metro.classList.add('pulse');
+      window.setTimeout(() => metro.classList.remove('pulse'), 80);
+    }
+
+    function scheduleBeat(when) {
+      const source = audioCtx.createBufferSource();
+      source.buffer = metroBuffer;
+      source.connect(audioCtx.destination);
+      source.start(when, 0);
+
+      // Keep the exact scheduled AudioContext time for the visual beat.
+      // It will be mapped to performance.now() with getOutputTimestamp().
+      visualBeatQueue.push(when);
+    }
+
+    function schedulerTick() {
+      if (!metroRunning || !audioCtx || !metroBuffer) return;
+
+      const scheduleAhead = 0.12;
+
+      while (nextBeatTime < audioCtx.currentTime + scheduleAhead) {
+        scheduleBeat(nextBeatTime);
+        nextBeatTime += metroIntervalSec();
+      }
+
+      metroSchedulerTimer = window.setTimeout(schedulerTick, 25);
+    }
+
+    function audioTimeToPerformanceTime(audioTime) {
+      // Best path: the browser reports the relationship between
+      // AudioContext time and the performance timeline at the actual output.
+      if (audioCtx && typeof audioCtx.getOutputTimestamp === 'function') {
+        const ts = audioCtx.getOutputTimestamp();
+
+        if (
+          ts &&
+          Number.isFinite(ts.contextTime) &&
+          Number.isFinite(ts.performanceTime)
+        ) {
+          return ts.performanceTime + (audioTime - ts.contextTime) * 1000;
+        }
+      }
+
+      // Standards-based fallback with no hand-tuned offset.
+      // This does not compensate output latency, but it also does not guess.
+      return performance.now() + (audioTime - audioCtx.currentTime) * 1000;
+    }
+
+    function visualTick() {
+      if (!metroRunning || !audioCtx) return;
+
+      const nowPerf = performance.now();
+
+      // Store beats in AudioContext time. On every animation frame,
+      // map the next beat to the UI performance timeline using the
+      // browser's current output timestamp. This prevents accumulated drift
+      // and avoids a manually chosen millisecond correction.
+      while (visualBeatQueue.length) {
+        const beatAudioTime = visualBeatQueue[0];
+        const beatPerfTime = audioTimeToPerformanceTime(beatAudioTime);
+
+        if (nowPerf < beatPerfTime) break;
+
+        visualBeatQueue.shift();
+        pulseMetroButton();
+      }
+
+      visualRaf = requestAnimationFrame(visualTick);
+    }
+
+    async function startMetro() {
+      if (metroRunning) return;
+
+      try {
+        await ensureAudioReady();
+      } catch (err) {
+        console.error('Metronomin äänen alustus epäonnistui', err);
+        return;
+      }
+
+      metroRunning = true;
+      visualBeatQueue.length = 0;
+
+      // Small lead time lets audio scheduling start cleanly.
+      nextBeatTime = audioCtx.currentTime + 0.06;
+
+      metroPlay.textContent = '■';
+      metroPlay.setAttribute('aria-label', 'Pysäytä metronomi');
+      metroPlay.setAttribute('aria-pressed', 'true');
+
+      schedulerTick();
+      cancelAnimationFrame(visualRaf);
+      visualRaf = requestAnimationFrame(visualTick);
+    }
+
+    function stopMetro() {
+      metroRunning = false;
+
+      window.clearTimeout(metroSchedulerTimer);
+      metroSchedulerTimer = 0;
+
+      cancelAnimationFrame(visualRaf);
+      visualRaf = 0;
+
+      visualBeatQueue.length = 0;
+      nextBeatTime = 0;
+
+      metroPlay.textContent = '▶';
+      metroPlay.setAttribute('aria-label', 'Käynnistä metronomi');
+      metroPlay.setAttribute('aria-pressed', 'false');
+      metro.classList.remove('pulse');
+    }
+
+    function toggleMetro() {
+      if (metroRunning) stopMetro();
+      else startMetro();
+    }
+
+    function updateBar() {
+      if (phase === 'idle') {
+        bluePart.style.width = '0%';
+        greenPart.style.width = '0%';
+        blowTime.textContent = '0,00 s';
+        inhaleTime.textContent = '0,00 s';
+        inhaleTime.classList.add('hidden');
+        return;
+      }
+
+      if (phase === 'blow') {
+        bluePart.style.width = '100%';
+        greenPart.style.width = '0%';
+        blowTime.textContent = fmt(blow);
+        blowTime.style.opacity = '1';
+        inhaleTime.classList.add('hidden');
+        feedback.textContent = 'Puhalla…';
+        return;
+      }
+
+      const total = blow + inhale;
+      const bluePct = total > 0 ? (blow / total) * 100 : 100;
+      const greenPct = 100 - bluePct;
+
+      bluePart.style.width = bluePct + '%';
+      greenPart.style.width = greenPct + '%';
+
+      blowTime.textContent = fmt(blow);
+      blowTime.style.opacity = '.62';
+      inhaleTime.textContent = fmt(inhale);
+      inhaleTime.classList.remove('hidden');
+
+      const diff = bluePct - 75;
+
+      if (Math.abs(diff) <= 1.5) {
+        feedback.textContent = '3:1';
+      } else if (diff > 0) {
+        feedback.textContent = 'Jatka hengitystä…';
+      } else {
+        feedback.textContent = 'Hengitys meni tavoitteen yli';
+      }
+    }
+
+    function render() {
+      const now = performance.now();
+
+      if (phase === 'blow') {
+        blow = (now - phaseStart) / 1000;
+      } else if (phase === 'inhale') {
+        inhale = (now - phaseStart) / 1000;
+      }
+
+      updateBar();
+
+      if (phase !== 'idle') {
+        raf = requestAnimationFrame(render);
+      }
+    }
+
+    function beginBlow(ev) {
+      if (ev && typeof ev.button === 'number' && ev.button !== 0) return;
+      if (phase === 'blow') return;
+
+      phase = 'blow';
+      phaseStart = performance.now();
+      blow = 0;
+      inhale = 0;
+
+      instruction.textContent = 'Puhallusta mitataan.';
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(render);
+    }
+
+    function beginInhale() {
+      if (phase !== 'blow') return;
+
+      blow = Math.max(.05, (performance.now() - phaseStart) / 1000);
+      phase = 'inhale';
+      phaseStart = performance.now();
+      inhale = 0;
+
+      instruction.textContent = 'Sisäänhengitystä mitataan.';
+    }
+
+    function reset() {
+      cancelAnimationFrame(raf);
+      phase = 'idle';
+      phaseStart = 0;
+      blow = 0;
+      inhale = 0;
+      instruction.textContent = 'Pidä painettuna puhalluksen ajan.';
+      feedback.textContent = 'Paina ja aloita puhallus.';
+      blowTime.style.opacity = '1';
+      updateBar();
+    }
+
+    pad.addEventListener('pointerdown', ev => {
+      ev.preventDefault();
+      if (pad.setPointerCapture && ev.pointerId != null) {
+        try { pad.setPointerCapture(ev.pointerId); } catch (_) {}
+      }
+      beginBlow(ev);
+    });
+
+    pad.addEventListener('pointerup', ev => {
+      ev.preventDefault();
+      beginInhale();
+    });
+
+    pad.addEventListener('pointercancel', beginInhale);
+
+    pad.addEventListener('keydown', ev => {
+      if ((ev.code === 'Space' || ev.code === 'Enter') && !ev.repeat) {
+        ev.preventDefault();
+        beginBlow();
+      }
+    });
+
+    pad.addEventListener('keyup', ev => {
+      if (ev.code === 'Space' || ev.code === 'Enter') {
+        ev.preventDefault();
+        beginInhale();
+      }
+    });
+
+    metroPlay.addEventListener('click', toggleMetro);
+
+    bpmSlider.addEventListener('input', () => {
+      bpmValue.textContent = String(bpm());
+
+      if (metroRunning && audioCtx) {
+        // Keep the current beat intact and apply the new tempo from the next beat.
+        visualBeatQueue = visualBeatQueue.filter(t => t >= audioCtx.currentTime - 0.02);
+
+        const lastScheduled = visualBeatQueue.length
+          ? visualBeatQueue[visualBeatQueue.length - 1]
+          : audioCtx.currentTime;
+
+        nextBeatTime = Math.max(
+          audioCtx.currentTime + 0.04,
+          lastScheduled + metroIntervalSec()
+        );
+      }
+    });
+
+    resetBtn.addEventListener('click', reset);
+    updateBar();
+  })();
+  </script>
+</body>
+</html>
