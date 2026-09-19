@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#92d8ff">
+<meta name="application-name" content="Lentokone">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lentokone">
+<link rel="manifest" href="app/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="app/assets/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="app/assets/icons/apple-touch-icon.png">
+<title>Lentokone</title>
+<link rel="stylesheet" href="app/css/app.css">
+</head>
+<body>
+<div id="game">
+  <div id="loadingOverlay" role="status" aria-live="polite" aria-label="Peli latautuu">
+    <div class="loading-card">
+      <p class="loading-title">Ladataan peliä</p>
+      <p id="loadingPercent" class="loading-percent">0 %</p>
+      <div class="loading-track" aria-hidden="true"><div id="loadingFill" class="loading-fill"></div></div>
+      <p id="loadingStatus" class="loading-status">Valmistellaan lentoonlähtöä…</p>
+    </div>
+  </div>
+  <div id="cloudLayer"></div>
+
+  <div id="plane" class="idle">
+    <div class="quality-aura" aria-hidden="true"></div>
+    <div class="quality-sparkles" aria-hidden="true"></div>
+    <img class="plane-img" src="app/assets/images/lentokone_sivu.webp" alt="Lentokone">
+    <div id="propeller" aria-hidden="true">
+      <svg viewBox="0 0 100 100" role="presentation">
+        <g class="prop-plane">
+          <circle class="prop-blur" cx="50" cy="50" r="36" fill="rgba(28,42,56,.18)"/>
+          <g class="prop-blades">
+            <path d="M48 9 C56 11, 60 17, 58 28 C55 43, 46 46, 42 34 C39 24, 41 13, 48 9Z" fill="#2e3943"/>
+            <path d="M52 91 C44 89, 40 83, 42 72 C45 57, 54 54, 58 66 C61 76, 59 87, 52 91Z" fill="#2e3943"/>
+            <rect x="46" y="8" width="8" height="10" rx="3" fill="#efd25c"/>
+            <rect x="46" y="82" width="8" height="10" rx="3" fill="#efd25c"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div id="score"><span id="scoreNum">0</span><span id="gameTimer">1:30</span><span id="bonus">NOPEUS ×2 · PISTEET ×2 · 10 s</span></div>
+  <div id="soundBonusRow" aria-label="Äänibonukset">
+    <div id="qualityStars" class="sound-bonus-counter" aria-label="Äänenlaatupisteet">
+      <span id="qualityStarCount">0</span><span class="bonus-times">×</span><span class="bonus-icon">⭐</span>
+    </div>
+    <div id="durationBonuses" class="sound-bonus-counter" aria-label="Äänen pituuspisteet">
+      <span id="durationBonusCount">0</span><span class="bonus-times">×</span><span class="bonus-icon">⏳</span>
+    </div>
+  </div>
+  <div id="flash">+1</div>
+
+  <button id="recalBtn" aria-label="Kalibroi mikrofoni" title="Kalibroi mikrofoni">Kalibroi</button>
+  <button id="refreshBtn" aria-label="Päivitä peli" title="Päivitä peli">↻</button>
+  <button id="settingsBtn" aria-label="Ohjausasetukset" title="Ohjausasetukset">⚙</button>
+
+  <div id="startOverlay">
+    <div class="overlay-card start-minimal flute-only-start start-only-button">
+      <button id="instrumentFluteBtn" class="start-only-main-btn" type="button" aria-label="Aloita peli">Aloita</button>
+      <button id="instrumentFluteInfoBtn" class="start-hidden-support" type="button" tabindex="-1" aria-hidden="true">i</button>
+      <p id="controlModeLabel" class="start-hidden-support">Ohjaus: Avoin suukappaleääni</p>
+      <p id="startError"></p>
+    </div>
+  </div>
+
+  <div id="helpOverlay" role="dialog" aria-modal="true" aria-label="Peliohje">
+    <img id="helpImage" src="" alt="">
+  </div>
+
+  <div id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-card">
+      <div class="settings-head">
+        <div>
+          <p class="settings-eyebrow">OHJAUS</p>
+          <h1 id="settingsTitle">Avoin suukappaleääni</h1>
+        </div>
+        <button id="settingsCloseBtn" class="settings-close" type="button" aria-label="Sulje asetukset">×</button>
+      </div>
+      <div class="control-mode-list" role="radiogroup" aria-label="Ohjaustapa">
+        <button class="control-mode-option custom-mode-option active" type="button" data-control-mode="custom" role="radio" aria-checked="true">
+          <span class="mode-radio"></span>
+          <span><strong id="customModeTitle">Avoin suukappaleääni – kouluta</strong><small>Jokainen uusi ääni vaihtaa lentokorkeutta · hyvä ääni antaa 1 bonuspisteen</small></span>
+        </button>
+      </div>
+      <button id="customTrainBtn" class="custom-train-btn" type="button">Kouluta avoin ääni</button>
+
+      <button id="devModeBtn" class="dev-mode-btn" type="button" aria-expanded="false">
+        Kehittäjätila
+      </button>
+
+      <section id="qualityDevPanel" class="quality-dev-panel" aria-label="Äänenlaatupisteiden kehittäjätila">
+        <div class="dev-section-head">
+          <div>
+            <strong>Äänenlaatupisteet</strong>
+            <small>Hyväksytty ääni ohjaa aina. Bonus vaatii 300 ms vakaan äänen.</small>
+          </div>
+        </div>
+
+        <label class="dev-range-row">
+          <span><b>Laatubonus alkaa</b><output id="qualityBonusValue">70 %</output></span>
+          <input id="qualityBonusSlider" type="range" min="20" max="95" step="1" value="70">
+        </label>
+
+        <div class="dev-test-box">
+          <div class="dev-test-title">TESTAA BONUSRAJAA ILMAN PUHALLUSTA</div>
+          <label class="dev-range-row test-range-row">
+            <span><b>Harmonic concentration</b><output id="qualityTestValue">50 %</output></span>
+            <input id="qualityTestSlider" type="range" min="0" max="100" step="1" value="50">
+          </label>
+          <div id="qualityTestResult" class="quality-test-result">0 lisäpistettä</div>
+          <button id="qualityTestBtn" class="quality-test-btn" type="button">Testaa pisteytys</button>
+        </div>
+      </section>
+
+      <p id="settingsStatus" class="settings-status"></p>
+    </div>
+  </div>
+
+  <div id="trainOverlay" aria-live="polite">
+    <div class="train-card" role="status" aria-label="Ohjausäänen koulutus">
+      <p class="train-eyebrow">KOULUTA AVOIN SUUKAPPALEÄÄNI</p>
+      <img class="train-flute" src="app/assets/images/soitin_huilu.webp" alt="">
+      <h1>Puhalla avoin ääni kolme kertaa</h1>
+      <p id="trainStatus">Puhalla kolme lyhyttä avointa suukappaleääntä.</p>
+      <div class="train-progress" aria-label="Kolme koulutusnäytettä">
+        <span class="train-dot" data-train-dot="0"></span>
+        <span class="train-dot" data-train-dot="1"></span>
+        <span class="train-dot" data-train-dot="2"></span>
+      </div>
+      <div class="train-pulse-wrap" aria-hidden="true"><div id="trainPulse" class="train-pulse"></div></div>
+    </div>
+  </div>
+
+  <div id="finishOverlay" aria-live="polite">
+    <div class="overlay-card finish-card">
+      <p class="finish-title">Aika!</p>
+      <p class="finish-score-label">PISTEET</p>
+      <div id="finishScore" class="finish-score">0</div>
+      <div class="finish-actions">
+        <button id="replayBtn" class="primary" type="button">Uudestaan</button>
+        <button id="finishBtn" class="secondary" type="button">Valmis</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="calOverlay" aria-live="polite">
+    <div class="cal-ring-stage" role="status" aria-label="Mikrofonin kalibrointi">
+      <div class="cal-ring-wrap">
+        <svg class="cal-ring-svg" viewBox="0 0 180 180" aria-hidden="true">
+          <circle class="cal-ring-track" cx="90" cy="90" r="66"></circle>
+          <circle id="calRingProgress" class="cal-ring-progress" cx="90" cy="90" r="66"></circle>
+        </svg>
+        <div id="calPulse" class="cal-pulse"></div>
+        <div id="calDbValue" class="cal-db-readout">–</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rotateOverlay">
+    <div class="overlay-card">
+      <div id="rotateIcon">↻</div>
+      <h1>Käännä vaakatasoon</h1>
+    </div>
+  </div>
+</div>
+
+<script src="app/js/audio-data.js"></script>
+<script src="app/js/app.js"></script>
+
+</body>
+</html>
