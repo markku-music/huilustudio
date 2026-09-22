@@ -2231,28 +2231,8 @@ function updateGameTimer(now=performance.now()){
     playCountdownTick();
   }
 }
-function settlePendingBonusesAtGameEnd(now=performance.now()){
-  // Kirjaa ennen loppunäyttöä sellaiset bonuspisteet, joiden vaatima aika
-  // ehti täyttyä varsinaisen peliajan aikana. gameFinishing pysäyttää
-  // mikrofonianalyysin, joten ilman tätä aivan viimeiset ansaitut pisteet
-  // voisivat jäädä kirjaamatta.
-  if(qualityEvalActive){
-    if(now-qualityEvalStartedAt>=QUALITY_EVAL_WINDOW_MS)finishQualityEvaluation();
-    else cancelQualityEvaluation();
-  }
-
-  if(durationBonusActive){
-    if(now-durationBonusStartedAt>=DURATION_BONUS_MS){
-      cancelDurationBonusEvaluation();
-      awardSoundDurationBonus();
-    }else{
-      cancelDurationBonusEvaluation();
-    }
-  }
-}
 function startGameFinish(now=performance.now()){
   if(gameFinishing)return;
-  settlePendingBonusesAtGameEnd(now);
   gameFinishing=true;
   finishStartedAt=now;
   vortexTurboActive=false;
