@@ -636,6 +636,7 @@ let scheduledVortexIndex=0;
 // 70/30-jako säilyttää suunnilleen aiemman kerättävä/este-rytmin,
 // mutta samalla tickillä syntyy aina vain yksi objekti.
 const SPAWN_INTERVAL=1300;
+const COLLECT_ANIMATION_MS=280; // Sama kesto kuin CSS:n collect-animaatiossa.
 const COLLECTIBLE_SPAWN_CHANCE=.70;
 const SPAWN_X_OFFSET=100;
 const ROCK_BOUNCE_MS=430;
@@ -1435,11 +1436,36 @@ function targetXForItem(item){
   return item?.type?.key==='vortex'?vortexCoreXPosition(item):item?.x;
 }
 
+function isAvailableInitialAutoTarget(item){
+  if(!item||item.hit||item.collected||item.dead)return false;
+  const key=item.type?.key;
+  const eligible=key==='coin'||key==='diamond'||key==='chest'||key==='vortex';
+  return eligible&&targetXForItem(item)>planeXPosition();
+}
+function refreshInitialAutoTarget(){
+  if(
+    isAvailableInitialAutoTarget(initialAutoTarget)&&
+    (collectibles.includes(initialAutoTarget)||obstacles.includes(initialAutoTarget))
+  )return initialAutoTarget;
+
+  // Pitkän odotuksen jälkeen aiempi kohde voi olla jo koneen takana tai poistunut.
+  // Valitaan silloin lähin jäljellä oleva palkitseva kohde koneen edestä.
+  initialAutoTarget=null;
+  for(const item of [...collectibles,...obstacles]){
+    if(!isAvailableInitialAutoTarget(item))continue;
+    if(!initialAutoTarget||targetXForItem(item)<targetXForItem(initialAutoTarget)){
+      initialAutoTarget=item;
+    }
+  }
+  return initialAutoTarget;
+}
+
 function startInitialAutoSeekIfReady(now=performance.now()){
-  if(initialAutoSeekDone||!initialAutoSeekAuthorized||!initialAutoTarget)return false;
+  if(initialAutoSeekDone||!initialAutoSeekAuthorized)return false;
   if(gameTimerStarted||!gameRunning||gameFinishing)return false;
 
-  const item=initialAutoTarget;
+  const item=refreshInitialAutoTarget();
+  if(!item)return false;
   const targetY=targetYForItem(item);
   const minDuration=minimumRouteTimeMs(planeY,targetY);
 
@@ -1456,16 +1482,12 @@ function startInitialAutoSeekIfReady(now=performance.now()){
 }
 
 function maybeAcquireInitialAutoTarget(item){
-  if(initialAutoTarget||initialAutoSeekDone||gameTimerStarted||!gameRunning||gameFinishing)return;
-  if(!item||item.hit||item.collected)return;
-
-  const key=item?.type?.key;
-  const eligible=key==='coin'||key==='diamond'||key==='chest'||key==='vortex';
-  if(!eligible)return;
+  if(initialAutoSeekDone||gameTimerStarted||!gameRunning||gameFinishing)return;
+  if(!isAvailableInitialAutoTarget(item))return;
 
   // Ensimmäinen palkitseva objekti vain muistetaan.
   // Kone ei liiku ennen ensimmäistä onnistunutta suukappaleääntä.
-  initialAutoTarget=item;
+  refreshInitialAutoTarget();
 
   // Jos onnistunut ääni tuli jo ennen ensimmäisen sopivan objektin syntyä,
   // liike voidaan käynnistää nyt, koska lähtölupa on jo saatu.
@@ -2149,6 +2171,7 @@ function collectCollectible(item){
   const now=performance.now();
   startGameTimerOnFirstObjectHit(now);
   item.collected=true;
+  item.collectedAt=now;
   updateVortexTurboState(now);
   const pointMultiplier=vortexTurboActive?2:1;
   const gained=item.points*pointMultiplier;
@@ -2208,8 +2231,28 @@ function updateGameTimer(now=performance.now()){
     playCountdownTick();
   }
 }
+function settlePendingBonusesAtGameEnd(now=performance.now()){
+  // Kirjaa ennen loppunäyttöä sellaiset bonuspisteet, joiden vaatima aika
+  // ehti täyttyä varsinaisen peliajan aikana. gameFinishing pysäyttää
+  // mikrofonianalyysin, joten ilman tätä aivan viimeiset ansaitut pisteet
+  // voisivat jäädä kirjaamatta.
+  if(qualityEvalActive){
+    if(now-qualityEvalStartedAt>=QUALITY_EVAL_WINDOW_MS)finishQualityEvaluation();
+    else cancelQualityEvaluation();
+  }
+
+  if(durationBonusActive){
+    if(now-durationBonusStartedAt>=DURATION_BONUS_MS){
+      cancelDurationBonusEvaluation();
+      awardSoundDurationBonus();
+    }else{
+      cancelDurationBonusEvaluation();
+    }
+  }
+}
 function startGameFinish(now=performance.now()){
   if(gameFinishing)return;
+  settlePendingBonusesAtGameEnd(now);
   gameFinishing=true;
   finishStartedAt=now;
   vortexTurboActive=false;
@@ -2375,7 +2418,7 @@ function gameLoop(now){
     if(!gameFinishing&&!s.collected&&horizontalHit&&verticalHit){
       collectCollectible(s);
     }
-    if(s.x<-80||s.collected&&s.x<planeX-30){
+    if(s.x<-80||s.collected&&now-s.collectedAt>=COLLECT_ANIMATION_MS){
       s.el.remove();
       collectibles.splice(i,1);
     }
@@ -2596,14 +2639,36 @@ $('#refreshBtn').addEventListener('click',async()=>{
   btn.classList.add('updating');
   btn.disabled=true;
   try{
-    if('caches' in window){
-      const keys=await caches.keys();
-      await Promise.all(keys.map(key=>caches.delete(key)));
-    }
+    // Toimivaa offline-versiota ei tyhjennetä päivitystä tarkistettaessa.
+    // Uusi service worker siivoaa vain tämän asennuspolun vanhat versiot,
+    // kun sen oma paketti on ensin ladattu kokonaan.
     if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(reg=>reg.update().catch(()=>null)));
+      const appScope=new URL('./',location.href).href;
+      const reg=await navigator.serviceWorker.getRegistration(appScope);
+      if(reg&&reg.scope===appScope){
+        await reg.update();
+        const worker=reg.installing||reg.waiting;
+        if(worker){
+          // update() voi valmistua ennen uuden version asennusta.
+          // Odotetaan aktivointia, jotta uudelleenlataus saa uuden koodin.
+          await new Promise(resolve=>{
+            const finish=()=>{
+              clearTimeout(timeout);
+              worker.removeEventListener('statechange',onStateChange);
+              resolve();
+            };
+            const onStateChange=()=>{
+              if(worker.state==='activated'||worker.state==='redundant')finish();
+            };
+            const timeout=setTimeout(finish,10000);
+            worker.addEventListener('statechange',onStateChange);
+            onStateChange();
+          });
+        }
+      }
     }
+  }catch(err){
+    console.warn('Päivitystä ei voitu tarkistaa. Nykyinen versio säilyy käytettävissä.',err);
   }finally{
     const url=new URL(location.href);
     url.searchParams.set('_refresh',Date.now().toString());

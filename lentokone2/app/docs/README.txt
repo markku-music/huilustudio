@@ -760,3 +760,35 @@ KORJAUS:
 
 MUU:
 - Pelilogiikkaa, tunnistusta, Harmonic Summationia, pisteytystä tai grafiikkaa ei muutettu.
+
+============================================================
+BASE 6.3.4 VÄLIMUISTI, ALOITUSKOHDE JA ESINEIDEN POISTO
+============================================================
+
+Pohja:
+- BASE 6.3.3 BACKGROUND AUDIO STOP / lentokone2.zip.
+
+KORJAUKSET:
+- Päivityspainike säilyttää nykyisen offline-välimuistin myös silloin,
+  kun verkkoyhteyttä ei ole tai uuden version lataaminen epäonnistuu.
+- Päivitys tarkistaa vain tämän pelin oman service workerin ja odottaa
+  uuden version aktivointia ennen sivun uudelleenlatausta.
+- Välimuistin nimi sisältää asennuspolun. Uuden version aktivointi
+  poistaa vain saman asennuspolun vanhat, polkuun rajatut välimuistit.
+  Muiden pelien sekä vanhojen jaettujen versioiden välimuistit säilyvät.
+- Tiedostot haetaan pelin omasta välimuistista. Uusi asennus hakee
+  resurssit ohittaen selaimen tavallisen HTTP-välimuistin.
+- Ensimmäisellä hyväksytyllä äänellä tarkistetaan, että muistettu
+  alkukohde on yhä pelissä ja koneen edessä. Vanhentuneen kohteen
+  tilalle valitaan lähin sopiva palkitseva kohde koneen edestä.
+- Jos sopivaa kohdetta ei vielä ole, ensimmäisen äänen antama lähtölupa
+  säilyy ja kone odottaa seuraavaa sopivaa kohdetta keskellä.
+- Kerätyt esineet poistetaan sekä näytöltä että pelin esinelistasta
+  280 ms katoamisanimaation jälkeen. Niitä ei enää käsitellä
+  näkymättöminä loppupelin ajan.
+
+ENNALLAAN:
+- Harmonic Summation -tunnistus, koulutus ja mikrofonin kalibrointi.
+- iPadin ohjauksen uudelleenviritys ja taustaäänten pysäytys.
+- Pisteytys, laatu- ja kestobonukset, liikeradat sekä grafiikka.
+- Peliaika alkaa edelleen ensimmäisestä objektiosumasta.
