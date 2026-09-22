@@ -1,6 +1,4 @@
-// Jokainen asennuspolku omistaa vain omat välimuistinsa.
-const CACHE_PREFIX = 'lentokone-pwa:' + self.registration.scope + ':';
-const CACHE_NAME = CACHE_PREFIX + 'base-6.3.9';
+const CACHE_NAME = 'lentokone-pwa-base-6.3.3-background-audio-stop';
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,10 +19,6 @@ const APP_SHELL = [
   './app/assets/images/este_pyorre.webp',
   './app/assets/images/soitin_huilu.webp',
   './app/assets/images/ohje_huilu.png',
-  './app/assets/images/valinta_tavallinen.webp',
-  './app/assets/images/valinta_kayra.webp',
-  './app/assets/images/valinta_u_mutka.webp',
-  './app/assets/images/valinta_pepsi_max.webp',
   './app/assets/icons/icon-192.png',
   './app/assets/icons/icon-512.png',
   './app/assets/icons/icon-maskable-512.png',
@@ -34,7 +28,7 @@ const APP_SHELL = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL.map(url => new Request(url, {cache: 'reload'}))))
+      .then(cache => cache.addAll(APP_SHELL))
       .then(() => self.skipWaiting())
   );
 });
@@ -42,7 +36,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -59,14 +53,14 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
         }
         return response;
-      }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match('./index.html')))
+      }).catch(() => caches.match('./index.html'))
     );
     return;
   }
 
   // Staattiset tiedostot cache-first, jotta peli toimii nopeasti ja offline.
   event.respondWith(
-    caches.open(CACHE_NAME).then(cache => cache.match(event.request)).then(cached => {
+    caches.match(event.request).then(cached => {
       if (cached) return cached;
       return fetch(event.request).then(response => {
         if (!response || response.status !== 200 || response.type === 'opaque') return response;

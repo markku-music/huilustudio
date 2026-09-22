@@ -47,7 +47,6 @@ const HS_CONCENTRATION_MAX_HZ=8000;
 const HS_CONCENTRATION_HALF_WIDTH_CENTS=28;
 const CONTROL_SETTINGS_KEY='lentokone-flute-harmonic-control-v3';
 const QUALITY_DEV_SETTINGS_KEY='lentokone-flute-quality-bonus-v2';
-const INSTRUMENT_PROFILES_KEY='lentokone-instrument-profiles-v1';
 const QUALITY_BONUS_DEFAULT=.70;
 const CONTROL_MODES=new Set(['custom']);
 
@@ -58,21 +57,17 @@ const durationBonuses=$('#durationBonuses'),durationBonusCount=$('#durationBonus
 const loadingOverlay=$('#loadingOverlay'),loadingPercent=$('#loadingPercent'),loadingFill=$('#loadingFill'),loadingStatus=$('#loadingStatus');
 const startOverlay=$('#startOverlay'),trainOverlay=$('#trainOverlay'),settingsOverlay=$('#settingsOverlay'),calOverlay=$('#calOverlay'),finishOverlay=$('#finishOverlay'),startError=$('#startError');
 const helpOverlay=$('#helpOverlay'),helpImage=$('#helpImage');
-const instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentFluteInfoBtn=$('#instrumentFluteInfoBtn'),instrumentChoiceBtns=[...document.querySelectorAll('.instrument-select-btn')],replayBtn=$('#replayBtn'),finishBtn=$('#finishBtn'),finishScore=$('#finishScore');
-const finishCoinPoints=$('#finishCoinPoints'),finishDiamondPoints=$('#finishDiamondPoints'),finishChestPoints=$('#finishChestPoints'),finishVortexPoints=$('#finishVortexPoints'),finishQualityPoints=$('#finishQualityPoints'),finishDurationPoints=$('#finishDurationPoints'),finishPenaltyPoints=$('#finishPenaltyPoints');
-const settingsBtn=$('#settingsBtn'),settingsCloseBtn=$('#settingsCloseBtn'),settingsStatus=$('#settingsStatus'),customTrainBtn=$('#customTrainBtn'),profileTrainerBtn=$('#profileTrainerBtn'),customModeTitle=$('#customModeTitle'),controlModeLabel=$('#controlModeLabel');
-const profileTrainerOverlay=$('#profileTrainerOverlay'),profileTrainerCloseBtn=$('#profileTrainerCloseBtn'),profileTrainerStatus=$('#profileTrainerStatus'),profileJsonOutput=$('#profileJsonOutput'),copyProfileJsonBtn=$('#copyProfileJsonBtn'),profileTrainBtns=[...document.querySelectorAll('[data-profile-train]')];
-const profileStatusSuora=$('#profileStatusSuora'),profileStatusUMutka=$('#profileStatusUMutka'),profileStatusPepsi=$('#profileStatusPepsi');
+const instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentFluteInfoBtn=$('#instrumentFluteInfoBtn'),replayBtn=$('#replayBtn'),finishBtn=$('#finishBtn'),finishScore=$('#finishScore');
+const settingsBtn=$('#settingsBtn'),settingsCloseBtn=$('#settingsCloseBtn'),settingsStatus=$('#settingsStatus'),customTrainBtn=$('#customTrainBtn'),customModeTitle=$('#customModeTitle'),controlModeLabel=$('#controlModeLabel');
 const devModeBtn=$('#devModeBtn'),qualityDevPanel=$('#qualityDevPanel');
 const qualityBonusSlider=$('#qualityBonusSlider');
 const qualityBonusValue=$('#qualityBonusValue');
 const qualityTestSlider=$('#qualityTestSlider'),qualityTestValue=$('#qualityTestValue'),qualityTestResult=$('#qualityTestResult'),qualityTestBtn=$('#qualityTestBtn');
 const controlModeButtons=[...document.querySelectorAll('[data-control-mode]')];
-const trainStatus=$('#trainStatus'),trainPulse=$('#trainPulse'),trainDots=[...document.querySelectorAll('.train-dot')],trainEyebrow=$('#trainEyebrow'),trainHeading=$('#trainHeading'),trainInstrumentImage=$('#trainInstrumentImage');
+const trainStatus=$('#trainStatus'),trainPulse=$('#trainPulse'),trainDots=[...document.querySelectorAll('.train-dot')];
 const calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
 
 let controlMode='custom';
-let selectedStartInstrument='suora';
 let trainedControlRef=null;
 let usingBuiltInControlRef=false;
 let trainingSamples=[];
@@ -81,51 +76,6 @@ let singleLastLoudAt=0;
 let singleLastAcceptedAt=0;
 let liveCustomHistory=[];
 let lastHarmonicAnalysisAt=0;
-
-const PROFILE_DEFS={
-  suora:{label:'Suora',image:'app/assets/images/valinta_tavallinen.webp',heading:'Puhalla suoralla kolme kertaa'},
-  'u-mutka':{label:'U-mutka',image:'app/assets/images/valinta_u_mutka.webp',heading:'Puhalla U-mutkalla kolme kertaa'},
-  'pepsi-max':{label:'Pepsi Max 33 cl',image:'app/assets/images/valinta_pepsi_max.webp',heading:'Puhalla pullon suulle kolme kertaa'}
-};
-// Oikeilla välineillä 22.9.2026 koulutetut profiilit.
-// Nämä kulkevat PWA-paketin mukana, joten uusi asennus toimii ilman koulutusta.
-const BUILT_IN_INSTRUMENT_PROFILES={
-  suora:{
-    f0:838.9020735362014,
-    fingerprint:[
-      0.564687286461546,0.27104206678978365,0.08517339850249477,
-      0.03737817150079845,0.01889830970427293,0.017036968128676073,
-      0.005783798912428205
-    ]
-  },
-  'u-mutka':{
-    f0:642.2470300533747,
-    fingerprint:[
-      0.6625282345231231,0.18449826820041376,0.08103016713309996,
-      0.01650922039706982,0.02885096805524897,0.012413378159630176,
-      0.014169763531414031
-    ]
-  },
-  'pepsi-max':{
-    f0:257.09578089722174,
-    fingerprint:[
-      0.7182716171791134,0.09351230359516913,0.0940522236054198,
-      0.029870553910823522,0.037071640862217814,0.01770792907762983,
-      0.009513731769626565
-    ]
-  }
-};
-function cloneProfileRef(ref){
-  return ref?{f0:Number(ref.f0),fingerprint:ref.fingerprint.map(Number)}:null;
-}
-function builtInInstrumentProfiles(){
-  return {
-    suora:cloneProfileRef(BUILT_IN_INSTRUMENT_PROFILES.suora),
-    'u-mutka':cloneProfileRef(BUILT_IN_INSTRUMENT_PROFILES['u-mutka']),
-    'pepsi-max':cloneProfileRef(BUILT_IN_INSTRUMENT_PROFILES['pepsi-max'])
-  };
-}
-let instrumentProfiles=builtInInstrumentProfiles();
 
 let qualityBonusThreshold=QUALITY_BONUS_DEFAULT;
 let developerModeOpen=false;
@@ -183,55 +133,6 @@ function saveControlSettings(){
       builtIn:usingBuiltInControlRef
     }));
   }catch{}
-}
-function normalizeStoredProfile(ref){
-  if(!validStoredRef(ref))return null;
-  return {f0:Number(ref.f0),fingerprint:ref.fingerprint.map(Number)};
-}
-function loadInstrumentProfiles(){
-  // Paketin sisäiset profiilit ovat aina turvallinen pohja. Jos käyttäjä
-  // kouluttaa jonkin niistä myöhemmin uudelleen, laitteen oma profiili voittaa.
-  instrumentProfiles=builtInInstrumentProfiles();
-  try{
-    const data=JSON.parse(localStorage.getItem(INSTRUMENT_PROFILES_KEY)||'null');
-    const source=data&&data.profiles?data.profiles:{};
-    for(const id of Object.keys(PROFILE_DEFS)){
-      const stored=normalizeStoredProfile(source[id]);
-      if(stored)instrumentProfiles[id]=stored;
-    }
-  }catch{}
-}
-function instrumentProfilesExport(){
-  const profiles={};
-  for(const [id,def] of Object.entries(PROFILE_DEFS)){
-    const ref=instrumentProfiles[id];
-    profiles[id]=ref?{
-      label:def.label,
-      f0:Number(ref.f0),
-      fingerprint:ref.fingerprint.map(Number)
-    }:null;
-  }
-  return {version:'1.0',profiles};
-}
-function saveInstrumentProfiles(){
-  try{localStorage.setItem(INSTRUMENT_PROFILES_KEY,JSON.stringify(instrumentProfilesExport()))}catch{}
-  updateProfileTrainerUi();
-}
-function profileStatusElement(id){
-  if(id==='suora')return profileStatusSuora;
-  if(id==='u-mutka')return profileStatusUMutka;
-  if(id==='pepsi-max')return profileStatusPepsi;
-  return null;
-}
-function updateProfileTrainerUi(){
-  for(const id of Object.keys(PROFILE_DEFS)){
-    const el=profileStatusElement(id);
-    if(!el)continue;
-    const ref=instrumentProfiles[id];
-    el.textContent=ref?`Valmis · ${Number(ref.f0).toFixed(1)} Hz`:'Ei koulutettu';
-    el.classList.toggle('ready',!!ref);
-  }
-  if(profileJsonOutput)profileJsonOutput.value=JSON.stringify(instrumentProfilesExport(),null,2);
 }
 function controlModeName(){return 'Avoin suukappaleääni'}
 
@@ -309,7 +210,6 @@ function setControlMode(mode){
   return true;
 }
 loadControlSettings();
-loadInstrumentProfiles();
 loadQualityDevSettings();
 
 const STARTUP_ASSETS=[
@@ -703,9 +603,6 @@ async function calibrateWithAllGameAudioMuted(){
 let score=0;
 let qualityStarsTotal=0;
 let durationBonusesTotal=0;
-let collectiblePointsTotal={coin:0,diamond:0,chest:0};
-let vortexBonusPointsTotal=0;
-let obstaclePenaltyPointsTotal=0;
 let collectibles=[];
 let obstacles=[];
 let rockFragments=[];
@@ -739,7 +636,6 @@ let scheduledVortexIndex=0;
 // 70/30-jako säilyttää suunnilleen aiemman kerättävä/este-rytmin,
 // mutta samalla tickillä syntyy aina vain yksi objekti.
 const SPAWN_INTERVAL=1300;
-const COLLECT_ANIMATION_MS=280; // Sama kesto kuin CSS:n collect-animaatiossa.
 const COLLECTIBLE_SPAWN_CHANCE=.70;
 const SPAWN_X_OFFSET=100;
 const ROCK_BOUNCE_MS=430;
@@ -912,16 +808,10 @@ function setTrainingDot(index,state){
   dot.classList.remove('active','done','retry');
   if(state)dot.classList.add(state);
 }
-function resetTrainingUi(config={}){
+function resetTrainingUi(){
   trainOverlay.classList.remove('complete');
   trainDots.forEach(dot=>dot.classList.remove('active','done','retry'));
-  if(trainEyebrow)trainEyebrow.textContent=config.eyebrow||'KOULUTA AVOIN SUUKAPPALEÄÄNI';
-  if(trainHeading)trainHeading.textContent=config.heading||'Puhalla avoin ääni kolme kertaa';
-  if(trainInstrumentImage){
-    trainInstrumentImage.src=config.image||'app/assets/images/soitin_huilu.webp';
-    trainInstrumentImage.alt=config.imageAlt||'';
-  }
-  trainStatus.textContent=config.intro||'Puhalla avoin suukappaleääni kolme kertaa.';
+  trainStatus.textContent='Puhalla avoin suukappaleääni kolme kertaa.';
   updateTrainingPulse(-90);
 }
 async function captureAutomaticTrainingSample(index){
@@ -978,14 +868,14 @@ async function captureAutomaticTrainingSample(index){
   }
   return {f0,fp8,durationMs:Math.round(duration),frames:frames.length};
 }
-async function captureTrainingReference(config={}){
+async function trainControlSound(){
   if(!analyser||!timeData||!freqData)throw new Error('Mikrofoni ei ole valmis koulutusta varten.');
   if(timer){clearInterval(timer);timer=null}
   trainingSamples=[];
   clearRecognition();
   singleTriggerLocked=false;
   singleLastAcceptedAt=0;
-  resetTrainingUi(config);
+  resetTrainingUi();
   trainOverlay.classList.add('show');
   try{
     for(let index=0;index<TRAIN_SAMPLE_COUNT;){
@@ -996,7 +886,7 @@ async function captureTrainingReference(config={}){
         const sameSimilarity=puhFingerprintSimilarity(sample.fp8,ownFp8);
         if(sameSimilarity<TRAIN_OWN_LOW_SIM){
           setTrainingDot(index,'retry');
-          trainStatus.textContent='Tuo ääni poikkesi aiemmista. Puhalla uudelleen.';
+          trainStatus.textContent='Tuo ääni poikkesi aiemmista. Puhalla avoin ääni uudelleen.';
           await sleepMs(850);
           continue;
         }
@@ -1008,31 +898,22 @@ async function captureTrainingReference(config={}){
       await sleepMs(index===TRAIN_SAMPLE_COUNT?450:520);
     }
     const ref=aggregateTrainingReference(trainingSamples);
-    if(!ref)throw new Error('Profiilia ei voitu muodostaa.');
+    if(!ref)throw new Error('Avoimen suukappaleäänen referenssiä ei voitu muodostaa.');
+    trainedControlRef=ref;
+    controlMode='custom';
+    usingBuiltInControlRef=false;
+  saveControlSettings();
+    updateSettingsUi();
     trainOverlay.classList.add('complete');
-    trainStatus.textContent=`Valmis · ${Number(ref.f0).toFixed(1)} Hz`;
+    trainStatus.textContent='Valmis!';
     updateTrainingPulse(-45);
-    await sleepMs(700);
-    return {ref,samples:trainingSamples.map(sample=>({f0:sample.f0,durationMs:sample.durationMs,frames:sample.frames}))};
+    await sleepMs(650);
   }finally{
     trainOverlay.classList.remove('show','complete');
     updateTrainingPulse(-90);
     if(!timer&&analyser)timer=setInterval(processFrame,FRAME_MS);
-    clearRecognition();
   }
-}
-async function trainControlSound(){
-  const result=await captureTrainingReference({
-    eyebrow:'KOULUTA AVOIN SUUKAPPALEÄÄNI',
-    heading:'Puhalla avoin ääni kolme kertaa',
-    intro:'Puhalla avoin suukappaleääni kolme kertaa.',
-    image:'app/assets/images/soitin_huilu.webp'
-  });
-  trainedControlRef=result.ref;
-  controlMode='custom';
-  usingBuiltInControlRef=false;
-  saveControlSettings();
-  updateSettingsUi();
+  clearRecognition();
   return true;
 }
 
@@ -1554,36 +1435,11 @@ function targetXForItem(item){
   return item?.type?.key==='vortex'?vortexCoreXPosition(item):item?.x;
 }
 
-function isAvailableInitialAutoTarget(item){
-  if(!item||item.hit||item.collected||item.dead)return false;
-  const key=item.type?.key;
-  const eligible=key==='coin'||key==='diamond'||key==='chest'||key==='vortex';
-  return eligible&&targetXForItem(item)>planeXPosition();
-}
-function refreshInitialAutoTarget(){
-  if(
-    isAvailableInitialAutoTarget(initialAutoTarget)&&
-    (collectibles.includes(initialAutoTarget)||obstacles.includes(initialAutoTarget))
-  )return initialAutoTarget;
-
-  // Pitkän odotuksen jälkeen aiempi kohde voi olla jo koneen takana tai poistunut.
-  // Valitaan silloin lähin jäljellä oleva palkitseva kohde koneen edestä.
-  initialAutoTarget=null;
-  for(const item of [...collectibles,...obstacles]){
-    if(!isAvailableInitialAutoTarget(item))continue;
-    if(!initialAutoTarget||targetXForItem(item)<targetXForItem(initialAutoTarget)){
-      initialAutoTarget=item;
-    }
-  }
-  return initialAutoTarget;
-}
-
 function startInitialAutoSeekIfReady(now=performance.now()){
-  if(initialAutoSeekDone||!initialAutoSeekAuthorized)return false;
+  if(initialAutoSeekDone||!initialAutoSeekAuthorized||!initialAutoTarget)return false;
   if(gameTimerStarted||!gameRunning||gameFinishing)return false;
 
-  const item=refreshInitialAutoTarget();
-  if(!item)return false;
+  const item=initialAutoTarget;
   const targetY=targetYForItem(item);
   const minDuration=minimumRouteTimeMs(planeY,targetY);
 
@@ -1600,12 +1456,16 @@ function startInitialAutoSeekIfReady(now=performance.now()){
 }
 
 function maybeAcquireInitialAutoTarget(item){
-  if(initialAutoSeekDone||gameTimerStarted||!gameRunning||gameFinishing)return;
-  if(!isAvailableInitialAutoTarget(item))return;
+  if(initialAutoTarget||initialAutoSeekDone||gameTimerStarted||!gameRunning||gameFinishing)return;
+  if(!item||item.hit||item.collected)return;
+
+  const key=item?.type?.key;
+  const eligible=key==='coin'||key==='diamond'||key==='chest'||key==='vortex';
+  if(!eligible)return;
 
   // Ensimmäinen palkitseva objekti vain muistetaan.
   // Kone ei liiku ennen ensimmäistä onnistunutta suukappaleääntä.
-  refreshInitialAutoTarget();
+  initialAutoTarget=item;
 
   // Jos onnistunut ääni tuli jo ennen ensimmäisen sopivan objektin syntyä,
   // liike voidaan käynnistää nyt, koska lähtölupa on jo saatu.
@@ -2239,9 +2099,7 @@ function hitObstacle(item,speed){
 
   if(item.type.key==='rock'){
     playGameFx('rock');
-    const scoreBeforeHit=score;
     score=Math.max(0,score-2);
-    obstaclePenaltyPointsTotal+=scoreBeforeHit-score;
     scoreNum.textContent=score;
     showScoreFlash('-2',true);
     spawnRockFragments(item,speed);
@@ -2254,9 +2112,7 @@ function hitObstacle(item,speed){
 
   // Lehmä: yksi piste pois vain kerran ja sen jälkeen törmäys pois käytöstä.
   playGameFx('cow');
-  const scoreBeforeHit=score;
   score=Math.max(0,score-1);
-  obstaclePenaltyPointsTotal+=scoreBeforeHit-score;
   scoreNum.textContent=score;
   showScoreFlash('-1',true);
   item.vx=-speed*1.65;
@@ -2293,14 +2149,9 @@ function collectCollectible(item){
   const now=performance.now();
   startGameTimerOnFirstObjectHit(now);
   item.collected=true;
-  item.collectedAt=now;
   updateVortexTurboState(now);
   const pointMultiplier=vortexTurboActive?2:1;
   const gained=item.points*pointMultiplier;
-  if(Object.prototype.hasOwnProperty.call(collectiblePointsTotal,item.type.key)){
-    collectiblePointsTotal[item.type.key]+=item.points;
-  }
-  if(pointMultiplier>1)vortexBonusPointsTotal+=gained-item.points;
   score+=gained;
   scoreNum.textContent=score;
   item.el.classList.add('collected');
@@ -2357,28 +2208,8 @@ function updateGameTimer(now=performance.now()){
     playCountdownTick();
   }
 }
-function settlePendingBonusesAtGameEnd(now=performance.now()){
-  // Kirjaa ennen loppunäyttöä sellaiset bonuspisteet, joiden vaatima aika
-  // ehti täyttyä varsinaisen peliajan aikana. gameFinishing pysäyttää
-  // mikrofonianalyysin, joten ilman tätä aivan viimeiset ansaitut pisteet
-  // voisivat jäädä kirjaamatta.
-  if(qualityEvalActive){
-    if(now-qualityEvalStartedAt>=QUALITY_EVAL_WINDOW_MS)finishQualityEvaluation();
-    else cancelQualityEvaluation();
-  }
-
-  if(durationBonusActive){
-    if(now-durationBonusStartedAt>=DURATION_BONUS_MS){
-      cancelDurationBonusEvaluation();
-      awardSoundDurationBonus();
-    }else{
-      cancelDurationBonusEvaluation();
-    }
-  }
-}
 function startGameFinish(now=performance.now()){
   if(gameFinishing)return;
-  settlePendingBonusesAtGameEnd(now);
   gameFinishing=true;
   finishStartedAt=now;
   vortexTurboActive=false;
@@ -2398,36 +2229,18 @@ function startGameFinish(now=performance.now()){
     }catch{}
   }
 }
-function formatFinishPoints(value,{penalty=false}={}){
-  const n=Math.max(0,Math.round(Number(value)||0));
-  if(n===0)return '0';
-  return penalty?`−${n}`:`+${n}`;
-}
-function renderFinishBreakdown(){
-  if(finishCoinPoints)finishCoinPoints.textContent=formatFinishPoints(collectiblePointsTotal.coin);
-  if(finishDiamondPoints)finishDiamondPoints.textContent=formatFinishPoints(collectiblePointsTotal.diamond);
-  if(finishChestPoints)finishChestPoints.textContent=formatFinishPoints(collectiblePointsTotal.chest);
-  if(finishVortexPoints)finishVortexPoints.textContent=formatFinishPoints(vortexBonusPointsTotal);
-  if(finishQualityPoints)finishQualityPoints.textContent=formatFinishPoints(qualityStarsTotal);
-  if(finishDurationPoints)finishDurationPoints.textContent=formatFinishPoints(durationBonusesTotal);
-  if(finishPenaltyPoints)finishPenaltyPoints.textContent=formatFinishPoints(obstaclePenaltyPointsTotal,{penalty:true});
-}
 function completeGameFinish(){
   if(!gameRunning)return;
   gameRunning=false;
   gameFinishing=false;
   stopEngineAudio();
   finishScore.textContent=String(score);
-  renderFinishBreakdown();
   finishOverlay.style.display='flex';
 }
 function resetScore(){
   score=0;
   qualityStarsTotal=0;
   durationBonusesTotal=0;
-  collectiblePointsTotal={coin:0,diamond:0,chest:0};
-  vortexBonusPointsTotal=0;
-  obstaclePenaltyPointsTotal=0;
   scoreNum.textContent='0';
   renderQualityStarCount();
   renderDurationBonusCount();
@@ -2562,7 +2375,7 @@ function gameLoop(now){
     if(!gameFinishing&&!s.collected&&horizontalHit&&verticalHit){
       collectCollectible(s);
     }
-    if(s.x<-80||s.collected&&now-s.collectedAt>=COLLECT_ANIMATION_MS){
+    if(s.x<-80||s.collected&&s.x<planeX-30){
       s.el.remove();
       collectibles.splice(i,1);
     }
@@ -2650,28 +2463,12 @@ function gameLoop(now){
 }
 
 function setStartButtonDisabled(disabled){
-  for(const btn of instrumentChoiceBtns)btn.disabled=disabled;
-  if(instrumentFluteInfoBtn)instrumentFluteInfoBtn.disabled=disabled;
-}
-function activateSelectedInstrumentProfile(){
-  // Suora, U-mutka ja Pepsi käyttävät omia koulutettuja profiilejaan.
-  // Käyrän tunnistus jätetään tarkoituksella entiselleen, kunnes sille
-  // koulutetaan oma profiili.
-  const ref=selectedStartInstrument==='kayra'
-    ?builtInHighControlRef()
-    :instrumentProfiles[selectedStartInstrument];
-  trainedControlRef=cloneProfileRef(ref)||builtInHighControlRef();
-  usingBuiltInControlRef=true;
-  singleTriggerLocked=false;
-  singleLastAcceptedAt=0;
-  liveCustomHistory=[];
-  lastHarmonicAnalysisAt=0;
-  clearRecognition();
+  instrumentFluteBtn.disabled=disabled;
+  instrumentFluteInfoBtn.disabled=disabled;
 }
 async function startFluteGame(){
   startError.textContent='';
   controlMode='custom';
-  activateSelectedInstrumentProfile();
   setStartButtonDisabled(true);
   startOverlay.style.display='none';
   try{
@@ -2722,70 +2519,13 @@ async function trainCustomControlFromSettings(){
   }
 }
 
-function openProfileTrainer(clearStatus=true){
-  if(clearStatus&&profileTrainerStatus)profileTrainerStatus.textContent='';
-  updateProfileTrainerUi();
-  profileTrainerOverlay.classList.add('show');
-}
-function closeProfileTrainer(){profileTrainerOverlay.classList.remove('show')}
-async function trainInstrumentProfile(id){
-  const def=PROFILE_DEFS[id];
-  if(!def)return;
-  if(gameRunning){
-    profileTrainerStatus.textContent='Profiili koulutetaan pelin ollessa pysähdyksissä.';
-    return;
-  }
-  profileTrainBtns.forEach(btn=>btn.disabled=true);
-  profileTrainerStatus.textContent=`Valmistellaan: ${def.label}…`;
-  closeProfileTrainer();
-  try{
-    await startMic();
-    const result=await captureTrainingReference({
-      eyebrow:`KOULUTA · ${def.label.toUpperCase()}`,
-      heading:def.heading||`Puhalla kolme kertaa`,
-      intro:'Puhalla kolme mahdollisimman samanlaista ääntä.',
-      image:def.image,
-      imageAlt:def.label
-    });
-    instrumentProfiles[id]=normalizeStoredProfile(result.ref);
-    saveInstrumentProfiles();
-    profileTrainerStatus.textContent=`${def.label} tallennettu · ${Number(result.ref.f0).toFixed(1)} Hz`;
-  }catch(err){
-    profileTrainerStatus.textContent=err?.message||'Profiilin koulutus epäonnistui.';
-  }finally{
-    profileTrainBtns.forEach(btn=>btn.disabled=false);
-    updateProfileTrainerUi();
-    openProfileTrainer(false);
-  }
-}
-async function copyProfilesJson(){
-  const textValue=JSON.stringify(instrumentProfilesExport(),null,2);
-  if(profileJsonOutput)profileJsonOutput.value=textValue;
-  let copied=false;
-  try{
-    if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(textValue);copied=true}
-  }catch{}
-  if(!copied&&profileJsonOutput){
-    profileJsonOutput.focus();
-    profileJsonOutput.select();
-    try{copied=document.execCommand('copy')}catch{}
-    profileJsonOutput.setSelectionRange(0,0);
-  }
-  profileTrainerStatus.textContent=copied?'JSON kopioitu leikepöydälle.':'Valitse JSON-kentän sisältö ja kopioi se.';
-}
-
 instrumentFluteInfoBtn.addEventListener('click',(event)=>{
   event.preventDefault();
   event.stopPropagation();
   openInstrumentHelp();
 });
 helpOverlay.addEventListener('click',closeInstrumentHelp);
-for(const btn of instrumentChoiceBtns){
-  btn.addEventListener('click',()=>{
-    selectedStartInstrument=btn.dataset.instrument||'suora';
-    startFluteGame();
-  });
-}
+instrumentFluteBtn.addEventListener('click',startFluteGame);
 settingsBtn.addEventListener('click',openSettings);
 settingsCloseBtn.addEventListener('click',closeSettings);
 settingsOverlay.addEventListener('click',(event)=>{if(event.target===settingsOverlay)closeSettings()});
@@ -2801,11 +2541,6 @@ for(const btn of controlModeButtons){
   });
 }
 customTrainBtn.addEventListener('click',trainCustomControlFromSettings);
-profileTrainerBtn.addEventListener('click',()=>{closeSettings();openProfileTrainer()});
-profileTrainerCloseBtn.addEventListener('click',closeProfileTrainer);
-profileTrainerOverlay.addEventListener('click',(event)=>{if(event.target===profileTrainerOverlay)closeProfileTrainer()});
-for(const btn of profileTrainBtns){btn.addEventListener('click',()=>trainInstrumentProfile(btn.dataset.profileTrain))}
-copyProfileJsonBtn.addEventListener('click',copyProfilesJson);
 
 devModeBtn.addEventListener('click',()=>{
   setDeveloperModeOpen(!developerModeOpen);
@@ -2838,7 +2573,6 @@ qualityTestResult.addEventListener('animationend',()=>{
 document.addEventListener('keydown',(event)=>{
   if(event.key!=='Escape')return;
   if(helpOverlay.classList.contains('show'))closeInstrumentHelp();
-  else if(profileTrainerOverlay.classList.contains('show'))closeProfileTrainer();
   else if(settingsOverlay.classList.contains('show'))closeSettings();
 });
 replayBtn.addEventListener('click',async()=>{
@@ -2862,36 +2596,14 @@ $('#refreshBtn').addEventListener('click',async()=>{
   btn.classList.add('updating');
   btn.disabled=true;
   try{
-    // Toimivaa offline-versiota ei tyhjennetä päivitystä tarkistettaessa.
-    // Uusi service worker siivoaa vain tämän asennuspolun vanhat versiot,
-    // kun sen oma paketti on ensin ladattu kokonaan.
-    if('serviceWorker' in navigator){
-      const appScope=new URL('./',location.href).href;
-      const reg=await navigator.serviceWorker.getRegistration(appScope);
-      if(reg&&reg.scope===appScope){
-        await reg.update();
-        const worker=reg.installing||reg.waiting;
-        if(worker){
-          // update() voi valmistua ennen uuden version asennusta.
-          // Odotetaan aktivointia, jotta uudelleenlataus saa uuden koodin.
-          await new Promise(resolve=>{
-            const finish=()=>{
-              clearTimeout(timeout);
-              worker.removeEventListener('statechange',onStateChange);
-              resolve();
-            };
-            const onStateChange=()=>{
-              if(worker.state==='activated'||worker.state==='redundant')finish();
-            };
-            const timeout=setTimeout(finish,10000);
-            worker.addEventListener('statechange',onStateChange);
-            onStateChange();
-          });
-        }
-      }
+    if('caches' in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(key=>caches.delete(key)));
     }
-  }catch(err){
-    console.warn('Päivitystä ei voitu tarkistaa. Nykyinen versio säilyy käytettävissä.',err);
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(reg=>reg.update().catch(()=>null)));
+    }
   }finally{
     const url=new URL(location.href);
     url.searchParams.set('_refresh',Date.now().toString());
@@ -2918,7 +2630,6 @@ ensureQualitySparkles();
 renderQualityStarCount();
 renderDurationBonusCount();
 updateSettingsUi();
-updateProfileTrainerUi();
 updateQualityDevUi();
 setDeveloperModeOpen(false);
 applyResponsiveVisualScale();
