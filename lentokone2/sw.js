@@ -1,6 +1,6 @@
 // Jokainen asennuspolku omistaa vain omat välimuistinsa.
 const CACHE_PREFIX = 'lentokone-pwa:' + self.registration.scope + ':';
-const CACHE_NAME = CACHE_PREFIX + 'base-6.3.6';
+const CACHE_NAME = CACHE_PREFIX + 'base-6.3.9';
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,6 +21,10 @@ const APP_SHELL = [
   './app/assets/images/este_pyorre.webp',
   './app/assets/images/soitin_huilu.webp',
   './app/assets/images/ohje_huilu.png',
+  './app/assets/images/valinta_tavallinen.webp',
+  './app/assets/images/valinta_kayra.webp',
+  './app/assets/images/valinta_u_mutka.webp',
+  './app/assets/images/valinta_pepsi_max.webp',
   './app/assets/icons/icon-192.png',
   './app/assets/icons/icon-512.png',
   './app/assets/icons/icon-maskable-512.png',

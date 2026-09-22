@@ -61,8 +61,34 @@
   <button id="settingsBtn" aria-label="Ohjausasetukset" title="Ohjausasetukset">⚙</button>
 
   <div id="startOverlay">
-    <div class="overlay-card start-minimal flute-only-start start-only-button">
-      <button id="instrumentFluteBtn" class="start-only-main-btn" type="button" aria-label="Aloita peli">Aloita</button>
+    <div class="overlay-card start-minimal instrument-start">
+      <h1 class="instrument-title">Valitse soitin</h1>
+      <div class="instrument-picker start-instrument-picker" role="group" aria-label="Valitse soitin">
+        <div class="instrument-choice">
+          <button id="instrumentFluteBtn" class="instrument-btn instrument-select-btn" type="button" data-instrument="suora" aria-label="Suora">
+            <img src="app/assets/images/valinta_tavallinen.webp" alt="" draggable="false">
+            <span class="instrument-label">Suora</span>
+          </button>
+        </div>
+        <div class="instrument-choice">
+          <button class="instrument-btn instrument-select-btn" type="button" data-instrument="kayra" aria-label="Käyrä">
+            <img src="app/assets/images/valinta_kayra.webp" alt="" draggable="false">
+            <span class="instrument-label">Käyrä</span>
+          </button>
+        </div>
+        <div class="instrument-choice">
+          <button class="instrument-btn instrument-select-btn" type="button" data-instrument="u-mutka" aria-label="U-mutka">
+            <img src="app/assets/images/valinta_u_mutka.webp" alt="" draggable="false">
+            <span class="instrument-label">U-mutka</span>
+          </button>
+        </div>
+        <div class="instrument-choice">
+          <button class="instrument-btn instrument-select-btn" type="button" data-instrument="pepsi-max" aria-label="Pepsi Max 33 cl">
+            <img src="app/assets/images/valinta_pepsi_max.webp" alt="" draggable="false">
+            <span class="instrument-label">Pepsi Max 33 cl</span>
+          </button>
+        </div>
+      </div>
       <button id="instrumentFluteInfoBtn" class="start-hidden-support" type="button" tabindex="-1" aria-hidden="true">i</button>
       <p id="controlModeLabel" class="start-hidden-support">Ohjaus: Avoin suukappaleääni</p>
       <p id="startError"></p>
@@ -89,6 +115,7 @@
         </button>
       </div>
       <button id="customTrainBtn" class="custom-train-btn" type="button">Kouluta avoin ääni</button>
+      <button id="profileTrainerBtn" class="profile-trainer-open-btn" type="button">Profiilikoulutin</button>
 
       <button id="devModeBtn" class="dev-mode-btn" type="button" aria-expanded="false">
         Kehittäjätila
@@ -122,11 +149,58 @@
     </div>
   </div>
 
+  <div id="profileTrainerOverlay" role="dialog" aria-modal="true" aria-labelledby="profileTrainerTitle">
+    <div class="profile-trainer-card">
+      <div class="profile-trainer-head">
+        <div>
+          <p class="settings-eyebrow">PROFIILIT</p>
+          <h1 id="profileTrainerTitle">Profiilikoulutin</h1>
+        </div>
+        <button id="profileTrainerCloseBtn" class="settings-close" type="button" aria-label="Sulje profiilikoulutin">×</button>
+      </div>
+      <p class="profile-trainer-intro">Puhalla jokaisella soittimella kolme mahdollisimman samanlaista ääntä.</p>
+      <div class="profile-trainer-grid">
+        <section class="profile-trainer-item" data-profile-card="suora">
+          <img src="app/assets/images/valinta_tavallinen.webp" alt="">
+          <div class="profile-trainer-item-copy">
+            <strong>Suora</strong>
+            <span id="profileStatusSuora" class="profile-trainer-item-status">Ei koulutettu</span>
+          </div>
+          <button class="profile-train-action" type="button" data-profile-train="suora">Kouluta</button>
+        </section>
+        <section class="profile-trainer-item" data-profile-card="u-mutka">
+          <img src="app/assets/images/valinta_u_mutka.webp" alt="">
+          <div class="profile-trainer-item-copy">
+            <strong>U-mutka</strong>
+            <span id="profileStatusUMutka" class="profile-trainer-item-status">Ei koulutettu</span>
+          </div>
+          <button class="profile-train-action" type="button" data-profile-train="u-mutka">Kouluta</button>
+        </section>
+        <section class="profile-trainer-item" data-profile-card="pepsi-max">
+          <img src="app/assets/images/valinta_pepsi_max.webp" alt="">
+          <div class="profile-trainer-item-copy">
+            <strong>Pepsi Max 33 cl</strong>
+            <span id="profileStatusPepsi" class="profile-trainer-item-status">Ei koulutettu</span>
+          </div>
+          <button class="profile-train-action" type="button" data-profile-train="pepsi-max">Kouluta</button>
+        </section>
+      </div>
+      <div class="profile-json-box">
+        <div class="profile-json-head">
+          <strong>Profiilien JSON</strong>
+          <button id="copyProfileJsonBtn" type="button">Kopioi</button>
+        </div>
+        <textarea id="profileJsonOutput" readonly spellcheck="false" aria-label="Profiilien JSON"></textarea>
+      </div>
+      <p id="profileTrainerStatus" class="profile-trainer-status"></p>
+    </div>
+  </div>
+
   <div id="trainOverlay" aria-live="polite">
     <div class="train-card" role="status" aria-label="Ohjausäänen koulutus">
-      <p class="train-eyebrow">KOULUTA AVOIN SUUKAPPALEÄÄNI</p>
-      <img class="train-flute" src="app/assets/images/soitin_huilu.webp" alt="">
-      <h1>Puhalla avoin ääni kolme kertaa</h1>
+      <p id="trainEyebrow" class="train-eyebrow">KOULUTA AVOIN SUUKAPPALEÄÄNI</p>
+      <img id="trainInstrumentImage" class="train-flute" src="app/assets/images/soitin_huilu.webp" alt="">
+      <h1 id="trainHeading">Puhalla avoin ääni kolme kertaa</h1>
       <p id="trainStatus">Puhalla kolme lyhyttä avointa suukappaleääntä.</p>
       <div class="train-progress" aria-label="Kolme koulutusnäytettä">
         <span class="train-dot" data-train-dot="0"></span>
