@@ -58,6 +58,7 @@ const loadingOverlay=$('#loadingOverlay'),loadingPercent=$('#loadingPercent'),lo
 const startOverlay=$('#startOverlay'),trainOverlay=$('#trainOverlay'),settingsOverlay=$('#settingsOverlay'),calOverlay=$('#calOverlay'),finishOverlay=$('#finishOverlay'),startError=$('#startError');
 const helpOverlay=$('#helpOverlay'),helpImage=$('#helpImage');
 const instrumentFluteBtn=$('#instrumentFluteBtn'),instrumentFluteInfoBtn=$('#instrumentFluteInfoBtn'),replayBtn=$('#replayBtn'),finishBtn=$('#finishBtn'),finishScore=$('#finishScore');
+const finishCoinPoints=$('#finishCoinPoints'),finishDiamondPoints=$('#finishDiamondPoints'),finishChestPoints=$('#finishChestPoints'),finishVortexPoints=$('#finishVortexPoints'),finishQualityPoints=$('#finishQualityPoints'),finishDurationPoints=$('#finishDurationPoints'),finishPenaltyPoints=$('#finishPenaltyPoints');
 const settingsBtn=$('#settingsBtn'),settingsCloseBtn=$('#settingsCloseBtn'),settingsStatus=$('#settingsStatus'),customTrainBtn=$('#customTrainBtn'),customModeTitle=$('#customModeTitle'),controlModeLabel=$('#controlModeLabel');
 const devModeBtn=$('#devModeBtn'),qualityDevPanel=$('#qualityDevPanel');
 const qualityBonusSlider=$('#qualityBonusSlider');
@@ -603,6 +604,9 @@ async function calibrateWithAllGameAudioMuted(){
 let score=0;
 let qualityStarsTotal=0;
 let durationBonusesTotal=0;
+let collectiblePointsTotal={coin:0,diamond:0,chest:0};
+let vortexBonusPointsTotal=0;
+let obstaclePenaltyPointsTotal=0;
 let collectibles=[];
 let obstacles=[];
 let rockFragments=[];
@@ -2121,7 +2125,9 @@ function hitObstacle(item,speed){
 
   if(item.type.key==='rock'){
     playGameFx('rock');
+    const scoreBeforeHit=score;
     score=Math.max(0,score-2);
+    obstaclePenaltyPointsTotal+=scoreBeforeHit-score;
     scoreNum.textContent=score;
     showScoreFlash('-2',true);
     spawnRockFragments(item,speed);
@@ -2134,7 +2140,9 @@ function hitObstacle(item,speed){
 
   // Lehmä: yksi piste pois vain kerran ja sen jälkeen törmäys pois käytöstä.
   playGameFx('cow');
+  const scoreBeforeHit=score;
   score=Math.max(0,score-1);
+  obstaclePenaltyPointsTotal+=scoreBeforeHit-score;
   scoreNum.textContent=score;
   showScoreFlash('-1',true);
   item.vx=-speed*1.65;
@@ -2175,6 +2183,10 @@ function collectCollectible(item){
   updateVortexTurboState(now);
   const pointMultiplier=vortexTurboActive?2:1;
   const gained=item.points*pointMultiplier;
+  if(Object.prototype.hasOwnProperty.call(collectiblePointsTotal,item.type.key)){
+    collectiblePointsTotal[item.type.key]+=item.points;
+  }
+  if(pointMultiplier>1)vortexBonusPointsTotal+=gained-item.points;
   score+=gained;
   scoreNum.textContent=score;
   item.el.classList.add('collected');
@@ -2231,8 +2243,28 @@ function updateGameTimer(now=performance.now()){
     playCountdownTick();
   }
 }
+function settlePendingBonusesAtGameEnd(now=performance.now()){
+  // Kirjaa ennen loppunäyttöä sellaiset bonuspisteet, joiden vaatima aika
+  // ehti täyttyä varsinaisen peliajan aikana. gameFinishing pysäyttää
+  // mikrofonianalyysin, joten ilman tätä aivan viimeiset ansaitut pisteet
+  // voisivat jäädä kirjaamatta.
+  if(qualityEvalActive){
+    if(now-qualityEvalStartedAt>=QUALITY_EVAL_WINDOW_MS)finishQualityEvaluation();
+    else cancelQualityEvaluation();
+  }
+
+  if(durationBonusActive){
+    if(now-durationBonusStartedAt>=DURATION_BONUS_MS){
+      cancelDurationBonusEvaluation();
+      awardSoundDurationBonus();
+    }else{
+      cancelDurationBonusEvaluation();
+    }
+  }
+}
 function startGameFinish(now=performance.now()){
   if(gameFinishing)return;
+  settlePendingBonusesAtGameEnd(now);
   gameFinishing=true;
   finishStartedAt=now;
   vortexTurboActive=false;
@@ -2252,18 +2284,36 @@ function startGameFinish(now=performance.now()){
     }catch{}
   }
 }
+function formatFinishPoints(value,{penalty=false}={}){
+  const n=Math.max(0,Math.round(Number(value)||0));
+  if(n===0)return '0';
+  return penalty?`−${n}`:`+${n}`;
+}
+function renderFinishBreakdown(){
+  if(finishCoinPoints)finishCoinPoints.textContent=formatFinishPoints(collectiblePointsTotal.coin);
+  if(finishDiamondPoints)finishDiamondPoints.textContent=formatFinishPoints(collectiblePointsTotal.diamond);
+  if(finishChestPoints)finishChestPoints.textContent=formatFinishPoints(collectiblePointsTotal.chest);
+  if(finishVortexPoints)finishVortexPoints.textContent=formatFinishPoints(vortexBonusPointsTotal);
+  if(finishQualityPoints)finishQualityPoints.textContent=formatFinishPoints(qualityStarsTotal);
+  if(finishDurationPoints)finishDurationPoints.textContent=formatFinishPoints(durationBonusesTotal);
+  if(finishPenaltyPoints)finishPenaltyPoints.textContent=formatFinishPoints(obstaclePenaltyPointsTotal,{penalty:true});
+}
 function completeGameFinish(){
   if(!gameRunning)return;
   gameRunning=false;
   gameFinishing=false;
   stopEngineAudio();
   finishScore.textContent=String(score);
+  renderFinishBreakdown();
   finishOverlay.style.display='flex';
 }
 function resetScore(){
   score=0;
   qualityStarsTotal=0;
   durationBonusesTotal=0;
+  collectiblePointsTotal={coin:0,diamond:0,chest:0};
+  vortexBonusPointsTotal=0;
+  obstaclePenaltyPointsTotal=0;
   scoreNum.textContent='0';
   renderQualityStarCount();
   renderDurationBonusCount();

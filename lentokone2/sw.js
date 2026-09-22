@@ -1,6 +1,6 @@
 // Jokainen asennuspolku omistaa vain omat välimuistinsa.
 const CACHE_PREFIX = 'lentokone-pwa:' + self.registration.scope + ':';
-const CACHE_NAME = CACHE_PREFIX + 'base-6.3.4';
+const CACHE_NAME = CACHE_PREFIX + 'base-6.3.6';
 const APP_SHELL = [
   './',
   './index.html',
