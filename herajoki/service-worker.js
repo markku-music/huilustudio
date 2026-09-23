@@ -1,6 +1,6 @@
-/* Puhallinstartti v23.1: one cache namespace per publication path. */
+/* Puhallinstartti v23.4: Firebase project/cache refresh. */
 const CACHE_PREFIX = 'puhallinstartti|' + encodeURIComponent(self.registration.scope) + '|';
-const CACHE_NAME = CACHE_PREFIX + '23.1.0';
+const CACHE_NAME = CACHE_PREFIX + '23.4.0';
 const ASSETS = [
   "./",
   "./index.html",

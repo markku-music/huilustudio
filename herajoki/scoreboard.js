@@ -8,7 +8,7 @@
     appId: '1:422306502286:web:cc65de4b618683d8379bdf'
   };
   const INSTRUMENTS = ['Huilu', 'Saksofoni', 'Klarinetti', 'Trumpetti', 'Käyrätorvi', 'Pasuuna'];
-  const COLLECTION = 'savelkojuScores';
+  const COLLECTION = 'puhallinstarttiScores';
   const SDK_BASE = 'https://www.gstatic.com/firebasejs/10.12.5/';
   const APP_NAME = 'puhallinstartti';
   let scope = '/';
