@@ -3,8 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f1e8" />
-  <title>Sävelkoju</title>
+  <meta name="theme-color" content="#6f2ac7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Puhallinstartti" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <title>Puhallinstartti</title>
   <style>
     :root {
       --ink: #314651;
@@ -289,17 +294,58 @@
       filter: drop-shadow(0 12px 14px rgba(82,54,118,.18));
     }
 
+    .target-wrap {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 205px;
+      aspect-ratio: 1;
+    }
+    .target-wrap .target {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      flex: none;
+    }
+
+
 
     /* Pelillisyys: kevyt tähtäin + 10 osuman kierros */
     .game-progress {
-      position: absolute; left: max(14px, var(--safe-x)); top: max(14px, var(--safe-top)); z-index: 11;
-      display: flex; gap: 6px; align-items: center; pointer-events: none;
+      position: fixed;
+      left: 50%;
+      bottom: calc(max(14px, var(--safe-bottom)) + 6px);
+      transform: translateX(-50%);
+      z-index: 18;
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 13px;
+      border-radius: 999px;
+      pointer-events: none;
+      background: rgba(255,255,255,.76);
+      box-shadow: 0 5px 18px rgba(0,0,0,.24), inset 0 0 0 1px rgba(255,255,255,.78);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
     }
-    .game-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; opacity: .48; }
-    .game-dot.done { background: currentColor; opacity: .92; }
-    body.theme-concert .game-progress { color: #f5d77e; }
-    body.theme-kids .game-progress { color: #72529a; }
-    body.theme-classic .game-progress { color: #526774; }
+    .game-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      background: rgba(255,255,255,.12);
+      opacity: .78;
+      box-shadow: 0 1px 3px rgba(0,0,0,.34);
+    }
+    .game-dot.done {
+      background: currentColor;
+      opacity: 1;
+      box-shadow: 0 0 0 2px rgba(255,255,255,.58), 0 2px 6px rgba(0,0,0,.34);
+    }
+    body.theme-concert .game-progress { color: #f5d77e; background: rgba(8,28,65,.82); }
+    body.theme-kids .game-progress { color: #69488f; background: rgba(255,255,255,.82); }
+    body.theme-classic .game-progress { color: #354b59; background: rgba(255,252,246,.82); }
     .targets { position: relative; }
     /* Alkuperäisen Sävelkoju-pelin tähtäin, sama kaikissa teemoissa */
     .aim-reticle {
@@ -340,11 +386,281 @@
     .game-finish {
       position: absolute; z-index: 10; inset: 50% auto auto 50%; transform: translate(-50%,-50%) scale(.9);
       padding: 12px 20px; border-radius: 999px; background: rgba(255,255,255,.92); color: #334755;
-      font: 800 clamp(18px,3vw,30px)/1 system-ui,sans-serif; box-shadow: 0 10px 28px rgba(0,0,0,.18);
+      font: 800 clamp(18px,3vw,30px)/1.1 system-ui,sans-serif; box-shadow: 0 10px 28px rgba(0,0,0,.18);
+      text-align: center; white-space: nowrap;
       opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
     }
     .game-finish.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    .game-finish .finish-time {
+      display: block;
+      margin-top: 7px;
+      font-size: .58em;
+      font-weight: 700;
+      opacity: .88;
+    }
     body.theme-concert .game-finish { background: rgba(8,28,65,.94); color: #f5d77e; }
+
+
+
+    .calibration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      background: rgba(12,18,24,.18);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+    }
+    .calibration-overlay[hidden] { display: none; }
+    .calibration-overlay.show {
+      animation: calibrationOverlayIn 180ms ease-out forwards;
+    }
+
+    .calibration-ring-stage {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      display: grid;
+      place-items: center;
+      transform: scale(.965);
+      animation: calibrationRingIn 220ms cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .calibration-ring-svg {
+      position: absolute;
+      inset: 0;
+      width: 150px;
+      height: 150px;
+      overflow: visible;
+      transform: rotate(-90deg);
+      filter: drop-shadow(0 6px 13px rgba(0,0,0,.24));
+    }
+    .calibration-ring-track,
+    .calibration-ring-progress {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+    }
+    .calibration-ring-track {
+      stroke: rgba(255,255,255,.30);
+    }
+    .calibration-ring-progress {
+      stroke: #ffffff;
+      stroke-dasharray: 351.86;
+      stroke-dashoffset: 351.86;
+      transition: stroke-dashoffset 55ms linear;
+    }
+    .calibration-emoji {
+      position: relative;
+      z-index: 1;
+      font-size: 52px;
+      line-height: 1;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.25));
+    }
+
+    @keyframes calibrationOverlayIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes calibrationRingIn {
+      from { transform: scale(.955); opacity: .72; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .player-overlay,
+    .scoreboard-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: max(18px, var(--safe-top)) max(18px, var(--safe-x)) max(18px, var(--safe-bottom));
+      background: rgba(18,24,29,.48);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+    }
+    .player-overlay[hidden],
+    .scoreboard-overlay[hidden] { display: none; }
+
+    .player-card,
+    .scoreboard-card {
+      width: min(520px, 100%);
+      max-height: min(720px, calc(100dvh - 36px));
+      overflow: auto;
+      border-radius: 26px;
+      border: 1px solid rgba(181,139,58,.42);
+      background: rgba(255,252,246,.97);
+      box-shadow: 0 18px 55px rgba(0,0,0,.30);
+      padding: clamp(20px,4vw,32px);
+      color: #2e414c;
+    }
+    body.theme-kids .player-card,
+    body.theme-kids .scoreboard-card {
+      border-color: rgba(129,103,176,.40);
+      background: rgba(255,255,255,.97);
+      color: #59437a;
+    }
+    body.theme-concert .player-card,
+    body.theme-concert .scoreboard-card {
+      border-color: rgba(226,179,69,.58);
+      background: rgba(8,28,65,.97);
+      color: #fff2c4;
+    }
+    .player-card h2,
+    .scoreboard-card h2 {
+      margin: 0 0 16px;
+      text-align: center;
+      font: 700 clamp(23px,4vw,34px)/1.1 system-ui,sans-serif;
+    }
+    .player-card p,
+    .scoreboard-status {
+      margin: 0 0 14px;
+      text-align: center;
+      opacity: .82;
+    }
+    .player-name-input {
+      width: 100%;
+      min-height: 52px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 2px solid currentColor;
+      background: rgba(255,255,255,.86);
+      color: #263843;
+      font: 700 20px/1.2 system-ui,sans-serif;
+      text-align: center;
+      outline: none;
+    }
+    body.theme-concert .player-name-input {
+      background: rgba(255,255,255,.94);
+      color: #18304b;
+    }
+    .player-actions,
+    .scoreboard-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .mode-picker {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+    }
+    .mode-button,
+    .filter-button {
+      appearance: none;
+      min-height: 44px;
+      padding: 8px 10px;
+      border-radius: 13px;
+      border: 1px solid rgba(181,139,58,.48);
+      background: rgba(255,255,255,.88);
+      color: #304651;
+      font: 750 14px/1.1 system-ui,sans-serif;
+      cursor: pointer;
+    }
+    .mode-button.active,
+    .filter-button.active {
+      background: #304651;
+      color: #fff;
+      border-color: #304651;
+    }
+    body.theme-kids .mode-button,
+    body.theme-kids .filter-button { color:#60477e; border-color:rgba(129,103,176,.42); }
+    body.theme-kids .mode-button.active,
+    body.theme-kids .filter-button.active { background:#60477e; color:#fff; border-color:#60477e; }
+    body.theme-concert .mode-button,
+    body.theme-concert .filter-button {
+      color:#fff2c4;
+      background:rgba(255,255,255,.06);
+      border-color:rgba(226,179,69,.35);
+    }
+    body.theme-concert .mode-button.active,
+    body.theme-concert .filter-button.active {
+      background:#f5d77e;
+      color:#17304e;
+      border-color:#f5d77e;
+    }
+    .scoreboard-filters {
+      display: grid;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+    }
+    .filter-button {
+      min-height: 38px;
+      padding: 7px 10px;
+      font-size: 13px;
+      border-radius: 999px;
+    }
+    .scoreboard-table-head,
+    .scoreboard-row {
+      display: grid;
+      grid-template-columns: minmax(90px,1.35fr) minmax(86px,1.15fr) 74px 78px;
+      gap: 8px;
+      align-items: center;
+    }
+    .scoreboard-table-head {
+      padding: 0 10px 6px;
+      font: 800 12px/1.1 system-ui,sans-serif;
+      opacity: .66;
+    }
+    .score-action {
+      appearance: none;
+      min-height: 48px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(181,139,58,.55);
+      background: rgba(255,255,255,.94);
+      color: #304651;
+      font: 700 16px/1 system-ui,sans-serif;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0,0,0,.10);
+    }
+    body.theme-kids .score-action { color:#60477e; border-color:rgba(129,103,176,.45); }
+    body.theme-concert .score-action { color:#fff2c4; background:rgba(18,42,78,.96); border-color:rgba(226,179,69,.62); }
+
+    .score-result {
+      text-align: center;
+      font: 800 clamp(30px,7vw,54px)/1 system-ui,sans-serif;
+      margin: 8px 0 18px;
+    }
+    .score-result small {
+      display: block;
+      margin-top: 8px;
+      font-size: .36em;
+      font-weight: 700;
+      opacity: .72;
+    }
+    .scoreboard-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 7px;
+    }
+    .scoreboard-row {
+      min-height: 42px;
+      padding: 7px 10px;
+      border-radius: 12px;
+      background: rgba(66,79,88,.08);
+      font: 700 14px/1.15 system-ui,sans-serif;
+    }
+    body.theme-concert .scoreboard-row { background: rgba(255,255,255,.08); }
+    .scoreboard-rank { text-align: center; opacity:.66; }
+    .scoreboard-time { font-variant-numeric: tabular-nums; }
+    .scoreboard-row.is-current {
+      outline: 2px solid currentColor;
+      background: rgba(181,139,58,.14);
+    }
 
     .gear-button {
       position: fixed;
@@ -419,6 +735,52 @@
     }
 
     .theme-list { display: grid; gap: 9px; }
+    .sensitivity-block {
+      margin-top: 14px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(91,111,123,.18);
+    }
+    body.theme-concert .sensitivity-block { border-top-color: rgba(226,179,69,.20); }
+    .sensitivity-title {
+      margin: 0 4px 9px;
+      font: 700 14px/1.2 system-ui,sans-serif;
+      opacity: .82;
+    }
+    .sensitivity-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    .sensitivity-button {
+      appearance: none;
+      min-width: 0;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 11px;
+      border: 1px solid rgba(91,111,123,.22);
+      background: rgba(255,255,255,.72);
+      color: #314651;
+      font: 750 13px/1 system-ui,sans-serif;
+      cursor: pointer;
+    }
+    .sensitivity-button.active {
+      background: #314651;
+      color: white;
+      border-color: #314651;
+      box-shadow: 0 3px 10px rgba(0,0,0,.18);
+    }
+    body.theme-kids .sensitivity-button { color:#60477e; }
+    body.theme-kids .sensitivity-button.active { background:#60477e; color:white; border-color:#60477e; }
+    body.theme-concert .sensitivity-button {
+      color:#fff4cf;
+      background:rgba(255,255,255,.06);
+      border-color:rgba(226,179,69,.20);
+    }
+    body.theme-concert .sensitivity-button.active {
+      background:#f5d77e;
+      color:#17304e;
+      border-color:#f5d77e;
+    }
 
     .theme-button {
       width: 100%;
@@ -553,6 +915,61 @@
       </section>
     </div>
 
+
+    <div class="calibration-overlay" id="calibrationOverlay" hidden aria-hidden="true">
+      <div class="calibration-ring-stage">
+        <svg class="calibration-ring-svg" viewBox="0 0 150 150" aria-hidden="true">
+          <circle class="calibration-ring-track" cx="75" cy="75" r="56"></circle>
+          <circle class="calibration-ring-progress" id="calibrationRingProgress" cx="75" cy="75" r="56"></circle>
+        </svg>
+        <span class="calibration-emoji">🤫</span>
+      </div>
+    </div>
+
+    <div class="player-overlay" id="playerOverlay" hidden>
+      <div class="player-card">
+        <h2>Pelaajan nimi</h2>
+        <p id="playerInstrumentLabel"></p>
+        <input class="player-name-input" id="playerNameInput" maxlength="20" autocomplete="name" placeholder="Nimi" />
+        <div class="mode-picker" id="modePicker" aria-label="Sävelten määrä">
+          <button class="mode-button active" type="button" data-note-mode="3">3 säveltä</button>
+          <button class="mode-button" type="button" data-note-mode="4">4 säveltä</button>
+          <button class="mode-button" type="button" data-note-mode="all">5 säveltä</button>
+        </div>
+        <div class="player-actions">
+          <button class="score-action" id="playerStartButton" type="button">Aloita</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="scoreboard-overlay" id="scoreboardOverlay" hidden>
+      <div class="scoreboard-card">
+        <h2 id="scoreboardTitle">Tulostaulu</h2>
+        <div class="score-result" id="scoreResult"></div>
+        <p class="scoreboard-status" id="scoreboardStatus"></p>
+        <div class="scoreboard-filters">
+          <div class="filter-row" id="levelFilter">
+            <button class="filter-button" type="button" data-filter-level="all">Kaikki tasot</button>
+            <button class="filter-button active" type="button" data-filter-level="3">3 säveltä</button>
+            <button class="filter-button" type="button" data-filter-level="4">4 säveltä</button>
+            <button class="filter-button" type="button" data-filter-level="5">5 säveltä</button>
+          </div>
+          <div class="filter-row" id="instrumentFilter">
+            <button class="filter-button active" type="button" data-filter-instrument="all">Kaikki soittimet</button>
+          </div>
+        </div>
+        <div class="scoreboard-table-head" aria-hidden="true">
+          <span>Nimi</span><span>Soitin</span><span>Säveliä</span><span>Aika</span>
+        </div>
+        <ol class="scoreboard-list" id="scoreboardList"></ol>
+        <div class="scoreboard-actions">
+          <button class="score-action" id="playAgainButton" type="button">Uudestaan</button>
+          <button class="score-action" id="changeInstrumentButton" type="button">Vaihda soitinta</button>
+          <button class="score-action" id="changePlayerButton" type="button">Uusi pelaaja</button>
+        </div>
+      </div>
+    </div>
+
     <button class="gear-button" id="gearButton" type="button" aria-label="Valitse ulkoasu" aria-expanded="false" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3.2"></circle>
@@ -564,9 +981,17 @@
     <aside class="theme-menu" id="themeMenu" hidden role="dialog" aria-modal="true" aria-labelledby="themeTitle">
       <h3 id="themeTitle">Ulkoasu</h3>
       <div class="theme-list" id="themeList"></div>
+      <div class="sensitivity-block">
+        <div class="sensitivity-title">Herkkyysraja</div>
+        <div class="sensitivity-grid" id="sensitivityGrid" aria-label="Herkkyysraja"></div>
+      </div>
     </aside>
   </main>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="scoreboard.js"></script>
   <script src="resonator-engine.js"></script>
   <script src="audio-manager.js"></script>
   <script>
@@ -597,26 +1022,76 @@
     const themeMenu = document.getElementById('themeMenu');
     const menuBackdrop = document.getElementById('menuBackdrop');
     const themeList = document.getElementById('themeList');
+    const sensitivityGrid = document.getElementById('sensitivityGrid');
     const gameProgress = document.getElementById('gameProgress');
     const aimReticle = document.getElementById('aimReticle');
     const gameFinish = document.getElementById('gameFinish');
+    const calibrationOverlay = document.getElementById('calibrationOverlay');
+    const calibrationRingProgress = document.getElementById('calibrationRingProgress');
+    const playerOverlay = document.getElementById('playerOverlay');
+    const playerInstrumentLabel = document.getElementById('playerInstrumentLabel');
+    const playerNameInput = document.getElementById('playerNameInput');
+    const playerStartButton = document.getElementById('playerStartButton');
+    const modePicker = document.getElementById('modePicker');
+    const levelFilter = document.getElementById('levelFilter');
+    const instrumentFilter = document.getElementById('instrumentFilter');
+    const scoreboardOverlay = document.getElementById('scoreboardOverlay');
+    const scoreboardTitle = document.getElementById('scoreboardTitle');
+    const scoreResult = document.getElementById('scoreResult');
+    const scoreboardStatus = document.getElementById('scoreboardStatus');
+    const scoreboardList = document.getElementById('scoreboardList');
+    const playAgainButton = document.getElementById('playAgainButton');
+    const changeInstrumentButton = document.getElementById('changeInstrumentButton');
+    const changePlayerButton = document.getElementById('changePlayerButton');
 
     let currentInstrument = null;
+    let currentPlayerName = '';
+    let selectedNoteMode = '3';
+    let activeNotes = [];
+    let allScoreRows = [];
+    let scoreLevelFilter = 3;
+    let scoreInstrumentFilter = 'all';
+    let lastSavedScoreId = null;
+    const instrumentBoardIds = {
+      'Huilu': 'huilu',
+      'Saksofoni': 'saksofoni',
+      'Klarinetti': 'klarinetti',
+      'Trumpetti': 'trumpetti',
+      'Käyrätorvi': 'kayratorvi',
+      'Pasuuna': 'pasuuna'
+    };
     let currentTheme = 'classic';
     try { currentTheme = localStorage.getItem('savelkoju-theme-v3') || 'classic'; } catch (_) {}
     let switchSerial = 0;
+    let sensitivityDb = 10;
+    try {
+      const savedSensitivity = Number(localStorage.getItem('savelkoju-sensitivity-db'));
+      if (savedSensitivity >= 4 && savedSensitivity <= 10) sensitivityDb = savedSensitivity;
+    } catch (_) {}
     const themeCache = new Map();
 
     const engine = new ResonatorStringEngine({
-      targets: {}, blockSize: 256, calibrationMs: 280, responseMs: 1.8, rmsResponseMs: 2.0,
+      targets: {}, blockSize: 256, calibrationMs: 1500, responseMs: 1.8, rmsResponseMs: 2.0,
       toleranceCents: 40, centerMatch: 0.955, edgeMatch: 0.998, minHalfPeriodEnergy: 0.32,
-      noiseMarginDb: 6, pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 140
+      noiseMarginDb: 10, pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 140
     });
+    engine.setNoiseMarginDb(sensitivityDb);
     let micOpening = false;
+
+    function notesForMode(instrument, mode = selectedNoteMode) {
+      if (!instrument) return [];
+      if (mode === '3') return instrument.notes.slice(0, 3);
+      if (mode === '4') return instrument.notes.slice(0, 4);
+      return instrument.notes.slice();
+    }
 
     function targetsForInstrument(instrument) {
       if (!instrument) return {};
-      return Object.fromEntries(instrument.notes.map((note, i) => [note, instrument.hz[i]]));
+      const allowed = new Set(activeNotes.length ? activeNotes : notesForMode(instrument));
+      const pairs = instrument.notes
+        .map((note, i) => [note, instrument.hz[i]])
+        .filter(([note]) => allowed.has(note));
+      return Object.fromEntries(pairs);
     }
 
     function updateMicButton() {}
@@ -626,6 +1101,16 @@
     let gameTargetNote = null;
     let gameLocked = false;
     let lastTargetNote = null;
+    let gameStartTime = 0;
+
+    function formatGameTime(ms) {
+      const totalSeconds = ms / 1000;
+      if (totalSeconds < 60) return `${totalSeconds.toFixed(2).replace('.', ',')} s`;
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = (totalSeconds - minutes * 60).toFixed(1).padStart(4, '0').replace('.', ',');
+      return `${minutes}:${seconds}`;
+    }
+
 
     function renderProgress() {
       gameProgress.replaceChildren(...Array.from({length: GAME_HITS}, (_, i) => {
@@ -648,15 +1133,21 @@
 
     function chooseNextTarget() {
       if (!currentInstrument) return;
-      const choices = currentInstrument.notes.filter(n => n !== lastTargetNote);
-      gameTargetNote = choices[Math.floor(Math.random() * choices.length)] || currentInstrument.notes[0];
+      const choices = activeNotes.filter(n => n !== lastTargetNote);
+      gameTargetNote = choices[Math.floor(Math.random() * choices.length)] || activeNotes[0];
       lastTargetNote = gameTargetNote;
       requestAnimationFrame(positionReticle);
     }
 
     function resetGame() {
-      gameHits = 0; gameLocked = false; lastTargetNote = null; gameFinish.classList.remove('show');
-      renderProgress(); chooseNextTarget();
+      gameHits = 0;
+      gameLocked = false;
+      lastTargetNote = null;
+      gameStartTime = performance.now();
+      gameFinish.classList.remove('show');
+      gameFinish.innerHTML = '10 / 10';
+      renderProgress();
+      chooseNextTarget();
     }
 
     // Sama äänenhallinta kuin toimivassa Sävelkojussa.
@@ -693,11 +1184,51 @@
       gameHits++;
       renderProgress();
       if (gameHits >= GAME_HITS) {
+        const elapsed = performance.now() - gameStartTime;
+        gameFinish.innerHTML = `10 / 10<span class="finish-time">Aika ${formatGameTime(elapsed)}</span>`;
         gameFinish.classList.add('show');
-        setTimeout(() => { gameFinish.classList.remove('show'); resetGame(); }, 1400);
+        setTimeout(() => {
+          gameFinish.classList.remove('show');
+          void showFinalScore(elapsed);
+        }, 700);
         return;
       }
       setTimeout(() => { aimReticle.classList.remove('hit'); gameLocked = false; chooseNextTarget(); }, 140);
+    }
+
+    let calibrationRaf = 0;
+    let calibrationVisualStart = 0;
+    const CALIBRATION_RING_LENGTH = 351.86;
+
+    function updateCalibrationRing(now) {
+      if (!calibrationVisualStart) calibrationVisualStart = now;
+      const progress = Math.min(1, Math.max(0, (now - calibrationVisualStart) / 1500));
+      calibrationRingProgress.style.strokeDashoffset =
+        (CALIBRATION_RING_LENGTH - progress * CALIBRATION_RING_LENGTH).toFixed(2);
+      if (progress < 1 && !calibrationOverlay.hidden) {
+        calibrationRaf = requestAnimationFrame(updateCalibrationRing);
+      }
+    }
+
+    function showCalibrationFeedback() {
+      if (calibrationRaf) cancelAnimationFrame(calibrationRaf);
+      calibrationRaf = 0;
+      calibrationVisualStart = 0;
+      calibrationRingProgress.style.strokeDashoffset = String(CALIBRATION_RING_LENGTH);
+      calibrationOverlay.hidden = false;
+      calibrationOverlay.classList.remove('show');
+      void calibrationOverlay.offsetWidth;
+      calibrationOverlay.classList.add('show');
+      calibrationRaf = requestAnimationFrame(updateCalibrationRing);
+    }
+
+    function hideCalibrationFeedback() {
+      if (calibrationRaf) cancelAnimationFrame(calibrationRaf);
+      calibrationRaf = 0;
+      calibrationRingProgress.style.strokeDashoffset = '0';
+      calibrationOverlay.classList.remove('show');
+      calibrationOverlay.hidden = true;
+      calibrationVisualStart = 0;
     }
 
     engine.addEventListener('trigger', event => {
@@ -705,8 +1236,15 @@
       if (note) registerGameHit(note);
     });
     window.addEventListener('resize', () => requestAnimationFrame(positionReticle));
-    engine.addEventListener('state', () => { micOpening = false; updateMicButton(); });
+    engine.addEventListener('state', event => {
+      const state = event.detail?.state;
+      if (state === 'calibrating') showCalibrationFeedback();
+      if (state === 'running' || state === 'stopped') hideCalibrationFeedback();
+      micOpening = false;
+      updateMicButton();
+    });
     engine.addEventListener('error', event => {
+      hideCalibrationFeedback();
       micOpening = false; updateMicButton();
       console.warn('ResonatorEngine:', event.detail?.message || event.detail?.error || event.detail);
     });
@@ -715,6 +1253,10 @@
 
     function imagePath(themeId, note) {
       return `assets/themes/${themeId}/notes/${note}.webp`;
+    }
+
+    function emptyPath(themeId) {
+      return `assets/themes/${themeId}/empty.webp`;
     }
 
     function backgroundPath(themeId) {
@@ -756,22 +1298,29 @@
 
     function renderTargets() {
       if (!currentInstrument) return;
+      const active = new Set(activeNotes.length ? activeNotes : currentInstrument.notes);
       const nodes = currentInstrument.notes.map(note => {
+        const wrap = document.createElement('div');
+        wrap.className = 'target-wrap';
+        wrap.dataset.note = note;
+
         const img = document.createElement('img');
         img.className = 'target';
         img.dataset.note = note;
-        img.src = imagePath(currentTheme, note);
-        img.alt = `Sävel ${note}`;
+        img.src = active.has(note) ? imagePath(currentTheme, note) : emptyPath(currentTheme);
+        img.alt = active.has(note) ? `Sävel ${note}` : 'Tyhjä säveltaulu';
         img.draggable = false;
-        return img;
+        wrap.appendChild(img);
+        return wrap;
       });
       targets.replaceChildren(...nodes, aimReticle, gameFinish);
       requestAnimationFrame(positionReticle);
     }
 
     function updateTargetSources(themeId) {
+      const active = new Set(activeNotes.length ? activeNotes : (currentInstrument ? currentInstrument.notes : []));
       targets.querySelectorAll('.target').forEach(img => {
-        img.src = imagePath(themeId, img.dataset.note);
+        img.src = active.has(img.dataset.note) ? imagePath(themeId, img.dataset.note) : emptyPath(themeId);
       });
     }
 
@@ -783,18 +1332,133 @@
       });
     }
 
+    function updateModeButtons() {
+      modePicker.querySelectorAll('.mode-button').forEach(button => {
+        button.classList.toggle('active', button.dataset.noteMode === selectedNoteMode);
+      });
+    }
+
+    function openPlayerOverlay() {
+      if (!currentInstrument) return;
+      playerInstrumentLabel.textContent = currentInstrument.name;
+      playerNameInput.value = currentPlayerName;
+      updateModeButtons();
+      playerOverlay.hidden = false;
+      setTimeout(() => playerNameInput.focus(), 0);
+    }
+
+    function startForPlayer() {
+      const clean = window.SavelkojuScoreboard
+        ? window.SavelkojuScoreboard.cleanName(playerNameInput.value)
+        : String(playerNameInput.value || '').trim().slice(0,20);
+      if (!clean) {
+        playerNameInput.focus();
+        return;
+      }
+      currentPlayerName = clean;
+      playerNameInput.value = clean;
+      activeNotes = notesForMode(currentInstrument, selectedNoteMode);
+      engine.setTargets(targetsForInstrument(currentInstrument));
+      renderTargets();
+      playerOverlay.hidden = true;
+      resetGame();
+    }
+
+    function formatBoardTime(ms) {
+      return formatGameTime(Number(ms));
+    }
+
+    function applyScoreFilters() {
+      let rows = allScoreRows.slice();
+      if (scoreLevelFilter !== 'all') {
+        rows = rows.filter(row => Number(row.noteCount) === Number(scoreLevelFilter));
+      }
+      if (scoreInstrumentFilter !== 'all') {
+        rows = rows.filter(row => row.instrumentName === scoreInstrumentFilter);
+      }
+      rows.sort((a,b) => Number(a.timeMs) - Number(b.timeMs));
+      renderScoreboardRows(rows.slice(0, 10), lastSavedScoreId);
+    }
+
+    function updateFilterButtons() {
+      levelFilter.querySelectorAll('.filter-button').forEach(button => {
+        const value = button.dataset.filterLevel;
+        button.classList.toggle('active',
+          value === 'all' ? scoreLevelFilter === 'all' : Number(value) === Number(scoreLevelFilter));
+      });
+      instrumentFilter.querySelectorAll('.filter-button').forEach(button => {
+        button.classList.toggle('active', button.dataset.filterInstrument === scoreInstrumentFilter);
+      });
+    }
+
+    function renderScoreboardRows(rows, currentId) {
+      scoreboardList.replaceChildren();
+      rows.forEach(row => {
+        const li = document.createElement('li');
+        li.className = 'scoreboard-row' + (row.id === currentId ? ' is-current' : '');
+        const name = document.createElement('span');
+        name.textContent = row.playerName || '';
+        const instrument = document.createElement('span');
+        instrument.textContent = row.instrumentName || '';
+        const notes = document.createElement('span');
+        notes.textContent = String(row.noteCount || '');
+        const time = document.createElement('span');
+        time.className = 'scoreboard-time';
+        time.textContent = formatBoardTime(row.timeMs);
+        li.append(name, instrument, notes, time);
+        scoreboardList.appendChild(li);
+      });
+    }
+
+    async function showFinalScore(elapsed) {
+      gameLocked = true;
+      aimReticle.hidden = true;
+      scoreboardOverlay.hidden = false;
+      scoreboardTitle.textContent = 'Tulostaulu';
+      const noteCount = activeNotes.length;
+      scoreResult.innerHTML = `${formatGameTime(elapsed)}<small>${currentPlayerName} · ${currentInstrument?.name || ''} · ${noteCount} säveltä</small>`;
+      scoreboardStatus.textContent = 'Tallennetaan tulosta…';
+      scoreboardList.replaceChildren();
+      lastSavedScoreId = null;
+
+      if (!window.SavelkojuScoreboard) {
+        scoreboardStatus.textContent = 'Tulostaulua ei saatu käyttöön.';
+        return;
+      }
+
+      try {
+        const saved = await window.SavelkojuScoreboard.saveScore({
+          playerName: currentPlayerName,
+          instrumentName: currentInstrument.name,
+          noteCount,
+          timeMs: elapsed
+        });
+        lastSavedScoreId = saved.id;
+        allScoreRows = await window.SavelkojuScoreboard.loadScores(250);
+        scoreLevelFilter = noteCount;
+        scoreInstrumentFilter = 'all';
+        updateFilterButtons();
+        applyScoreFilters();
+        const semester = window.SavelkojuScoreboard.currentSemester();
+        scoreboardStatus.textContent = semester.label;
+      } catch (error) {
+        console.warn('Tulostaulu:', error);
+        scoreboardStatus.textContent = 'Tulos näkyy tässä laitteessa, mutta Firebase-tallennus epäonnistui.';
+      }
+    }
+
     async function showInstrument(instrument) {
       currentInstrument = instrument;
+      activeNotes = notesForMode(instrument, selectedNoteMode);
       engine.setTargets(targetsForInstrument(instrument));
       instrumentName.textContent = instrument.name;
       instrumentName.setAttribute('aria-label', `Vaihda soitinta. Nykyinen soitin: ${instrument.name}`);
       renderTargets();
       instrumentPanel.hidden = true;
       notesPanel.hidden = false;
-      resetGame();
+      aimReticle.hidden = true;
 
-      // Soitinvalinta on käyttäjän ele: avaa mikrofoni ja vapauta samalla
-      // lamppusoundin AudioContext iOS/Safaria varten.
+      // Soitinvalinta on käyttäjän ele: avaa mikrofoni ja peliäänet.
       void unlockGameAudio();
       if (!engine.running && !micOpening) {
         micOpening = true;
@@ -807,9 +1471,17 @@
           micOpening = false;
         }
       }
+
+      if (currentPlayerName) {
+        resetGame();
+      } else {
+        openPlayerOverlay();
+      }
     }
 
     function showInstrumentMenu() {
+      playerOverlay.hidden = true;
+      scoreboardOverlay.hidden = true;
       notesPanel.hidden = true;
       aimReticle.hidden = true;
       instrumentPanel.hidden = false;
@@ -867,6 +1539,54 @@
       gearButton.setAttribute('aria-expanded', 'false');
     }
 
+    modePicker.addEventListener('click', event => {
+      const button = event.target.closest('.mode-button');
+      if (!button) return;
+      selectedNoteMode = button.dataset.noteMode;
+      updateModeButtons();
+    });
+
+    playerStartButton.addEventListener('click', startForPlayer);
+    playerNameInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') startForPlayer();
+    });
+    playAgainButton.addEventListener('click', () => {
+      scoreboardOverlay.hidden = true;
+      resetGame();
+    });
+    changeInstrumentButton.addEventListener('click', showInstrumentMenu);
+    changePlayerButton.addEventListener('click', () => {
+      scoreboardOverlay.hidden = true;
+      currentPlayerName = '';
+      openPlayerOverlay();
+    });
+
+    instruments.forEach(instrument => {
+      const filterButton = document.createElement('button');
+      filterButton.type = 'button';
+      filterButton.className = 'filter-button';
+      filterButton.dataset.filterInstrument = instrument.name;
+      filterButton.textContent = instrument.name;
+      instrumentFilter.appendChild(filterButton);
+    });
+
+    levelFilter.addEventListener('click', event => {
+      const button = event.target.closest('.filter-button');
+      if (!button) return;
+      const value = button.dataset.filterLevel;
+      scoreLevelFilter = value === 'all' ? 'all' : Number(value);
+      updateFilterButtons();
+      applyScoreFilters();
+    });
+
+    instrumentFilter.addEventListener('click', event => {
+      const button = event.target.closest('.filter-button');
+      if (!button) return;
+      scoreInstrumentFilter = button.dataset.filterInstrument || 'all';
+      updateFilterButtons();
+      applyScoreFilters();
+    });
+
     instruments.forEach(instrument => {
       const button = document.createElement('button');
       button.className = 'instrument-button';
@@ -875,6 +1595,22 @@
       button.addEventListener('click', () => showInstrument(instrument));
       instrumentGrid.appendChild(button);
     });
+
+    for (let db = 4; db <= 10; db++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sensitivity-button' + (db === sensitivityDb ? ' active' : '');
+      button.textContent = String(db);
+      button.setAttribute('aria-label', `${db} dB`);
+      button.addEventListener('click', () => {
+        sensitivityDb = engine.setNoiseMarginDb(db);
+        try { localStorage.setItem('savelkoju-sensitivity-db', String(sensitivityDb)); } catch (_) {}
+        sensitivityGrid.querySelectorAll('.sensitivity-button').forEach((item, index) => {
+          item.classList.toggle('active', index + 4 === sensitivityDb);
+        });
+      });
+      sensitivityGrid.appendChild(button);
+    }
 
     themes.forEach(theme => {
       const button = document.createElement('button');
@@ -919,5 +1655,16 @@
       else setTimeout(preloadOthers, 250);
     });
   </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(err => {
+          console.warn('Service worker registration failed:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
+
