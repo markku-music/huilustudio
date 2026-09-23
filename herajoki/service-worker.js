@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puhaltamo-v1';
+const CACHE_NAME = 'puhallinstartti-v23-scoreboard-final-v2-reticle';
 const ASSETS = [
   "./",
   "./index.html",
@@ -49,7 +49,7 @@ const ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./resonator-engine.js",
-  "./scoreboard.js"
+  "./scoreboard.js",
 ];
 
 self.addEventListener('install', event => {

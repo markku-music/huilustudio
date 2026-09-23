@@ -662,6 +662,57 @@
       background: rgba(181,139,58,.14);
     }
 
+    /* Tulostaulu: käyttäjän hyväksymät lopulliset asetukset */
+    .scoreboard-card {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    #scoreboardTitle,
+    #scoreboardStatus,
+    #levelFilter [data-filter-level="all"] {
+      display: none !important;
+    }
+    .score-result {
+      font-size: 36px;
+    }
+    .scoreboard-filters {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+    #levelFilter {
+      flex-wrap: nowrap;
+    }
+    #instrumentFilter {
+      flex: 0 0 auto;
+    }
+    .instrument-filter-select {
+      appearance: auto;
+      min-height: 38px;
+      max-width: 190px;
+      padding: 7px 30px 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(181,139,58,.48);
+      background: rgba(255,255,255,.88);
+      color: #304651;
+      font: 750 13px/1.1 system-ui,sans-serif;
+      cursor: pointer;
+    }
+    body.theme-kids .instrument-filter-select {
+      color: #60477e;
+      border-color: rgba(129,103,176,.42);
+    }
+    body.theme-concert .instrument-filter-select {
+      color: #fff2c4;
+      background: rgba(255,255,255,.06);
+      border-color: rgba(226,179,69,.35);
+    }
+
     .gear-button {
       position: fixed;
       z-index: 20;
@@ -955,7 +1006,7 @@
             <button class="filter-button" type="button" data-filter-level="5">5 säveltä</button>
           </div>
           <div class="filter-row" id="instrumentFilter">
-            <button class="filter-button active" type="button" data-filter-instrument="all">Kaikki soittimet</button>
+            <select class="instrument-filter-select" id="instrumentFilterSelect" aria-label="Suodata tulostaulua soittimen mukaan"></select>
           </div>
         </div>
         <div class="scoreboard-table-head" aria-hidden="true">
@@ -1035,6 +1086,7 @@
     const modePicker = document.getElementById('modePicker');
     const levelFilter = document.getElementById('levelFilter');
     const instrumentFilter = document.getElementById('instrumentFilter');
+    const instrumentFilterSelect = document.getElementById('instrumentFilterSelect');
     const scoreboardOverlay = document.getElementById('scoreboardOverlay');
     const scoreboardTitle = document.getElementById('scoreboardTitle');
     const scoreResult = document.getElementById('scoreResult');
@@ -1131,12 +1183,19 @@
       aimReticle.hidden = false;
     }
 
+    function scheduleReticlePosition() {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(positionReticle);
+      });
+      setTimeout(positionReticle, 120);
+    }
+
     function chooseNextTarget() {
       if (!currentInstrument) return;
       const choices = activeNotes.filter(n => n !== lastTargetNote);
       gameTargetNote = choices[Math.floor(Math.random() * choices.length)] || activeNotes[0];
       lastTargetNote = gameTargetNote;
-      requestAnimationFrame(positionReticle);
+      scheduleReticlePosition();
     }
 
     function resetGame() {
@@ -1314,7 +1373,7 @@
         return wrap;
       });
       targets.replaceChildren(...nodes, aimReticle, gameFinish);
-      requestAnimationFrame(positionReticle);
+      scheduleReticlePosition();
     }
 
     function updateTargetSources(themeId) {
@@ -1386,9 +1445,9 @@
         button.classList.toggle('active',
           value === 'all' ? scoreLevelFilter === 'all' : Number(value) === Number(scoreLevelFilter));
       });
-      instrumentFilter.querySelectorAll('.filter-button').forEach(button => {
-        button.classList.toggle('active', button.dataset.filterInstrument === scoreInstrumentFilter);
-      });
+      if (instrumentFilterSelect) {
+        instrumentFilterSelect.value = scoreInstrumentFilter;
+      }
     }
 
     function renderScoreboardRows(rows, currentId) {
@@ -1416,6 +1475,9 @@
       scoreboardOverlay.hidden = false;
       scoreboardTitle.textContent = 'Tulostaulu';
       const noteCount = activeNotes.length;
+      scoreLevelFilter = noteCount;
+      scoreInstrumentFilter = currentInstrument?.name || 'all';
+      updateFilterButtons();
       scoreResult.innerHTML = `${formatGameTime(elapsed)}<small>${currentPlayerName} · ${currentInstrument?.name || ''} · ${noteCount} säveltä</small>`;
       scoreboardStatus.textContent = 'Tallennetaan tulosta…';
       scoreboardList.replaceChildren();
@@ -1436,15 +1498,15 @@
         lastSavedScoreId = saved.id;
         allScoreRows = await window.SavelkojuScoreboard.loadScores(250);
         scoreLevelFilter = noteCount;
-        scoreInstrumentFilter = 'all';
+        scoreInstrumentFilter = currentInstrument?.name || 'all';
         updateFilterButtons();
         applyScoreFilters();
         const semester = window.SavelkojuScoreboard.currentSemester();
         scoreboardStatus.textContent = semester.label;
-      } catch (error) {
+        } catch (error) {
         console.warn('Tulostaulu:', error);
         scoreboardStatus.textContent = 'Tulos näkyy tässä laitteessa, mutta Firebase-tallennus epäonnistui.';
-      }
+        }
     }
 
     async function showInstrument(instrument) {
@@ -1457,6 +1519,7 @@
       instrumentPanel.hidden = true;
       notesPanel.hidden = false;
       aimReticle.hidden = true;
+      scheduleReticlePosition();
 
       // Soitinvalinta on käyttäjän ele: avaa mikrofoni ja peliäänet.
       void unlockGameAudio();
@@ -1561,28 +1624,36 @@
       openPlayerOverlay();
     });
 
-    instruments.forEach(instrument => {
-      const filterButton = document.createElement('button');
-      filterButton.type = 'button';
-      filterButton.className = 'filter-button';
-      filterButton.dataset.filterInstrument = instrument.name;
-      filterButton.textContent = instrument.name;
-      instrumentFilter.appendChild(filterButton);
-    });
+    function buildInstrumentFilter() {
+      if (!instrumentFilterSelect) return;
+      const options = [
+        { value: 'all', label: 'Kaikki soittimet' },
+        ...instruments
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name, 'fi'))
+          .map(instrument => ({ value: instrument.name, label: instrument.name }))
+      ];
+      instrumentFilterSelect.replaceChildren(...options.map(item => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = item.label;
+        return option;
+      }));
+      instrumentFilterSelect.value = scoreInstrumentFilter;
+    }
+    buildInstrumentFilter();
 
     levelFilter.addEventListener('click', event => {
       const button = event.target.closest('.filter-button');
-      if (!button) return;
+      if (!button || button.dataset.filterLevel === 'all') return;
       const value = button.dataset.filterLevel;
-      scoreLevelFilter = value === 'all' ? 'all' : Number(value);
+      scoreLevelFilter = Number(value);
       updateFilterButtons();
       applyScoreFilters();
     });
 
-    instrumentFilter.addEventListener('click', event => {
-      const button = event.target.closest('.filter-button');
-      if (!button) return;
-      scoreInstrumentFilter = button.dataset.filterInstrument || 'all';
+    instrumentFilterSelect.addEventListener('change', () => {
+      scoreInstrumentFilter = instrumentFilterSelect.value || 'all';
       updateFilterButtons();
       applyScoreFilters();
     });
