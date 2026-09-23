@@ -979,9 +979,8 @@
 
     <div class="player-overlay" id="playerOverlay" hidden>
       <div class="player-card">
-        <h2>Pelaajan nimi</h2>
         <p id="playerInstrumentLabel"></p>
-        <input class="player-name-input" id="playerNameInput" maxlength="20" autocomplete="name" placeholder="Nimi" />
+        <input class="player-name-input" id="playerNameInput" maxlength="20" autocomplete="name" placeholder="Nimi" aria-label="Pelaajan nimi" />
         <div class="mode-picker" id="modePicker" aria-label="Sävelten määrä">
           <button class="mode-button active" type="button" data-note-mode="3">3 säveltä</button>
           <button class="mode-button" type="button" data-note-mode="4">4 säveltä</button>
@@ -1183,19 +1182,12 @@
       aimReticle.hidden = false;
     }
 
-    function scheduleReticlePosition() {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(positionReticle);
-      });
-      setTimeout(positionReticle, 120);
-    }
-
     function chooseNextTarget() {
       if (!currentInstrument) return;
       const choices = activeNotes.filter(n => n !== lastTargetNote);
       gameTargetNote = choices[Math.floor(Math.random() * choices.length)] || activeNotes[0];
       lastTargetNote = gameTargetNote;
-      scheduleReticlePosition();
+      requestAnimationFrame(positionReticle);
     }
 
     function resetGame() {
@@ -1373,7 +1365,7 @@
         return wrap;
       });
       targets.replaceChildren(...nodes, aimReticle, gameFinish);
-      scheduleReticlePosition();
+      requestAnimationFrame(positionReticle);
     }
 
     function updateTargetSources(themeId) {
@@ -1519,7 +1511,6 @@
       instrumentPanel.hidden = true;
       notesPanel.hidden = false;
       aimReticle.hidden = true;
-      scheduleReticlePosition();
 
       // Soitinvalinta on käyttäjän ele: avaa mikrofoni ja peliäänet.
       void unlockGameAudio();
@@ -1537,6 +1528,9 @@
 
       if (currentPlayerName) {
         resetGame();
+        // Vain soitinvaihdon jälkeen: varmista tähtäimen paikka, kun uusi taulurivi on asettunut.
+        requestAnimationFrame(() => requestAnimationFrame(positionReticle));
+        setTimeout(positionReticle, 120);
       } else {
         openPlayerOverlay();
       }

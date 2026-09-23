@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puhallinstartti-v23-scoreboard-final-v2-reticle';
+const CACHE_NAME = 'puhallinstartti-v23-scoreboard-final-v2-safe';
 const ASSETS = [
   "./",
   "./index.html",
