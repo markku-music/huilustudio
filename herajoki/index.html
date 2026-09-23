@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f1e8" />
+  <title>Sävelkoju</title>
+  <style>
+    :root {
+      --ink: #263642;
+      --teal: #6f9298;
+      --teal-dark: #4f7379;
+      --gold: #b58b3a;
+      --paper: #fbf7ef;
+      --paper-2: #f2eadf;
+      --shadow: 0 14px 38px rgba(38, 54, 66, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    body {
+      min-height: 100dvh;
+      background:
+        radial-gradient(circle at 50% 32%, rgba(255,255,255,.98) 0%, rgba(251,247,239,.96) 42%, rgba(239,232,220,.98) 100%),
+        linear-gradient(180deg, #fffdf8 0%, #eee5d7 100%);
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      isolation: isolate;
+    }
+
+    .frame {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .veil {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at center, rgba(255,255,255,.08) 0 32%, rgba(255,255,255,.22) 64%, rgba(255,255,255,.06) 100%);
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+      width: min(1120px, 92vw);
+      height: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 72px;
+    }
+
+    .title {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 600;
+      letter-spacing: .045em;
+      font-size: clamp(28px, 3vw, 46px);
+      color: #314651;
+      text-shadow: 0 1px 0 rgba(255,255,255,.75);
+    }
+
+    .screen {
+      min-height: 0;
+      width: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    .instrument-panel,
+    .notes-panel {
+      width: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    .instrument-panel[hidden],
+    .notes-panel[hidden] { display: none; }
+
+    .instrument-card {
+      width: min(760px, 90vw);
+      padding: clamp(22px, 4vw, 42px);
+      border: 1px solid rgba(181,139,58,.34);
+      border-radius: 28px;
+      background: rgba(255, 252, 246, .80);
+      backdrop-filter: blur(9px) saturate(1.08);
+      box-shadow: var(--shadow);
+    }
+
+    .instrument-card h2 {
+      margin: 0 0 22px;
+      text-align: center;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(22px, 2.4vw, 34px);
+      font-weight: 500;
+      color: #314651;
+    }
+
+    .instrument-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .instrument-button,
+    .change-button {
+      appearance: none;
+      border: 1px solid rgba(181,139,58,.56);
+      color: #2b3c46;
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,240,231,.96));
+      border-radius: 18px;
+      box-shadow: 0 6px 16px rgba(38,54,66,.10), inset 0 1px 0 rgba(255,255,255,.9);
+      cursor: pointer;
+      transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+      font: inherit;
+      font-weight: 650;
+    }
+
+    .instrument-button {
+      min-height: 64px;
+      padding: 12px 16px;
+      font-size: clamp(15px, 1.5vw, 19px);
+    }
+
+    .instrument-button:hover,
+    .instrument-button:focus-visible,
+    .change-button:hover,
+    .change-button:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--gold);
+      box-shadow: 0 10px 22px rgba(38,54,66,.14), 0 0 0 3px rgba(111,146,152,.12);
+      outline: none;
+    }
+
+    .notes-panel {
+      height: 100%;
+      grid-template-rows: auto 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notes-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .instrument-name {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(22px, 2.5vw, 36px);
+      font-weight: 600;
+      color: #314651;
+    }
+
+    .change-button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+    }
+
+    .targets {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      align-items: center;
+      justify-items: center;
+      gap: clamp(4px, 1.4vw, 18px);
+      padding: 6px 0 16px;
+    }
+
+    .target {
+      width: min(100%, 215px);
+      aspect-ratio: 1;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 15px rgba(38,54,66,.17));
+      transform: translateZ(0);
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .footer {
+      min-height: 38px;
+    }
+
+    @media (max-width: 760px) {
+      .instrument-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .instrument-card { width: min(560px, 92vw); }
+    }
+
+    @media (orientation: portrait) {
+      body { overflow: auto; }
+      .app { min-height: 100dvh; height: auto; }
+      .frame { display: none; }
+      .content { min-height: 100dvh; height: auto; }
+      .targets {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: min(720px, 94vw);
+      }
+      .target { width: min(100%, 210px); }
+    }
+
+    @media (max-height: 560px) and (orientation: landscape) {
+      .content { width: min(1100px, 86vw); padding-top: 8px; padding-bottom: 8px; }
+      .topbar { min-height: 44px; }
+      .title { font-size: 28px; }
+      .instrument-card { padding: 18px 24px; }
+      .instrument-card h2 { margin-bottom: 14px; font-size: 22px; }
+      .instrument-button { min-height: 48px; padding: 8px 12px; }
+      .notes-panel { gap: 0; }
+      .instrument-name { font-size: 24px; }
+      .targets { width: min(1020px, 85vw); padding-bottom: 4px; }
+      .target { max-height: 47vh; width: auto; max-width: 18vw; }
+      .footer { min-height: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <img class="frame" src="assets/background/music-school-frame.png" alt="" aria-hidden="true" />
+    <div class="veil" aria-hidden="true"></div>
+
+    <div class="content">
+      <header class="topbar">
+        <h1 class="title">Sävelkoju</h1>
+      </header>
+
+      <section class="screen">
+        <div class="instrument-panel" id="instrumentPanel">
+          <div class="instrument-card">
+            <h2>Valitse soitin</h2>
+            <div class="instrument-grid" id="instrumentGrid"></div>
+          </div>
+        </div>
+
+        <div class="notes-panel" id="notesPanel" hidden>
+          <div class="notes-header">
+            <h2 class="instrument-name" id="instrumentName"></h2>
+            <button class="change-button" id="changeInstrument" type="button">Vaihda soitin</button>
+          </div>
+          <div class="targets" id="targets" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <div class="footer" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <script>
+    const instruments = [
+      { name: 'Huilu', notes: ['G', 'A', 'H', 'C', 'D'] },
+      { name: 'Saksofoni', notes: ['G', 'A', 'H', 'C', 'D'] },
+      { name: 'Klarinetti', notes: ['C', 'D', 'E', 'F', 'G'] },
+      { name: 'Trumpetti', notes: ['C', 'D', 'E', 'F', 'G'] },
+      { name: 'Käyrätorvi', notes: ['C', 'D', 'E', 'F', 'G'] },
+      { name: 'Pasuuna', notes: ['B', 'C', 'D', 'Es', 'F'] }
+    ];
+
+    const instrumentGrid = document.getElementById('instrumentGrid');
+    const instrumentPanel = document.getElementById('instrumentPanel');
+    const notesPanel = document.getElementById('notesPanel');
+    const instrumentName = document.getElementById('instrumentName');
+    const targets = document.getElementById('targets');
+    const changeInstrument = document.getElementById('changeInstrument');
+
+    function showInstrument(instrument) {
+      instrumentName.textContent = instrument.name;
+      targets.replaceChildren(...instrument.notes.map(note => {
+        const img = document.createElement('img');
+        img.className = 'target';
+        img.src = `assets/notes/${note}.png`;
+        img.alt = `Sävel ${note}`;
+        img.draggable = false;
+        return img;
+      }));
+      instrumentPanel.hidden = true;
+      notesPanel.hidden = false;
+    }
+
+    function showInstrumentMenu() {
+      notesPanel.hidden = true;
+      instrumentPanel.hidden = false;
+    }
+
+    instruments.forEach(instrument => {
+      const button = document.createElement('button');
+      button.className = 'instrument-button';
+      button.type = 'button';
+      button.textContent = instrument.name;
+      button.addEventListener('click', () => showInstrument(instrument));
+      instrumentGrid.appendChild(button);
+    });
+
+    changeInstrument.addEventListener('click', showInstrumentMenu);
+  </script>
+</body>
+</html>
