@@ -7,15 +7,13 @@
   <title>Sävelkoju</title>
   <style>
     :root {
-      --ink: #263642;
-      --teal: #6f9298;
-      --teal-dark: #4f7379;
+      --ink: #314651;
       --gold: #b58b3a;
       --paper: #fbf7ef;
-      --paper-2: #f2eadf;
-      --shadow: 0 14px 38px rgba(38, 54, 66, .16);
-      /* Sama sivumarginaali molemmille puolille myös iPhonen loven kohdalla. */
+      --shadow: 0 14px 38px rgba(38,54,66,.16);
       --safe-x: max(18px, env(safe-area-inset-left), env(safe-area-inset-right));
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     * { box-sizing: border-box; }
@@ -33,18 +31,18 @@
     body {
       min-height: 100dvh;
       background:
-        radial-gradient(circle at 50% 32%, rgba(255,255,255,.98) 0%, rgba(251,247,239,.96) 42%, rgba(239,232,220,.98) 100%),
-        linear-gradient(180deg, #fffdf8 0%, #eee5d7 100%);
+        radial-gradient(circle at 50% 32%, #fff 0%, #fbf7ef 46%, #e8dfd0 100%);
     }
 
     .app {
       position: relative;
       width: 100%;
       height: 100dvh;
+      overflow: hidden;
       isolation: isolate;
     }
 
-    .frame {
+    .theme-background {
       position: absolute;
       inset: 0;
       z-index: 0;
@@ -54,6 +52,16 @@
       object-position: center;
       pointer-events: none;
       user-select: none;
+      transition: opacity .18s ease;
+    }
+
+    .app.theme-switching .theme-background,
+    .app.theme-switching .targets {
+      opacity: .72;
+    }
+
+    .app.theme-switching .gear-button {
+      pointer-events: none;
     }
 
     .veil {
@@ -61,8 +69,13 @@
       inset: 0;
       z-index: 1;
       pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,.06) 0 32%, rgba(255,255,255,.16) 68%, rgba(255,255,255,.04) 100%);
+    }
+
+    body.theme-kids .veil { background: rgba(255,255,255,.06); }
+    body.theme-concert .veil {
       background:
-        radial-gradient(ellipse at center, rgba(255,255,255,.08) 0 32%, rgba(255,255,255,.22) 64%, rgba(255,255,255,.06) 100%);
+        radial-gradient(ellipse at 50% 47%, rgba(255,255,255,.02) 0 38%, rgba(0,0,0,.08) 76%, rgba(0,0,0,.18) 100%);
     }
 
     .content {
@@ -75,7 +88,6 @@
       display: grid;
       grid-template-rows: 1fr;
       align-items: center;
-      /* Tärkeä iPhone-korjaus: vasen ja oikea padding ovat aina yhtä suuret. */
       padding-top: max(18px, env(safe-area-inset-top));
       padding-right: var(--safe-x);
       padding-bottom: max(18px, env(safe-area-inset-bottom));
@@ -97,16 +109,31 @@
     }
 
     .instrument-panel[hidden],
-    .notes-panel[hidden] { display: none; }
+    .notes-panel[hidden],
+    .theme-menu[hidden],
+    .menu-backdrop[hidden] { display: none; }
 
     .instrument-card {
       width: min(760px, 100%);
       padding: clamp(22px, 4vw, 42px);
-      border: 1px solid rgba(181,139,58,.34);
       border-radius: 28px;
-      background: rgba(255, 252, 246, .80);
+      border: 1px solid rgba(181,139,58,.34);
+      background: rgba(255,252,246,.80);
       backdrop-filter: blur(9px) saturate(1.08);
       box-shadow: var(--shadow);
+      transition: background .2s ease, border-color .2s ease;
+    }
+
+    body.theme-kids .instrument-card {
+      background: rgba(255,255,255,.80);
+      border-color: rgba(133,116,169,.28);
+    }
+
+    body.theme-concert .instrument-card {
+      background: rgba(8,25,56,.78);
+      border-color: rgba(226,179,69,.52);
+      color: #fff5d7;
+      box-shadow: 0 18px 42px rgba(0,0,0,.34);
     }
 
     .instrument-card h2 {
@@ -115,26 +142,47 @@
       font-family: Georgia, "Times New Roman", serif;
       font-size: clamp(22px, 2.4vw, 34px);
       font-weight: 500;
-      color: #314651;
+      color: inherit;
     }
 
     .instrument-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0,1fr));
       gap: 12px;
     }
 
     .instrument-button,
-    .instrument-name-button {
+    .instrument-name-button,
+    .gear-button,
+    .theme-button {
       appearance: none;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .instrument-button,
+    .instrument-name-button {
       border: 1px solid rgba(181,139,58,.56);
       color: #2b3c46;
-      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,240,231,.96));
+      background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(246,240,231,.97));
       box-shadow: 0 6px 16px rgba(38,54,66,.10), inset 0 1px 0 rgba(255,255,255,.9);
-      cursor: pointer;
       transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
-      font: inherit;
       font-weight: 650;
+    }
+
+    body.theme-kids .instrument-button,
+    body.theme-kids .instrument-name-button {
+      border-color: rgba(129,103,176,.38);
+      background: rgba(255,255,255,.92);
+      color: #59437a;
+    }
+
+    body.theme-concert .instrument-button,
+    body.theme-concert .instrument-name-button {
+      border-color: rgba(226,179,69,.64);
+      color: #fff4cf;
+      background: linear-gradient(180deg, rgba(28,62,112,.95), rgba(9,32,72,.96));
+      box-shadow: 0 8px 20px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.12);
     }
 
     .instrument-button {
@@ -147,10 +195,12 @@
     .instrument-button:hover,
     .instrument-button:focus-visible,
     .instrument-name-button:hover,
-    .instrument-name-button:focus-visible {
+    .instrument-name-button:focus-visible,
+    .gear-button:hover,
+    .gear-button:focus-visible,
+    .theme-button:hover,
+    .theme-button:focus-visible {
       transform: translateY(-2px);
-      border-color: var(--gold);
-      box-shadow: 0 10px 22px rgba(38,54,66,.14), 0 0 0 3px rgba(111,146,152,.12);
       outline: none;
     }
 
@@ -167,7 +217,30 @@
       place-items: center;
     }
 
-    /* Soittimen nimi on samalla soitinvaihdon nappi. */
+    .mic-button {
+      position: absolute;
+      right: max(14px, var(--safe-x));
+      top: max(10px, var(--safe-top));
+      z-index: 12;
+      min-width: 48px;
+      min-height: 48px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(58,72,86,.22);
+      background: rgba(255,255,255,.86);
+      color: #344454;
+      font: 700 15px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      box-shadow: 0 8px 22px rgba(30,42,54,.14);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      cursor: pointer;
+    }
+    .mic-button[data-running="true"] { box-shadow: 0 0 0 3px rgba(72,145,91,.22), 0 8px 22px rgba(30,42,54,.14); }
+    .mic-button:disabled { opacity: .65; cursor: default; }
+    body.theme-concert .mic-button { background: rgba(30,30,34,.78); color: #f4ead7; border-color: rgba(255,255,255,.22); }
+    body.theme-kids .mic-button { background: rgba(255,255,255,.90); color: #624d7a; }
+    .target.sound-hit { transform: scale(1.075) translateZ(0); }
+
     .instrument-name-button {
       display: inline-flex;
       align-items: center;
@@ -180,7 +253,6 @@
       font-size: clamp(22px, 2.5vw, 36px);
       font-weight: 600;
       line-height: 1.1;
-      color: #314651;
       text-align: center;
       white-space: nowrap;
     }
@@ -206,21 +278,206 @@
       transform: translateZ(0);
       user-select: none;
       -webkit-user-drag: none;
+      transition: opacity .12s ease, transform .14s ease;
     }
 
+    body.theme-concert .target {
+      filter: drop-shadow(0 16px 20px rgba(0,0,0,.40));
+    }
+
+    body.theme-kids .target {
+      filter: drop-shadow(0 12px 14px rgba(82,54,118,.18));
+    }
+
+
+    /* Pelillisyys: kevyt tähtäin + 10 osuman kierros */
+    .game-progress {
+      position: absolute; left: max(14px, var(--safe-x)); top: max(14px, var(--safe-top)); z-index: 11;
+      display: flex; gap: 6px; align-items: center; pointer-events: none;
+    }
+    .game-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; opacity: .48; }
+    .game-dot.done { background: currentColor; opacity: .92; }
+    body.theme-concert .game-progress { color: #f5d77e; }
+    body.theme-kids .game-progress { color: #72529a; }
+    body.theme-classic .game-progress { color: #526774; }
+    .targets { position: relative; }
+    /* Alkuperäisen Sävelkoju-pelin tähtäin, sama kaikissa teemoissa */
+    .aim-reticle {
+      position: absolute;
+      z-index: 12;
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: .82;
+      transform: translate(-50%,-50%);
+      transition: left .2s ease, top .2s ease;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.75));
+    }
+    .aim-reticle::before,
+    .aim-reticle::after {
+      content: "";
+      position: absolute;
+      background: #f5eee0;
+      border: 2px solid #24231f;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .aim-reticle::before { left: 38px; top: -5px; width: 8px; height: 92px; }
+    .aim-reticle::after  { left: -5px; top: 38px; width: 92px; height: 8px; }
+    .aim-reticle i {
+      position: absolute;
+      inset: 7px;
+      border: 3px solid rgba(247,241,229,.95);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(36,35,31,.82), 0 0 8px rgba(0,0,0,.32);
+    }
+    .aim-reticle.hit { animation: reticleHit .3s ease-in forwards; }
+    @keyframes reticleHit {
+      0% { transform: translate(-50%,-50%) scale(1); opacity: .82; }
+      100% { transform: translate(-50%,-50%) scale(.05); opacity: 0; }
+    }
+    .game-finish {
+      position: absolute; z-index: 10; inset: 50% auto auto 50%; transform: translate(-50%,-50%) scale(.9);
+      padding: 12px 20px; border-radius: 999px; background: rgba(255,255,255,.92); color: #334755;
+      font: 800 clamp(18px,3vw,30px)/1 system-ui,sans-serif; box-shadow: 0 10px 28px rgba(0,0,0,.18);
+      opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+    }
+    .game-finish.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    body.theme-concert .game-finish { background: rgba(8,28,65,.94); color: #f5d77e; }
+
+    .gear-button {
+      position: fixed;
+      z-index: 20;
+      right: calc(var(--safe-x) + 4px);
+      bottom: calc(max(14px, var(--safe-bottom)) + 2px);
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(181,139,58,.48);
+      color: #314651;
+      background: rgba(255,252,246,.94);
+      box-shadow: 0 10px 24px rgba(38,54,66,.17);
+      transition: transform .14s ease, background .2s ease, color .2s ease;
+    }
+
+    body.theme-kids .gear-button {
+      color: #664795;
+      border-color: rgba(129,103,176,.42);
+      background: rgba(255,255,255,.94);
+    }
+
+    body.theme-concert .gear-button {
+      color: #f5d77e;
+      border-color: rgba(226,179,69,.60);
+      background: rgba(8,28,65,.92);
+      box-shadow: 0 10px 24px rgba(0,0,0,.34);
+    }
+
+    .gear-button svg { width: 27px; height: 27px; }
+
+    .menu-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 29;
+      background: rgba(20,30,38,.20);
+      backdrop-filter: blur(2px);
+    }
+
+    .theme-menu {
+      position: absolute;
+      z-index: 30;
+      right: calc(var(--safe-x) + 6px);
+      bottom: calc(max(78px, var(--safe-bottom) + 72px));
+      width: min(330px, calc(100vw - 2 * var(--safe-x)));
+      max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 92px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px;
+      border-radius: 22px;
+      border: 1px solid rgba(181,139,58,.30);
+      background: rgba(255,252,246,.96);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 46px rgba(20,34,44,.24);
+    }
+
+    body.theme-concert .theme-menu {
+      background: rgba(7,26,61,.96);
+      border-color: rgba(226,179,69,.52);
+      color: #fff4cf;
+    }
+
+    .theme-menu h3 {
+      margin: 2px 4px 11px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      font-weight: 600;
+    }
+
+    .theme-list { display: grid; gap: 9px; }
+
+    .theme-button {
+      width: 100%;
+      min-height: 54px;
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 11px;
+      border-radius: 16px;
+      border: 1px solid rgba(91,111,123,.18);
+      background: rgba(255,255,255,.76);
+      color: #314651;
+      text-align: left;
+      transition: transform .14s ease, border-color .14s ease, background .14s ease;
+    }
+
+    body.theme-concert .theme-button {
+      color: #fff4cf;
+      border-color: rgba(226,179,69,.18);
+      background: rgba(255,255,255,.06);
+    }
+
+    .theme-button.active {
+      border-color: rgba(181,139,58,.72);
+      background: rgba(255,255,255,.96);
+    }
+
+    body.theme-concert .theme-button.active {
+      border-color: rgba(226,179,69,.74);
+      background: rgba(255,255,255,.12);
+    }
+
+    .swatch {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.55), 0 2px 8px rgba(0,0,0,.10);
+    }
+
+    .swatch.classic { background: linear-gradient(135deg, #f7f0e4 0 42%, #7a9ca2 43% 68%, #c99b43 69%); }
+    .swatch.kids { background: linear-gradient(135deg, #9e55f2 0 34%, #55cff2 35% 66%, #ffd45b 67%); }
+    .swatch.concert { background: linear-gradient(135deg, #8a001d 0 32%, #082c69 33% 70%, #e6b13f 71%); }
+
+    .theme-name { font-weight: 700; font-size: 15px; }
+    .check { opacity: 0; font-weight: 900; }
+    .theme-button.active .check { opacity: 1; }
+
     @media (max-width: 760px) {
-      .instrument-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .instrument-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .instrument-card { width: min(560px, 100%); }
     }
 
     @media (orientation: portrait) {
       body { overflow: auto; }
       .app { min-height: 100dvh; height: auto; }
-      .frame { display: none; }
       .content { min-height: 100dvh; height: auto; }
-      .notes-panel { min-height: calc(100dvh - 36px); }
+      .notes-panel { min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom)); }
       .targets {
-        width: 100%;
         max-width: 720px;
         flex-wrap: wrap;
         gap: 8px;
@@ -231,7 +488,6 @@
       }
     }
 
-    /* iPhone 15 / matala vaakaruutu */
     @media (max-height: 560px) and (orientation: landscape) {
       .content {
         max-width: 1100px;
@@ -253,18 +509,29 @@
         width: 100%;
         max-width: 1020px;
         padding-bottom: 2px;
-        gap: clamp(3px, .9vw, 10px);
+        gap: clamp(3px,.9vw,10px);
       }
       .target {
         max-width: 18.2vw;
         max-height: 47vh;
       }
+      .gear-button { width: 48px; height: 48px; }
+      .gear-button svg { width: 24px; height: 24px; }
+      .theme-menu {
+        bottom: calc(max(64px, var(--safe-bottom) + 58px));
+        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 72px);
+        width: min(300px, calc(100vw - 2 * var(--safe-x)));
+        padding: 10px;
+      }
+      .theme-menu h3 { font-size: 18px; margin-bottom: 8px; }
+      .theme-button { min-height: 46px; padding: 6px 9px; }
+      .swatch { width: 30px; height: 30px; }
     }
   </style>
 </head>
-<body>
+<body class="theme-classic">
   <main class="app">
-    <img class="frame" src="assets/background/music-school-frame.webp" alt="" aria-hidden="true" />
+    <img class="theme-background" id="themeBackground" src="assets/themes/classic/background.webp" alt="" aria-hidden="true" />
     <div class="veil" aria-hidden="true"></div>
 
     <div class="content">
@@ -277,51 +544,327 @@
         </div>
 
         <div class="notes-panel" id="notesPanel" hidden>
+          <div class="game-progress" id="gameProgress" aria-label="Osumat 0 / 10"></div>
           <div class="notes-header">
             <button class="instrument-name-button" id="instrumentName" type="button" aria-label="Vaihda soitinta"></button>
           </div>
-          <div class="targets" id="targets" aria-live="polite"></div>
+          <div class="targets" id="targets" aria-live="polite"><div class="aim-reticle" id="aimReticle" hidden><i></i></div><div class="game-finish" id="gameFinish">10 / 10</div></div>
         </div>
       </section>
     </div>
+
+    <button class="gear-button" id="gearButton" type="button" aria-label="Valitse ulkoasu" aria-expanded="false" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.2 1.2 0 0 1 0 1.7l-.7.7a1.2 1.2 0 0 1-1.7 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1.2 1.2 0 0 1-1.2 1.2h-1a1.2 1.2 0 0 1-1.2-1.2v-.2a1 1 0 0 0-.7-.9 1 1 0 0 0-1.1.2l-.1.1a1.2 1.2 0 0 1-1.7 0l-.7-.7a1.2 1.2 0 0 1 0-1.7l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a1.2 1.2 0 0 1-1.2-1.2v-1A1.2 1.2 0 0 1 4 11h.2a1 1 0 0 0 .9-.7 1 1 0 0 0-.2-1.1l-.1-.1a1.2 1.2 0 0 1 0-1.7l.7-.7a1.2 1.2 0 0 1 1.7 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4A1.2 1.2 0 0 1 10.2 2.8h1A1.2 1.2 0 0 1 12.4 4v.2a1 1 0 0 0 .7.9 1 1 0 0 0 1.1-.2l.1-.1a1.2 1.2 0 0 1 1.7 0l.7.7a1.2 1.2 0 0 1 0 1.7l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a1.2 1.2 0 0 1 1.2 1.2v1A1.2 1.2 0 0 1 20 13h-.2a1 1 0 0 0-.9.6Z"></path>
+      </svg>
+    </button>
+
+    <div class="menu-backdrop" id="menuBackdrop" hidden></div>
+    <aside class="theme-menu" id="themeMenu" hidden role="dialog" aria-modal="true" aria-labelledby="themeTitle">
+      <h3 id="themeTitle">Ulkoasu</h3>
+      <div class="theme-list" id="themeList"></div>
+    </aside>
   </main>
 
+  <script src="resonator-engine.js"></script>
+  <script src="audio-manager.js"></script>
   <script>
     const instruments = [
-      { name: 'Huilu', notes: ['G', 'A', 'H', 'C', 'D'] },
-      { name: 'Saksofoni', notes: ['G', 'A', 'H', 'C', 'D'] },
-      { name: 'Klarinetti', notes: ['C', 'D', 'E', 'F', 'G'] },
-      { name: 'Trumpetti', notes: ['C', 'D', 'E', 'F', 'G'] },
-      { name: 'Käyrätorvi', notes: ['C', 'D', 'E', 'F', 'G'] },
-      { name: 'Pasuuna', notes: ['B', 'C', 'D', 'Es', 'F'] }
+      { name: 'Huilu', notes: ['G','A','H','C','D'], hz: [391.9954,440.0000,493.8833,523.2511,587.3295] },
+      { name: 'Saksofoni', notes: ['G','A','H','C','D'], hz: [233.0819,261.6256,293.6648,311.1270,349.2282] },
+      { name: 'Klarinetti', notes: ['C','D','E','F','G'], hz: [233.0819,261.6256,293.6648,311.1270,349.2282] },
+      { name: 'Trumpetti', notes: ['C','D','E','F','G'], hz: [233.0819,261.6256,293.6648,311.1270,349.2282] },
+      { name: 'Käyrätorvi', notes: ['C','D','E','F','G'], hz: [174.6141,195.9977,220.0000,233.0819,261.6256] },
+      { name: 'Pasuuna', notes: ['B','C','D','Es','F'], hz: [116.5409,130.8128,146.8324,155.5635,174.6141] }
     ];
 
+    const themes = [
+      { id: 'classic', name: 'Musiikkiopisto' },
+      { id: 'kids', name: 'Lasten musiikkiluokka' },
+      { id: 'concert', name: 'Konserttisali' }
+    ];
+
+    const allNotes = ['A','B','C','D','E','Es','F','G','H'];
+    const app = document.querySelector('.app');
     const instrumentGrid = document.getElementById('instrumentGrid');
     const instrumentPanel = document.getElementById('instrumentPanel');
     const notesPanel = document.getElementById('notesPanel');
     const instrumentName = document.getElementById('instrumentName');
     const targets = document.getElementById('targets');
+    const themeBackground = document.getElementById('themeBackground');
+    const gearButton = document.getElementById('gearButton');
+    const themeMenu = document.getElementById('themeMenu');
+    const menuBackdrop = document.getElementById('menuBackdrop');
+    const themeList = document.getElementById('themeList');
+    const gameProgress = document.getElementById('gameProgress');
+    const aimReticle = document.getElementById('aimReticle');
+    const gameFinish = document.getElementById('gameFinish');
 
-    function showInstrument(instrument) {
-      instrumentName.textContent = instrument.name;
-      instrumentName.setAttribute('aria-label', `Vaihda soitinta. Nykyinen soitin: ${instrument.name}`);
+    let currentInstrument = null;
+    let currentTheme = 'classic';
+    try { currentTheme = localStorage.getItem('savelkoju-theme-v3') || 'classic'; } catch (_) {}
+    let switchSerial = 0;
+    const themeCache = new Map();
 
-      targets.replaceChildren(...instrument.notes.map(note => {
+    const engine = new ResonatorStringEngine({
+      targets: {}, blockSize: 256, calibrationMs: 280, responseMs: 1.8, rmsResponseMs: 2.0,
+      toleranceCents: 40, centerMatch: 0.955, edgeMatch: 0.998, minHalfPeriodEnergy: 0.32,
+      noiseMarginDb: 6, pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 140
+    });
+    let micOpening = false;
+
+    function targetsForInstrument(instrument) {
+      if (!instrument) return {};
+      return Object.fromEntries(instrument.notes.map((note, i) => [note, instrument.hz[i]]));
+    }
+
+    function updateMicButton() {}
+
+    const GAME_HITS = 10;
+    let gameHits = 0;
+    let gameTargetNote = null;
+    let gameLocked = false;
+    let lastTargetNote = null;
+
+    function renderProgress() {
+      gameProgress.replaceChildren(...Array.from({length: GAME_HITS}, (_, i) => {
+        const dot = document.createElement('span');
+        dot.className = 'game-dot' + (i < gameHits ? ' done' : '');
+        return dot;
+      }));
+      gameProgress.setAttribute('aria-label', `Osumat ${gameHits} / ${GAME_HITS}`);
+    }
+
+    function positionReticle() {
+      if (!gameTargetNote || notesPanel.hidden) { aimReticle.hidden = true; return; }
+      const img = targets.querySelector(`.target[data-note="${CSS.escape(gameTargetNote)}"]`);
+      if (!img) { aimReticle.hidden = true; return; }
+      const tr = targets.getBoundingClientRect(), r = img.getBoundingClientRect();
+      aimReticle.style.left = `${r.left - tr.left + r.width/2}px`;
+      aimReticle.style.top = `${r.top - tr.top + r.height/2}px`;
+      aimReticle.hidden = false;
+    }
+
+    function chooseNextTarget() {
+      if (!currentInstrument) return;
+      const choices = currentInstrument.notes.filter(n => n !== lastTargetNote);
+      gameTargetNote = choices[Math.floor(Math.random() * choices.length)] || currentInstrument.notes[0];
+      lastTargetNote = gameTargetNote;
+      requestAnimationFrame(positionReticle);
+    }
+
+    function resetGame() {
+      gameHits = 0; gameLocked = false; lastTargetNote = null; gameFinish.classList.remove('show');
+      renderProgress(); chooseNextTarget();
+    }
+
+    // Sama äänenhallinta kuin toimivassa Sävelkojussa.
+    const gameAudio = new window.SavelkojuAudioManager({
+      hit: 'Lamppu.wav'
+    });
+
+    async function unlockGameAudio() {
+      try {
+        await gameAudio.unlock();
+        await gameAudio.ready();
+      } catch (error) {
+        console.warn('Peliäänien avaus epäonnistui:', error);
+      }
+    }
+
+    function playHitSound() {
+      gameAudio.playHit();
+    }
+
+    function flashRecognizedNote(note) {
+      const img = targets.querySelector(`.target[data-note="${CSS.escape(note)}"]`);
+      if (!img) return;
+      img.classList.remove('sound-hit'); void img.offsetWidth; img.classList.add('sound-hit');
+      clearTimeout(img._soundHitTimer); img._soundHitTimer = setTimeout(() => img.classList.remove('sound-hit'), 180);
+    }
+
+    function registerGameHit(note) {
+      if (gameLocked || note !== gameTargetNote) return;
+      playHitSound();
+      gameLocked = true;
+      flashRecognizedNote(note);
+      aimReticle.classList.add('hit');
+      gameHits++;
+      renderProgress();
+      if (gameHits >= GAME_HITS) {
+        gameFinish.classList.add('show');
+        setTimeout(() => { gameFinish.classList.remove('show'); resetGame(); }, 1400);
+        return;
+      }
+      setTimeout(() => { aimReticle.classList.remove('hit'); gameLocked = false; chooseNextTarget(); }, 140);
+    }
+
+    engine.addEventListener('trigger', event => {
+      const note = event.detail?.action;
+      if (note) registerGameHit(note);
+    });
+    window.addEventListener('resize', () => requestAnimationFrame(positionReticle));
+    engine.addEventListener('state', () => { micOpening = false; updateMicButton(); });
+    engine.addEventListener('error', event => {
+      micOpening = false; updateMicButton();
+      console.warn('ResonatorEngine:', event.detail?.message || event.detail?.error || event.detail);
+    });
+
+    if (!themes.some(t => t.id === currentTheme)) currentTheme = 'classic';
+
+    function imagePath(themeId, note) {
+      return `assets/themes/${themeId}/notes/${note}.webp`;
+    }
+
+    function backgroundPath(themeId) {
+      return `assets/themes/${themeId}/background.webp`;
+    }
+
+    function preloadImage(src, timeoutMs = 5000) {
+      return new Promise(resolve => {
+        const img = new Image();
+        let settled = false;
+        const finish = ok => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(ok);
+        };
+        const timer = setTimeout(() => finish(false), timeoutMs);
+        img.onload = () => finish(img.naturalWidth > 0);
+        img.onerror = () => finish(false);
+        img.src = src;
+        if (img.complete) finish(img.naturalWidth > 0);
+      });
+    }
+
+    function preloadTheme(themeId, notes = allNotes) {
+      const key = `${themeId}:${notes.slice().sort().join(',')}`;
+      if (themeCache.has(key)) return themeCache.get(key);
+      const promise = Promise.all([
+        preloadImage(backgroundPath(themeId)),
+        ...notes.map(note => preloadImage(imagePath(themeId, note)))
+      ]).then(results => {
+        const ok = results.every(Boolean);
+        if (!ok) themeCache.delete(key);
+        return ok;
+      });
+      themeCache.set(key, promise);
+      return promise;
+    }
+
+    function renderTargets() {
+      if (!currentInstrument) return;
+      const nodes = currentInstrument.notes.map(note => {
         const img = document.createElement('img');
         img.className = 'target';
-        img.src = `assets/notes/${note}.webp`;
+        img.dataset.note = note;
+        img.src = imagePath(currentTheme, note);
         img.alt = `Sävel ${note}`;
         img.draggable = false;
         return img;
-      }));
+      });
+      targets.replaceChildren(...nodes, aimReticle, gameFinish);
+      requestAnimationFrame(positionReticle);
+    }
 
+    function updateTargetSources(themeId) {
+      targets.querySelectorAll('.target').forEach(img => {
+        img.src = imagePath(themeId, img.dataset.note);
+      });
+    }
+
+    function updateThemeButtons(themeId) {
+      document.querySelectorAll('.theme-button').forEach(button => {
+        const active = button.dataset.theme === themeId;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    async function showInstrument(instrument) {
+      currentInstrument = instrument;
+      engine.setTargets(targetsForInstrument(instrument));
+      instrumentName.textContent = instrument.name;
+      instrumentName.setAttribute('aria-label', `Vaihda soitinta. Nykyinen soitin: ${instrument.name}`);
+      renderTargets();
       instrumentPanel.hidden = true;
       notesPanel.hidden = false;
+      resetGame();
+
+      // Soitinvalinta on käyttäjän ele: avaa mikrofoni ja vapauta samalla
+      // lamppusoundin AudioContext iOS/Safaria varten.
+      void unlockGameAudio();
+      if (!engine.running && !micOpening) {
+        micOpening = true;
+        try {
+          await engine.start();
+          await unlockGameAudio();
+        } catch (error) {
+          if (error?.name !== 'AbortError') console.warn(error);
+        } finally {
+          micOpening = false;
+        }
+      }
     }
 
     function showInstrumentMenu() {
       notesPanel.hidden = true;
+      aimReticle.hidden = true;
       instrumentPanel.hidden = false;
+    }
+
+    async function applyTheme(themeId, { closeMenu = false } = {}) {
+      if (!themes.some(t => t.id === themeId)) return;
+
+      const serial = ++switchSerial;
+      app.classList.add('theme-switching');
+      gearButton.setAttribute('aria-busy', 'true');
+
+      try {
+        const neededNotes = currentInstrument ? currentInstrument.notes : allNotes;
+        const ok = await preloadTheme(themeId, neededNotes);
+        if (serial !== switchSerial) return;
+        if (!ok) {
+          console.warn(`Teeman ${themeId} kuvia ei saatu ladattua.`);
+          return;
+        }
+
+        // Kaikki näkyvä vaihdetaan vasta kun tarvittavat kuvat ovat muistissa.
+        currentTheme = themeId;
+        try { localStorage.setItem('savelkoju-theme-v3', themeId); } catch (_) {}
+        document.body.className = `theme-${themeId}`;
+        themeBackground.src = backgroundPath(themeId);
+        updateTargetSources(themeId);
+        updateThemeButtons(themeId);
+
+        // Muut taulut esiladataan taustalla, eivätkä ne pidätä näkyvää vaihtoa.
+        setTimeout(() => preloadTheme(themeId), 0);
+
+        // Anna Safari/WebKitille yksi piirtohetki ennen valikon sulkemista.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (serial !== switchSerial) return;
+          if (closeMenu) closeThemeMenu();
+        }));
+      } finally {
+        if (serial === switchSerial) {
+          app.classList.remove('theme-switching');
+          gearButton.removeAttribute('aria-busy');
+        }
+      }
+    }
+
+    function openThemeMenu() {
+      themeMenu.hidden = false;
+      menuBackdrop.hidden = false;
+      gearButton.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeThemeMenu() {
+      themeMenu.hidden = true;
+      menuBackdrop.hidden = true;
+      gearButton.setAttribute('aria-expanded', 'false');
     }
 
     instruments.forEach(instrument => {
@@ -333,7 +876,48 @@
       instrumentGrid.appendChild(button);
     });
 
+    themes.forEach(theme => {
+      const button = document.createElement('button');
+      button.className = 'theme-button';
+      button.type = 'button';
+      button.dataset.theme = theme.id;
+      button.innerHTML = `<span class="swatch ${theme.id}" aria-hidden="true"></span><span class="theme-name">${theme.name}</span><span class="check" aria-hidden="true">✓</span>`;
+      button.addEventListener('click', async () => {
+        if (theme.id === currentTheme) {
+          ++switchSerial;
+          app.classList.remove('theme-switching');
+          gearButton.removeAttribute('aria-busy');
+          closeThemeMenu();
+          return;
+        }
+        await applyTheme(theme.id, { closeMenu: true });
+      });
+      themeList.appendChild(button);
+    });
+
     instrumentName.addEventListener('click', showInstrumentMenu);
+    gearButton.addEventListener('click', () => themeMenu.hidden ? openThemeMenu() : closeThemeMenu());
+    menuBackdrop.addEventListener('click', closeThemeMenu);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeThemeMenu();
+    });
+
+    window.addEventListener('pagehide', () => engine.stop());
+    updateMicButton();
+
+    // Näytä tallennettu teema heti.
+    document.body.className = `theme-${currentTheme}`;
+    themeBackground.src = backgroundPath(currentTheme);
+    updateThemeButtons(currentTheme);
+
+    // Esiladataan kaikki kolme teemaa taustalla. Tämä poistaa iPhonen vaihtohetken vilkkumisen.
+    preloadTheme(currentTheme).then(() => {
+      const preloadOthers = () => themes
+        .filter(theme => theme.id !== currentTheme)
+        .forEach(theme => preloadTheme(theme.id));
+      if ('requestIdleCallback' in window) requestIdleCallback(preloadOthers, { timeout: 1200 });
+      else setTimeout(preloadOthers, 250);
+    });
   </script>
 </body>
 </html>
