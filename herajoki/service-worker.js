@@ -1,4 +1,4 @@
-/* Puhallinstartti v23.4: Firebase project/cache refresh. */
+/* Puhallinstartti v23.5.0-firebase-key: Firebase project/cache refresh. */
 const CACHE_PREFIX = 'puhallinstartti|' + encodeURIComponent(self.registration.scope) + '|';
 const CACHE_NAME = CACHE_PREFIX + '23.4.0';
 const ASSETS = [
