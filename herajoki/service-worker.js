@@ -1,4 +1,6 @@
-const CACHE_NAME = 'puhallinstartti-v23-scoreboard-final-v3-landscape';
+/* Puhallinstartti v23.1: one cache namespace per publication path. */
+const CACHE_PREFIX = 'puhallinstartti|' + encodeURIComponent(self.registration.scope) + '|';
+const CACHE_NAME = CACHE_PREFIX + '23.1.0';
 const ASSETS = [
   "./",
   "./index.html",
@@ -45,38 +47,78 @@ const ASSETS = [
   "./assets/themes/kids/notes/G.webp",
   "./assets/themes/kids/notes/H.webp",
   "./audio-manager.js",
-  "./firestore.rules",
-  "./index.html",
   "./manifest.webmanifest",
   "./resonator-engine.js",
-  "./scoreboard.js",
+  "./scoreboard.js"
 ];
 
+const SDK_URLS = [
+  'https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js'
+];
+const ROOT_URL = new URL('./', self.registration.scope).href;
+const INDEX_URL = new URL('./index.html', self.registration.scope).href;
+const CORE_URLS = new Set(ASSETS.map(path => new URL(path, self.registration.scope).href));
+const SDK_SET = new Set(SDK_URLS);
+
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const requests = [...CORE_URLS].map(url => new Request(url, { cache: 'reload' }));
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(requests);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+      .map(name => caches.delete(name)));
+    // Legacy unscoped caches are deliberately left alone: ownership cannot
+    // safely be inferred from their name when several games share a domain.
+    await self.clients.claim();
+  })());
 });
+
+function canStore(url, response) {
+  if (!response || response.status !== 200 || !response.ok) return false;
+  if (!CORE_URLS.has(url) && !SDK_SET.has(url)) return false;
+  // A hosting service's HTML 200 fallback must not become a cached JS file.
+  if (url.endsWith('.js') && !/javascript|ecmascript/i.test(response.headers.get('content-type') || '')) return false;
+  return true;
+}
+
+async function respond(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const url = new URL(request.url);
+  const canonical = url.origin + url.pathname;
+  const isAppPage = request.mode === 'navigate' && (canonical === ROOT_URL || canonical === INDEX_URL);
+  const cacheKey = isAppPage ? INDEX_URL : request;
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (canStore(request.url, response)) await cache.put(request, response.clone());
+    return response;
+  } catch (_) {
+    if (isAppPage) {
+      const page = await cache.match(INDEX_URL);
+      if (page) return page;
+    }
+    // Never return index.html to a script, image, audio or API request.
+    return Response.error();
+  }
+}
 
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
-  event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
-        const copy = response.clone();
-        if (request.url.startsWith(self.location.origin)) {
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
-        }
-        return response;
-      }).catch(() => caches.match('./index.html'));
-    })
-  );
+  const url = new URL(request.url);
+  const inScope = url.origin === self.location.origin && url.href.startsWith(self.registration.scope);
+  if (!inScope && !SDK_SET.has(request.url)) return;
+  const response = respond(request);
+  event.respondWith(response);
+  event.waitUntil(response.then(() => {}, () => {}));
 });

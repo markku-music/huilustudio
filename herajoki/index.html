@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="puhallinstartti-version" content="23.1.0" />
   <meta name="theme-color" content="#6f2ac7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -408,7 +409,7 @@
       z-index: 50;
       display: grid;
       place-items: center;
-      pointer-events: none;
+      pointer-events: auto;
       background: rgba(12,18,24,.18);
       backdrop-filter: blur(2px);
       -webkit-backdrop-filter: blur(2px);
@@ -669,7 +670,6 @@
       flex-direction: column;
     }
     #scoreboardTitle,
-    #scoreboardStatus,
     #levelFilter [data-filter-level="all"] {
       display: none !important;
     }
@@ -881,6 +881,17 @@
     .theme-button.active .check { opacity: 1; }
 
 
+    #scoreboardStatus:empty { display: none; }
+    #scoreboardStatus { font-size: 13px; line-height: 1.35; margin: 0 0 12px; }
+    #scoreboardStatus.is-warning { opacity: 1; }
+    .player-privacy { font-size: 12px; margin: 9px 0 0 !important; }
+    #audioIssueOverlay { z-index: 60; }
+    #audioIssueMessage { line-height: 1.4; }
+    #recalibrateButton { margin-top: 14px; width: 100%; font-size: 14px; }
+    #recalibrateButton:disabled { opacity: .5; cursor: default; }
+    #updateButton { width: 100%; margin-top: 10px; font-size: 14px; }
+    #updateButton[hidden] { display: none; }
+
     .rotate-overlay {
       display: none;
       position: fixed;
@@ -1006,6 +1017,7 @@
       <div class="player-card">
         <p id="playerInstrumentLabel"></p>
         <input class="player-name-input" id="playerNameInput" maxlength="20" autocomplete="name" placeholder="Nimi" aria-label="Pelaajan nimi" />
+        <p class="player-privacy">Käytä nimimerkkiä. Tulos näkyy tulostaululla.</p>
         <div class="mode-picker" id="modePicker" aria-label="Sävelten määrä">
           <button class="mode-button active" type="button" data-note-mode="3">3 säveltä</button>
           <button class="mode-button" type="button" data-note-mode="4">4 säveltä</button>
@@ -1021,7 +1033,7 @@
       <div class="scoreboard-card">
         <h2 id="scoreboardTitle">Tulostaulu</h2>
         <div class="score-result" id="scoreResult"></div>
-        <p class="scoreboard-status" id="scoreboardStatus"></p>
+        <p class="scoreboard-status" id="scoreboardStatus" role="status" aria-live="polite"></p>
         <div class="scoreboard-filters">
           <div class="filter-row" id="levelFilter">
             <button class="filter-button" type="button" data-filter-level="all">Kaikki tasot</button>
@@ -1045,6 +1057,17 @@
       </div>
     </div>
 
+    <div class="player-overlay" id="audioIssueOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="audioIssueTitle" aria-describedby="audioIssueMessage">
+      <div class="player-card">
+        <h2 id="audioIssueTitle">Mikrofoni</h2>
+        <p id="audioIssueMessage"></p>
+        <div class="player-actions">
+          <button class="score-action" id="audioRetryButton" type="button">Yritä uudelleen</button>
+          <button class="score-action" id="audioMenuButton" type="button">Vaihda soitinta</button>
+        </div>
+      </div>
+    </div>
+
     <button class="gear-button" id="gearButton" type="button" aria-label="Valitse ulkoasu" aria-expanded="false" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3.2"></circle>
@@ -1060,12 +1083,12 @@
         <div class="sensitivity-title">Herkkyysraja</div>
         <div class="sensitivity-grid" id="sensitivityGrid" aria-label="Herkkyysraja"></div>
       </div>
+      <button class="score-action" id="recalibrateButton" type="button" disabled title="Mittaa taustakohina 1,5 sekunnin ajan ja aloita kierros uudelleen">Kalibroi mikrofoni</button>
+      <button class="score-action" id="updateButton" type="button" hidden>Päivitä sovellus</button>
     </aside>
   </main>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <!-- Cloud libraries load on demand. An offline SDK must never block the game. -->
   <script src="scoreboard.js"></script>
   <script src="resonator-engine.js"></script>
   <script src="audio-manager.js"></script>
@@ -1119,6 +1142,13 @@
     const playAgainButton = document.getElementById('playAgainButton');
     const changeInstrumentButton = document.getElementById('changeInstrumentButton');
     const changePlayerButton = document.getElementById('changePlayerButton');
+    const audioIssueOverlay = document.getElementById('audioIssueOverlay');
+    const audioIssueTitle = document.getElementById('audioIssueTitle');
+    const audioIssueMessage = document.getElementById('audioIssueMessage');
+    const audioRetryButton = document.getElementById('audioRetryButton');
+    const audioMenuButton = document.getElementById('audioMenuButton');
+    const recalibrateButton = document.getElementById('recalibrateButton');
+    const updateButton = document.getElementById('updateButton');
 
     let currentInstrument = null;
     let currentPlayerName = '';
@@ -1128,14 +1158,8 @@
     let scoreLevelFilter = 3;
     let scoreInstrumentFilter = 'all';
     let lastSavedScoreId = null;
-    const instrumentBoardIds = {
-      'Huilu': 'huilu',
-      'Saksofoni': 'saksofoni',
-      'Klarinetti': 'klarinetti',
-      'Trumpetti': 'trumpetti',
-      'Käyrätorvi': 'kayratorvi',
-      'Pasuuna': 'pasuuna'
-    };
+
+
     let currentTheme = 'classic';
     try { currentTheme = localStorage.getItem('savelkoju-theme-v3') || 'classic'; } catch (_) {}
     let switchSerial = 0;
@@ -1149,7 +1173,8 @@
     const engine = new ResonatorStringEngine({
       targets: {}, blockSize: 256, calibrationMs: 1500, responseMs: 1.8, rmsResponseMs: 2.0,
       toleranceCents: 40, centerMatch: 0.955, edgeMatch: 0.998, minHalfPeriodEnergy: 0.32,
-      noiseMarginDb: 10, pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 140
+      noiseMarginDb: 10, pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 140,
+      verifyPitch: true, emitPitch: false
     });
     engine.setNoiseMarginDb(sensitivityDb);
     let micOpening = false;
@@ -1170,7 +1195,9 @@
       return Object.fromEntries(pairs);
     }
 
-    function updateMicButton() {}
+    function updateMicButton() {
+      recalibrateButton.disabled = !currentInstrument || micOpening;
+    }
 
     const GAME_HITS = 10;
     let gameHits = 0;
@@ -1178,15 +1205,117 @@
     let gameLocked = false;
     let lastTargetNote = null;
     let gameStartTime = 0;
+    let gamePhase = 'instrument';
+    let viewSerial = 0;
+    let roundSerial = 0;
+    let roundMeta = null;
+    let transitionTimer = 0;
+    let finishTimer = 0;
+    let engineState = 'stopped';
+    let micReadyPromise = null;
+    let menuResumePhase = null;
+    let resumeNeeded = false;
+    let scoreViewRecordId = null;
+    let scoreReadSerial = 0;
+    let scoreReadState = { cached: false, error: '' };
 
-    function formatGameTime(ms) {
-      const totalSeconds = ms / 1000;
-      if (totalSeconds < 60) return `${totalSeconds.toFixed(2).replace('.', ',')} s`;
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = (totalSeconds - minutes * 60).toFixed(1).padStart(4, '0').replace('.', ',');
-      return `${minutes}:${seconds}`;
+    function invalidateRound() {
+      ++roundSerial;
+      clearTimeout(transitionTimer); transitionTimer = 0;
+      clearTimeout(finishTimer); finishTimer = 0;
+      roundMeta = null;
+      gameLocked = true;
+      gameTargetNote = null;
+      aimReticle.hidden = true;
+      aimReticle.classList.remove('hit');
+      gameFinish.classList.remove('show');
+      targets.querySelectorAll('.target').forEach(img => {
+        clearTimeout(img._soundHitTimer);
+        img.classList.remove('sound-hit');
+      });
     }
 
+    function micIsReady() {
+      if (!engine.ready || engineState !== 'running') return false;
+      if (engine.context && engine.context.state !== 'running') return false;
+      return !(engine.stream?.getAudioTracks?.() || []).some(track => track.readyState === 'ended' || track.muted);
+    }
+
+    async function ensureMicReady({ recalibrate = false } = {}) {
+      // Both audio contexts are unlocked from the original user gesture.
+      void unlockGameAudio();
+      if (micIsReady() && !recalibrate) return;
+      if (micReadyPromise) return micReadyPromise;
+      micOpening = true; updateMicButton();
+      const operation = (async () => {
+        const wasRunning = engine.running;
+        if (!wasRunning) await engine.start();
+        else if (engineState === 'interrupted' || (engine.context && engine.context.state !== 'running')) {
+          engine.stop(); await engine.start();
+        } else if (recalibrate) engine.recalibrate();
+        if (micIsReady()) return;
+        await new Promise((resolve, reject) => {
+          let timer;
+          const cleanup = () => {
+            clearTimeout(timer);
+            engine.removeEventListener('state', stateListener);
+            engine.removeEventListener('error', errorListener);
+          };
+          const stateListener = event => {
+            const state = event.detail?.state;
+            if (state === 'running' && micIsReady()) { cleanup(); resolve(); }
+            else if (state === 'stopped' || state === 'interrupted') {
+              cleanup(); reject(new Error('Mikrofoni keskeytyi. Yritä uudelleen.'));
+            }
+          };
+          const errorListener = event => { cleanup(); reject(event.detail?.error || new Error('Mikrofonia ei saatu käyttöön.')); };
+          engine.addEventListener('state', stateListener);
+          engine.addEventListener('error', errorListener);
+          timer = setTimeout(() => { cleanup(); reject(new Error('Mikrofonista ei saatu ääntä kalibrointiin. Yritä uudelleen.')); }, 10000);
+          if (micIsReady()) { cleanup(); resolve(); }
+        });
+      })();
+      micReadyPromise = operation;
+      try { await operation; }
+      finally { if (micReadyPromise === operation) { micReadyPromise = null; micOpening = false; updateMicButton(); } }
+    }
+
+    function showAudioIssue(error, { interrupted = false } = {}) {
+      gamePhase = 'audio-error'; gameLocked = true;
+      hideCalibrationFeedback();
+      audioIssueTitle.textContent = interrupted ? 'Jatketaanko?' : 'Mikrofoni';
+      let message = error?.message || String(error || 'Mikrofonia ei saatu käyttöön.');
+      if (['NotAllowedError', 'PermissionDeniedError'].includes(error?.name))
+        message = 'Mikrofonilupa puuttuu. Salli mikrofoni selaimen sivustoasetuksissa ja yritä uudelleen.';
+      else if (error?.name === 'NotFoundError') message = 'Mikrofonia ei löytynyt. Tarkista laitteen mikrofoni.';
+      else if (error?.name === 'NotReadableError') message = 'Mikrofoni on varattu tai ei ole käytettävissä. Sulje sitä käyttävä toinen sovellus ja yritä uudelleen.';
+      audioIssueMessage.textContent = interrupted
+        ? 'Ääniyhteys keskeytyi. Jatka avaa mikrofonin ja aloittaa uuden kierroksen.' : message;
+      audioRetryButton.textContent = interrupted ? 'Jatka' : 'Yritä uudelleen';
+      audioIssueOverlay.hidden = false;
+      audioRetryButton.focus({ preventScroll: true });
+    }
+
+    function suspendForReturn() {
+      if (['playing', 'transition', 'preparing', 'settings'].includes(gamePhase)) {
+        ++viewSerial; invalidateRound();
+        resumeNeeded = true; gamePhase = 'suspended';
+        closeThemeMenu({ resume: false });
+      }
+      engine.stop();
+      // A pending permission request can outlive pagehide. A fresh gesture
+      // must not get stuck awaiting that obsolete readiness promise.
+      micReadyPromise = null; micOpening = false;
+      hideCalibrationFeedback();
+    }
+
+    function formatGameTime(ms) {
+      const tenths = Math.round(Math.max(0, ms) / 100);
+      if (ms < 60000) return `${(ms / 1000).toFixed(2).replace('.', ',')} s`;
+      const minutes = Math.floor(tenths / 600);
+      const seconds = ((tenths % 600) / 10).toFixed(1).padStart(4, '0').replace('.', ',');
+      return `${minutes}:${seconds}`;
+    }
 
     function renderProgress() {
       gameProgress.replaceChildren(...Array.from({length: GAME_HITS}, (_, i) => {
@@ -1198,7 +1327,7 @@
     }
 
     function positionReticle() {
-      if (!gameTargetNote || notesPanel.hidden) { aimReticle.hidden = true; return; }
+      if (!gameTargetNote || notesPanel.hidden || !['playing', 'transition', 'preparing', 'settings'].includes(gamePhase)) { aimReticle.hidden = true; return; }
       const img = targets.querySelector(`.target[data-note="${CSS.escape(gameTargetNote)}"]`);
       if (!img) { aimReticle.hidden = true; return; }
       const tr = targets.getBoundingClientRect(), r = img.getBoundingClientRect();
@@ -1208,23 +1337,48 @@
     }
 
     function chooseNextTarget() {
-      if (!currentInstrument) return;
+      if (!currentInstrument || !activeNotes.length) return;
       const choices = activeNotes.filter(n => n !== lastTargetNote);
       gameTargetNote = choices[Math.floor(Math.random() * choices.length)] || activeNotes[0];
       lastTargetNote = gameTargetNote;
-      requestAnimationFrame(positionReticle);
     }
 
-    function resetGame() {
-      gameHits = 0;
-      gameLocked = false;
-      lastTargetNote = null;
-      gameStartTime = performance.now();
-      gameFinish.classList.remove('show');
-      gameFinish.innerHTML = '10 / 10';
+    async function resetGame({ recalibrate = false } = {}) {
+      const view = ++viewSerial;
+      invalidateRound();
+      gamePhase = 'preparing';
+      gameHits = 0; gameStartTime = 0; lastTargetNote = null;
+      resumeNeeded = false; menuResumePhase = null;
+      scoreViewRecordId = null;
+      playerOverlay.hidden = true; scoreboardOverlay.hidden = true; audioIssueOverlay.hidden = true;
+      notesPanel.hidden = false; instrumentPanel.hidden = true;
       renderProgress();
+      if (!currentInstrument || !currentPlayerName) { showInstrumentMenu(); return; }
+      try { await ensureMicReady({ recalibrate }); }
+      catch (error) {
+        if (view === viewSerial) { engine.stop(); showAudioIssue(error); }
+        return;
+      }
+      if (view !== viewSerial || document.hidden) return;
+      const session = roundSerial;
+      const meta = {
+        roundId: window.SavelkojuScoreboard.newId(), playerName: currentPlayerName,
+        instrumentName: currentInstrument.name, noteCount: activeNotes.length
+      };
+      roundMeta = Object.freeze(meta);
+      gameFinish.textContent = '10 / 10';
       chooseNextTarget();
+      await new Promise(resolve => requestAnimationFrame(() => {
+        if (session === roundSerial && view === viewSerial && !document.hidden) {
+          aimReticle.classList.remove('hit');
+          positionReticle();
+          gameStartTime = performance.now();
+          gamePhase = 'playing'; gameLocked = false;
+        }
+        resolve();
+      }));
     }
+
 
     // Sama äänenhallinta kuin toimivassa Sävelkojussa.
     const gameAudio = new window.SavelkojuAudioManager({
@@ -1252,78 +1406,89 @@
     }
 
     function registerGameHit(note) {
-      if (gameLocked || note !== gameTargetNote) return;
+      if (gamePhase !== 'playing' || gameLocked || !roundMeta || document.hidden
+          || notesPanel.hidden || !playerOverlay.hidden || !scoreboardOverlay.hidden
+          || !themeMenu.hidden || !audioIssueOverlay.hidden || !micIsReady()
+          || note !== gameTargetNote) return;
       playHitSound();
       gameLocked = true;
       flashRecognizedNote(note);
       aimReticle.classList.add('hit');
-      gameHits++;
-      renderProgress();
+      gameHits++; renderProgress();
+      const session = roundSerial;
       if (gameHits >= GAME_HITS) {
+        gamePhase = 'finishing';
         const elapsed = performance.now() - gameStartTime;
-        gameFinish.innerHTML = `10 / 10<span class="finish-time">Aika ${formatGameTime(elapsed)}</span>`;
+        const result = Object.freeze({ ...roundMeta, timeMs: elapsed, finishedAt: Date.now() });
+        // Capture AND queue now, not 700 ms later from mutable UI variables.
+        window.SavelkojuScoreboard.queueScore(result);
+        gameFinish.textContent = '10 / 10';
+        const time = document.createElement('span'); time.className = 'finish-time';
+        time.textContent = `Aika ${formatGameTime(elapsed)}`; gameFinish.appendChild(time);
         gameFinish.classList.add('show');
-        setTimeout(() => {
+        finishTimer = setTimeout(() => {
+          finishTimer = 0;
+          if (session !== roundSerial || gamePhase !== 'finishing') return;
           gameFinish.classList.remove('show');
-          void showFinalScore(elapsed);
+          showFinalScore(result);
         }, 700);
         return;
       }
-      setTimeout(() => { aimReticle.classList.remove('hit'); gameLocked = false; chooseNextTarget(); }, 140);
+      gamePhase = 'transition';
+      transitionTimer = setTimeout(() => {
+        transitionTimer = 0;
+        if (session !== roundSerial || gamePhase !== 'transition') return;
+        chooseNextTarget();
+        requestAnimationFrame(() => {
+          if (session !== roundSerial || gamePhase !== 'transition') return;
+          aimReticle.classList.remove('hit'); positionReticle();
+          gamePhase = 'playing'; gameLocked = false;
+        });
+      }, 140);
     }
 
-    let calibrationRaf = 0;
-    let calibrationVisualStart = 0;
+
     const CALIBRATION_RING_LENGTH = 351.86;
-
-    function updateCalibrationRing(now) {
-      if (!calibrationVisualStart) calibrationVisualStart = now;
-      const progress = Math.min(1, Math.max(0, (now - calibrationVisualStart) / 1500));
-      calibrationRingProgress.style.strokeDashoffset =
-        (CALIBRATION_RING_LENGTH - progress * CALIBRATION_RING_LENGTH).toFixed(2);
-      if (progress < 1 && !calibrationOverlay.hidden) {
-        calibrationRaf = requestAnimationFrame(updateCalibrationRing);
-      }
-    }
-
     function showCalibrationFeedback() {
-      if (calibrationRaf) cancelAnimationFrame(calibrationRaf);
-      calibrationRaf = 0;
-      calibrationVisualStart = 0;
       calibrationRingProgress.style.strokeDashoffset = String(CALIBRATION_RING_LENGTH);
       calibrationOverlay.hidden = false;
       calibrationOverlay.classList.remove('show');
       void calibrationOverlay.offsetWidth;
       calibrationOverlay.classList.add('show');
-      calibrationRaf = requestAnimationFrame(updateCalibrationRing);
     }
-
     function hideCalibrationFeedback() {
-      if (calibrationRaf) cancelAnimationFrame(calibrationRaf);
-      calibrationRaf = 0;
-      calibrationRingProgress.style.strokeDashoffset = '0';
-      calibrationOverlay.classList.remove('show');
-      calibrationOverlay.hidden = true;
-      calibrationVisualStart = 0;
+      calibrationOverlay.classList.remove('show'); calibrationOverlay.hidden = true;
     }
-
+    engine.addEventListener('calibrationprogress', event => {
+      const progress = Math.min(1, Math.max(0, Number(event.detail?.progress) || 0));
+      calibrationRingProgress.style.strokeDashoffset = String(CALIBRATION_RING_LENGTH * (1 - progress));
+    });
+    // Continuous accepted input also covers a note begun during the 140 ms
+    // transition. Round/target locks prevent counting it more than once.
+    engine.addEventListener('input', event => {
+      if (event.detail?.accepted && event.detail.action) registerGameHit(event.detail.action);
+    });
     engine.addEventListener('trigger', event => {
-      const note = event.detail?.action;
-      if (note) registerGameHit(note);
+      if (event.detail?.action && event.detail.accepted !== false) registerGameHit(event.detail.action);
     });
     window.addEventListener('resize', () => requestAnimationFrame(positionReticle));
     engine.addEventListener('state', event => {
-      const state = event.detail?.state;
-      if (state === 'calibrating') showCalibrationFeedback();
-      if (state === 'running' || state === 'stopped') hideCalibrationFeedback();
-      micOpening = false;
+      engineState = event.detail?.state || 'stopped';
+      if (engineState === 'calibrating') showCalibrationFeedback();
+      if (engineState === 'running' || engineState === 'stopped' || engineState === 'interrupted') hideCalibrationFeedback();
+      if ((engineState === 'stopped' || engineState === 'interrupted')
+          && ['playing', 'transition', 'settings'].includes(gamePhase)) {
+        ++viewSerial; invalidateRound(); resumeNeeded = true;
+        closeThemeMenu({ resume: false });
+        gamePhase = 'suspended';
+        if (!document.hidden) showAudioIssue(null, { interrupted: true });
+      }
       updateMicButton();
     });
     engine.addEventListener('error', event => {
-      hideCalibrationFeedback();
-      micOpening = false; updateMicButton();
-      console.warn('ResonatorEngine:', event.detail?.message || event.detail?.error || event.detail);
+      console.warn('ResonatorEngine:', event.detail?.message || event.detail?.error);
     });
+
 
     if (!themes.some(t => t.id === currentTheme)) currentTheme = 'classic';
 
@@ -1416,29 +1581,29 @@
 
     function openPlayerOverlay() {
       if (!currentInstrument) return;
+      ++viewSerial; invalidateRound(); gamePhase = 'player';
+      scoreboardOverlay.hidden = true; audioIssueOverlay.hidden = true;
       playerInstrumentLabel.textContent = currentInstrument.name;
       playerNameInput.value = currentPlayerName;
-      updateModeButtons();
-      playerOverlay.hidden = false;
-      setTimeout(() => playerNameInput.focus(), 0);
+      playerStartButton.disabled = false;
+      updateModeButtons(); playerOverlay.hidden = false;
+      const view = viewSerial;
+      requestAnimationFrame(() => { if (view === viewSerial && !playerOverlay.hidden) playerNameInput.focus(); });
     }
 
-    function startForPlayer() {
-      const clean = window.SavelkojuScoreboard
-        ? window.SavelkojuScoreboard.cleanName(playerNameInput.value)
-        : String(playerNameInput.value || '').trim().slice(0,20);
-      if (!clean) {
-        playerNameInput.focus();
-        return;
-      }
-      currentPlayerName = clean;
-      playerNameInput.value = clean;
+    async function startForPlayer() {
+      if (playerStartButton.disabled || !currentInstrument || gamePhase !== 'player') return;
+      const clean = window.SavelkojuScoreboard.cleanName(playerNameInput.value);
+      if (!clean) { playerNameInput.focus(); return; }
+      playerStartButton.disabled = true;
+      currentPlayerName = clean; playerNameInput.value = clean;
       activeNotes = notesForMode(currentInstrument, selectedNoteMode);
       engine.setTargets(targetsForInstrument(currentInstrument));
       renderTargets();
-      playerOverlay.hidden = true;
-      resetGame();
+      await resetGame();
+      playerStartButton.disabled = false;
     }
+
 
     function formatBoardTime(ms) {
       return formatGameTime(Number(ms));
@@ -1486,88 +1651,94 @@
       });
     }
 
-    async function showFinalScore(elapsed) {
-      gameLocked = true;
-      aimReticle.hidden = true;
-      scoreboardOverlay.hidden = false;
-      scoreboardTitle.textContent = 'Tulostaulu';
-      const noteCount = activeNotes.length;
-      scoreLevelFilter = noteCount;
-      scoreInstrumentFilter = currentInstrument?.name || 'all';
-      updateFilterButtons();
-      scoreResult.innerHTML = `${formatGameTime(elapsed)}<small>${currentPlayerName} · ${currentInstrument?.name || ''} · ${noteCount} säveltä</small>`;
-      scoreboardStatus.textContent = 'Tallennetaan tulosta…';
-      scoreboardList.replaceChildren();
-      lastSavedScoreId = null;
-
-      if (!window.SavelkojuScoreboard) {
-        scoreboardStatus.textContent = 'Tulostaulua ei saatu käyttöön.';
-        return;
+    function updateScoreStatus() {
+      const r = scoreViewRecordId ? window.SavelkojuScoreboard.getRecord(scoreViewRecordId) : null;
+      const messages = [];
+      if (r?.status === 'practice') messages.push(r.timeMs > 600000
+        ? 'Harjoituskierros. Yli 10 minuutin aikaa ei lisätä tulostauluun.'
+        : 'Harjoituskierros. Aika ei ole tulostaulun aikarajojen sisällä.');
+      else if (r?.status !== 'saved') {
+        if (r?.durable) messages.push(r.lastError || 'Tulos on tällä laitteella ja odottaa pilvitallennuksen vahvistusta.');
+        else messages.push('Tulos on vain tässä näkymässä. Selain esti pysyvän tallennuksen; älä sulje sivua ennen pilvitallennusta.');
       }
-
-      try {
-        const saved = await window.SavelkojuScoreboard.saveScore({
-          playerName: currentPlayerName,
-          instrumentName: currentInstrument.name,
-          noteCount,
-          timeMs: elapsed
-        });
-        lastSavedScoreId = saved.id;
-        allScoreRows = await window.SavelkojuScoreboard.loadScores(250);
-        scoreLevelFilter = noteCount;
-        scoreInstrumentFilter = currentInstrument?.name || 'all';
-        updateFilterButtons();
-        applyScoreFilters();
-        const semester = window.SavelkojuScoreboard.currentSemester();
-        scoreboardStatus.textContent = semester.label;
-        } catch (error) {
-        console.warn('Tulostaulu:', error);
-        scoreboardStatus.textContent = 'Tulos näkyy tässä laitteessa, mutta Firebase-tallennus epäonnistui.';
-        }
+      if (scoreReadState.error) messages.push(allScoreRows.length
+        ? 'Näytetään viimeksi tallennettua tuloslistaa.' : 'Verkon tulostaulua ei saatu ladattua.');
+      scoreboardStatus.textContent = messages.join(' ');
+      scoreboardStatus.classList.toggle('is-warning', messages.length > 0);
     }
 
+    async function refreshScores(view = viewSerial) {
+      const request = ++scoreReadSerial;
+      const result = await window.SavelkojuScoreboard.loadScores();
+      if (view !== viewSerial || request !== scoreReadSerial || scoreboardOverlay.hidden) return;
+      allScoreRows = result.rows.slice(); scoreReadState = result;
+      const r = window.SavelkojuScoreboard.getRecord(scoreViewRecordId);
+      if (r?.status === 'saved') {
+        lastSavedScoreId = r.serverId;
+        if (!allScoreRows.some(row => row.id === r.serverId)) allScoreRows.push({ ...r, id: r.serverId });
+      }
+      applyScoreFilters(); updateScoreStatus();
+    }
+
+    function showFinalScore(result) {
+      ++viewSerial;
+      gamePhase = 'scoreboard'; gameLocked = true; aimReticle.hidden = true;
+      scoreboardOverlay.hidden = false;
+      scoreViewRecordId = result.roundId;
+      scoreLevelFilter = result.noteCount;
+      scoreInstrumentFilter = result.instrumentName;
+      updateFilterButtons();
+      const name = document.createElement('small');
+      name.textContent = `${result.playerName} · ${result.instrumentName} · ${result.noteCount} säveltä`;
+      scoreResult.replaceChildren(document.createTextNode(formatGameTime(result.timeMs)), name);
+      scoreboardOverlay.querySelector('.scoreboard-card').scrollTop = 0;
+      scoreboardList.replaceChildren(); allScoreRows = []; lastSavedScoreId = null;
+      scoreReadState = { cached: false, error: '' };
+      updateScoreStatus();
+      void refreshScores(viewSerial);
+    }
+
+    window.SavelkojuScoreboard.subscribe(record => {
+      if (scoreboardOverlay.hidden || record.id !== scoreViewRecordId) return;
+      updateScoreStatus();
+      if (record.status === 'saved') {
+        lastSavedScoreId = record.serverId;
+        if (!allScoreRows.some(row => row.id === record.serverId)) allScoreRows.push({ ...record, id: record.serverId });
+        applyScoreFilters();
+        void refreshScores(viewSerial);
+      }
+    });
+
     async function showInstrument(instrument) {
-      currentInstrument = instrument;
-      activeNotes = notesForMode(instrument, selectedNoteMode);
+      const view = ++viewSerial;
+      invalidateRound(); closeThemeMenu({ resume: false });
+      gamePhase = 'preparing'; resumeNeeded = false;
+      playerOverlay.hidden = true; scoreboardOverlay.hidden = true; audioIssueOverlay.hidden = true;
+      scoreViewRecordId = null;
+      currentInstrument = instrument; activeNotes = notesForMode(instrument, selectedNoteMode);
       engine.setTargets(targetsForInstrument(instrument));
       instrumentName.textContent = instrument.name;
       instrumentName.setAttribute('aria-label', `Vaihda soitinta. Nykyinen soitin: ${instrument.name}`);
-      renderTargets();
-      instrumentPanel.hidden = true;
-      notesPanel.hidden = false;
-      aimReticle.hidden = true;
-
-      // Soitinvalinta on käyttäjän ele: avaa mikrofoni ja peliäänet.
-      void unlockGameAudio();
-      if (!engine.running && !micOpening) {
-        micOpening = true;
-        try {
-          await engine.start();
-          await unlockGameAudio();
-        } catch (error) {
-          if (error?.name !== 'AbortError') console.warn(error);
-        } finally {
-          micOpening = false;
-        }
+      renderTargets(); instrumentPanel.hidden = true; notesPanel.hidden = false;
+      updateMicButton();
+      try { await ensureMicReady(); }
+      catch (error) {
+        if (view === viewSerial) { engine.stop(); showAudioIssue(error); }
+        return;
       }
-
-      if (currentPlayerName) {
-        resetGame();
-        // Vain soitinvaihdon jälkeen: varmista tähtäimen paikka, kun uusi taulurivi on asettunut.
-        requestAnimationFrame(() => requestAnimationFrame(positionReticle));
-        setTimeout(positionReticle, 120);
-      } else {
-        openPlayerOverlay();
-      }
+      if (view !== viewSerial || document.hidden) return;
+      if (currentPlayerName) await resetGame();
+      else openPlayerOverlay();
     }
 
     function showInstrumentMenu() {
-      playerOverlay.hidden = true;
-      scoreboardOverlay.hidden = true;
-      notesPanel.hidden = true;
-      aimReticle.hidden = true;
-      instrumentPanel.hidden = false;
+      ++viewSerial; invalidateRound(); closeThemeMenu({ resume: false });
+      gamePhase = 'instrument'; resumeNeeded = false; scoreViewRecordId = null;
+      playerOverlay.hidden = true; scoreboardOverlay.hidden = true; audioIssueOverlay.hidden = true;
+      notesPanel.hidden = true; instrumentPanel.hidden = false;
+      hideCalibrationFeedback();
     }
+
 
     async function applyTheme(themeId, { closeMenu = false } = {}) {
       if (!themes.some(t => t.id === themeId)) return;
@@ -1610,20 +1781,36 @@
     }
 
     function openThemeMenu() {
-      themeMenu.hidden = false;
-      menuBackdrop.hidden = false;
+      menuResumePhase = ['playing', 'transition'].includes(gamePhase) ? gamePhase : null;
+      if (menuResumePhase) {
+        clearTimeout(transitionTimer); transitionTimer = 0;
+        gamePhase = 'settings'; gameLocked = true;
+      }
+      themeMenu.hidden = false; menuBackdrop.hidden = false;
       gearButton.setAttribute('aria-expanded', 'true');
+      updateMicButton();
     }
 
-    function closeThemeMenu() {
-      themeMenu.hidden = true;
-      menuBackdrop.hidden = true;
+    function closeThemeMenu({ resume = true } = {}) {
+      themeMenu.hidden = true; menuBackdrop.hidden = true;
       gearButton.setAttribute('aria-expanded', 'false');
+      const phase = menuResumePhase; menuResumePhase = null;
+      if (resume && phase && gamePhase === 'settings' && roundMeta) {
+        if (phase === 'transition') chooseNextTarget();
+        const session = roundSerial;
+        requestAnimationFrame(() => {
+          if (session !== roundSerial || gamePhase !== 'settings') return;
+          aimReticle.classList.remove('hit'); positionReticle();
+          gamePhase = 'playing'; gameLocked = false;
+        });
+      }
     }
+
 
     modePicker.addEventListener('click', event => {
       const button = event.target.closest('.mode-button');
       if (!button) return;
+      if (gamePhase !== 'player') return;
       selectedNoteMode = button.dataset.noteMode;
       updateModeButtons();
     });
@@ -1634,7 +1821,7 @@
     });
     playAgainButton.addEventListener('click', () => {
       scoreboardOverlay.hidden = true;
-      resetGame();
+      void resetGame();
     });
     changeInstrumentButton.addEventListener('click', showInstrumentMenu);
     changePlayerButton.addEventListener('click', () => {
@@ -1723,12 +1910,35 @@
 
     instrumentName.addEventListener('click', showInstrumentMenu);
     gearButton.addEventListener('click', () => themeMenu.hidden ? openThemeMenu() : closeThemeMenu());
-    menuBackdrop.addEventListener('click', closeThemeMenu);
+    menuBackdrop.addEventListener('click', () => closeThemeMenu());
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') closeThemeMenu();
     });
 
-    window.addEventListener('pagehide', () => engine.stop());
+    audioRetryButton.addEventListener('click', () => {
+      if (currentInstrument) void showInstrument(currentInstrument);
+      else showInstrumentMenu();
+    });
+    audioMenuButton.addEventListener('click', showInstrumentMenu);
+    recalibrateButton.addEventListener('click', async () => {
+      closeThemeMenu({ resume: false });
+      if (!currentInstrument) return;
+      if (currentPlayerName) await resetGame({ recalibrate: true });
+      else {
+        const view = ++viewSerial; invalidateRound(); gamePhase = 'preparing';
+        playerOverlay.hidden = true;
+        try { await ensureMicReady({ recalibrate: true }); if (view === viewSerial) openPlayerOverlay(); }
+        catch (error) { if (view === viewSerial) showAudioIssue(error); }
+      }
+    });
+    window.addEventListener('pagehide', suspendForReturn);
+    window.addEventListener('pageshow', () => {
+      if (resumeNeeded && !document.hidden) showAudioIssue(null, { interrupted: true });
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) suspendForReturn();
+      else if (resumeNeeded) showAudioIssue(null, { interrupted: true });
+    });
     updateMicButton();
 
     // Näytä tallennettu teema heti.
@@ -1747,14 +1957,22 @@
   </script>
 
   <script>
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && ['https:', 'http:'].includes(location.protocol)) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(err => {
-          console.warn('Service worker registration failed:', err);
+        let controlled = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (controlled) document.getElementById('updateButton').hidden = false;
+          controlled = true;
+        });
+        document.getElementById('updateButton').addEventListener('click', () => location.reload());
+        navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).catch(error => {
+          console.warn('PWA-välimuistia ei saatu käyttöön:', error);
         });
       });
     }
   </script>
+
+
 </body>
 </html>
 
