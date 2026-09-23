@@ -2,10 +2,10 @@
 (() => {
   'use strict';
   const FIREBASE_CONFIG = {
-    apiKey: 'AIzaSyCHSTODIddId7jxP41X315gx4s-pfQ1l44',
-    authDomain: 'savelkoju.firebaseapp.com', projectId: 'savelkoju',
-    storageBucket: 'savelkoju.firebasestorage.app', messagingSenderId: '628559357855',
-    appId: '1:628559357855:web:af1896e724516187abbfaa'
+    apiKey: 'AIzaSyBeu0qvjp5PE4IpLhAaNXAXEkjsHnKT5Ek',
+    authDomain: 'puhallinstartti.firebaseapp.com', projectId: 'puhallinstartti',
+    storageBucket: 'puhallinstartti.firebasestorage.app', messagingSenderId: '422306502286',
+    appId: '1:422306502286:web:cc65de4b618683d8379bdf'
   };
   const INSTRUMENTS = ['Huilu', 'Saksofoni', 'Klarinetti', 'Trumpetti', 'Käyrätorvi', 'Pasuuna'];
   const COLLECTION = 'savelkojuScores';
