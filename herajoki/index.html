@@ -14,6 +14,8 @@
       --paper: #fbf7ef;
       --paper-2: #f2eadf;
       --shadow: 0 14px 38px rgba(38, 54, 66, .16);
+      /* Sama sivumarginaali molemmille puolille myös iPhonen loven kohdalla. */
+      --safe-x: max(18px, env(safe-area-inset-left), env(safe-area-inset-right));
     }
 
     * { box-sizing: border-box; }
@@ -66,30 +68,18 @@
     .content {
       position: relative;
       z-index: 2;
-      width: min(1120px, 92vw);
+      width: 100%;
+      max-width: 1120px;
       height: 100%;
       margin: 0 auto;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: 1fr;
       align-items: center;
-      padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 72px;
-    }
-
-    .title {
-      margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      font-weight: 600;
-      letter-spacing: .045em;
-      font-size: clamp(28px, 3vw, 46px);
-      color: #314651;
-      text-shadow: 0 1px 0 rgba(255,255,255,.75);
+      /* Tärkeä iPhone-korjaus: vasen ja oikea padding ovat aina yhtä suuret. */
+      padding-top: max(18px, env(safe-area-inset-top));
+      padding-right: var(--safe-x);
+      padding-bottom: max(18px, env(safe-area-inset-bottom));
+      padding-left: var(--safe-x);
     }
 
     .screen {
@@ -110,7 +100,7 @@
     .notes-panel[hidden] { display: none; }
 
     .instrument-card {
-      width: min(760px, 90vw);
+      width: min(760px, 100%);
       padding: clamp(22px, 4vw, 42px);
       border: 1px solid rgba(181,139,58,.34);
       border-radius: 28px;
@@ -135,12 +125,11 @@
     }
 
     .instrument-button,
-    .change-button {
+    .instrument-name-button {
       appearance: none;
       border: 1px solid rgba(181,139,58,.56);
       color: #2b3c46;
       background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,240,231,.96));
-      border-radius: 18px;
       box-shadow: 0 6px 16px rgba(38,54,66,.10), inset 0 1px 0 rgba(255,255,255,.9);
       cursor: pointer;
       transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
@@ -151,13 +140,14 @@
     .instrument-button {
       min-height: 64px;
       padding: 12px 16px;
+      border-radius: 18px;
       font-size: clamp(15px, 1.5vw, 19px);
     }
 
     .instrument-button:hover,
     .instrument-button:focus-visible,
-    .change-button:hover,
-    .change-button:focus-visible {
+    .instrument-name-button:hover,
+    .instrument-name-button:focus-visible {
       transform: translateY(-2px);
       border-color: var(--gold);
       box-shadow: 0 10px 22px rgba(38,54,66,.14), 0 0 0 3px rgba(111,146,152,.12);
@@ -168,43 +158,48 @@
       height: 100%;
       grid-template-rows: auto 1fr;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .notes-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      flex-wrap: wrap;
+      width: 100%;
+      display: grid;
+      place-items: center;
     }
 
-    .instrument-name {
+    /* Soittimen nimi on samalla soitinvaihdon nappi. */
+    .instrument-name-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
       margin: 0;
+      padding: 8px 22px;
+      border-radius: 999px;
       font-family: Georgia, "Times New Roman", serif;
       font-size: clamp(22px, 2.5vw, 36px);
       font-weight: 600;
+      line-height: 1.1;
       color: #314651;
-    }
-
-    .change-button {
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 14px;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .targets {
       width: 100%;
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      min-width: 0;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
       align-items: center;
-      justify-items: center;
-      gap: clamp(4px, 1.4vw, 18px);
-      padding: 6px 0 16px;
+      gap: clamp(4px, 1.25vw, 16px);
+      padding: 6px 0 12px;
     }
 
     .target {
-      width: min(100%, 215px);
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 205px;
       aspect-ratio: 1;
       object-fit: contain;
       filter: drop-shadow(0 12px 15px rgba(38,54,66,.17));
@@ -213,13 +208,9 @@
       -webkit-user-drag: none;
     }
 
-    .footer {
-      min-height: 38px;
-    }
-
     @media (max-width: 760px) {
       .instrument-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .instrument-card { width: min(560px, 92vw); }
+      .instrument-card { width: min(560px, 100%); }
     }
 
     @media (orientation: portrait) {
@@ -227,25 +218,47 @@
       .app { min-height: 100dvh; height: auto; }
       .frame { display: none; }
       .content { min-height: 100dvh; height: auto; }
+      .notes-panel { min-height: calc(100dvh - 36px); }
       .targets {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        width: min(720px, 94vw);
+        width: 100%;
+        max-width: 720px;
+        flex-wrap: wrap;
+        gap: 8px;
       }
-      .target { width: min(100%, 210px); }
+      .target {
+        flex: 0 1 calc((100% - 16px) / 3);
+        max-width: 210px;
+      }
     }
 
+    /* iPhone 15 / matala vaakaruutu */
     @media (max-height: 560px) and (orientation: landscape) {
-      .content { width: min(1100px, 86vw); padding-top: 8px; padding-bottom: 8px; }
-      .topbar { min-height: 44px; }
-      .title { font-size: 28px; }
-      .instrument-card { padding: 18px 24px; }
-      .instrument-card h2 { margin-bottom: 14px; font-size: 22px; }
-      .instrument-button { min-height: 48px; padding: 8px 12px; }
-      .notes-panel { gap: 0; }
-      .instrument-name { font-size: 24px; }
-      .targets { width: min(1020px, 85vw); padding-bottom: 4px; }
-      .target { max-height: 47vh; width: auto; max-width: 18vw; }
-      .footer { min-height: 4px; }
+      .content {
+        max-width: 1100px;
+        padding-top: max(8px, env(safe-area-inset-top));
+        padding-right: var(--safe-x);
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+        padding-left: var(--safe-x);
+      }
+      .instrument-card { padding: 16px 22px; }
+      .instrument-card h2 { margin-bottom: 12px; font-size: 22px; }
+      .instrument-button { min-height: 46px; padding: 7px 12px; }
+      .notes-panel { gap: 2px; }
+      .instrument-name-button {
+        min-height: 40px;
+        padding: 6px 18px;
+        font-size: 22px;
+      }
+      .targets {
+        width: 100%;
+        max-width: 1020px;
+        padding-bottom: 2px;
+        gap: clamp(3px, .9vw, 10px);
+      }
+      .target {
+        max-width: 18.2vw;
+        max-height: 47vh;
+      }
     }
   </style>
 </head>
@@ -255,10 +268,6 @@
     <div class="veil" aria-hidden="true"></div>
 
     <div class="content">
-      <header class="topbar">
-        <h1 class="title">Sävelkoju</h1>
-      </header>
-
       <section class="screen">
         <div class="instrument-panel" id="instrumentPanel">
           <div class="instrument-card">
@@ -269,14 +278,11 @@
 
         <div class="notes-panel" id="notesPanel" hidden>
           <div class="notes-header">
-            <h2 class="instrument-name" id="instrumentName"></h2>
-            <button class="change-button" id="changeInstrument" type="button">Vaihda soitin</button>
+            <button class="instrument-name-button" id="instrumentName" type="button" aria-label="Vaihda soitinta"></button>
           </div>
           <div class="targets" id="targets" aria-live="polite"></div>
         </div>
       </section>
-
-      <div class="footer" aria-hidden="true"></div>
     </div>
   </main>
 
@@ -295,10 +301,11 @@
     const notesPanel = document.getElementById('notesPanel');
     const instrumentName = document.getElementById('instrumentName');
     const targets = document.getElementById('targets');
-    const changeInstrument = document.getElementById('changeInstrument');
 
     function showInstrument(instrument) {
       instrumentName.textContent = instrument.name;
+      instrumentName.setAttribute('aria-label', `Vaihda soitinta. Nykyinen soitin: ${instrument.name}`);
+
       targets.replaceChildren(...instrument.notes.map(note => {
         const img = document.createElement('img');
         img.className = 'target';
@@ -307,6 +314,7 @@
         img.draggable = false;
         return img;
       }));
+
       instrumentPanel.hidden = true;
       notesPanel.hidden = false;
     }
@@ -325,7 +333,7 @@
       instrumentGrid.appendChild(button);
     });
 
-    changeInstrument.addEventListener('click', showInstrumentMenu);
+    instrumentName.addEventListener('click', showInstrumentMenu);
   </script>
 </body>
 </html>
