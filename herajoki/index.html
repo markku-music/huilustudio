@@ -880,13 +880,34 @@
     .check { opacity: 0; font-weight: 900; }
     .theme-button.active .check { opacity: 1; }
 
+
+    .rotate-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      place-items: center;
+      padding: 28px;
+      background: rgba(251,247,239,.96);
+      color: var(--ink);
+      text-align: center;
+    }
+
+    .rotate-message {
+      font-size: clamp(26px, 7vw, 42px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -.02em;
+    }
+
     @media (max-width: 760px) {
       .instrument-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .instrument-card { width: min(560px, 100%); }
     }
 
     @media (orientation: portrait) {
-      body { overflow: auto; }
+      body { overflow: hidden; }
+      .rotate-overlay { display: grid; }
       .app { min-height: 100dvh; height: auto; }
       .content { min-height: 100dvh; height: auto; }
       .notes-panel { min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom)); }
@@ -946,6 +967,10 @@
   <main class="app">
     <img class="theme-background" id="themeBackground" src="assets/themes/classic/background.webp" alt="" aria-hidden="true" />
     <div class="veil" aria-hidden="true"></div>
+
+    <div class="rotate-overlay" aria-live="polite">
+      <div class="rotate-message">Käännä vaakatasoon</div>
+    </div>
 
     <div class="content">
       <section class="screen">
