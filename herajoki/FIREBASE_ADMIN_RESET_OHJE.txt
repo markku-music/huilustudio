@@ -1,0 +1,42 @@
+PUHALLINSTARTTI v23.9 – YLLÄPITÄJÄN TULOSTAULURESET
+
+Sovelluksessa:
+Ratas -> Resetoi tulostaulu -> ylläpitäjän sähköposti + salasana ->
+vahvistus -> Tyhjennä kaikki tulokset.
+
+Tunnuksia EI tallenneta selaimeen. Admin-kirjautuminen käyttää erillistä
+Firebase-app-instanssia ja Auth Persistence = NONE.
+
+FIREBASEEN TEHTÄVÄT KERTALUONTEISET ASETUKSET
+
+1. Authentication -> Sign-in method
+   Ota Email/Password käyttöön.
+   Anonymous pidetään edelleen käytössä.
+
+2. Authentication -> Users -> Add user
+   Luo ylläpitäjälle sähköposti ja vahva salasana.
+   Kopioi luodun käyttäjän UID.
+
+3. Firestore Database -> Data
+   Luo collection:
+       admins
+   Luo siihen dokumentti, jonka Document ID on ylläpitäjän UID.
+   Lisää dokumenttiin esimerkiksi kenttä:
+       role = "admin"
+   Kentän sisältöä ei käytetä oikeuspäätökseen; dokumentin olemassaolo riittää.
+
+4. Firestore Database -> Rules
+   Korvaa säännöt tämän paketin firestore.rules-tiedoston sisällöllä
+   ja paina Publish.
+
+TURVALLISUUS
+- Tavallinen Anonymous-käyttäjä ei saa poistaa tuloksia.
+- Email/Password-käyttäjä EI yksin riitä: UID:n pitää löytyä admins-kokoelmasta.
+- admins-kokoelmaan ei voi kirjoittaa sovelluksesta.
+- Reset poistaa vain puhallinstarttiScores-kokoelman dokumentit.
+- Muita Firebase-kokoelmia tai projektin asetuksia ei poisteta.
+
+HUOMIO
+Jos toisella laitteella on vanha lähettämätön tulos offline-jonossa, se voi
+myöhemmin verkkoon palatessaan tallentua uudelleen. Nykyisen laitteen paikallinen
+tulosjono tyhjennetään resetin yhteydessä.
