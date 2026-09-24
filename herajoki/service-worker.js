@@ -1,6 +1,6 @@
-/* Puhallinstartti v23.10.0: smooth calibration ring + stable portrait rotate message. */
+/* Puhallinstartti v23.11.0: smooth ring follows measured calibration progress. */
 const CACHE_PREFIX = 'puhallinstartti|' + encodeURIComponent(self.registration.scope) + '|';
-const CACHE_NAME = CACHE_PREFIX + '23.10.0-calibration-rotate-stable';
+const CACHE_NAME = CACHE_PREFIX + '23.11.0-calibration-progress-sync';
 const ASSETS = [
   "./",
   "./index.html",
