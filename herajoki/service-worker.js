@@ -1,6 +1,6 @@
-/* Puhallinstartti v23.6.0-scoreboard-width: Firebase project/cache refresh. */
+/* Puhallinstartti v23.10.0: smooth calibration ring + stable portrait rotate message. */
 const CACHE_PREFIX = 'puhallinstartti|' + encodeURIComponent(self.registration.scope) + '|';
-const CACHE_NAME = CACHE_PREFIX + '23.9.0-admin-reset';
+const CACHE_NAME = CACHE_PREFIX + '23.10.0-calibration-rotate-stable';
 const ASSETS = [
   "./",
   "./index.html",
