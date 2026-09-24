@@ -11,6 +11,7 @@
   const COLLECTION = 'puhallinstarttiScores';
   const SDK_BASE = 'https://www.gstatic.com/firebasejs/10.12.5/';
   const APP_NAME = 'puhallinstartti';
+  const ADMIN_APP_NAME = 'puhallinstartti-admin';
   let scope = '/';
   try { scope = new URL('./', window.location?.href || 'https://local.invalid/').pathname; } catch (_) {}
   const PREFIX = 'puhallinstartti-v23.1:' + encodeURIComponent(scope) + ':';
@@ -23,6 +24,8 @@
   let db = null, auth = null, sdkPromise = null, authPromise = null;
   let flushPromise = null;
   let cacheMemory = null;
+  let adminApp = null, adminAuth = null, adminDb = null;
+  let maintenanceReset = false;
 
   function error(message, code) { return Object.assign(new Error(message), { code }); }
   function timeout(promise, ms, message = 'Verkkoyhteys ei vastannut ajoissa.') {
@@ -189,6 +192,7 @@
     return 'Tulos odottaa verkkoyhteyttä tai pilvipalvelua.';
   }
   function sendRecord(record) {
+    if (maintenanceReset) return Promise.reject(error('Tulostaulua huolletaan.', 'maintenance'));
     if (inflight.has(record.id)) return inflight.get(record.id);
     if (record.status === 'saved' || record.status === 'practice') return Promise.resolve(record);
     const operation = (async () => {
@@ -219,6 +223,7 @@
     return operation;
   }
   function flushPending() {
+    if (maintenanceReset) return Promise.resolve();
     if (flushPromise) return flushPromise;
     if (!online()) return Promise.resolve();
     flushPromise = (async () => {
@@ -281,6 +286,83 @@
       return { rows: readCache(), cached: true, error: 'Verkon tulostaulua ei saatu päivitettyä.' };
     }
   }
+
+  function clearLocalScoreData() {
+    memory.clear();
+    cacheMemory = null;
+    try {
+      const remove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith(OUTBOX_PREFIX) || key === CACHE_KEY)) remove.push(key);
+      }
+      remove.forEach(key => localStorage.removeItem(key));
+    } catch (_) {}
+  }
+
+  async function initAdmin() {
+    await loadSDK();
+    const f = window.firebase;
+    adminApp = f.apps.find(app => app.name === ADMIN_APP_NAME)
+      || f.initializeApp(FIREBASE_CONFIG, ADMIN_APP_NAME);
+    adminAuth = adminApp.auth();
+    adminDb = adminApp.firestore();
+    // Admin credentials are never persisted to local storage.
+    await adminAuth.setPersistence(f.auth.Auth.Persistence.NONE);
+    return adminDb;
+  }
+
+  async function adminSignIn(email, password) {
+    const cleanEmail = String(email || '').trim();
+    if (!cleanEmail || !password) throw error('Anna ylläpitäjän sähköposti ja salasana.', 'admin-credentials');
+    await initAdmin();
+    try { await adminAuth.signOut(); } catch (_) {}
+    const credential = await adminAuth.signInWithEmailAndPassword(cleanEmail, String(password));
+    const user = credential.user;
+    const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists) {
+      try { await adminAuth.signOut(); } catch (_) {}
+      throw error('Tällä käyttäjällä ei ole ylläpitäjäoikeutta.', 'not-admin');
+    }
+    const scores = await adminDb.collection(COLLECTION).get();
+    return { uid: user.uid, email: user.email || cleanEmail, count: scores.size };
+  }
+
+  async function adminSignOut() {
+    if (!adminAuth) return;
+    try { await adminAuth.signOut(); } catch (_) {}
+  }
+
+  async function adminResetScores(onProgress) {
+    if (!adminAuth?.currentUser || !adminDb) throw error('Ylläpitäjä ei ole kirjautunut.', 'not-admin');
+    const user = adminAuth.currentUser;
+    const adminDoc = await adminDb.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists) throw error('Tällä käyttäjällä ei ole ylläpitäjäoikeutta.', 'not-admin');
+
+    maintenanceReset = true;
+    try {
+      // Let any write already started on this device finish first, then delete.
+      if (inflight.size) await Promise.allSettled(Array.from(inflight.values()));
+
+      let deleted = 0;
+      while (true) {
+        const snap = await adminDb.collection(COLLECTION).limit(400).get();
+        if (snap.empty) break;
+        const batch = adminDb.batch();
+        snap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        deleted += snap.size;
+        if (typeof onProgress === 'function') onProgress(deleted);
+        if (snap.size < 400) break;
+      }
+
+      clearLocalScoreData();
+      return { deleted };
+    } finally {
+      maintenanceReset = false;
+    }
+  }
+
   function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
   window.addEventListener('online', () => { void flushPending(); });
   window.addEventListener('pageshow', () => { void flushPending(); });
@@ -297,6 +379,7 @@
   // Exposed small API permits isolated tests without touching the real database.
   window.SavelkojuScoreboard = {
     init, saveScore, loadScores, queueScore, flushPending, getRecord, subscribe,
-    cleanName, currentSemester, newId, records, explainError
+    cleanName, currentSemester, newId, records, explainError,
+    adminSignIn, adminSignOut, adminResetScores
   };
 })();

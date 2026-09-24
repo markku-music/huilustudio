@@ -1,6 +1,6 @@
 /* Puhallinstartti v23.6.0-scoreboard-width: Firebase project/cache refresh. */
 const CACHE_PREFIX = 'puhallinstartti|' + encodeURIComponent(self.registration.scope) + '|';
-const CACHE_NAME = CACHE_PREFIX + '23.8.0-scoreboard-actions-top';
+const CACHE_NAME = CACHE_PREFIX + '23.9.0-admin-reset';
 const ASSETS = [
   "./",
   "./index.html",

@@ -929,6 +929,57 @@
     body.theme-kids .scoreboard-width-slider { accent-color:#60477e; }
     body.theme-concert .scoreboard-width-slider { accent-color:#f5d77e; }
 
+
+    .admin-reset-block {
+      margin-top: 14px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(91,111,123,.18);
+    }
+    body.theme-concert .admin-reset-block { border-top-color: rgba(226,179,69,.20); }
+    .admin-reset-button {
+      width: 100%;
+      border-color: rgba(151,48,48,.46) !important;
+      color: #8a2929 !important;
+      background: rgba(255,247,246,.94) !important;
+      font-size: 14px !important;
+    }
+    body.theme-concert .admin-reset-button {
+      color: #ffd0c8 !important;
+      background: rgba(91,20,20,.42) !important;
+      border-color: rgba(255,164,148,.42) !important;
+    }
+    .admin-reset-card { width: min(480px, 100%); }
+    .admin-reset-fields {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .admin-reset-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 13px;
+      border-radius: 13px;
+      border: 1px solid rgba(66,79,88,.28);
+      background: rgba(255,255,255,.94);
+      color: #263843;
+      font: 650 16px/1.2 system-ui,sans-serif;
+      outline: none;
+    }
+    .admin-reset-input:focus { border-color: currentColor; }
+    .admin-reset-status {
+      min-height: 20px;
+      margin: 12px 0 0;
+      text-align: center;
+      font: 650 13px/1.35 system-ui,sans-serif;
+      opacity: .82;
+    }
+    .admin-reset-danger {
+      border-color: rgba(151,48,48,.55) !important;
+      color: #fff !important;
+      background: #9b3030 !important;
+    }
+    .admin-reset-danger:disabled { opacity: .45; cursor: default; }
+
     .rotate-overlay {
       display: none;
       position: fixed;
@@ -1249,6 +1300,42 @@
       </div>
     </div>
 
+    <div class="player-overlay" id="adminResetOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="adminResetTitle">
+      <div class="player-card admin-reset-card">
+        <h2 id="adminResetTitle">Tulostaulun reset</h2>
+
+        <div id="adminLoginStep">
+          <p>Kirjaudu ylläpitäjänä. Tunnuksia ei tallenneta laitteelle.</p>
+          <div class="admin-reset-fields">
+            <input class="admin-reset-input" id="adminEmailInput" type="email" autocomplete="username" placeholder="Sähköposti" aria-label="Ylläpitäjän sähköposti">
+            <input class="admin-reset-input" id="adminPasswordInput" type="password" autocomplete="current-password" placeholder="Salasana" aria-label="Ylläpitäjän salasana">
+          </div>
+          <p class="admin-reset-status" id="adminLoginStatus"></p>
+          <div class="player-actions">
+            <button class="score-action" id="adminLoginButton" type="button">Jatka</button>
+            <button class="score-action" id="adminCancelButton" type="button">Peruuta</button>
+          </div>
+        </div>
+
+        <div id="adminConfirmStep" hidden>
+          <p id="adminConfirmText"></p>
+          <p><strong>Tämä poistaa kaikki Puhallinstartin tulokset Firestoresta.</strong> Toimintoa ei voi perua.</p>
+          <p class="admin-reset-status" id="adminResetStatus"></p>
+          <div class="player-actions">
+            <button class="score-action admin-reset-danger" id="adminConfirmResetButton" type="button">Tyhjennä kaikki tulokset</button>
+            <button class="score-action" id="adminBackButton" type="button">Peruuta</button>
+          </div>
+        </div>
+
+        <div id="adminDoneStep" hidden>
+          <p class="admin-reset-status" id="adminDoneText"></p>
+          <div class="player-actions">
+            <button class="score-action" id="adminDoneButton" type="button">Sulje</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <button class="gear-button" id="gearButton" type="button" aria-label="Valitse ulkoasu" aria-expanded="false" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3.2"></circle>
@@ -1272,6 +1359,9 @@
           <span class="scoreboard-width-value" id="scoreboardWidthValue">520 px</span>
         </div>
         <input class="scoreboard-width-slider" id="scoreboardWidthSlider" type="range" min="300" max="1000" step="10" value="520" aria-label="Tuloskortin leveys pikseleinä">
+      </div>
+      <div class="admin-reset-block">
+        <button class="score-action admin-reset-button" id="adminResetButton" type="button">Resetoi tulostaulu</button>
       </div>
     </aside>
   </main>
@@ -1307,6 +1397,22 @@
     const gearButton = document.getElementById('gearButton');
     const scoreboardWidthSlider = document.getElementById('scoreboardWidthSlider');
     const scoreboardWidthValue = document.getElementById('scoreboardWidthValue');
+    const adminResetButton = document.getElementById('adminResetButton');
+    const adminResetOverlay = document.getElementById('adminResetOverlay');
+    const adminLoginStep = document.getElementById('adminLoginStep');
+    const adminConfirmStep = document.getElementById('adminConfirmStep');
+    const adminDoneStep = document.getElementById('adminDoneStep');
+    const adminEmailInput = document.getElementById('adminEmailInput');
+    const adminPasswordInput = document.getElementById('adminPasswordInput');
+    const adminLoginStatus = document.getElementById('adminLoginStatus');
+    const adminLoginButton = document.getElementById('adminLoginButton');
+    const adminCancelButton = document.getElementById('adminCancelButton');
+    const adminConfirmText = document.getElementById('adminConfirmText');
+    const adminResetStatus = document.getElementById('adminResetStatus');
+    const adminConfirmResetButton = document.getElementById('adminConfirmResetButton');
+    const adminBackButton = document.getElementById('adminBackButton');
+    const adminDoneText = document.getElementById('adminDoneText');
+    const adminDoneButton = document.getElementById('adminDoneButton');
     const themeMenu = document.getElementById('themeMenu');
     const menuBackdrop = document.getElementById('menuBackdrop');
     const themeList = document.getElementById('themeList');
@@ -1988,6 +2094,41 @@
       }
     }
 
+
+    function resetAdminDialog() {
+      adminLoginStep.hidden = false;
+      adminConfirmStep.hidden = true;
+      adminDoneStep.hidden = true;
+      adminLoginStatus.textContent = '';
+      adminResetStatus.textContent = '';
+      adminDoneText.textContent = '';
+      adminPasswordInput.value = '';
+      adminLoginButton.disabled = false;
+      adminConfirmResetButton.disabled = false;
+    }
+
+    function openAdminResetDialog() {
+      resetAdminDialog();
+      adminResetOverlay.hidden = false;
+      setTimeout(() => adminEmailInput.focus(), 0);
+    }
+
+    async function closeAdminResetDialog() {
+      adminResetOverlay.hidden = true;
+      try { await window.SavelkojuScoreboard.adminSignOut(); } catch (_) {}
+    }
+
+    function adminErrorText(error) {
+      const code = String(error?.code || '');
+      if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
+        return 'Sähköposti tai salasana ei täsmää.';
+      }
+      if (code === 'not-admin') return 'Tällä käyttäjällä ei ole ylläpitäjäoikeutta.';
+      if (code.includes('operation-not-allowed')) return 'Firebase Email/Password -kirjautuminen ei ole käytössä.';
+      if (code.includes('permission-denied')) return 'Firestore-säännöt eivät salli ylläpitäjätoimintoa.';
+      return error?.message || 'Ylläpitäjätoiminto epäonnistui.';
+    }
+
     function openThemeMenu() {
       menuResumePhase = ['playing', 'transition'].includes(gamePhase) ? gamePhase : null;
       if (menuResumePhase) {
@@ -2125,6 +2266,67 @@
         await applyTheme(theme.id, { closeMenu: true });
       });
       themeList.appendChild(button);
+    });
+
+    adminResetButton.addEventListener('click', () => {
+      // The settings menu has already paused the current round.
+      openAdminResetDialog();
+    });
+
+    adminCancelButton.addEventListener('click', () => { void closeAdminResetDialog(); });
+    adminBackButton.addEventListener('click', () => { void closeAdminResetDialog(); });
+    adminDoneButton.addEventListener('click', async () => {
+      await closeAdminResetDialog();
+      closeThemeMenu({ resume: false });
+      showInstrumentMenu();
+    });
+
+    adminLoginButton.addEventListener('click', async () => {
+      adminLoginButton.disabled = true;
+      adminLoginStatus.textContent = 'Tarkistetaan ylläpitäjäoikeus…';
+      try {
+        const info = await window.SavelkojuScoreboard.adminSignIn(
+          adminEmailInput.value,
+          adminPasswordInput.value
+        );
+        adminLoginStep.hidden = true;
+        adminConfirmStep.hidden = false;
+        adminConfirmText.textContent = info.count === 1
+          ? 'Tulostaulussa on 1 tulos.'
+          : `Tulostaulussa on ${info.count} tulosta.`;
+        adminResetStatus.textContent = '';
+      } catch (error) {
+        adminLoginStatus.textContent = adminErrorText(error);
+      } finally {
+        adminLoginButton.disabled = false;
+      }
+    });
+
+    adminPasswordInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !adminLoginButton.disabled) adminLoginButton.click();
+    });
+
+    adminConfirmResetButton.addEventListener('click', async () => {
+      adminConfirmResetButton.disabled = true;
+      adminResetStatus.textContent = 'Tyhjennetään tulostaulua…';
+      try {
+        const result = await window.SavelkojuScoreboard.adminResetScores(deleted => {
+          adminResetStatus.textContent = `Poistettu ${deleted} tulosta…`;
+        });
+        await window.SavelkojuScoreboard.adminSignOut();
+        allScoreRows = [];
+        scoreboardList.replaceChildren();
+        lastSavedScoreId = null;
+        scoreViewRecordId = null;
+        adminConfirmStep.hidden = true;
+        adminDoneStep.hidden = false;
+        adminDoneText.textContent = result.deleted === 1
+          ? 'Tulostaulu tyhjennetty. Poistettiin 1 tulos.'
+          : `Tulostaulu tyhjennetty. Poistettiin ${result.deleted} tulosta.`;
+      } catch (error) {
+        adminResetStatus.textContent = adminErrorText(error);
+        adminConfirmResetButton.disabled = false;
+      }
     });
 
     instrumentName.addEventListener('click', showInstrumentMenu);

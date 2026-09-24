@@ -2,39 +2,75 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
+
     function validScore(data) {
-      return data.keys().hasAll(['playerName', 'instrumentName', 'noteCount', 'timeMs', 'createdAt']) &&
-        data.keys().hasOnly(['playerName', 'instrumentName', 'noteCount', 'timeMs', 'createdAt']) &&
-        data.playerName is string && data.playerName.size() >= 1 && data.playerName.size() <= 20 &&
-        data.instrumentName in ['Huilu', 'Saksofoni', 'Klarinetti', 'Trumpetti', 'Käyrätorvi', 'Pasuuna'] &&
-        data.noteCount is int && data.noteCount in [3, 4, 5] &&
-        data.timeMs is int && data.timeMs >= 1000 && data.timeMs <= 600000 &&
-        data.createdAt is timestamp && data.createdAt == request.time;
+      return data.keys().hasAll([
+        'playerName',
+        'instrumentName',
+        'noteCount',
+        'timeMs',
+        'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'playerName',
+        'instrumentName',
+        'noteCount',
+        'timeMs',
+        'createdAt'
+      ])
+      && data.playerName is string
+      && data.playerName.size() >= 1
+      && data.playerName.size() <= 20
+      && data.instrumentName in [
+        'Huilu',
+        'Saksofoni',
+        'Klarinetti',
+        'Trumpetti',
+        'Käyrätorvi',
+        'Pasuuna'
+      ]
+      && data.noteCount is int
+      && data.noteCount in [3, 4, 5]
+      && data.timeMs is int
+      && data.timeMs >= 1000
+      && data.timeMs <= 600000
+      && data.createdAt is timestamp
+      && data.createdAt == request.time;
     }
+
+    // Ylläpitäjälista luodaan vain Firebase Consolesta.
+    // Käyttäjä saa tarkistaa vain oman ylläpitäjädokumenttinsa.
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
     }
-    // Preserve the other, older app's read behavior. This collection is not
-    // used by Puhallinstartti. Do not change its users as a side effect.
-    match /scoreboards/{boardId}/scores/{scoreId} {
-      allow read: if true;
-      allow create, update: if false;
-      allow delete: if isAdmin();
-    }
+
     match /puhallinstarttiScores/{scoreId} {
       allow read: if signedIn();
-      // New IDs are uid + '_' + the stable round UUID. No new payload fields
-      // are required, so the upgraded client remains schema-compatible.
-      allow create: if signedIn() &&
-        scoreId.matches(request.auth.uid + '_[A-Za-z0-9-]{20,64}') &&
-        validScore(request.resource.data);
+
+      allow create: if signedIn()
+        && scoreId.matches(
+          request.auth.uid + '_[A-Za-z0-9-]{20,64}'
+        )
+        && validScore(request.resource.data);
+
       allow update: if false;
+
+      // Vain /admins/{uid}-listalla oleva Firebase-käyttäjä saa resetoida.
       allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
