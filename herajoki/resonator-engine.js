@@ -1,5 +1,5 @@
 /*
- * ResonatorStringEngine 0.5.1 (Puhallinstartti v23.1)
+ * ResonatorStringEngine 0.5
  * Jatkuva, ennalta määritellyille sävelille tarkoitettu periodiresonaattori.
  *
  * Idea:
@@ -11,8 +11,7 @@
  * - Puolijakson vertailu toimii oktaavisuojana: se estää ylemmän oktaavin
  *   kelpaamisen vahingossa alemman sävelen periodiksi.
  * - Erillinen kevyt, kohdesäveleen ankkuroitu jaksoarvio antaa portaattoman
- *   taajuuden näyttöä varten. v23.1 varmistaa hyväksynnän erikseen samasta
- *   näytepuskurista: todellinen vire sekä lyhyemmän jakson rekisterisuoja.
+ *   taajuuden näyttöä varten muuttamatta sävelen hyväksymistä.
  *
  * Itsenäinen tunnistin. Ei muita moottoririippuvuuksia.
  */
@@ -37,7 +36,7 @@
   class ResonatorStringEngine extends EventTarget {
     constructor(options = {}) {
       super();
-      this.version = '0.5.1';
+      this.version = '0.5';
       this.targets = { ...(options.targets || DEFAULT_TARGETS) };
       this.blockSize = Math.max(256, Math.round(options.blockSize || 256));
       this.calibrationMs = Number.isFinite(+options.calibrationMs) ? Math.max(0, +options.calibrationMs) : 280;
@@ -51,10 +50,6 @@
       this.pitchMeterIntervalMs = Number.isFinite(+options.pitchMeterIntervalMs) ? clamp(+options.pitchMeterIntervalMs, 12, 60) : 22;
       this.pitchMeterWindowMs = Number.isFinite(+options.pitchMeterWindowMs) ? clamp(+options.pitchMeterWindowMs, 10, 24) : 16;
       this.pitchMeterSearchCents = Number.isFinite(+options.pitchMeterSearchCents) ? clamp(+options.pitchMeterSearchCents, 110, 180) : 140;
-      // Acceptance guards use the existing sample buffer, not an extra hold timer.
-      this.verifyPitch = options.verifyPitch !== false;
-      this.emitPitch = options.emitPitch !== false;
-      this._calibrationRmsBlocks = [];
       this.running = false;
 
       this.context = null;
@@ -104,6 +99,7 @@
       if (!Number.isFinite(parsed)) return this.noiseMarginDb;
       this.noiseMarginDb = clamp(parsed, 4, 10);
       const calibrationComplete = this.running
+        && this.calibrationMs > 0
         && this._calibrationSamples >= this._calibrationTargetSamples;
       if (calibrationComplete) this._updateNoiseGate();
       this._emit('thresholdchange', {
@@ -112,21 +108,6 @@
         gate: this._gate
       });
       return this.noiseMarginDb;
-    }
-
-    get ready() {
-      return this.running && this._calibrationSamples >= this._calibrationTargetSamples;
-    }
-
-    recalibrate() {
-      if (!this.running) throw new Error('Avaa mikrofoni ennen kalibrointia.');
-      this._calibrationSamples = 0;
-      this._calibrationTargetSamples = Math.round(this.sampleRate * this.calibrationMs / 1000);
-      this._calibrationRmsBlocks = [];
-      this._resetAnalysisStates();
-      if (this._calibrationTargetSamples > 0) this._emit('state', { state: 'calibrating' });
-      else this._emit('state', { state: 'running', gate: this._gate });
-      return this;
     }
 
     setTargets(targets) {
@@ -218,7 +199,6 @@
     }
 
     _prepare(sampleRate) {
-      if (!Object.keys(this.targets).length) throw new Error('Valitse ensin soitin.');
       this.sampleRate = sampleRate;
       const periods = Object.values(this.targets).map(hz => sampleRate / hz);
       const maxPeriod = Math.max(...periods);
@@ -357,7 +337,7 @@
     }
 
     _maybeEmitContinuousPitch(measurement, blockMs) {
-      if (!this.emitPitch || !this._voiced || measurement.rms < this._gate) return;
+      if (!this._voiced || measurement.rms < this._gate) return;
       if (this._samplesSeen - this._lastPitchSample < this._pitchEverySamples) return;
       this._lastPitchSample = this._samplesSeen;
       const estimate = this._estimateContinuousPitch(measurement.best);
@@ -369,70 +349,6 @@
         blockMs,
         engine: 'string-resonator'
       });
-    }
-
-    // Fractional-delay comparison over already collected samples. A shorter
-    // startup window avoids waiting for the independent 16 ms display meter.
-    _windowMatch(lag, count) {
-      const delay = Math.floor(lag), fraction = lag - delay;
-      let current = (this._writePos - 1 + this._ringSize) % this._ringSize;
-      let delayed = (current - delay + this._ringSize) % this._ringSize;
-      let error = 0, energy = 0;
-      for (let i = 0; i < count; i++) {
-        const previous = delayed === 0 ? this._ringSize - 1 : delayed - 1;
-        const a = this._ring[current];
-        const b = this._ring[delayed] * (1 - fraction) + this._ring[previous] * fraction;
-        error += (a - b) * (a - b);
-        energy += a * a + b * b;
-        if (--current < 0) current = this._ringSize - 1;
-        if (--delayed < 0) delayed = this._ringSize - 1;
-      }
-      return 1 - error / Math.max(1e-12, energy);
-    }
-
-    _verifyCandidate(id) {
-      const hz = this.targets[id];
-      if (!Number.isFinite(hz)) return null;
-      const nominalPeriod = this.sampleRate / hz;
-      const ratio = Math.pow(2, (this.toleranceCents + 18) / 1200);
-      const first = Math.max(3, Math.floor(nominalPeriod / ratio));
-      const last = Math.ceil(nominalPeriod * ratio);
-      // Do not compare a settled cycle against the first few milliseconds
-      // of its amplitude attack: that can bias a low note's first estimate.
-      // This is a sample-window limit, not a UI timer or an extra audio buffer.
-      const onset = this._onsetSample === null ? 0 : this._onsetSample;
-      const attackSamples = Math.ceil(this.sampleRate * 0.004);
-      const available = this._samplesSeen - onset - last - attackSamples - 3;
-      const minimum = Math.min(128, Math.max(48, Math.ceil(nominalPeriod * 0.65)));
-      if (available < minimum) return null;
-      const count = Math.min(available, Math.max(128, Math.ceil(nominalPeriod * 1.25)));
-      let bestLag = first, bestMatch = -Infinity;
-      for (let lag = first; lag <= last; lag++) {
-        const match = this._windowMatch(lag, count);
-        if (match > bestMatch) { bestMatch = match; bestLag = lag; }
-      }
-      if (bestMatch < 0.90) return null;
-      const left = this._windowMatch(bestLag - 1, count);
-      const right = this._windowMatch(bestLag + 1, count);
-      const denominator = left - 2 * bestMatch + right;
-      const correction = Math.abs(denominator) > 1e-12
-        ? clamp(0.5 * (left - right) / denominator, -1, 1) : 0;
-      const period = bestLag + correction;
-      const frequency = this.sampleRate / period;
-      const cents = 1200 * Math.log2(frequency / hz);
-      // A quarter cent accounts for numerical interpolation, not a wider
-      // pedagogical tolerance. The nominal v23 tolerance stays at 40 cents.
-      if (!Number.isFinite(cents) || Math.abs(cents) > this.toleranceCents + 0.25) return null;
-      const fullMatch = this._windowMatch(period, count);
-      // Pure octave / third / fifth (and other small-integer) aliases also
-      // repeat after the shorter period. Require near-identical repetition
-      // before rejecting, so ordinary strong overtones remain allowed.
-      for (let divisor = 2; divisor <= 8; divisor++) {
-        if (period / divisor < 3) continue;
-        const shorterMatch = this._windowMatch(period / divisor, count);
-        if (shorterMatch >= 0.995 && shorterMatch >= fullMatch - 0.002) return null;
-      }
-      return { frequency, cents, periodMatch: fullMatch };
     }
 
     _processSample(x) {
@@ -507,20 +423,11 @@
         let e = 0;
         for (let i = 0; i < input.length; i++) e += input[i] * input[i];
         const blockRms = Math.sqrt(e / Math.max(1, input.length));
-        this._calibrationRmsBlocks.push(blockRms);
+        this._noiseRms = this._calibrationSamples === 0 ? blockRms : (this._noiseRms * 0.86 + blockRms * 0.14);
         this._calibrationSamples += input.length;
         const progress = Math.min(1, this._calibrationSamples / Math.max(1, this._calibrationTargetSamples));
         this._emit('calibrationprogress', { progress, noiseRms: this._noiseRms });
         if (progress >= 1) {
-          // Median of the WHOLE calibration: a short bang at either end must
-          // not turn a quiet player into an inaudible one. Sustained room
-          // noise is still represented, unlike an absolute-minimum estimate.
-          const sorted = this._calibrationRmsBlocks.slice().sort((a, b) => a - b);
-          const mid = Math.floor(sorted.length / 2);
-          this._noiseRms = sorted.length % 2 ? sorted[mid]
-            : (sorted[mid - 1] + sorted[mid]) / 2;
-          if (!Number.isFinite(this._noiseRms)) this._noiseRms = 0.001;
-          this._calibrationRmsBlocks = [];
           this._updateNoiseGate();
           this._resetAnalysisStates();
           this._emit('state', {
@@ -569,9 +476,7 @@
       const octaveSafe = m.halfEnergy >= this.minHalfPeriodEnergy;
       const centerBand = Math.abs(m.offsetCents) <= this.toleranceCents / 2 + 1e-9;
       const neededMatch = centerBand ? this.centerMatch : this.edgeMatch;
-      const preliminary = octaveSafe && m.match >= neededMatch;
-      const verified = preliminary && this.verifyPitch ? this._verifyCandidate(m.best) : null;
-      const acceptedNow = preliminary && (!this.verifyPitch || !!verified);
+      const acceptedNow = octaveSafe && m.match >= neededMatch;
 
       if (acceptedNow) {
         this._candidate = m.best;
@@ -582,10 +487,9 @@
         const detail = {
           accepted: true,
           action: m.best,
-          frequency: verified ? verified.frequency : this.targets[m.best] * Math.pow(2, m.offsetCents / 1200),
+          frequency: this.targets[m.best] * Math.pow(2, m.offsetCents / 1200),
           targetFrequency: this.targets[m.best],
-          offsetCents: verified ? verified.cents : m.offsetCents,
-          variantCents: m.offsetCents,
+          offsetCents: m.offsetCents,
           rms: m.rms,
           gate: this._gate,
           match: m.match,
@@ -674,7 +578,6 @@
         this.stream = stream;
         this._prepare(this.context.sampleRate);
         this._noiseRms = 0.001;
-        this._calibrationRmsBlocks = [];
         this._calibrationSamples = 0;
         this._calibrationTargetSamples = Math.round(this.sampleRate * this.calibrationMs / 1000);
         this._gate = 0.0022;
@@ -692,23 +595,6 @@
         this.source.connect(this.processor);
         this.processor.connect(this.silentGain);
         this.silentGain.connect(this.context.destination);
-        // Keep interruption detection separate from recognition and calibration.
-        context.addEventListener?.('statechange', () => {
-          if (lifecycleId !== this._lifecycleId || !this.running) return;
-          if (context.state === 'interrupted' || context.state === 'suspended' || context.state === 'closed') {
-            this._emit('state', { state: 'interrupted', contextState: context.state });
-          }
-        });
-        for (const track of (stream.getAudioTracks?.() || stream.getTracks())) {
-          track.addEventListener?.('ended', () => {
-            if (lifecycleId === this._lifecycleId && this.running)
-              this._emit('state', { state: 'interrupted', reason: 'track-ended' });
-          });
-          track.addEventListener?.('mute', () => {
-            if (lifecycleId === this._lifecycleId && this.running)
-              this._emit('state', { state: 'interrupted', reason: 'track-muted' });
-          });
-        }
         this.running = true;
         this._starting = false;
         if (this.calibrationMs > 0) this._emit('state', { state: 'calibrating' });

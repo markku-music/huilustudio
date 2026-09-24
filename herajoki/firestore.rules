@@ -8,69 +8,50 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    function validScore(data) {
-      return data.keys().hasAll([
-        'playerName',
-        'instrumentName',
-        'noteCount',
-        'timeMs',
-        'createdAt'
-      ])
-      && data.keys().hasOnly([
-        'playerName',
-        'instrumentName',
-        'noteCount',
-        'timeMs',
-        'createdAt'
-      ])
-      && data.playerName is string
-      && data.playerName.size() >= 1
-      && data.playerName.size() <= 20
-      && data.instrumentName in [
-        'Huilu',
-        'Saksofoni',
-        'Klarinetti',
-        'Trumpetti',
-        'Käyrätorvi',
-        'Pasuuna'
-      ]
-      && data.noteCount is int
-      && data.noteCount in [3, 4, 5]
-      && data.timeMs is int
-      && data.timeMs >= 1000
-      && data.timeMs <= 600000
-      && data.createdAt is timestamp
-      && data.createdAt == request.time;
-    }
-
-    // Ylläpitäjälista luodaan vain Firebase Consolesta.
-    // Käyttäjä saa tarkistaa vain oman ylläpitäjädokumenttinsa.
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
     }
 
-    match /puhallinstarttiScores/{scoreId} {
-      allow read: if signedIn();
-
-      allow create: if signedIn()
-        && scoreId.matches(
-          request.auth.uid + '_[A-Za-z0-9-]{20,64}'
-        )
-        && validScore(request.resource.data);
-
+    // Vanhan Sävelkoju-version tulokset säilyvät luettavina.
+    match /scoreboards/{boardId}/scores/{scoreId} {
+      allow read: if true;
+      allow create: if false;
       allow update: if false;
-
-      // Vain /admins/{uid}-listalla oleva Firebase-käyttäjä saa resetoida.
       allow delete: if isAdmin();
     }
 
-    match /{document=**} {
-      allow read, write: if false;
+    // Uuden Sävelkojun yhteinen tulostaulu.
+    match /savelkojuScores/{scoreId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'playerName',
+          'instrumentName',
+          'noteCount',
+          'timeMs',
+          'createdAt'
+        ]) &&
+        request.resource.data.playerName is string &&
+        request.resource.data.playerName.size() >= 1 &&
+        request.resource.data.playerName.size() <= 20 &&
+        request.resource.data.instrumentName is string &&
+        request.resource.data.instrumentName.size() >= 1 &&
+        request.resource.data.instrumentName.size() <= 30 &&
+        request.resource.data.noteCount is int &&
+        request.resource.data.noteCount in [3,4,5] &&
+        request.resource.data.timeMs is int &&
+        request.resource.data.timeMs >= 1000 &&
+        request.resource.data.timeMs <= 600000 &&
+        request.resource.data.createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isAdmin();
     }
   }
 }
