@@ -7,8 +7,8 @@
  // Put the monster behind the runners and their result bubble.
  $('arenaSvg').insertBefore(group,$('playerLayout'));
  const body=node('g',{},group);
- const sprite=node('svg',{viewBox:'0 0 256 256',x:-56,y:-98,width:112,height:112,overflow:'hidden'},body);
- node('image',{href:'assets/monster-sheet.png',width:1024,height:1280},sprite);
+ const sprite=node('svg',{id:'monsterSprite',viewBox:'0 0 256 256',x:-56,y:-98,width:112,height:112,overflow:'hidden'},body);
+ node('image',{href:'assets/monster-pixel-sheet.png',width:1024,height:1280},sprite);
  const bubble=node('g',{},group);
  node('rect',{x:-63,y:-115,width:126,height:29,rx:12,fill:'#fffdf5',stroke:'#593976'},bubble);
  node('text',{x:0,y:-95,'text-anchor':'middle','font-size':15,fill:'#593976','font-family':'system-ui'},bubble).textContent='Soita, soita!';
@@ -102,10 +102,16 @@
    if(phase==='racing'&&(state==='run'||state==='reach'))frame=Math.floor((beats%1)*4);
    sprite.setAttribute('viewBox',`${frame*256} ${rows[state]*256} 256 256`);
    const path=startPath+sign*progress;
-   const layout=window.raceLayout,scale=(layout?.runnerHeight||78)/78;
-   const pos=Math.max(48*scale,Math.min(1100-48*scale,trackX(path)));
+   const layout=window.raceLayout,scale=(layout?.monsterBaseHeight||78)/78;
+   const size=window.characterSizes?.monster||1;
+   const margin=48*scale*size;
+   const pos=Math.max(margin,Math.min(1100-margin,trackX(path)));
    group.setAttribute('transform',`translate(${pos} ${layout?.playerY||358}) scale(${scale})`);
-   body.setAttribute('transform',`scale(${facingAt(path)} 1)`);
+   body.setAttribute('transform',`scale(${facingAt(path)*size} ${size})`);
+   // Keep speech readable and inside the field, even on short screens.
+   const bubbleY=Math.max(-80*(size-1),(153-(layout?.playerY||358))/scale+115);
+   const bubbleCenter=Math.max(64*scale,Math.min(1100-64*scale,pos));
+   bubble.setAttribute('transform',`translate(${(bubbleCenter-pos)/scale} ${bubbleY})`);
    bubble.style.display=state==='hop'?'':'none';
   }
  };

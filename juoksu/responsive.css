@@ -108,3 +108,12 @@
 .noise-values dd{margin:5px 0 0;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 #noiseReadoutHint{margin:8px 0 0;font-size:13px;line-height:1.5;color:#586f66}
 @media(max-width:380px){.noise-values dd{font-size:16px}}
+
+.character-settings{margin:14px 0;padding:14px;border:1px solid #bac8bd;border-radius:12px;background:#fffdf5}
+.character-settings h3{margin:0 0 14px;font-size:17px}
+.character-settings label{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:600}
+.character-settings output{font-variant-numeric:tabular-nums;white-space:nowrap;color:#235640}
+.character-settings input[type=range]{display:block;width:100%;min-height:44px;margin:0 0 8px;accent-color:#235640;touch-action:pan-y}
+.character-size-footer{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:6px}
+.character-size-footer small{flex:1;min-width:160px;font-size:12px}
+.character-size-footer button{padding:8px 12px;font-size:13px}

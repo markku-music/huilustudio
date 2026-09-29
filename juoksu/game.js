@@ -305,7 +305,7 @@ $('animationSpeed').oninput=()=>{
   animationSpeed=Number($('animationSpeed').value);syncAnimationSpeed();saveAnimationSpeed();refreshJson();
 };
 syncAnimationSpeed();
-function currentSettings(){return {schema:'Asteikkospurtti.Settings/1',easeIn,easeOut,sprintDurationMs:sprintDuration,carryMs,noiseMarginDb:Number($('margin').value),motionMode,stopMs,animationSpeed,direction,scaleId};}
+function currentSettings(){return {schema:'Asteikkospurtti.Settings/1',easeIn,easeOut,sprintDurationMs:sprintDuration,carryMs,noiseMarginDb:Number($('margin').value),motionMode,stopMs,animationSpeed,direction,scaleId,runnerScale:window.characterSizes.runner,monsterScale:window.characterSizes.monster};}
 function refreshJson(){ $('settingsJson').value=JSON.stringify(currentSettings(),null,2); }
 function parseSettings(text){
   const s=JSON.parse(text);
@@ -324,6 +324,10 @@ function parseSettings(text){
   if(!['up','down','both'].includes(s.direction))throw Error('Suunta: up, down tai both.');
   if(s.scaleId===undefined)s.scaleId='F';
   if(typeof s.scaleId!=='string'||!Object.prototype.hasOwnProperty.call(SCALES,s.scaleId))throw Error('Asteikko: F, G, D1, D2, B tai C.');
+  for(const key of ['runnerScale','monsterScale']){
+    if(s[key]===undefined)s[key]=1;
+    if(!Number.isFinite(s[key])||s[key]<.5||s[key]>1.8||Math.abs(s[key]*20-Math.round(s[key]*20))>1e-7)throw Error('Hahmon koko: 0,50–1,80, askel 0,05.');
+  }
   return s;
 }
 $('jsonRefresh').onclick=()=>{refreshJson();$('jsonStatus').textContent='Nykyiset arvot päivitetty.';};
@@ -339,6 +343,7 @@ $('jsonDownload').onclick=()=>{
 $('jsonApply').onclick=()=>{
   try{
     const s=parseSettings($('settingsJson').value);
+    window.characterSizes.set({runner:s.runnerScale,monster:s.monsterScale});
     animationSpeed=s.animationSpeed;syncAnimationSpeed();saveAnimationSpeed();
     easeIn=s.easeIn;easeOut=s.easeOut;sprintDuration=s.sprintDurationMs;carryMs=s.carryMs;
     direction=s.direction;selectScale(s.scaleId);
@@ -350,4 +355,5 @@ $('jsonApply').onclick=()=>{
   }catch(e){$('jsonStatus').textContent='JSON ei kelpaa: '+e.message;}
 };
 for(const id of ['easeIn','easeOut','sprintDuration','carry','margin'])$(id).addEventListener('input',refreshJson);
+window.addEventListener('character-size-change',refreshJson);
 refreshJson();

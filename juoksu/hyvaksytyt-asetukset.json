@@ -9,5 +9,7 @@
   "stopMs": 180,
   "animationSpeed": 1,
   "direction": "up",
-  "scaleId": "F"
+  "scaleId": "F",
+  "runnerScale": 1,
+  "monsterScale": 1
 }

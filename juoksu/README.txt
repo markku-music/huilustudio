@@ -1,3 +1,32 @@
+ASTEIKKOSPURTTI – KOKOSÄÄDÖT JA PIKSELIHIRVIÖ, versio 2, 29.9.2026
+
+Pohja: toimivaksi vahvistettu Asteikkospurtti_REAKTIOT_1.zip.
+
+Asetuksissa on uusi Hahmojen koko -osio:
+- Juoksija ja haamu: 50–180 %, askel 5 %.
+- Hirviö: oma 50–180 % säätö, askel 5 %.
+- Palauta 100 % palauttaa molemmat alkuperäiseen kokoon.
+Säädöt vaikuttavat heti, myös kesken kierroksen ja reaktioanimaatioiden aikana.
+Koot tallentuvat selaimeen ja sisältyvät asetusten JSONiin: runnerScale ja
+monsterScale (0,5–1,8). Vanhat JSON-asetukset toimivat edelleen.
+Pienellä näytöllä hahmot sovitetaan tilaan, jotta molemmat radat pysyvät näkyvissä.
+Puhekuplien teksti säilyy luettavan kokoisena.
+
+Hirviö on nyt selvästi pikselitaidetta: 20 ruutua, 64 × 64 pikselin ruudukko
+ruutua kohti, rajattu 24 värin paletti ja nelinkertainen lähimmän naapurin
+suurennos. Väri, hahmo ja kaikki viisi animaatiota säilyvät: odotus, juoksu,
+kurottaminen, hyppy ja läähätys. Uusi kuva on assets/monster-pixel-sheet.png.
+Kokosäädöt muuttavat vain ulkoasua, eivät vauhtia tai kiinnioton ajoitusta.
+
+PÄIVITYS
+Pura ZIP ja vie Asteikkospurtti_KOKOSAADOT_2-kansion KOKO SISÄLTÖ nykyisen
+pelin kansioon. Mukaan tarvitaan myös assets-kansio, character-sizes.js
+ja päivitetty sw.js. Paina pelin ↻-päivityspainiketta. Tarvittaessa sulje
+peli-ikkunat ja avaa peli uudelleen. Offline-versio: v11-sizes-pixel.
+
+
+AIEMMAN VERSION OHJEET
+
 ASTEIKKOSPURTTI – JUOKSIJAN REAKTIOT, 29.9.2026
 
 Pohja: käyttäjän lähettämä Arkisto(20260929-171942).zip.

@@ -17,12 +17,19 @@
     const sceneHeight = Math.max(1, height - sceneTop);
     // Use physical pixels for minimum readable sizes; convert only at the
     // SVG boundary. Scale sprites uniformly, never stretch their artwork.
-    const runnerHeight = Math.min(clamp(48, 78 * unit, 96), Math.max(32, (sceneHeight-24)/2));
+    const baseHeight = Math.min(clamp(48, 78 * unit, 96), Math.max(32, (sceneHeight-24)/2));
+    const sizes=window.characterSizes;
+    const runnerFactor=sizes?.runner||1,monsterFactor=sizes?.monster||1;
+    // Fit both lanes in short landscape screens. At 100% the original layout remains exact.
+    const fit=Math.min(1,Math.max(1,sceneHeight-24)/(baseHeight*(runnerFactor+Math.max(runnerFactor,monsterFactor))));
+    const runnerHeight=baseHeight*runnerFactor*fit;
+    const monsterBaseHeight=baseHeight*fit;
+    const topHeight=Math.max(runnerHeight,monsterBaseHeight*monsterFactor);
     const bubbleScale = clamp(.70, unit, 1.15);
     const gap = 8;
-    const roomAboveRunner = runnerHeight + gap + 76 * bubbleScale + 4;
+    const roomAboveRunner = topHeight + gap + 76 * bubbleScale + 4;
     const tight = sceneHeight < roomAboveRunner + runnerHeight + 22;
-    let playerY = tight ? sceneTop+runnerHeight+6 : Math.max(sceneTop + sceneHeight * .524, sceneTop + roomAboveRunner);
+    let playerY = tight ? sceneTop+topHeight+6 : Math.max(sceneTop + sceneHeight * .524, sceneTop + roomAboveRunner);
     let ghostY = Math.max(sceneTop + sceneHeight * .841, playerY + runnerHeight + 12);
     // Extremely short windows remain viewable; usual phone/tablet landscape
     // sizes have space for both rows and the finish bubble without this clamp.
@@ -53,7 +60,7 @@
     const stripe = el('finishStripe');
     const stripeWidth = clamp(14,32*unit,32)/unit;
     for (const [name,value] of Object.entries({x:-stripeWidth/2,y:(playerY-18)/unit,width:stripeWidth,height:(ghostY-playerY+36)/unit})) stripe.setAttribute(name,value);
-    window.raceLayout = {playerY:playerY/unit, runnerHeight:runnerHeight/unit,
+    window.raceLayout = {playerY:playerY/unit, runnerHeight:runnerHeight/unit,monsterBaseHeight:monsterBaseHeight/unit,
       bubbleScale:bubbleScale/unit, bubbleGap:gap/unit, tight};
     window.finishBubble?.relayout();
   }
@@ -63,6 +70,7 @@
   }
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(host);
   window.addEventListener('resize',schedule);
+  window.addEventListener('character-size-change',schedule);
   window.visualViewport?.addEventListener('resize',schedule);
   layout();
 })();
