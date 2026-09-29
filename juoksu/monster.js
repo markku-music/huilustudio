@@ -63,11 +63,10 @@
    $('chaseTempoStatus').textContent=level.name+': '+value+' BPM tallennettu.';
   };
  });
- // One beat travels one note interval. Smoothstep accelerates and brakes
- // within each beat while its endpoints retain the exact selected tempo.
+ // One beat travels one note interval at constant speed.
+ // Only the leg animation follows beat phases; travel never eases at a beat.
  function beatDistance(beats){
-  const whole=Math.floor(beats),u=beats-whole;
-  return 120*(whole+u*u*(3-2*u));
+  return 120*beats;
  }
  function setState(next){if(next!==state){state=next;clock=0;}}
  window.monsterChase={

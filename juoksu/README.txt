@@ -36,7 +36,15 @@ BPM-arvot näkyvät vain asetuksissa; jokaista voi muuttaa välillä 10–240.
 Taso ja tempot tallentuvat selaimeen. Tason valinta ottaa hirviön mukaan.
 Tason/tempon muuttaminen valmistelee uuden kierroksen.
 Yksi isku = yksi sävelväli (120 radan yksikköä). Hirviö etenee
-pehmeästi isku kerrallaan ensimmäisestä sävelestä alkaen. Se pitää
+tasavauhtisesti valitun BPM:n mukaan ensimmäisestä sävelestä alkaen. Se pitää
 oman temponsa soittajan pysähtyessäkin, mutta ei ohita juoksijaa.
 Kiinni jäädessä se pomppii vieressä. Maalissa hirviö pysähtyy.
 Juoksijan liike, sävelentunnistus ja pelikentän mitat ovat ennallaan.
+
+Päivitä peli: oikean alakulman ↻-painike tarkistaa uuden version,
+hakee pelin tiedostot uudelleen verkosta ja käynnistää pelin alusta.
+Keskeneräinen kierros alkaa uudelleen. Asetukset ja ennätykset säilyvät.
+Päivitys tarvitsee verkkoyhteyden ja HTTPS-osoitteen (tai localhostin).
+Jos lataus epäonnistuu, nykyinen peli jää käyttöön ja voit yrittää uudelleen.
+Ensimmäistä tätä painiketta sisältävää versiota varten sulje tarvittaessa
+vanhat peli-ikkunat ja avaa peli uudelleen. Myöhemmät päivitykset voi hakea napilla.
