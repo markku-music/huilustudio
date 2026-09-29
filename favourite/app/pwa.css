@@ -1,0 +1,15 @@
+/* Asennus sijoittuu samalle riville sijaintisäätöjen kanssa. */
+.pwa-tools{grid-row:5;grid-column:1/-1;justify-self:start;align-self:start;z-index:21}
+.pwa-tools button{min-height:36px;padding:9px 13px;border-radius:10px;background:rgba(255,255,255,.92);color:#253553;font-size:13px;font-weight:650}
+.pwa-tools button[data-update=true]{background:#113fca;color:#fff}
+#pwaDialog{width:min(390px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto;border:1px solid #dce4f3;border-radius:20px;padding:22px;color:#14213b;background:#fff;box-shadow:0 18px 70px #14213b40}
+#pwaDialog::backdrop{background:#14213b66}
+#pwaDialog .pwa-heading{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+#pwaDialog .pwa-heading img{width:52px;height:52px;border-radius:12px}
+#pwaDialog h2{font-size:21px;margin:0 0 4px}
+#pwaDialog .pwa-version{color:#586783;font-size:12px;margin:0}
+#pwaDialog p{line-height:1.5;font-size:14px}
+#pwaDialog .pwa-status{padding:10px 12px;border-radius:10px;background:#edf2fb;color:#253553}
+#pwaDialog .pwa-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px}
+#pwaDialog .pwa-actions button{padding:10px 14px;border-radius:10px}
+#pwaDialog .pwa-primary{background:#113fca;color:white;font-weight:650}

@@ -1,0 +1,104 @@
+NUOTTISEIKKAILU 0.7.41 – PWA-ASENNUS
+
+1. Pura ZIP ja siirrä kaikki sen sisältö samaan kansioon HTTPS-verkkopalvelimelle, esimerkiksi GitHub Pagesiin. index.html tulee sivuston tai alikansion juureen; säilytä app-, assets- ja asetukset-kansiot kokonaisina.
+2. Avaa sivuston osoite verkkoyhteyden ollessa käytössä. Paina alareunan Asenna-painiketta ja odota, kunnes siinä lukee ”Valmis offline-käyttöön”.
+3. iPad/iPhone: avaa osoite Safarissa, valitse Jaa → Lisää Koti-valikkoon. Jos näkyvissä on Avaa verkkosovelluksena -valinta, jätä se päälle.
+   Android: valitse selaimen valikosta Asenna sovellus tai Lisää aloitusnäyttöön.
+4. Käynnistä kotinäytön kuvakkeesta ja pidä laite pystyasennossa. Paina haluamasi soittimen kuvaa. Salli mikrofonin käyttö ja ole hiljaa 1,5 sekunnin kohinamittauksen ajan.
+
+Ensimmäinen lataus vaatii verkkoyhteyden. Kun sovelluksen tiedostot ovat tallentuneet, sovellus toimii myös offline-tilassa. Mikrofonilupa tarvitaan soittamiseen.
+
+ZIP tai suoraan tiedostona avattu index.html ei itsessään asenna PWA:ta. Asennus ja mikrofoni edellyttävät HTTPS-osoitetta (kehityksessä myös localhost käy).
+
+PÄIVITYS
+Korvaa verkkosivuston tiedostot paketin tiedostoilla myös sw.js ja manifest.webmanifest mukaan lukien. Avaa sovellus verkkoyhteydessä. Kun alareunaan ilmestyy Päivitä-painike, avaa se ja valitse Ota päivitys käyttöön. Tämä aloittaa kierroksen alusta; päivitys ei käynnisty itsestään kesken harjoituksen. Päivitys aktivoituu myös kaikkien sovellusikkunoiden sulkemisen jälkeen. Samassa osoitteessa omat tallennetut asetukset säilyvät.
+
+Jos käytössä on jo vanhempi versio, avaa sivu ensin selaimessa verkon ollessa päällä. Sulje tarvittaessa kaikki Nuottiseikkailun ikkunat ja avaa uudelleen. Uuden paketin versio näkyy Asenna-ikkunassa. Kotinäytön kuvaketta ei tarvitse poistaa.
+
+0.7.41: asennusohje sovelluksessa, offline-valmiuden ilmoitus, kaikki paikalliset kuvat ja äänet välimuistissa sekä hallittu päivitys. Eri sovelluskansioiden välimuistit on erotettu toisistaan. Peli, sävelentunnistus ja profiilien sijaintisäädöt ovat ennallaan. Asenna-painike piiloutuu, kun sovellus avataan kotinäytön kuvakkeesta.
+
+Offline-käyttö edellyttää, että selain on säilyttänyt sovelluksen tiedostot. Jos selaimen sivustotiedot poistetaan, avaa sovellus kerran uudelleen verkkoyhteydessä.
+
+Seuraavia julkaisuja tehtäessä vaihda sw.js-tiedoston VERSION-arvo, jotta uusi tiedostokokonaisuus latautuu. Älä muuta manifestin id-, start_url- tai scope-arvoja ilman tarvetta.
+
+PAKETIN SISÄLTÖ
+index.html – sovelluksen aloitussivu
+ASENNUS.txt – tämä ohje
+manifest.webmanifest ja sw.js – PWA:n asennus ja offline-toiminta
+app/ – sovelluskoodi ja tyylit
+assets/ – kuvat, kuvakkeet ja äänet
+asetukset/ – oletusasetusten JSON
+
+Aiemmin samassa osoitteessa tallennetut asetukset säilyvät. Tässä versiossa asetuksia ei avata käyttöliittymästä. Oletusasetusten kuvaus on tiedostossa asetukset/Nuottiseikkailu_asetukset.json.
+
+Versiossa 0.7.20 siistittiin tiedostojen järjestys ja päivitettiin niiden viittaukset. Dynamiikan tasaus ja 1,5 sekunnin kohinamittaus säilyvät. Alkuperäiset grafiikan lähteet ja pitkä versiohistoria on jätetty käyttöpaketin ulkopuolelle; ne säilyvät edellisessä kehityspaketissa.
+
+VIRITYSMITTARI
+Oikeassa reunassa on aina näkyvä pystymittari: ylhäällä +50 senttiä, keskellä 0 ja alhaalla −50. Vihreä keskialue on ±5 senttiä. Osoitin näkyy mikrofonin kautta hyväksytyn sävelen soidessa ja katoaa hiljaisuudessa tai tunnistuksen puuttuessa. Hiiritesti ei tuota ääntä, joten se ei näytä viritystä.
+Mittari vertaa tunnistettua säveltä sen omaan tavoitetaajuuteen, huomioi valitun soittimen transponoinnin ja käyttää a¹ = 440 Hz -viritystä. Se ei vertaa soittamaasi väärää nuottia tehtävän nuottiin. Mittarin 90 ms tasoitus koskee vain näyttöä; sävelentunnistus ja keston arviointi toimivat aiemmin sovituilla säännöillä. Mittari käyttää nykyisen Resonatorin hyväksymiä säveliä, joten se ei ole erillinen kaikkia säveliä tunnistava kromaattinen viritin.
+
+Mittari tarkistettu selaimessa synteettisillä testiäänillä kaikilla viidellä soittimella (−15, 0 ja +15 senttiä), transponoinnit huomioiden. Osoittimen suunta, vihreä alue, hiljaisuus, vanhan lukeman poistuminen ja neljä puhelin-/tablettikokoa tarkistettu. PWA:n asennettavuus ja offline-käyttö tarkistettu. Fyysisellä soittimella ei testattu.
+
+KESTO JA HYVÄKSYNTÄ
+75 BPM: neljäsosan tavoite on 0,8 s ja puolinuotin 1,6 s. Pisteet saavuttavat oikean reunan tavoiteajassa ja tähdet pöllähtävät lopetusvihjeeksi.
+
+Oikea sävel hyväksytään alarajasta poksahdukseen asti. Neljäsosan alaraja on 0,6 s ja puolinuotin 1,4 s, alarajat mukaan lukien. Voit lopettaa hyväksytysti myös punastumisen ja paisumisen aikana. Poksahdushetki itse ei enää kelpaa.
+
+Oletusasetuksilla neljäsosa hyväksytään 0,6–alle 1,2 sekuntia ja puolinuotti 1,4–alle 2,0 sekuntia. Efektien aikasäädöt määräävät todellisen poksahdushetken: pidempi paisuminen pidentää samalla hyväksyntäaikaa. Poksahdus tapahtuu paisumisen lopussa, aikaisintaan neljäsosalla 1,2 s ja puolinuotilla 2,0 s. Poksahdukseen asti jatkuva ääni räjäyttää nuotinpään ja soittaa pieruäänen.
+
+Lyhyt loppupuhina saa vaimentua enintään 120 ms viimeisestä tunnistetusta sävelestä, kun sävelen mitattu pituus on hyväksyttävä. Odotusta tai puhalluskohinaa ei lisätä sävelen kestoon. Normaali hiljainen lopetus käsitellään 60 ms varmistuksella. Väärä sävel ja jatkuva tunnistamaton ääni hylätään edelleen.
+
+NÄYTTÖ JA EFEKTIT
+Jokaisella viivastoviivalla kulkee säädettävän kokoinen keltainen piste tummalla reunuksella. Pisteet kulkevat yhtä aikaa vasemmalta oikealle ja pysähtyvät oikeaan reunaan tavoiteajassa. Tavoitteen jälkeen ne punastuvat nuotin mukana. Uusi tehtävä ja yritys palauttavat pisteet vasemmalle.
+
+Pisteiden perässä kulkee sateenkaaren värisiä, pyörähtäviä ja leijuvia tähtiä. Tähdet häipyvät noin 0,65 sekunnissa. Tavoitteessa näkyy tähtipöllähdys, joka on lopetusvihje; hyväksyntä ratkaistaan äänen loputtua. Tähdet jäävät nuottigrafiikan taakse, ja niitä on enintään 120. Järjestelmän vähennetyn liikkeen asetuksella tähtiefekti jätetään pois.
+
+Yläosassa ovat nuottityypit ja keräystilanne. Viritysmittari, 1,5 sekunnin pohjakohinamittaus, Resonator ja dynamiikan tasaus säilyvät. Versio 0.7.29 muuttaa hyväksynnän ylärajan poksahdushetkeen; efektien ajoituksia ja ulkoasua ei muutettu.
+
+TARKISTETTU: 40 oletus- ja muutettujen efektiaikojen lopetustapausta molemmilla aika-arvoilla, alaraja ja juuri ennen poksahdusta lopetus, lyhyt loppupuhina sekä täsmälleen poksahdushetkellä jatkuvan äänen hylkäys. Selainpelin varsinaisen äänikäsittelyn kautta vahvistettu keräys punastumisen ja paisumisen aikana sekä pidennetyillä efektiasetuksilla. Liian lyhyt sävel ja jatkuva kohina hylätään. PWA-asennettavuus ja offline-käyttö tarkistettu. Fyysisellä soittimella ei testattu.
+
+LIIAN LYHYEN ÄÄNEN PALAUTE – 0.7.30
+Liian lyhyeksi tunnistettu oikea sävel soittaa liianLyhyt.wav-palautteen molemmilla aika-arvoilla, myös alle 0,2 sekunnin yrityksestä. Sama tehtävä säilyy. Hyväksymisrajat ja räjähdyksen äänet säilyvät. Uuden yrityksen voi aloittaa heti myös palauteäänen soidessa. Palautteen ajaksi ei keskeytetä kuuntelua. Lopeta, uusi kierros, soitinvaihto ja vaaka-asentoon kääntäminen katkaisevat palautteen. Ääni on mukana myös offline-käytössä.
+
+ÄÄNEN LYHENNYS – 0.7.31
+Palautteen alusta poistettu 0,18 sekuntia hiljaisuutta. Jäljelle jäänyt 2,94 sekunnin ääni lyhennetty puoleen: 1,47 sekuntiin. Viimeiset 0,45 sekuntia häivytetään pehmeästi pois. WAV-tallennus välttää uuden MP3-enkoodauksen aloitustäytteen. Pelilogiikka ja hyväksymisrajat säilyvät.
+
+PALAUTTEEN VOIMAKKUUS JA UUSI YRITYS – 0.7.32
+Pettymysäänen amplitudi on 50 % edellisestä (noin −6 dB). Kuuntelu ja hiiritesti toimivat myös palautteen soidessa; palautteen aikainen esto ja 120 ms lisätauko on poistettu. Äänen kesto ja loppuhäivytys säilyvät.
+
+SIIVOTTU NÄKYMÄ – 0.7.33
+Päänäkymästä poistettu Asetukset-painike ja Nuottiseikkailu-otsikko sekä niille varattu ylärivi. Pelialue täyttää vapautuneen tilan. Soitinkuvat käynnistävät harjoituksen edelleen. Tallennetut asetukset ja pelin säännöt säilyvät.
+
+LIIAN LYHYT -ILMOITUS – 0.7.34
+Liian lyhyen oikean sävelen jälkeen nuotin alle tulee lämmin oranssi ”Liian lyhyt” -teksti palauteäänen kanssa. Teksti katoaa sekunnissa tai heti uuden soiton alkaessa. Se ei estä soittamista. Uusi kierros ja soitinvaihto poistavat ilmoituksen. Äänet ja hyväksymisrajat säilyvät ennallaan.
+
+MERKKIEN KOKO – 0.7.35
+Soitinrivistön alla on Merkkien koko -slideri: 4–40 px, oletus 14 px (aiemmin 9 px). Säätö vaikuttaa viiteen keltaiseen merkkiin heti eikä aloita kierrosta uudelleen. Koko tallentuu automaattisesti ja sisältyy JSONin notation.dotSize-asetukseen. Vanhat asetukset saavat oletuksen 14 px. Merkit pysyvät viivaston päissä kokonaan näkyvissä; tähtivana seuraa niiden uutta sijaintia.
+
+VERSIO 0.7.36 – TAUSTAPROFIILIT
+Yläreunasta valitaan Konserttisali, Pilailu tai Olohuone. Oletus on Konserttisali.
+Valinta tallentuu selaimeen ja asetusten JSONiin. Vanhat asetukset toimivat edelleen.
+Vain Pilailu käyttää nykyisiä poksahdus-/pieruääniä sekä liian lyhyen äänen palauteääntä.
+Taustan vaihto ei aloita kierrosta uudelleen eikä sulje mikrofonia. Vaihto pois Pilailusta pysäyttää käynnissä olevan palauteäänen.
+Kaikissa profiileissa säilyvät nuotin animaatiot, ajoitusmerkit ja Liian lyhyt -ilmoitus.
+Kolme uutta taustaa korvaavat metsätaustan ja sisältyvät offline-välimuistiin.
+
+VERSIO 0.7.37 – VÄRIKKÄÄMPI PILAILUTAUSTA
+Pilailutaustassa kirkkaammat värit ja hassummat yksityiskohdat.
+
+VERSIO 0.7.38 – VALKOINEN NUOTTIKORTTI
+Kaikissa profiileissa nuottialueella on 95-prosenttisesti peittävä valkoinen kortti, pyöristetyt kulmat ja kevyt varjo. Kortti pysyy paikallaan nuotin vaihtuessa ja paisuessa.
+Pilailussa käytetään version 0.7.37 uutta värikästä kuvaa.
+
+VERSIO 0.7.39 – PIENEMPI NUOTTIKORTTI, PEITTÄVYYS 80 %
+Kortti rajataan viivaston ja soittimen kaikkien nuottien yhteisen piirtoalueen ympärille 20 pikselin reunuksella. Alareunan ylimääräinen valkoinen alue poistuu. Kortti pysyy paikallaan nuottia vaihdettaessa ja mukautuu näytön kokoon. Uusin värikäs pilailukuva säilyy.
+
+VERSIO 0.7.40 – PROFIILIEN OMAT Y-SÄÄDÖT
+Avaa alareunasta Sijaintisäädöt: Nuottialue Y, Taustakuva Y ja Mittari Y.
+Miinus siirtää ylös ja plus alas. Jokainen taustaprofiili tallentaa omat kolme arvoaan selaimeen ja asetusten JSONiin. Nuottialueen liike rajautuu käytettävissä olevaan tilaan, jotta nuotit pysyvät näkyvissä. Nuotti, viivasto ja valkoinen kortti liikkuvat yhdessä. Taustan ja mittarin säätöalue on −500…+500 px.
+Säätöpaneeli avautuu pelin päälle, joten sen avaaminen ei muuta nuotin kokoa tai sijaintia.
+
+
+VERSION 0.7.41 TARKISTUKSET
+Manifesti, ikonien mitat, paikalliset tiedostoviittaukset ja JavaScript-syntaksi tarkistettu. Offline-välimuisti (38 osoitetta), päivityksen odotus, sovelluskansioiden erottelu ja keskeneräisen päivityksen hylkäys testattu simuloidussa service worker -ympäristössä. Asennuspaneelin iPad-ohje, sovellustilan painikenäkyvyys ja päivityksen käynnistys tarkistettu käyttöliittymälogiikan testillä.
+Tämän version varsinaista selaimessa tehtävää asennus-, ulkoasu- tai mikrofonitestiä ei voitu ajaa, koska testiselainta ei saatu käynnistettyä. Aikaisemmat testimerkinnät yllä kuuluvat aikaisempiin versioihin.

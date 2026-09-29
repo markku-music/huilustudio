@@ -1,0 +1,55 @@
+{
+  "schema": "Nuottiseikkailu.Settings/1",
+  "selected": "flute",
+  "transpositions": {
+    "flute": 0,
+    "clarinet": -2,
+    "sax": -9,
+    "trumpet": -2,
+    "trombone": 0
+  },
+  "names": true,
+  "margin": 10,
+  "notation": {
+    "noteSize": 178,
+    "staffWidth": 90,
+    "noteOffsetX": 50,
+    "noteOffsetY": -250,
+    "dotSize": 14
+  },
+  "effects": {
+    "growthEase": 2,
+    "flightSeconds": 0.65,
+    "quarter": {
+      "colorStart": 0.8,
+      "colorDuration": 0.2,
+      "growthStart": 1,
+      "growthDuration": 0.2
+    },
+    "half": {
+      "colorStart": 1.6,
+      "colorDuration": 0.2,
+      "growthStart": 1.8,
+      "growthDuration": 0.2
+    }
+  },
+  "dynamicsCompression": true,
+  "profile": "concert",
+  "profilePositions": {
+    "concert": {
+      "noteY": -250,
+      "backgroundY": 0,
+      "tunerY": 0
+    },
+    "fun": {
+      "noteY": -250,
+      "backgroundY": 0,
+      "tunerY": 0
+    },
+    "home": {
+      "noteY": -250,
+      "backgroundY": 0,
+      "tunerY": 0
+    }
+  }
+}

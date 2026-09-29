@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#113fca"><meta name="description" content="Harjoittele nuotinlukua omalla puhaltimellasi. Viisi soitinta, nimet näkyvissä tai piilossa.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nuottiseikkailu">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Nuottiseikkailu</title>
+<link rel="stylesheet" href="app/pwa.css">
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg"><link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="app/style.css">
+</head>
+<body>
+<section id="orientationNotice" hidden role="status"><div class="portrait-icon" aria-hidden="true">↻</div><h1>Käännä laite pystyasentoon</h1><p>Tietokoneella kavenna selainikkunaa pystymalliseksi.</p></section>
+<main class="app" data-profile="concert">
+<div class="profile-picker" role="group" aria-label="Valitse taustaprofiili">
+<button type="button" data-profile="concert" aria-pressed="true">Konserttisali</button>
+<button type="button" data-profile="fun" aria-pressed="false">Pilailu</button>
+<button type="button" data-profile="home" aria-pressed="false">Olohuone</button>
+</div>
+<p id="startError" class="start-error" role="alert" hidden></p>
+
+<section class="game-card" aria-label="Nuottitehtävä">
+<div class="card-top"><span id="instrumentLabel">Huilu</span><span id="roundLabel">16 nuotin kierros</span></div>
+<div class="baskets" aria-label="Kerää kumpaankin koriin kahdeksan nuottia">
+<div id="quarterBasket" class="basket"><div class="basket-title"><span><i class="note-icon quarter" aria-hidden="true"></i> Neljäsosat</span><strong id="quarterCount">0 / 8</strong></div><div id="quarterSlots" class="basket-slots"></div></div>
+<div id="halfBasket" class="basket"><div class="basket-title"><span><i class="note-icon half" aria-hidden="true"></i> Puolinuotit</span><strong id="halfCount">0 / 8</strong></div><div id="halfSlots" class="basket-slots"></div></div>
+</div>
+<div class="score-area"><div id="score" class="score"></div><div id="shortNotice" class="short-notice" role="status" aria-live="polite" hidden></div>
+<div id="summary" class="summary" hidden><div class="finish-check" aria-hidden="true">✓</div><h1>Kierros valmis!</h1><p>Soitit kaikki <strong>16 nuottia: 8 neljäsosaa ja 8 puolinuottia.</strong></p></div></div>
+
+<aside id="tuner" class="tuner" aria-label="Viritysmittari, a 440 hertsiä" title="Vire · a¹ = 440 Hz">
+<div class="tuner-track" aria-hidden="true"><div class="tuner-line"></div><div class="tuner-green"></div><span class="tuner-tick tuner-top">+50</span><span class="tuner-tick tuner-center">0</span><span class="tuner-tick tuner-bottom">−50</span><div id="tunerPointer" class="tuner-pointer" hidden><i></i><span id="tunerReading"></span></div></div>
+<span class="tuner-title">Vire</span><span id="tunerAccessible" class="tuner-accessible">Ei tunnistettua säveltä.</span>
+</aside>
+<div class="actions instrument-actions"><div id="instrumentDock" class="instrument-dock" role="group" aria-label="Valitse soitin ja aloita harjoitus"><button type="button" class="instrument-button" data-instrument="flute" aria-pressed="true" aria-label="Huilu: aloita harjoitus"><img src="assets/instruments/flute.png" alt="" draggable="false"><span>Huilu</span></button><button type="button" class="instrument-button" data-instrument="clarinet" aria-pressed="false" aria-label="Klarinetti: aloita harjoitus"><img src="assets/instruments/clarinet.png" alt="" draggable="false"><span>Klarinetti</span></button><button type="button" class="instrument-button" data-instrument="sax" aria-pressed="false" aria-label="Saksofoni: aloita harjoitus"><img src="assets/instruments/sax.png" alt="" draggable="false"><span>Saksofoni</span></button><button type="button" class="instrument-button" data-instrument="trumpet" aria-pressed="false" aria-label="Trumpetti: aloita harjoitus"><img src="assets/instruments/trumpet.png" alt="" draggable="false"><span>Trumpetti</span></button><button type="button" class="instrument-button" data-instrument="trombone" aria-pressed="false" aria-label="Pasuuna: aloita harjoitus"><img src="assets/instruments/trombone.png" alt="" draggable="false"><span>Pasuuna</span></button></div></div>
+<label class="dot-size-control" for="dotSize"><span>Merkkien koko</span><input id="dotSize" type="range" min="4" max="40" step="1" value="14"><output id="dotSizeValue" for="dotSize">14 px</output></label>
+<div class="pwa-tools"><button type="button" id="pwaButton" aria-haspopup="dialog" aria-controls="pwaDialog">Asenna</button></div>
+<details class="profile-position-controls" id="positionControls">
+<summary>Sijaintisäädöt</summary>
+<div class="position-panel">
+<p id="positionProfileName">Konserttisali</p>
+<label for="profileNoteY"><span>Nuottialue Y</span><input id="profileNoteY" type="range" min="-500" max="500" step="1" value="-250"><output id="profileNoteYValue" for="profileNoteY">−250 px</output></label>
+<label for="profileBackgroundY"><span>Taustakuva Y</span><input id="profileBackgroundY" type="range" min="-500" max="500" step="1" value="0"><output id="profileBackgroundYValue" for="profileBackgroundY">0 px</output></label>
+<label for="profileTunerY"><span>Mittari Y</span><input id="profileTunerY" type="range" min="-500" max="500" step="1" value="0"><output id="profileTunerYValue" for="profileTunerY">0 px</output></label>
+<small>Miinus siirtää ylös, plus alas. Tallentuu tähän profiiliin.</small>
+</div></details>
+</section>
+
+</main>
+<dialog id="settings"><form method="dialog"><div class="dialog-head"><h2>Asetukset</h2><button class="quiet" aria-label="Sulje asetukset">Sulje</button></div></form>
+<section class="controls" aria-label="Harjoituksen valinnat">
+
+<label class="name-switch"><input id="names" type="checkbox" checked><span class="switch-track" aria-hidden="true"></span>Nuottinimet <strong id="namesState">näkyvissä</strong></label>
+</section>
+<button id="startBtn" class="primary">Aloita</button>
+<button id="stopBtn" class="quiet" hidden>Lopeta</button>
+<label class="field" for="transpose">Soittimen vire <select id="transpose"></select></label><p class="hint" id="transposeHelp"></p>
+<fieldset><legend>Nuottinäkymä</legend><label class="field" for="noteSize">Nuotin koko <output id="noteSizeValue" for="noteSize">178 %</output><input id="noteSize" type="range" min="60" max="400" step="1" value="178"></label><label class="field" for="noteOffsetX">Nuotin X-siirto <output id="noteOffsetXValue" for="noteOffsetX">+50 px</output><input id="noteOffsetX" type="range" min="-250" max="250" step="1" value="50"></label><label class="field" for="noteOffsetY">Nuotin Y-siirto <output id="noteOffsetYValue" for="noteOffsetY">−250 px</output><input id="noteOffsetY" type="range" min="-500" max="500" step="1" value="-250"></label><label class="field" for="staffWidth">Viivaston leveys <output id="staffWidthValue" for="staffWidth">90 %</output><input id="staffWidth" type="range" min="50" max="100" step="1" value="90"></label><p class="hint">X-siirto 0 keskittää nuotin. Miinus siirtää vasemmalle ja plus oikealle; viivasto pysyy keskellä. Y-siirron miinus nostaa ja plus laskee nuottia sekä viivastoa yhdessä. Arvo 0 keskittää kuvan nuottialueelle. Y-siirron rajat mukautuvat käytettävissä olevaan tilaan. Liian suuri nuottikuva sovitetaan alueelle; tallennetut koko- ja siirtotoiveet säilyvät. Nuotin koko muuttaa myös viivaväliä, jotta sävelen paikka säilyy oikeana.</p><p id="notationFitHint" class="hint" role="status" hidden></p></fieldset>
+<details class="effect-panel" open><summary>Efektien ajoitus</summary><p class="hint">Ajat lasketaan äänen alusta. Kestoja voi säätää 0,05–5 sekuntiin. Punastumisen pidentäminen siirtää tarvittaessa paisumisen alkua automaattisesti. Poksahdus seuraa paisumisen loppua, aikaisintaan neljäsosalla 1,2 s ja puolinuotilla 2,0 s. Hyväksyntä jatkuu poksahdukseen asti: paisumisen loppua siirtämällä muutat samalla hyväksyttävän äänen ylärajaa.</p>
+<fieldset><legend>Neljäsosa</legend><div id="quarterEffects"></div><p class="hint" id="quarterTimeline"></p></fieldset>
+<fieldset><legend>Puolinuotti</legend><div id="halfEffects"></div><p class="hint" id="halfTimeline"></p></fieldset>
+<label class="field" for="flightSeconds">Osien lentoaika <output id="flightSecondsValue" for="flightSeconds"></output><input id="flightSeconds" type="range" min="0.15" max="2" step="0.05" value="0.65"></label>
+<label class="field" for="growthEase">Paisumisen kiihtyvyys <output id="growthEaseValue" for="growthEase">2,0 · kiihtyvä</output><input id="growthEase" type="range" min="1" max="5" step="0.1" value="2" aria-describedby="growthEaseHelp"></label><p class="hint" id="growthEaseHelp">1 = tasainen kasvu. Suurempi arvo tekee alusta hitaamman ja lopusta nopeamman. Poksahdushetki pysyy samana.</p></details>
+<label class="field" for="margin">Kohinaraja <output id="marginValue">+10 dB</output><input id="margin" type="range" min="4" max="10" step="1" value="10"></label><p class="hint">Pienempi arvo reagoi hiljaisempaan soittoon.</p>
+<label class="field" for="dynamicsCompression"><span>Vaihtosuojan dynamiikan tasaus</span><input id="dynamicsCompression" type="checkbox" checked aria-describedby="dynamicsHelp"></label><p class="hint" id="dynamicsHelp">Helpottaa vaihtoa hiljaisempaan säveleen. Pois = alkuperäinen vaihtosuoja. Ääntä ei kompressoida.</p>
+<p class="hint">75 BPM: neljäsosan tavoite 0,8 s ja puolinuotin 1,6 s. Neljäsosan alaraja on 0,6 s ja puolinuotin 1,4 s. Oikea sävel hyväksytään, kun lopetat ennen poksahdusta — myös punastumisen ja paisumisen aikana. Oletusasetuksilla ylärajat ovat alle 1,2 s ja alle 2,0 s. Koko nuotti muuttuu ensin punaiseksi ja paisuu sen jälkeen asetusten mukaisesti. Paisumisen jälkeen nuotinpää poksahtaa ja muut osat lentävät eri suuntiin. Viivaston viisi keltaista pistettä näyttävät äänen keston. Tavoitteen jälkeen ne pysähtyvät oikeaan reunaan ja punastuvat nuotin mukana. Kerää kumpaankin koriin 8 nuottia.</p><p class="hint">Aloittaessa mitataan taustakohina. Ole hetki hiljaa. Nuottinäkymä käyttää soittimen kirjoitettuja säveliä.</p>
+<details class="json-panel"><summary>Kaikki asetukset · JSON</summary><p class="hint">Mukana ovat soitin, kaikkien soitinten vireet, nuottinimet, kohinaraja, vaihtosuojan dynamiikan tasaus, nuottinäkymän säädöt ja kaikki efektisäädöt. Käytä JSON aloittaa kierroksen alusta.</p><textarea id="settingsJson" spellcheck="false" aria-label="Kaikki asetukset JSON-muodossa"></textarea><div class="json-actions"><button id="showJson" type="button" class="quiet">Näytä nykyiset</button><button id="applyJson" type="button" class="primary">Käytä JSON</button><button id="downloadJson" type="button" class="quiet">Lataa JSON</button><button id="openJson" type="button" class="quiet">Avaa JSON-tiedosto</button></div><input id="jsonFile" type="file" accept="application/json,.json" hidden><p id="jsonStatus" class="hint" role="status"></p></details>
+<details class="test-settings"><summary>Testaus ja tila</summary><div class="duration-info"><span id="durationLabel">Neljäsosa · lyhyt ääni</span><span id="durationReadout"></span><span>♩ = 75</span></div><div class="instruction"><h1 id="prompt">Soita kuvan nuotti</h1><p id="feedback" role="status" aria-live="polite">Valitse soitin ja aloita omaan tahtiin.</p></div><button id="testBtn" class="text-button">Kokeile ilman mikrofonia</button>
+<div id="testPanel" class="test-panel" hidden><p>Hiiritesti · pidä sävelpainiketta pohjassa äänen ajan</p><div id="testNotes" class="test-notes"></div></div>
+<footer class="footer"><span id="micStatus">Mikrofoni suljettu</span><span id="sourceLabel">Vastaa soittamalla</span></footer></details>
+<button id="micModeBtn" class="secondary" hidden>Vaihda mikrofonikäyttöön</button>
+</dialog>
+<dialog id="calibration" aria-labelledby="calibrationTitle" aria-describedby="calibrationHelp">
+<div class="calibration-ring" role="progressbar" aria-label="Pohjakohinan mittaus" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="50"/><circle class="ring-progress" cx="60" cy="60" r="50" pathLength="100"/><g class="ring-tip"><circle cx="60" cy="10" r="5"/></g></svg><strong id="calibrationPercent">0 %</strong></div>
+<h2 id="calibrationTitle">Mitataan pohjakohina</h2><p id="calibrationHelp">Ole hetki hiljaa · 1,5 sekuntia</p><button id="cancelCalibration" class="quiet" type="button">Peruuta</button></dialog>
+<script src="app/burst-sounds.js"></script><script src="app/short-sound.js"></script><script src="app/burst-audio.js"></script><script src="app/calibration-view.js"></script><script src="app/notes.js"></script><script src="app/resonator-engine.js"></script><script src="app/note-stability.js"></script><script src="app/game-core.js"></script><script src="app/settings.js"></script><script src="app/tuner.js"></script><script src="app/staff-sparkles.js"></script><script src="app/app.js"></script>
+<dialog id="pwaDialog" aria-labelledby="pwaTitle" aria-describedby="pwaHelp">
+<div class="pwa-heading"><img src="assets/icon-192.png" alt=""><div><h2 id="pwaTitle">Nuottiseikkailu</h2><p class="pwa-version">Versio 0.7.41</p></div></div>
+<p id="pwaHelp"></p>
+<p id="pwaStatus" class="pwa-status" role="status">Valmistellaan offline-käyttöä…</p>
+<p id="pwaUpdateHelp" hidden>Uusi versio on valmis. Päivitys avaa sovelluksen uudelleen ja aloittaa kierroksen alusta. Tallennetut asetukset säilyvät.</p>
+<div class="pwa-actions"><button id="pwaInstall" class="pwa-primary" type="button" hidden>Asenna sovellus</button><button id="pwaUpdate" class="pwa-primary" type="button" hidden>Ota päivitys käyttöön</button><button id="pwaClose" class="quiet" type="button">Sulje</button></div>
+</dialog>
+<script src="app/pwa.js"></script>
+</body></html>
