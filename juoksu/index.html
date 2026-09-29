@@ -40,6 +40,7 @@
   <p id="finishAnnouncement" class="sr-only" role="status" aria-live="polite"></p>
   <div id="result" role="status" aria-live="polite" hidden></div>
   <button id="settingsOpen" class="gear" aria-label="Avaa asetukset" aria-haspopup="dialog" aria-controls="settingsDialog" title="Asetukset"><span aria-hidden="true">⚙︎</span></button>
+  <button id="again" class="race-again">Uusi kierros</button>
   <section id="startScreen" aria-labelledby="startTitle">
     <div class="start-card">
       <p class="tag" id="startScale">F-DUURI · f¹–f²</p>
@@ -57,7 +58,7 @@
     <button id="settingsClose" aria-label="Sulje asetukset" autofocus>Sulje</button>
   </div>
   <div class="panel-content">
-    <div class="controls"><select id="mode" aria-label="Ohjaus"><option value="mic">Huilu ja mikrofoni</option><option value="test">Hiiri / näppäimet</option></select><select id="motionMode" aria-label="Juoksutapa"><option value="carry">Vauhti kantaa</option><option value="sound">Juokse soittaessa</option></select><button id="mic" class="primary">Avaa mikrofoni</button><button id="again">Uusi kierros</button><button id="clear">Nollaa haamu</button></div>
+    <div class="controls"><select id="mode" aria-label="Ohjaus"><option value="mic">Huilu ja mikrofoni</option><option value="test">Hiiri / näppäimet</option></select><select id="motionMode" aria-label="Juoksutapa"><option value="carry">Vauhti kantaa</option><option value="sound">Juokse soittaessa</option></select><button id="mic" class="primary">Avaa mikrofoni</button><button id="clear">Nollaa haamu</button></div>
     <p id="status" role="status" aria-live="polite">Avaa mikrofoni tai valitse hiiritesti.</p>
     <div class="bottom"><small id="instructions">Soita f¹–g¹–a¹–b¹–c²–d²–e²–f². Ensimmäinen f¹ käynnistää kellon.</small><div class="test" id="keys" hidden></div></div>
     <fieldset class="chase-settings"><legend>Takaa-ajaja</legend><label><input id="chaseEnabled" type="checkbox" checked> Hirviö mukana</label><p><label>Hirviön nopeus <input id="chaseSpeed" type="range" min="10" max="100" step="5" value="35"> <output id="chaseSpeedValue">35</output></label></p><small>Hirviö lähtee ensimmäisestä sävelestä. Kiinni jäädessä se pomppii vierellä: voit jatkaa asteikon loppuun. Nopeuden muutos aloittaa uuden kierroksen.</small></fieldset><details class="settings"><summary>Liikesäädöt, ohje ja JSON</summary><p><label>Jalkojen animaationopeus <input id="animationSpeed" type="range" min="0.25" max="3" step="0.05" value="1"><output id="animationSpeedValue">1,00 ×</output></label><br><small>1 × = nykyinen tahti. Vaikuttaa heti molempien juoksijoiden askeliin. Etenemisvauhti ja ajanotto säilyvät.</small></p><p><label>Pysähtymisen pehmeys <input id="stopMs" type="range" min="40" max="600" step="10" value="180"><output id="stopValue">180 ms</output></label><br><small>Juokse soittaessa: äänen katketessa myös spurtti jarruttaa. Sama sävel jatkaa liikettä. Hiiritestissä pidä sävelpainiketta tai numeronäppäintä painettuna. Jokaisella asteikolla, suuntavalinnalla ja juoksutavalla on oma paras aika. Ajanotto jatkuu myös hiljaisuudessa.</small></p>

@@ -70,3 +70,7 @@
   .quick-controls #direction{width:auto;flex:1}
   .game-toolbar .stats{margin-left:auto}
 }
+
+/* Persistent race control, with room below the lower running lane. */
+.race-again{position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));min-height:44px;padding:10px 22px;background:#fffdf5;color:#235640;border:2px solid #235640;border-radius:14px;font-weight:700;box-shadow:0 3px 12px #17352b26}
+.arena{bottom:calc(64px + env(safe-area-inset-bottom,0px))}

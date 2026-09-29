@@ -28,3 +28,7 @@ Maalissa hirviö pysähtyy läähättämään. Myös alas- ja meno-paluusuunta t
 Asetukset tallentuvat selaimeen. Muuttaminen valmistaa uuden kierroksen.
 Päivityksen jälkeen sulje kaikki apin välilehdet/ikkunat ja avaa uudelleen,
 jotta uusi offline-versio aktivoituu.
+
+Uusi kierros -painike on pelikentän alareunan keskellä.
+Hirviö spurttaa juoksijan sävelspurtin mukana ja liikuttaa jalkoja nopeammin.
+Spurtti seuraa juoksijan todellista liikettä; juoksijalle jää etumatkaa.
