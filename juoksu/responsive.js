@@ -40,6 +40,10 @@
       const sprite = el(id+'Sprite');
       const h = runnerHeight/unit, w = h*84/78;
       for (const [name,value] of Object.entries({x:-w/2,y:-h,width:w,height:h})) sprite.setAttribute(name,value);
+      if(id==='player'){
+        const reaction=el('playerReactionSprite');
+        for(const [name,value]of Object.entries({x:-256/389*h,y:-420/389*h,width:512/389*h,height:432/389*h}))reaction.setAttribute(name,value);
+      }
     }
     Array.from(el('points').children).forEach((point,i) => {
       point.setAttribute('cy', ((i%2 ? ghostY : playerY)+5)/unit);

@@ -1,0 +1,62 @@
+ASTEIKKOSPURTTI – JUOKSIJAN REAKTIOT, 29.9.2026
+
+Pohja: käyttäjän lähettämä Arkisto(20260929-171942).zip.
+
+UUTTA
+- Hirviön kiinniotto: Soita, soita! -puhekupla ja 0,5 sekuntia paikallaan
+  juoksua. Sama kiinniotto ei laukea jatkuvasti uudelleen. Uusi kiinniotto
+  tulee mahdolliseksi, kun juoksija on ensin päässyt selvästi karkuun.
+- Ensimmäinen väärä sävel: kaatuminen ja ylösnousu yhteensä 0,5 sekuntia.
+  Tämän jälkeen juoksija odottaa oikeaa säveltä.
+- Seuraava uusi väärä sävel ennen oikeaa: juoksija kääntyy soittajaan päin
+  ja levittää kädet. Odotusasento säilyy oikeaan säveleen asti.
+- Saman väärän äänen pitäminen ei toista reaktiota. Uusi sävel tai
+  selkeän hiljaisuuden jälkeinen uusi väärä ääni voi tuoda uuden reaktion.
+- Juuri hyväksytyn sävelen pitäminen on edelleen sallittu.
+- Oikeat sävelet kuunnellaan myös animaation aikana. Kaatuminen tai kiinnioton
+  puolen sekunnin pysähdys näytetään loppuun; käsienlevityksestä pääsee heti
+  pois oikealla sävelellä. Eteneminen palaa pehmeästi, ilman paikan hyppäystä.
+- Ajanotto jatkuu reaktioiden ajan. Sävelkohtaiset ajat, ennätykset ja haamun
+  sävelajoitus käyttävät alkuperäistä logiikkaa. Haamu ei toista virhe-eleitä.
+
+TUNNISTUS
+ResonatorEngine on tavuntarkasti sama kuin lähtöpaketissa. Oikean sävelen
+hyväksymisen 10 ms:n varmistusta ei muutettu. Väärästä asteikon sävelestä
+vaaditaan 80 ms:n yhtenäinen tunnistus, jotta lyhyet vaihtoäänet eivät kaada.
+Asteikon ulkopuolinen sävel voi käynnistää reaktion moottorin olemassa olevan
+sävelkorkeusmittauksen kautta, kun tunnistus pysyy varmana vähintään 100 ms.
+Tämäkin toimii moottorin tunnistusalueen puitteissa: hiljaisuutta, kohinaa tai
+säveltä jota moottori ei tunnista varmasti ei tulkita vääräksi säveleksi.
+
+PÄIVITYS
+Pura ZIP. Vie Asteikkospurtti_REAKTIOT-kansion KOKO SISÄLTÖ nykyisen pelin
+kansioon, myös assets-kansio ja uudet runner-reactions.js sekä
+assets/runner-reactions.png. Paina pelin oikean alakulman ↻-päivityspainiketta.
+Jos vanha versio jää näkyviin, sulje peli-ikkunat ja avaa peli uudelleen.
+PWA:n välimuistiversio on v10-reactions; uudet kuvat kuuluvat offline-pakettiin.
+
+KOKEILU
+Asetuksista Hiiri / näppäimet. F-duuri, ylöspäin:
+1 = aloita f1. Paina 4 = väärä sävel ja kaatuminen. Paina 5 = uusi väärä
+sävel ja käsienlevitys. Paina 2 = oikea g1, matka jatkuu.
+Kiinnioton näet soittamalla ensimmäisen sävelen ja odottamalla hirviötä.
+Mikrofonissa samaa väärää säveltä pitämällä ei tule lisää kaatumisia.
+
+TARKISTUKSET
+- Kaikkien JavaScript-tiedostojen syntaksi ja offline-paketin tiedostopolut.
+- Säveljärjestys ja täsmälliset ajat kaikilla 6 asteikolla, 3 suunnalla ja
+  molemmilla juoksutavoilla (36 yhdistelmää).
+- Kaatuminen, pysähdys, käsienlevitys, saman äänen pitäminen, oikea sävel
+  animaation aikana, ensimmäistä säveltä edeltävä virhe ja kierroksen nollaus.
+- Hirviön kiinniotto ja kertalaukaisu; meno-paluun suunnanvaihto.
+- Oikea ResonatorEngine syötettynä synteettisillä 48 kHz:n sävelillä:
+  oikeat sävelet, väärä asteikon sävel, kromaattinen väärä sävel ja palautuminen.
+- Animaatiokuvat tarkistettu pelin SVG:n renderöinneistä.
+- Täyttä selaintestiä ei saatu ajettua: selaimen lataus ympäristöön epäonnistui.
+  Oikeaa mikrofonia, huilua tai iPadin PWA-käyttöä ei tässä ympäristössä testattu.
+
+KUVAT
+Uudet kahdeksan reaktioasentoa on tehty imagegenillä käyttäjän nykyisen
+runner-sheet.png:n pohjalta. Alkuperäinen juoksukuva säilytettiin. Uudet ruudut
+on pakattu yhteisellä mittakaavalla ja jalkojen perustasolla yhteen kuvaan.
+

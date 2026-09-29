@@ -1,7 +1,7 @@
 /* Versioned, app-scoped snapshot. Explicit refresh bypasses HTTP caches. */
 const CACHE_PREFIX='asteikkospurtti-pwa-'+encodeURIComponent(self.registration.scope)+'-';
-const CACHE=CACHE_PREFIX+'v9';
-const ASSETS=["./noise-display.js", "./monster.js", "./assets/monster-sheet.png", "./", "./pwa.js", "./game.js", "./race-score.js", "./finish-bubble.js", "./manifest.webmanifest", "./responsive.css", "./app.css", "./hyvaksytyt-asetukset.json", "./scales.js", "./responsive.js", "./resonator-engine.js", "./score-display.js", "./index.html", "./app-ui.js", "./icons/icon-512.png", "./icons/icon-192.png", "./assets/runner-sheet.png", "./assets/park-background.png", "./assets/finish-line.webp", "./vendor/osmd/opensheetmusicdisplay.min.js", "./vendor/osmd/LICENSE"];
+const CACHE=CACHE_PREFIX+'v10-reactions';
+const ASSETS=["./runner-reactions.js", "./assets/runner-reactions.png", "./noise-display.js", "./monster.js", "./assets/monster-sheet.png", "./", "./pwa.js", "./game.js", "./race-score.js", "./finish-bubble.js", "./manifest.webmanifest", "./responsive.css", "./app.css", "./hyvaksytyt-asetukset.json", "./scales.js", "./responsive.js", "./resonator-engine.js", "./score-display.js", "./index.html", "./app-ui.js", "./icons/icon-512.png", "./icons/icon-192.png", "./assets/runner-sheet.png", "./assets/park-background.png", "./assets/finish-line.webp", "./vendor/osmd/opensheetmusicdisplay.min.js", "./vendor/osmd/LICENSE"];
 const INDEX=new URL('./index.html',self.registration.scope).href;
 const URLS=[...new Set(ASSETS.map(path=>new URL(path==='./'?'./index.html':path,self.registration.scope).href))];
 const KNOWN=new Set(URLS);

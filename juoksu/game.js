@@ -37,14 +37,24 @@ const RUNNER_FRAMES=[[47, 25, 340, 396], [507, 29, 260, 392], [904, 25, 256, 396
 let animationSpeed=1;
 try{const v=Number(localStorage.getItem('asteikkospurtti-animation-speed'));if(Number.isFinite(v)&&v>=.25&&v<=3)animationSpeed=v;}catch{}
 const runnerSteps={player:0,ghost:0};
-function animateRunner(id,distance,moving){
+function animateRunner(id,distance,moving,now=0){
+  if(id==='player'){
+    $('player').setAttribute('data-reaction',window.runnerReactions.pose);
+    const reactionFrame=window.runnerReactions.frame(now);
+    $('playerReactionSprite').style.display=reactionFrame===null?'none':'';
+    $('playerSprite').style.display=reactionFrame===null?'':'none';
+    if(reactionFrame!==null){
+      $('playerReactionSprite').setAttribute('viewBox',`${reactionFrame%4*512} ${Math.floor(reactionFrame/4)*432} 512 432`);
+      return;
+    }
+  }
   if(moving)runnerSteps[id]=(runnerSteps[id]+Math.abs(distance)*animationSpeed/7)%8;
   else runnerSteps[id]=0;
   const frame=moving?Math.floor(runnerSteps[id]):8;
   $(id+'Sprite').setAttribute('viewBox',RUNNER_FRAMES[frame].join(' '));
 }
 const ns='http://www.w3.org/2000/svg';function svg(tag,attrs,parent,text){let e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);if(text)e.textContent=text;parent.append(e);return e;}
-for(let i=0;i<8;i++){svg('text',{x:x(i),y:137,'text-anchor':'middle','font-size':16,fill:'#466454'},$('noteLabels'),names[i]);for(let lane of [366,494])svg('circle',{cx:x(i),cy:lane,r:5,fill:'#aab9ad'},$('points'));let b=document.createElement('button');b.textContent=names[i];b.title='Näppäin '+(i+1);b.onclick=()=>{if(mode==='test'&&motionMode==='carry')acceptNote(i,performance.now());};b.onpointerdown=e=>{if(mode==='test'&&motionMode==='sound'){e.preventDefault();b.setPointerCapture?.(e.pointerId);testHeld=i;feedTest(i);}};b.onpointerup=b.onpointercancel=()=>{if(mode==='test'&&motionMode==='sound'&&testHeld===i){testHeld=null;setVoice(false,performance.now());}};$('keys').append(b);}
+for(let i=0;i<8;i++){svg('text',{x:x(i),y:137,'text-anchor':'middle','font-size':16,fill:'#466454'},$('noteLabels'),names[i]);for(let lane of [366,494])svg('circle',{cx:x(i),cy:lane,r:5,fill:'#aab9ad'},$('points'));let b=document.createElement('button');b.textContent=names[i];b.title='Näppäin '+(i+1);b.onclick=()=>{if(mode==='test'&&motionMode==='carry'){window.runnerReactions.newAttack();acceptNote(i,performance.now());}};b.onpointerdown=e=>{if(mode==='test'&&motionMode==='sound'){e.preventDefault();b.setPointerCapture?.(e.pointerId);testHeld=i;feedTest(i);}};b.onpointerup=b.onpointercancel=()=>{if(mode==='test'&&motionMode==='sound'&&testHeld===i){testHeld=null;setVoice(false,performance.now());}};$('keys').append(b);}
 function syncScaleUI(){
  $('scale').value=scaleId;
  $('startScale').textContent=activeScale.label.toUpperCase()+' · '+activeScale.range;
@@ -78,14 +88,43 @@ function setVoice(on,now){
  if(voiced===on)return;voiced=on;gates.push({t:Math.max(0,now-start),on});
  if(saveThisRun){bestGates=gates.map(g=>({...g}));storeBest();}
 }
-function feedTest(i){const now=performance.now();acceptNote(i,now);setVoice(index>=0&&i===noteAt(index),now);}
+function feedTest(i){const now=performance.now();window.runnerReactions.newAttack();acceptNote(i,now);setVoice(index>=0&&i===noteAt(index),now);}
 function status(s){$('status').textContent=s;}
 function marks(){syncFinish();window.raceScore?.setProgress(index,direction);for(let i=0;i<8;i++)$('keys').children[i].classList.toggle('next',index<lastStep()&&i===noteAt(index+1));}
-function reset(){window.monsterChase?.reset();window.finishBubble?.reset();syncDirection();uncertainSoundMs=0;phase='armed';index=-1;times=[];gates=[];voiced=false;saveThisRun=false;testHeld=null;runnerSteps.player=runnerSteps.ghost=0;ghostGates=bestGates.map(g=>({...g}));raceGhost=best?.slice()||null;pending='';evidence=0;px=gx=raceX(0);$('time').textContent='0,00 s';$('result').textContent='';$('ghost').style.display=raceGhost?'':'none';marks();status(mode==='test'?`Testi valmis · paina ${names[noteAt(0)]} tai näppäintä ${noteAt(0)+1}.`:ready?`Valmis · aloita soittamalla ${names[noteAt(0)]}.`:'Avaa mikrofoni tai valitse hiiritesti.');}
+function reset(){window.runnerReactions.reset(pathX(0));resetWrongPitch();window.monsterChase?.reset();window.finishBubble?.reset();syncDirection();uncertainSoundMs=0;phase='armed';index=-1;times=[];gates=[];voiced=false;saveThisRun=false;testHeld=null;runnerSteps.player=runnerSteps.ghost=0;ghostGates=bestGates.map(g=>({...g}));raceGhost=best?.slice()||null;pending='';evidence=0;px=gx=raceX(0);$('time').textContent='0,00 s';$('result').textContent='';$('ghost').style.display=raceGhost?'':'none';marks();status(mode==='test'?`Testi valmis · paina ${names[noteAt(0)]} tai näppäintä ${noteAt(0)+1}.`:ready?`Valmis · aloita soittamalla ${names[noteAt(0)]}.`:'Avaa mikrofoni tai valitse hiiritesti.');}
+// Wrong-note feedback has its own confirmation; correct notes keep the existing 10 ms path.
+const WRONG_NOTE_MS=80;
+let outsidePitch=null,outsideSince=0,lastOutsideAt=0,silenceAt=null;
+function resetWrongPitch(){outsidePitch=null;outsideSince=0;lastOutsideAt=0;silenceAt=null;}
+function noteAttack(now){
+  if(silenceAt!==null&&now-silenceAt>=120)window.runnerReactions.newAttack();
+  silenceAt=null;
+}
+function wrongNote(pitch,now){
+  if(phase!=='armed'&&phase!=='racing')return;
+  if(window.runnerReactions.wrong(pitch,now))status('Väärä sävel · soita '+names[noteAt(index+1)]+'.');
+}
+function outsideScalePitch(d){
+  if(mode!=='mic'||!ready||document.hidden||(phase!=='armed'&&phase!=='racing'))return;
+  const now=performance.now(),n=69+12*Math.log2(d.frequency/440),nearest=Math.round(n);
+  if(!Number.isFinite(n)||d.match<.955||d.rms<d.gate||Math.abs(n-nearest)>.4||midi.includes(nearest)){
+    outsidePitch=null;return;
+  }
+  noteAttack(now);
+  if(outsidePitch!==nearest||now-lastOutsideAt>100){outsidePitch=nearest;outsideSince=now;}
+  lastOutsideAt=now;
+  if(now-outsideSince>=100)wrongNote('midi:'+nearest,now);
+}
 function acceptNote(pitch,now){
  if(phase!=='armed'&&phase!=='racing')return;
  const next=index+1;
- if(next>=stepCount()||pitch!==noteAt(next))return;
+ if(next>=stepCount())return;
+ if(pitch!==noteAt(next)){
+   // Holding the just-accepted note is always allowed.
+   if(index<0||pitch!==noteAt(index)||window.runnerReactions.wrongs>0)wrongNote('midi:'+midi[pitch],now);
+   return;
+ }
+ window.runnerReactions.correct(now);outsidePitch=null;
  if(index===-1){
   start=now;phase='racing';times=[0];
   if(motionMode==='sound'){voiced=true;gates=[{t:0,on:true}];}
@@ -118,7 +157,8 @@ function input(d){
  if(pending!==d.action){pending=d.action;evidence=0;}
  evidence+=d.blockMs||0;
  if(evidence>=10){
-   const now=performance.now();acceptNote(Number(d.action),now);
+   const now=performance.now(),pitch=Number(d.action);noteAttack(now);
+   if(pitch===noteAt(index+1)||evidence>=WRONG_NOTE_MS)acceptNote(pitch,now);
    setVoice(index>=0&&Number(d.action)===noteAt(index),now);
  }
 }
@@ -141,7 +181,8 @@ $('mic').onclick=async()=>{
  };
  micTimer=setTimeout(()=>fail('Mikrofonin avaus kesti liian kauan. Tarkista selaimen mikrofonilupa ja paina Avaa mikrofoni uudelleen.'),20000);
  e.addEventListener('input',ev=>{if(e===engine)input(ev.detail);});
- e.addEventListener('silence',()=>{if(e!==engine)return;uncertainSoundMs=0;pending='';evidence=0;setVoice(false,performance.now());});
+ e.addEventListener('pitch',ev=>{if(e===engine)outsideScalePitch(ev.detail);});
+ e.addEventListener('silence',()=>{if(e!==engine)return;uncertainSoundMs=0;pending='';evidence=0;outsidePitch=null;silenceAt=performance.now();setVoice(false,silenceAt);});
  e.addEventListener('state',ev=>{
    if(e!==engine)return;
    const state=ev.detail.state;
@@ -153,7 +194,7 @@ $('mic').onclick=async()=>{
    fail(message);
  }
 };
-document.addEventListener('keydown',e=>{if(mode!=='test'||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,select,textarea'))return;let i=Number(e.key)-1;if(i>=0&&i<8){e.preventDefault();if(motionMode==='sound'){testHeld=i;feedTest(i);}else acceptNote(i,performance.now());}});
+document.addEventListener('keydown',e=>{if(mode!=='test'||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,select,textarea'))return;let i=Number(e.key)-1;if(i>=0&&i<8){e.preventDefault();if(motionMode==='sound'){testHeld=i;feedTest(i);}else{window.runnerReactions.newAttack();acceptNote(i,performance.now());}}});
 document.addEventListener('keyup',e=>{if(mode==='test'&&motionMode==='sound'&&Number(e.key)-1===testHeld){testHeld=null;setVoice(false,performance.now());}});
 window.addEventListener('blur',()=>{if(mode==='test')setVoice(false,performance.now());});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='racing'){phase='paused';status('Kierros keskeytyi välilehden vaihtuessa. Paina Uusi kierros.');}});
@@ -238,13 +279,15 @@ function frame(now){
   const active=phase==='racing'||phase==='finished';
   const elapsed=active?now-start:phase==='paused'?(times.at(-1)||0):0;
   if(phase==='racing')$('time').textContent=fmt(elapsed);
-  const playerPath=motionMode==='sound'?soundPosition(times,gates,elapsed,true):positionAt(times,elapsed,carryMs,true);
+  const rawPlayerPath=motionMode==='sound'?soundPosition(times,gates,elapsed,true):positionAt(times,elapsed,carryMs,true);
+  const playerPath=window.runnerReactions.step(rawPlayerPath,now);
   const ghostPath=motionMode==='sound'?soundPosition(raceGhost||[],ghostGates,elapsed,true):positionAt(raceGhost||[],elapsed,carryMs,true);
   const nextPx=trackX(playerPath),nextGx=trackX(ghostPath);
   for(const [id,pos,previous,y,path] of [['player',nextPx,px,358,playerPath],['ghost',nextGx,gx,486,ghostPath]]) {
     $(id).setAttribute('transform',`translate(${pos} ${y}) scale(${facingAt(path)} 1)`);
     const moving=active&&dt>0&&Math.abs(pos-previous)>.015;
-    animateRunner(id,pos-previous,moving);
+    const inPlace=id==='player'&&window.runnerReactions.pose==='caught';
+    animateRunner(id,inPlace?dt*.11:pos-previous,moving||inPlace,now);
   }
   window.monsterChase?.update({now,dt,phase,playerPath,direction,startPath:pathX(0),endPath:pathX(lastStep()),turnPath:x(7),trackX,facingAt});
   px=nextPx;gx=nextGx;

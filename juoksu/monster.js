@@ -1,4 +1,4 @@
-/* Cosmetic chase only: does not alter pitch recognition, race times or records. */
+/* Chase plus a one-shot catch reaction; note recognition and race times are independent. */
 (() => {
  'use strict';
  const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg';
@@ -22,6 +22,7 @@
  const validBpm=value=>Number.isInteger(value)&&value>=10&&value<=240;
  let enabled=true,selected=0,bpms=LEVELS.map(level=>level.bpm);
  let progress=-105,state='idle',clock=0,startedAt=null,lastBeatDistance=0;
+ let catchReady=true;
  const timings={idle:[600,180,100,500],run:[110,110,110,110],reach:[120,120,120,120],hop:[150,120,200,150],pant:[350,350,350,350]};
  const rows={idle:0,run:1,reach:2,hop:3,pant:4};
  try{
@@ -70,7 +71,7 @@
  }
  function setState(next){if(next!==state){state=next;clock=0;}}
  window.monsterChase={
-  reset(){progress=-105;state='idle';clock=0;startedAt=null;lastBeatDistance=0;bubble.style.display='none';},
+  reset(){progress=-105;state='idle';clock=0;startedAt=null;lastBeatDistance=0;catchReady=true;bubble.style.display='none';},
   update({now,dt,phase,playerPath,direction,startPath,trackX,facingAt}){
    if(!enabled){group.style.display='none';return;}
    group.style.display='';
@@ -88,6 +89,11 @@
     progress=Math.min(progress+advance,limit);
     const gap=playerProgress-progress;
     setState(gap<=65.1?'hop':gap<120?'reach':'run');
+    if(gap>100)catchReady=true;
+    if(state==='hop'&&catchReady){
+      catchReady=false;
+      window.runnerReactions?.caught(now);
+    }
    }else if(phase==='finished')setState('pant');
    else if(phase!=='paused'){progress=-105;startedAt=null;lastBeatDistance=0;setState('idle');}
    if(phase!=='paused')clock+=Math.max(0,dt);
