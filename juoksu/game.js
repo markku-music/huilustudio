@@ -132,7 +132,7 @@ $('mic').onclick=async()=>{
  clearTimeout(micTimer);
  if(opening||ready){const old=engine;engine=null;old?.stop();ready=opening=false;$('mic').textContent='Avaa mikrofoni';reset();return;}
  const e=new ResonatorStringEngine({targets,blockSize:256,calibrationMs:1500,responseMs:1.8,toleranceCents:40,centerMatch:.955,edgeMatch:.998,minHalfPeriodEnergy:.32,noiseMarginDb:Number($('margin').value),motionMode,stopMs});
- engine=e;opening=true;$('mic').textContent='Peru avaus';status('Salli mikrofonin käyttö selaimen lupapyynnössä…');
+ engine=e;window.noiseDisplay.attach(e);opening=true;$('mic').textContent='Peru avaus';status('Salli mikrofonin käyttö selaimen lupapyynnössä…');
  const fail=message=>{
    if(e!==engine)return;
    clearTimeout(micTimer);engine=null;e.stop();opening=ready=false;

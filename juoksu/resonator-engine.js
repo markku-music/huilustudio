@@ -18,6 +18,9 @@
 (function (global) {
   'use strict';
 
+  // -80 dBFS RMS floor: allow calibration and the margin to govern quiet rooms.
+  const MIN_GATE_RMS = Math.pow(10, -80 / 20);
+
   const DEFAULT_TARGETS = {
     G: 196.0000,
     D: 293.6648,
@@ -85,12 +88,12 @@
       this._lifecycleId = 0;
       this._resetDecisionTiming();
       this._voiced = false;
-      this._gate = 0.0022;
+      this._gate = MIN_GATE_RMS;
     }
 
     _updateNoiseGate() {
       const noiseMultiplier = Math.pow(10, this.noiseMarginDb / 20);
-      this._gate = Math.max(0.0022, this._noiseRms * noiseMultiplier);
+      this._gate = Math.max(MIN_GATE_RMS, this._noiseRms * noiseMultiplier);
       return this._gate;
     }
 
@@ -588,7 +591,7 @@
         this._noiseRms = 0.001;
         this._calibrationSamples = 0;
         this._calibrationTargetSamples = Math.round(this.sampleRate * this.calibrationMs / 1000);
-        this._gate = 0.0022;
+        this._gate = MIN_GATE_RMS;
 
         this.source = this.context.createMediaStreamSource(this.stream);
         this.processor = this.context.createScriptProcessor(this.blockSize, 1, 1);
@@ -607,7 +610,7 @@
         this._starting = false;
         if (this.calibrationMs > 0) this._emit('state', { state: 'calibrating' });
         else {
-          this._gate = 0.0022;
+          this._gate = MIN_GATE_RMS;
           this._emit('state', { state: 'running' });
         }
         return this;

@@ -48,3 +48,13 @@ Päivitys tarvitsee verkkoyhteyden ja HTTPS-osoitteen (tai localhostin).
 Jos lataus epäonnistuu, nykyinen peli jää käyttöön ja voit yrittää uudelleen.
 Ensimmäistä tätä painiketta sisältävää versiota varten sulje tarvittaessa
 vanhat peli-ikkunat ja avaa peli uudelleen. Myöhemmät päivitykset voi hakea napilla.
+
+HERKKYYS JA dB-NÄYTTÖ (29.9.2026)
+Kiinteä RMS-vähimmäiskynnys on nyt -80 dBFS (0,0001), aiemmin noin -53 dBFS.
+Tunnistuskynnys = suurempi arvoista: -80 dBFS tai pohjakohina + kohinaraja.
+Kohinaraja on edelleen 4–10 dB, oletus 8 dB. Säätö vaikuttaa heti.
+Kalibroinnin aikana näet päivittyvän pohjakohinan dBFS-lukeman.
+Asetuksissa näkyvät pohjakohina ja todellinen tunnistuskynnys mittauksen jälkeen.
+Erittäin hiljaisessa ympäristössä näytetään, jos -80 dBFS:n vähimmäiskynnys rajoittaa säätöä.
+Lukemat kuvaavat digitaalisen mikrofonisignaalin tasoa, eivät huoneen äänenpainetta.
+Kalibrointi kestää edelleen 1,5 s; sävelvertailu, toleranssi ja pelin liikkeet ovat ennallaan.

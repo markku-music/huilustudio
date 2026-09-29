@@ -97,3 +97,14 @@
 @media(max-height:500px){.gear.reload-game{right:calc(10px + env(safe-area-inset-right,0px))}}
 @media(max-width:540px){.race-controls{right:calc(62px + env(safe-area-inset-right,0px))}}
 @media(prefers-reduced-motion:reduce){#reloadGame[aria-busy="true"] span{animation:none}}
+
+/* Microphone readout stays inside settings and does not affect the playing field. */
+.noise-settings{margin:14px 0;padding:14px;border:1px solid #bac8bd;border-radius:12px;background:#fffdf5}
+.noise-settings h3{margin:0 0 12px;font-size:17px}
+.noise-settings label{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.noise-settings input[type=range]{flex:1;min-width:100px;min-height:44px;accent-color:#235640}
+.noise-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.noise-values dt{font-size:13px;color:#586f66}
+.noise-values dd{margin:5px 0 0;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#noiseReadoutHint{margin:8px 0 0;font-size:13px;line-height:1.5;color:#586f66}
+@media(max-width:380px){.noise-values dd{font-size:16px}}
