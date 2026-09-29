@@ -1,0 +1,16 @@
+.dev-panel{width:min(380px,calc(100vw - 24px));max-height:calc(100dvh - 100px)}
+.dev-panel .dev-intro{font-size:12px;line-height:1.45}
+.dev-control{display:grid;grid-template-columns:minmax(0,1fr) 72px;gap:4px 10px;align-items:center;margin:10px 0 12px}
+.dev-control label{grid-column:1/-1;font-size:12px;font-weight:650;color:#38576a}
+.dev-control input[type="range"]{width:100%;min-width:0;margin:0;accent-color:#2d789f;cursor:pointer;min-height:30px}
+.dev-control input[type="number"]{width:100%;min-height:30px;padding:4px 5px;border:1px solid #cbd9e0;border-radius:7px;background:#fff;color:#153044;font:12px system-ui;font-variant-numeric:tabular-nums}
+.dev-control input:focus-visible{outline:2px solid #2d789f;outline-offset:2px}
+.dev-section-help{font-size:11px;color:#667c8d;line-height:1.4;margin:7px 0}
+.dev-panel .dev-actions{grid-template-columns:1fr 1fr}.dev-panel #devReset{grid-column:1/-1}
+.dev-panel summary{font-size:13px}.dev-panel .dev-status{font-size:11px;min-height:26px}
+@media(min-width:960px){body.dev-open main{width:min(1050px,calc(100% - 418px));margin-left:14px;margin-right:404px}.dev-panel{top:16px;bottom:auto}}
+@media(max-width:959px){.dev-panel{max-height:46dvh;bottom:70px}}
+
+.dev-auto-center{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;margin:12px 0 4px;cursor:pointer}
+.dev-auto-center input{width:18px;height:18px;accent-color:#2d789f}
+.dev-control input:disabled{opacity:.45;cursor:default}
