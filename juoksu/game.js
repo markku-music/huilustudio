@@ -246,7 +246,7 @@ function frame(now){
     const moving=active&&dt>0&&Math.abs(pos-previous)>.015;
     animateRunner(id,pos-previous,moving);
   }
-  window.monsterChase?.update({now,dt,phase,playerPath,sprinting:index>0&&elapsed-times.at(-1)<sprintDuration,direction,startPath:pathX(0),endPath:pathX(lastStep()),turnPath:x(7),trackX,facingAt});
+  window.monsterChase?.update({now,dt,phase,playerPath,direction,startPath:pathX(0),endPath:pathX(lastStep()),turnPath:x(7),trackX,facingAt});
   px=nextPx;gx=nextGx;
   window.finishBubble?.update(nextPx,358,phase==='finished'&&Math.abs(playerPath-pathX(lastStep()))<1e-7);
   requestAnimationFrame(frame);
