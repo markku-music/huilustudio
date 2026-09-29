@@ -12,33 +12,89 @@
  const bubble=node('g',{},group);
  node('rect',{x:-63,y:-115,width:126,height:29,rx:12,fill:'#fffdf5',stroke:'#593976'},bubble);
  node('text',{x:0,y:-95,'text-anchor':'middle','font-size':15,fill:'#593976','font-family':'system-ui'},bubble).textContent='Soita, soita!';
- let enabled=true,speed=35,progress=-105,state='idle',clock=0;
+ const LEVELS=[
+  {id:'unikeko',name:'Unikeko',bpm:30},
+  {id:'tallustelija',name:'Tallustelija',bpm:45},
+  {id:'vipeltaja',name:'Vipeltäjä',bpm:60},
+  {id:'turbotassu',name:'Turbotassu',bpm:90}
+ ];
+ const STORAGE='asteikkospurtti-chase-tempo-v1';
+ const validBpm=value=>Number.isInteger(value)&&value>=10&&value<=240;
+ let enabled=true,selected=0,bpms=LEVELS.map(level=>level.bpm);
+ let progress=-105,state='idle',clock=0,startedAt=null,lastBeatDistance=0;
  const timings={idle:[600,180,100,500],run:[110,110,110,110],reach:[120,120,120,120],hop:[150,120,200,150],pant:[350,350,350,350]};
  const rows={idle:0,run:1,reach:2,hop:3,pant:4};
- try{const saved=JSON.parse(localStorage.getItem('asteikkospurtti-chase-v1'));if(saved){enabled=saved.enabled!==false;if(Number.isFinite(saved.speed))speed=Math.max(10,Math.min(100,saved.speed));}}catch{}
- $('chaseEnabled').checked=enabled;$('chaseSpeed').value=speed;
- function sync(){ $('chaseSpeedValue').textContent=speed;group.style.display=enabled?'':'none'; }
- function save(){try{localStorage.setItem('asteikkospurtti-chase-v1',JSON.stringify({enabled,speed}));}catch{}}
+ try{
+  const saved=JSON.parse(localStorage.getItem(STORAGE));
+  if(saved){
+   enabled=saved.enabled!==false;
+   const choice=LEVELS.findIndex(level=>level.id===saved.level);
+   if(choice>=0)selected=choice;
+   bpms=LEVELS.map((level,i)=>validBpm(saved.bpms?.[i])?saved.bpms[i]:level.bpm);
+  }else{
+   const old=JSON.parse(localStorage.getItem('asteikkospurtti-chase-v1'));
+   if(old)enabled=old.enabled!==false;
+  }
+ }catch{}
+ function sync(){
+  $('chaseEnabled').checked=enabled;
+  group.style.display=enabled?'':'none';
+  $('again').parentElement.classList.toggle('chase-off',!enabled);
+  LEVELS.forEach((level,i)=>{
+   $('level-'+level.id).setAttribute('aria-pressed',String(i===selected));
+   $('tempo-'+level.id).value=String(bpms[i]);
+  });
+ }
+ function save(){try{localStorage.setItem(STORAGE,JSON.stringify({enabled,level:LEVELS[selected].id,bpms}));}catch{}}
  $('chaseEnabled').onchange=()=>{enabled=$('chaseEnabled').checked;sync();save();reset();};
- $('chaseSpeed').oninput=()=>{speed=Number($('chaseSpeed').value);sync();save();reset();};
+ LEVELS.forEach((level,i)=>{
+  $('level-'+level.id).onclick=()=>{
+   if(selected===i&&enabled)return;
+   selected=i;enabled=true;sync();save();reset();
+  };
+  $('tempo-'+level.id).onchange=()=>{
+   const value=Number($('tempo-'+level.id).value);
+   if(!validBpm(value)){
+    $('chaseTempoStatus').textContent='Anna kokonaisluku väliltä 10–240 BPM.';
+    $('tempo-'+level.id).value=String(bpms[i]);return;
+   }
+   if(value===bpms[i])return;
+   bpms[i]=value;sync();save();reset();
+   $('chaseTempoStatus').textContent=level.name+': '+value+' BPM tallennettu.';
+  };
+ });
+ // One beat travels one note interval. Smoothstep accelerates and brakes
+ // within each beat while its endpoints retain the exact selected tempo.
+ function beatDistance(beats){
+  const whole=Math.floor(beats),u=beats-whole;
+  return 120*(whole+u*u*(3-2*u));
+ }
  function setState(next){if(next!==state){state=next;clock=0;}}
  window.monsterChase={
-  reset(){progress=-105;state='idle';clock=0;bubble.style.display='none';},
-  update({dt,phase,playerPath,direction,startPath,trackX,facingAt}){
+  reset(){progress=-105;state='idle';clock=0;startedAt=null;lastBeatDistance=0;bubble.style.display='none';},
+  update({now,dt,phase,playerPath,direction,startPath,trackX,facingAt}){
    if(!enabled){group.style.display='none';return;}
    group.style.display='';
    const sign=direction==='down'?-1:1;
    const playerProgress=Math.max(0,(playerPath-startPath)*sign);
+   let beats=0;
    if(phase==='racing'){
+    if(startedAt===null)startedAt=now;
+    beats=Math.max(0,now-startedAt)*bpms[selected]/60000;
+    const distance=beatDistance(beats);
+    const advance=Math.max(0,distance-lastBeatDistance);
+    lastBeatDistance=distance;
     const limit=playerProgress-65;
-    progress=Math.min(progress+speed*Math.max(0,dt)/1000,limit);
+    // Discard blocked movement: no accumulated leap after being caught.
+    progress=Math.min(progress+advance,limit);
     const gap=playerProgress-progress;
     setState(gap<=65.1?'hop':gap<120?'reach':'run');
    }else if(phase==='finished')setState('pant');
-   else if(phase!=='paused'){progress=-105;setState('idle');}
+   else if(phase!=='paused'){progress=-105;startedAt=null;lastBeatDistance=0;setState('idle');}
    if(phase!=='paused')clock+=Math.max(0,dt);
    const times=timings[state],total=times.reduce((a,b)=>a+b,0);let t=clock%total,frame=0;
    while(frame<times.length-1&&t>=times[frame])t-=times[frame++];
+   if(phase==='racing'&&(state==='run'||state==='reach'))frame=Math.floor((beats%1)*4);
    sprite.setAttribute('viewBox',`${frame*256} ${rows[state]*256} 256 256`);
    const path=startPath+sign*progress;
    const layout=window.raceLayout,scale=(layout?.runnerHeight||78)/78;

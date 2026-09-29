@@ -73,3 +73,18 @@
 
 /* Overlay only: the arena dimensions and runner layout stay unchanged. */
 .race-again{position:absolute;z-index:3;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));min-height:44px;padding:10px 22px;background:#fffdf5;color:#235640;border:2px solid #235640;border-radius:14px;font-weight:700;box-shadow:0 3px 12px #17352b26}
+
+/* Quick levels share the existing footer; no arena or runner geometry changes. */
+.race-controls{position:absolute;z-index:3;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:calc(76px + env(safe-area-inset-left,0px));right:calc(76px + env(safe-area-inset-right,0px));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;align-items:stretch;pointer-events:none}
+.race-controls>button{pointer-events:auto;min-width:0;min-height:44px;padding:8px 6px;font-size:14px;font-weight:650;line-height:1.2}
+.race-controls>.race-again{position:static;transform:none;font-weight:750}
+.difficulty-button{background:#fffdf5ed;border:2px solid #d4c7de;color:#52336d;box-shadow:0 3px 12px #17352b1a;touch-action:manipulation}
+.difficulty-button[aria-pressed="true"]{background:#6e3e94;border-color:#41215c;color:white;box-shadow:0 0 0 2px #ffffffb3,0 3px 12px #17352b26}
+.race-controls.chase-off .difficulty-button{opacity:.7}
+.chase-settings{border:1px solid #c8b8d4;border-radius:12px;padding:14px;margin:16px 0}
+.tempo-settings{display:grid;gap:10px;margin-top:16px}
+.tempo-settings label{display:grid;grid-template-columns:minmax(0,1fr) 86px 38px;align-items:center;gap:8px}
+.tempo-settings input{width:100%;min-height:44px;padding:8px;font-size:16px;border:1px solid #bac8bd;border-radius:8px}
+#chaseTempoStatus:empty{display:none}
+@media(max-width:800px){.race-controls{left:calc(66px + env(safe-area-inset-left,0px));right:calc(66px + env(safe-area-inset-right,0px));gap:5px}.race-controls>button{font-size:12px}.difficulty-button>span:first-child{display:block;font-size:16px;margin-bottom:2px}}
+@media(max-width:540px){.race-controls{left:calc(62px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));gap:3px}.race-controls>button{padding:6px 2px;font-size:10px;overflow-wrap:anywhere}}

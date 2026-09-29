@@ -28,3 +28,15 @@ Maalissa hirviö pysähtyy läähättämään. Myös alas- ja meno-paluusuunta t
 Asetukset tallentuvat selaimeen. Muuttaminen valmistaa uuden kierroksen.
 Päivityksen jälkeen sulje kaikki apin välilehdet/ikkunat ja avaa uudelleen,
 jotta uusi offline-versio aktivoituu.
+
+Vaikeustasot ja BPM (29.9.2026)
+Pelin alareunassa: Unikeko, Tallustelija, Vipeltäjä ja Turbotassu.
+Oletustempot ovat 30, 45, 60 ja 90 BPM. Ensimmäinen taso on Unikeko.
+BPM-arvot näkyvät vain asetuksissa; jokaista voi muuttaa välillä 10–240.
+Taso ja tempot tallentuvat selaimeen. Tason valinta ottaa hirviön mukaan.
+Tason/tempon muuttaminen valmistelee uuden kierroksen.
+Yksi isku = yksi sävelväli (120 radan yksikköä). Hirviö etenee
+pehmeästi isku kerrallaan ensimmäisestä sävelestä alkaen. Se pitää
+oman temponsa soittajan pysähtyessäkin, mutta ei ohita juoksijaa.
+Kiinni jäädessä se pomppii vieressä. Maalissa hirviö pysähtyy.
+Juoksijan liike, sävelentunnistus ja pelikentän mitat ovat ennallaan.
