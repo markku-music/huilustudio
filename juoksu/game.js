@@ -81,7 +81,7 @@ function setVoice(on,now){
 function feedTest(i){const now=performance.now();acceptNote(i,now);setVoice(index>=0&&i===noteAt(index),now);}
 function status(s){$('status').textContent=s;}
 function marks(){syncFinish();window.raceScore?.setProgress(index,direction);for(let i=0;i<8;i++)$('keys').children[i].classList.toggle('next',index<lastStep()&&i===noteAt(index+1));}
-function reset(){window.finishBubble?.reset();syncDirection();uncertainSoundMs=0;phase='armed';index=-1;times=[];gates=[];voiced=false;saveThisRun=false;testHeld=null;runnerSteps.player=runnerSteps.ghost=0;ghostGates=bestGates.map(g=>({...g}));raceGhost=best?.slice()||null;pending='';evidence=0;px=gx=raceX(0);$('time').textContent='0,00 s';$('result').textContent='';$('ghost').style.display=raceGhost?'':'none';marks();status(mode==='test'?`Testi valmis · paina ${names[noteAt(0)]} tai näppäintä ${noteAt(0)+1}.`:ready?`Valmis · aloita soittamalla ${names[noteAt(0)]}.`:'Avaa mikrofoni tai valitse hiiritesti.');}
+function reset(){window.monsterChase?.reset();window.finishBubble?.reset();syncDirection();uncertainSoundMs=0;phase='armed';index=-1;times=[];gates=[];voiced=false;saveThisRun=false;testHeld=null;runnerSteps.player=runnerSteps.ghost=0;ghostGates=bestGates.map(g=>({...g}));raceGhost=best?.slice()||null;pending='';evidence=0;px=gx=raceX(0);$('time').textContent='0,00 s';$('result').textContent='';$('ghost').style.display=raceGhost?'':'none';marks();status(mode==='test'?`Testi valmis · paina ${names[noteAt(0)]} tai näppäintä ${noteAt(0)+1}.`:ready?`Valmis · aloita soittamalla ${names[noteAt(0)]}.`:'Avaa mikrofoni tai valitse hiiritesti.');}
 function acceptNote(pitch,now){
  if(phase!=='armed'&&phase!=='racing')return;
  const next=index+1;
@@ -246,6 +246,7 @@ function frame(now){
     const moving=active&&dt>0&&Math.abs(pos-previous)>.015;
     animateRunner(id,pos-previous,moving);
   }
+  window.monsterChase?.update({now,dt,phase,playerPath,direction,startPath:pathX(0),endPath:pathX(lastStep()),turnPath:x(7),trackX,facingAt});
   px=nextPx;gx=nextGx;
   window.finishBubble?.update(nextPx,358,phase==='finished'&&Math.abs(playerPath-pathX(lastStep()))<1e-7);
   requestAnimationFrame(frame);

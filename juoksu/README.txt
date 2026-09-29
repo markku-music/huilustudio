@@ -19,3 +19,12 @@ Korjaukset:
 - Virhe avaa asetukset ja antaa mahdollisuuden uuteen yritykseen.
 - Perutun/vanhentuneen pyynnön myöhemmin saama mikrofoni suljetaan.
 - Sävelentunnistuksen algoritmia ja pelin asetuksia ei muutettu.
+
+Takaa-ajaja (29.9.2026):
+Hirviö odottaa ensimmäistä säveltä ja lähestyy tasaisesti.
+Asetuksissa on päälle/pois-valinta ja nopeus 10–100 (oletus 35).
+Kiinni jääminen ei katkaise harjoitusta. Hirviö pomppii vierellä.
+Maalissa hirviö pysähtyy läähättämään. Myös alas- ja meno-paluusuunta toimivat.
+Asetukset tallentuvat selaimeen. Muuttaminen valmistaa uuden kierroksen.
+Päivityksen jälkeen sulje kaikki apin välilehdet/ikkunat ja avaa uudelleen,
+jotta uusi offline-versio aktivoituu.
