@@ -60,7 +60,5 @@
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(host);
   window.addEventListener('resize',schedule);
   window.visualViewport?.addEventListener('resize',schedule);
-  document.addEventListener('fullscreenchange',schedule);
-  document.addEventListener('webkitfullscreenchange',schedule);
   layout();
 })();

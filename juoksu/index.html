@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Asteikkospurtti</title>
-<link rel="stylesheet" href="fullscreen.css">
+<link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="responsive.css">
+<meta name="theme-color" content="#235640">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
 <main id="gameScreen">
@@ -44,7 +47,7 @@
       <p>Oma juoksu. Oma ennätys.</p>
       <button id="startGame" class="primary">Aloita</button>
       <p class="start-orientation">Käännä laite vaakatasoon pelaamista varten.</p>
-      <small>Aloita avaa mikrofonin ja koko näytön tilan. Ole aluksi hetki hiljaa.</small>
+      <small>Aloita avaa mikrofonin. Ole aluksi hetki hiljaa.</small>
     </div>
   </section>
 </main>
@@ -57,7 +60,6 @@
     <div class="controls"><select id="mode" aria-label="Ohjaus"><option value="mic">Huilu ja mikrofoni</option><option value="test">Hiiri / näppäimet</option></select><select id="motionMode" aria-label="Juoksutapa"><option value="carry">Vauhti kantaa</option><option value="sound">Juokse soittaessa</option></select><button id="mic" class="primary">Avaa mikrofoni</button><button id="again">Uusi kierros</button><button id="clear">Nollaa haamu</button></div>
     <p id="status" role="status" aria-live="polite">Avaa mikrofoni tai valitse hiiritesti.</p>
     <div class="bottom"><small id="instructions">Soita f¹–g¹–a¹–b¹–c²–d²–e²–f². Ensimmäinen f¹ käynnistää kellon.</small><div class="test" id="keys" hidden></div></div>
-    <div class="fullscreen-controls"><button id="fullscreenToggle">Siirry koko näyttöön</button><p id="fullscreenStatus" role="status" aria-live="polite"></p></div>
     <details class="settings"><summary>Liikesäädöt, ohje ja JSON</summary><p><label>Jalkojen animaationopeus <input id="animationSpeed" type="range" min="0.25" max="3" step="0.05" value="1"><output id="animationSpeedValue">1,00 ×</output></label><br><small>1 × = nykyinen tahti. Vaikuttaa heti molempien juoksijoiden askeliin. Etenemisvauhti ja ajanotto säilyvät.</small></p><p><label>Pysähtymisen pehmeys <input id="stopMs" type="range" min="40" max="600" step="10" value="180"><output id="stopValue">180 ms</output></label><br><small>Juokse soittaessa: äänen katketessa myös spurtti jarruttaa. Sama sävel jatkaa liikettä. Hiiritestissä pidä sävelpainiketta tai numeronäppäintä painettuna. Jokaisella asteikolla, suuntavalinnalla ja juoksutavalla on oma paras aika. Ajanotto jatkuu myös hiljaisuudessa.</small></p>
 <p><label>Ease-in · kiihdytys <input id="easeIn" type="range" min="1" max="6" step="0.1" value="1"><output id="easeInValue">1,0</output></label></p>
 <p><label>Ease-out · hidastus <input id="easeOut" type="range" min="1" max="6" step="0.1" value="1"><output id="easeOutValue">1,0</output></label></p>
@@ -65,7 +67,8 @@
   </div>
 </dialog>
 <script src="resonator-engine.js"></script><script src="scales.js"></script><script src="finish-bubble.js"></script><script src="game.js"></script><script src="vendor/osmd/opensheetmusicdisplay.min.js"></script><script src="score-display.js"></script><script src="race-score.js"></script>
-<script src="fullscreen.js"></script>
+<script src="app-ui.js"></script>
 <script src="responsive.js"></script>
+<script src="pwa.js"></script>
 </body>
 </html>

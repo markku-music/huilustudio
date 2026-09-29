@@ -561,16 +561,24 @@
         // Create/resume from the button gesture, before awaiting microphone permission.
         const context = new AC({ latencyHint: 'interactive' });
         this.context = context;
-        if (context.state !== 'running') await context.resume();
-        this._checkLifecycle(lifecycleId);
-        const stream = await global.navigator.mediaDevices.getUserMedia({
+        const resumed = context.state === 'running' ? Promise.resolve() : context.resume();
+        // Request permission in the same user gesture; do not wait for resume.
+        const captured = global.navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
             autoGainControl: false,
             channelCount: 1
           }
+        }).then(stream => {
+          if (lifecycleId !== this._lifecycleId) {
+            stream.getTracks().forEach(track => track.stop());
+            throw this._abortError();
+          }
+          this.stream = stream;
+          return stream;
         });
+        const [, stream] = await Promise.all([resumed, captured]);
         if (lifecycleId !== this._lifecycleId) {
           stream.getTracks().forEach(track => track.stop());
           throw this._abortError();

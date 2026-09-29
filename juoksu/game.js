@@ -127,7 +127,32 @@ $('direction').onchange=()=>{direction=$('direction').value;load();reset();refre
 $('clear').onclick=()=>{if(confirm('Nollataanko tämän suunnan ja juoksu- sekä ohjaustavan haamu?')){try{localStorage.removeItem(storageKey());}catch{}best=null;$('best').textContent='–';reset();}};
 $('mode').onchange=()=>{engine?.stop();engine=null;opening=ready=false;mode=$('mode').value;$('mic').disabled=false;$('mic').textContent='Avaa mikrofoni';$('mic').hidden=mode==='test';$('keys').hidden=mode!=='test';load();reset();};
 $('margin').oninput=()=>{$('db').textContent=$('margin').value+' dB';engine?.setNoiseMarginDb(Number($('margin').value));};
-$('mic').onclick=async()=>{if(opening||ready){engine?.stop();ready=opening=false;$('mic').textContent='Avaa mikrofoni';reset();return;}let e=new ResonatorStringEngine({targets,blockSize:256,calibrationMs:1500,responseMs:1.8,toleranceCents:40,centerMatch:.955,edgeMatch:.998,minHalfPeriodEnergy:.32,noiseMarginDb:Number($('margin').value),motionMode,stopMs});engine=e;opening=true;$('mic').textContent='Peru avaus';status('Avataan mikrofonia…');e.addEventListener('input',ev=>{if(e===engine)input(ev.detail);});e.addEventListener('silence',()=>{if(e!==engine)return;uncertainSoundMs=0;pending='';evidence=0;setVoice(false,performance.now());});e.addEventListener('state',ev=>{if(e!==engine)return;const s=ev.detail.state;if(s==='calibrating')status('Mittaa pohjakohinaa · ole hiljaa hetki…');if(s==='running'){ready=true;opening=false;$('mic').textContent='Sulje mikrofoni';reset();}});try{await e.start();}catch(err){if(e!==engine)return;opening=ready=false;$('mic').textContent='Avaa mikrofoni';status(err.name==='AbortError'?'Avaus peruttu.':'Mikrofoni ei auennut: '+err.message);}};
+let micTimer;
+$('mic').onclick=async()=>{
+ clearTimeout(micTimer);
+ if(opening||ready){const old=engine;engine=null;old?.stop();ready=opening=false;$('mic').textContent='Avaa mikrofoni';reset();return;}
+ const e=new ResonatorStringEngine({targets,blockSize:256,calibrationMs:1500,responseMs:1.8,toleranceCents:40,centerMatch:.955,edgeMatch:.998,minHalfPeriodEnergy:.32,noiseMarginDb:Number($('margin').value),motionMode,stopMs});
+ engine=e;opening=true;$('mic').textContent='Peru avaus';status('Salli mikrofonin käyttö selaimen lupapyynnössä…');
+ const fail=message=>{
+   if(e!==engine)return;
+   clearTimeout(micTimer);engine=null;e.stop();opening=ready=false;
+   $('mic').textContent='Avaa mikrofoni';status(message);
+   if(!$('settingsDialog').open)$('settingsDialog').showModal();
+ };
+ micTimer=setTimeout(()=>fail('Mikrofonin avaus kesti liian kauan. Tarkista selaimen mikrofonilupa ja paina Avaa mikrofoni uudelleen.'),20000);
+ e.addEventListener('input',ev=>{if(e===engine)input(ev.detail);});
+ e.addEventListener('silence',()=>{if(e!==engine)return;uncertainSoundMs=0;pending='';evidence=0;setVoice(false,performance.now());});
+ e.addEventListener('state',ev=>{
+   if(e!==engine)return;
+   const state=ev.detail.state;
+   if(state==='calibrating')status('Mittaa pohjakohinaa · ole hiljaa hetki…');
+   if(state==='running'){clearTimeout(micTimer);ready=true;opening=false;$('mic').textContent='Sulje mikrofoni';reset();}
+ });
+ try{await e.start();}catch(err){
+   const message=err.name==='NotAllowedError'?'Mikrofonilupa puuttuu. Salli mikrofoni selaimen sivustoasetuksista ja yritä uudelleen.':err.name==='NotFoundError'?'Mikrofonia ei löytynyt. Kytke mikrofoni ja yritä uudelleen.':'Mikrofoni ei auennut: '+err.message;
+   fail(message);
+ }
+};
 document.addEventListener('keydown',e=>{if(mode!=='test'||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,select,textarea'))return;let i=Number(e.key)-1;if(i>=0&&i<8){e.preventDefault();if(motionMode==='sound'){testHeld=i;feedTest(i);}else acceptNote(i,performance.now());}});
 document.addEventListener('keyup',e=>{if(mode==='test'&&motionMode==='sound'&&Number(e.key)-1===testHeld){testHeld=null;setVoice(false,performance.now());}});
 window.addEventListener('blur',()=>{if(mode==='test')setVoice(false,performance.now());});
