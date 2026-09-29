@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Asteikkospurtti</title>
+<link rel="stylesheet" href="fullscreen.css">
+<link rel="stylesheet" href="responsive.css">
+</head>
+<body>
+<main id="gameScreen">
+  <header class="game-toolbar" aria-label="Asteikko, suunta ja ajat">
+    <div class="quick-controls"><select id="scale" aria-label="Asteikko"><option value="F">F-duuri · f¹–f²</option><option value="G">G-duuri · g¹–g²</option><option value="D1">D-duuri · d¹–d²</option><option value="D2">D-duuri · d²–d³</option><option value="B">B-duuri · b¹–b²</option><option value="C">C-duuri · c²–c³</option></select><select id="direction" aria-label="Asteikon suunta"><option value="up">↑ Ylös</option><option value="down">↓ Alas</option><option value="both">↕ Molemmat</option></select></div>
+  <div class="stats" aria-label="Kierrosaika ja paras aika">
+    <div><small>AIKA</small><strong id="time">0,00 s</strong></div>
+    <div><small>PARAS</small><strong id="best">–</strong></div>
+  </div>
+  </header>
+  <div class="arena"><svg id="arenaSvg" viewBox="0 0 1100 550" role="img" aria-label="Kaksi juoksijaa pikselipuistossa ja F-duuriasteikon kahdeksan nuottia"><defs><g id="runner" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"><circle cx="0" cy="-47" r="8" fill="currentColor" stroke="none"/><path d="M-2 -33 L-6 -14 M-2 -30 L11 -23 L20 -30 M-2 -30 L-16 -24 L-23 -31"/><g class="legs"><path d="M-6 -14 L9 -2 L19 0 M-6 -14 L-19 -7 L-25 0"/></g></g></defs><rect id="parkFill" x="0" y="147" width="1100" height="403" fill="#54cadd"/><image id="parkImage" href="assets/park-background.png" x="0" y="147" width="1100" height="403" preserveAspectRatio="xMidYMid slice"/><g id="staff"><text x="550" y="80" text-anchor="middle" font-size="16" fill="#586f66">Ladataan nuotteja…</text></g><g id="noteLabels"></g><g id="points"></g><g id="finishLine" transform="translate(1010 0)" aria-hidden="true"><svg id="finishStripe" x="-16" y="326" width="32" height="192" viewBox="470 140 180 1100" preserveAspectRatio="none" overflow="hidden"><image href="assets/finish-line.webp" width="1122" height="1402"/></svg></g><g id="playerLayout"><g id="player"><svg id="playerSprite" viewBox="978 847 154 389" x="-42" y="-78" width="84" height="78" overflow="hidden" preserveAspectRatio="xMidYMax meet"><image href="assets/runner-sheet.png" width="1254" height="1254"/></svg></g></g><g id="ghostLayout"><g id="ghost" opacity=".50"><svg id="ghostSprite" viewBox="978 847 154 389" x="-42" y="-78" width="84" height="78" overflow="hidden" preserveAspectRatio="xMidYMax meet"><image href="assets/runner-sheet.png" width="1254" height="1254"/></svg></g></g><g id="finishBubble" font-family="system-ui,sans-serif" style="display:none" pointer-events="none" aria-hidden="true">
+  <g class="bubble-stars" transform="translate(0 32)" fill="#efb52e" stroke="#b87513" stroke-width="1" shape-rendering="crispEdges">
+    <path class="bubble-spark" style="--dx:-94px;--dy:-35px;--delay:0ms" d="M-3-9H3V-3H9V3H3V9H-3V3H-9V-3H-3Z"/>
+    <path class="bubble-spark" style="--dx:88px;--dy:-42px;--delay:50ms" d="M-3-9H3V-3H9V3H3V9H-3V3H-9V-3H-3Z"/>
+    <path class="bubble-spark" style="--dx:-46px;--dy:-76px;--delay:90ms" d="M-3-9H3V-3H9V3H3V9H-3V3H-9V-3H-3Z"/>
+    <path class="bubble-spark" style="--dx:36px;--dy:-82px;--delay:20ms" d="M-3-9H3V-3H9V3H3V9H-3V3H-9V-3H-3Z"/>
+    <path class="bubble-spark" style="--dx:-76px;--dy:53px;--delay:60ms" d="M-3-9H3V-3H9V3H3V9H-3V3H-9V-3H-3Z"/>
+    <path class="bubble-spark" style="--dx:79px;--dy:49px;--delay:110ms" d="M-3-9H3V-3H9V3H3V9H-3V3H-9V-3H-3Z"/>
+  </g>
+  <g class="bubble-card">
+    <rect class="bubble-box" x="-82" y="0" width="164" height="64" rx="12" fill="#fffdf5" stroke="#365442" stroke-width="2"/>
+    <path id="bubbleTail" d="M-8 63L0 76L8 63" fill="#fffdf5" stroke="#365442" stroke-width="2" stroke-linejoin="round"/>
+    <text id="bubbleTitle" x="0" y="23" text-anchor="middle" font-size="16" font-weight="700" fill="#835300">★ Uusi paras!</text>
+    <text id="bubbleTime" x="0" y="45" text-anchor="middle" font-size="27" font-weight="750" fill="#193e30" font-family="system-ui,sans-serif" style="font-variant-numeric:tabular-nums"></text>
+  </g>
+</g></svg></div>
+  <section id="rotateNotice" aria-label="Käännä laite vaakatasoon"><div class="rotate-card"><span class="rotate-icon" aria-hidden="true"></span><strong>Käännä laite vaakatasoon</strong><p>Silloin koko asteikko ja molemmat juoksijat mahtuvat hyvin näkyviin.</p><small>Asetukset avautuvat alakulman rattaasta.</small></div></section>
+  <div id="startupNotice" role="status" aria-live="polite" hidden></div>
+  <p id="finishAnnouncement" class="sr-only" role="status" aria-live="polite"></p>
+  <div id="result" role="status" aria-live="polite" hidden></div>
+  <button id="settingsOpen" class="gear" aria-label="Avaa asetukset" aria-haspopup="dialog" aria-controls="settingsDialog" title="Asetukset"><span aria-hidden="true">⚙︎</span></button>
+  <section id="startScreen" aria-labelledby="startTitle">
+    <div class="start-card">
+      <p class="tag" id="startScale">F-DUURI · f¹–f²</p>
+      <h1 id="startTitle">Asteikkospurtti</h1>
+      <p>Oma juoksu. Oma ennätys.</p>
+      <button id="startGame" class="primary">Aloita</button>
+      <p class="start-orientation">Käännä laite vaakatasoon pelaamista varten.</p>
+      <small>Aloita avaa mikrofonin ja koko näytön tilan. Ole aluksi hetki hiljaa.</small>
+    </div>
+  </section>
+</main>
+<dialog id="settingsDialog" aria-labelledby="settingsHeading">
+  <div class="panel-heading">
+    <div><h2 id="settingsHeading">Asetukset</h2><div class="tag" id="scaleLabel">F-DUURI · f¹–f²</div></div>
+    <button id="settingsClose" aria-label="Sulje asetukset" autofocus>Sulje</button>
+  </div>
+  <div class="panel-content">
+    <div class="controls"><select id="mode" aria-label="Ohjaus"><option value="mic">Huilu ja mikrofoni</option><option value="test">Hiiri / näppäimet</option></select><select id="motionMode" aria-label="Juoksutapa"><option value="carry">Vauhti kantaa</option><option value="sound">Juokse soittaessa</option></select><button id="mic" class="primary">Avaa mikrofoni</button><button id="again">Uusi kierros</button><button id="clear">Nollaa haamu</button></div>
+    <p id="status" role="status" aria-live="polite">Avaa mikrofoni tai valitse hiiritesti.</p>
+    <div class="bottom"><small id="instructions">Soita f¹–g¹–a¹–b¹–c²–d²–e²–f². Ensimmäinen f¹ käynnistää kellon.</small><div class="test" id="keys" hidden></div></div>
+    <div class="fullscreen-controls"><button id="fullscreenToggle">Siirry koko näyttöön</button><p id="fullscreenStatus" role="status" aria-live="polite"></p></div>
+    <details class="settings"><summary>Liikesäädöt, ohje ja JSON</summary><p><label>Jalkojen animaationopeus <input id="animationSpeed" type="range" min="0.25" max="3" step="0.05" value="1"><output id="animationSpeedValue">1,00 ×</output></label><br><small>1 × = nykyinen tahti. Vaikuttaa heti molempien juoksijoiden askeliin. Etenemisvauhti ja ajanotto säilyvät.</small></p><p><label>Pysähtymisen pehmeys <input id="stopMs" type="range" min="40" max="600" step="10" value="180"><output id="stopValue">180 ms</output></label><br><small>Juokse soittaessa: äänen katketessa myös spurtti jarruttaa. Sama sävel jatkaa liikettä. Hiiritestissä pidä sävelpainiketta tai numeronäppäintä painettuna. Jokaisella asteikolla, suuntavalinnalla ja juoksutavalla on oma paras aika. Ajanotto jatkuu myös hiljaisuudessa.</small></p>
+<p><label>Ease-in · kiihdytys <input id="easeIn" type="range" min="1" max="6" step="0.1" value="1"><output id="easeInValue">1,0</output></label></p>
+<p><label>Ease-out · hidastus <input id="easeOut" type="range" min="1" max="6" step="0.1" value="1"><output id="easeOutValue">1,0</output></label></p>
+<p><label>Spurtin kesto <input id="sprintDuration" type="range" min="40" max="1500" step="10" value="440"><output id="sprintDurationValue">440 ms</output></label></p><p><small>1 = ei pehmennystä kyseisessä päässä. Suurempi arvo korostaa pehmeää alkua tai loppua. Molemmat 3 = edellinen ease-in-out. Spurtin kesto on säädettävissä 40–1500 ms. Arvot tallentuvat tähän selaimeen; muuttaminen valmistaa uuden kierroksen.</small></p><p><label>Yhden sävelen vauhti kantaa <input id="carry" type="range" min="400" max="5000" step="100" value="5000"><span id="carryValue">5,0 s</span></label><br><small>Säädön muuttaminen valmistaa uuden kierroksen. Sama asetus koskee juoksijaa ja haamua.</small></p><p><label>Kohinaraja <input id="margin" type="range" min="4" max="10" value="8"><span id="db">8 dB</span> pohjakohinan yläpuolella</label></p><p>Ole hiljaa mikrofonin avautuessa. Soita asteikko järjestyksessä, mielellään legatossa. Väärä sävel ei vie eteenpäin. Uusi kierros valmistellaan painikkeella.</p><p>Haamu toistaa parhaan kokonaisen kierroksen sävelkohtaiset ajat. Huilulla ja hiiritestillä on omat ennätyksensä tässä selaimessa. Alaspäin nuotteja seurataan oikealta vasemmalle. Molempiin suuntiin: soita valittu asteikko ylös ja takaisin alas. Huippusävel soitetaan kerran; koko matkalla on yksi aika. Asteikon tai suunnan vaihtaminen valmistaa uuden kierroksen. Oppilaan vaihtuessa nollaa haamu.</p><p>Hiiritesti: paina sävelpainikkeita tai näppäimiä ylöspäin 1–8, alaspäin 8–1 ja molempiin suuntiin 1–8–1 (8 kerran). Mikrofonikäyttö vaatii HTTPS-sivun (esimerkiksi GitHub Pages) tai localhost-palvelimen.</p><p><strong>Asetukset JSONina</strong></p><textarea id="settingsJson" aria-label="Asetusten JSON" spellcheck="false" style="width:100%;min-height:220px;font:14px monospace;padding:12px;border:1px solid #bac8bd;border-radius:10px"></textarea><div class="controls"><button id="jsonRefresh">Näytä nykyiset arvot</button><button id="jsonCopy">Kopioi JSON</button><button id="jsonDownload">Lataa JSON</button><button id="jsonApply">Ota JSON käyttöön</button></div><p id="jsonStatus" role="status"></p></details>
+  </div>
+</dialog>
+<script src="resonator-engine.js"></script><script src="scales.js"></script><script src="finish-bubble.js"></script><script src="game.js"></script><script src="vendor/osmd/opensheetmusicdisplay.min.js"></script><script src="score-display.js"></script><script src="race-score.js"></script>
+<script src="fullscreen.js"></script>
+<script src="responsive.js"></script>
+</body>
+</html>

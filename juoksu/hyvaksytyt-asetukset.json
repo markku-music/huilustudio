@@ -1,0 +1,13 @@
+{
+  "schema": "Asteikkospurtti.Settings/1",
+  "easeIn": 1,
+  "easeOut": 1,
+  "sprintDurationMs": 440,
+  "carryMs": 5000,
+  "noiseMarginDb": 8,
+  "motionMode": "carry",
+  "stopMs": 180,
+  "animationSpeed": 1,
+  "direction": "up",
+  "scaleId": "F"
+}

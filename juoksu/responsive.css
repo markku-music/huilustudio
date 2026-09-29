@@ -1,0 +1,72 @@
+/* Keep the score and the runners on the same horizontal coordinate system.
+   responsive.js distributes the vertical space without stretching glyphs. */
+:root{--hud-height:54px}
+.arena{inset:calc(var(--hud-height) + env(safe-area-inset-top,0px)) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.arena>svg{width:100%;height:100%}
+#startScreen{overflow-y:auto;padding:calc(20px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) calc(24px + env(safe-area-inset-left,0px))}
+.start-card{margin:auto}
+.start-orientation{display:none}
+#rotateNotice{display:none;position:absolute;inset:calc(var(--hud-height) + env(safe-area-inset-top,0px)) 0 0;z-index:3;background:#edf1e9f5;align-items:center;justify-content:center;text-align:center;padding:28px}
+.rotate-card{max-width:310px}
+.rotate-card strong{display:block;font-size:26px;margin:18px 0 12px}
+.rotate-card p{color:#586f66;line-height:1.6}
+.rotate-icon{display:inline-block;width:66px;height:38px;border:3px solid #235640;border-radius:9px;position:relative}
+.rotate-icon::after{content:'↻';position:absolute;left:18px;top:-8px;font-size:30px;color:#235640}
+.settings input[type=range]{min-height:44px}
+.settings summary{min-height:44px;align-content:center}
+#settingsJson{font-size:16px!important}
+@media(max-height:500px){
+  :root{--hud-height:40px}
+  .stats{top:calc(3px + env(safe-area-inset-top,0px));gap:20px}
+  .stats small{font-size:9px;line-height:1.2}
+  .stats strong{font-size:20px}
+  .gear{width:46px;height:46px;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  .start-card h1{font-size:34px;margin:4px 0}
+  .start-card p{margin:8px 0}
+  .start-card button{margin:8px 0 12px}
+}
+/* Phones get a full, scrollable panel with a persistent close button.
+   Every inset includes the device safe area, including short landscape. */
+@media(max-height:500px),(max-width:600px){
+  #settingsDialog{inset:calc(8px + env(safe-area-inset-top,0px)) auto auto calc(8px + env(safe-area-inset-left,0px));width:calc(100vw - 16px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));height:calc(100vh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100vh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));border-radius:14px}
+  .panel-heading{padding:10px 14px;gap:10px}
+  .panel-heading h2{font-size:21px}
+  .panel-heading .tag{font-size:11px;letter-spacing:1px}
+  .panel-content{padding:0 14px 20px}
+  .controls{margin:14px 0}
+  .settings{padding:12px}
+}
+@media(orientation:portrait){
+  #rotateNotice{display:flex}
+  .start-orientation{display:block;margin-top:16px;font-weight:650;color:#235640}
+}
+
+/* One set of the original selects, now always available in the top bar.
+   The arena uses the same header height, so controls cannot cover notes. */
+:root{--hud-height:56px}
+.game-toolbar{position:absolute;z-index:5;top:env(safe-area-inset-top,0px);left:calc(12px + env(safe-area-inset-left,0px));right:calc(12px + env(safe-area-inset-right,0px));height:var(--hud-height);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.quick-controls{display:flex;align-items:center;gap:8px;min-width:0}
+.quick-controls select{height:44px;min-height:44px;padding:6px 8px;font-size:16px;background:#fffffff5;min-width:0;max-width:100%}
+.quick-controls #scale{width:clamp(166px,21vw,224px)}
+.quick-controls #direction{width:clamp(126px,16vw,170px)}
+.game-toolbar .stats{position:static;gap:20px;flex-shrink:0;white-space:nowrap}
+#startScreen{padding-top:calc(var(--hud-height) + 20px + env(safe-area-inset-top,0px))}
+@media(max-height:500px){
+  :root{--hud-height:52px}
+}
+@media(max-width:700px){
+  .game-toolbar{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));gap:8px}
+  .quick-controls{gap:6px}
+  .quick-controls #scale{width:166px}
+  .quick-controls #direction{width:126px}
+  .game-toolbar .stats{gap:10px}
+  .game-toolbar .stats strong{font-size:18px}
+}
+@media(max-width:540px){
+  :root{--hud-height:98px}
+  .game-toolbar{flex-wrap:wrap;align-content:center;row-gap:4px}
+  .quick-controls{width:100%}
+  .quick-controls #scale{width:auto;flex:1.3}
+  .quick-controls #direction{width:auto;flex:1}
+  .game-toolbar .stats{margin-left:auto}
+}
