@@ -1,6 +1,6 @@
 // One complete offline copy per installation folder. Other apps keep their caches.
 const CACHE_PREFIX = 'resonator-osmd-pwa-' + encodeURIComponent(self.registration.scope) + '-';
-const CACHE_NAME = CACHE_PREFIX + 'v1-icon-20260929';
+const CACHE_NAME = CACHE_PREFIX + 'v2-center-arrow-20260929';
 const APP_SHELL = [
   './index.html',
   './pwa.js',

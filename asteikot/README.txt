@@ -1,3 +1,30 @@
+KESKITYSKORJAUS JA TUNNISTETUN NUOTIN NUOLI – 29.9.2026
+
+- Automaattinen vaakakeskitys käyttää nuottikortin keskipistettä ja piirretyn
+  nuottikuvan todellisia näyttömittoja. Se ei nojaa koko ikkunan keskipisteeseen
+  eikä SVG:n getScreenCTM-muunnokseen.
+- Keskitys päivittyy myös näkymän koon muuttuessa ja PWA:han palattaessa.
+- Tunnistetun nuotin yläpuolella on sininen alaspäin osoittava nuoli.
+- Nuoli seuraa säveltä mikrofonista sekä hiiri- ja näppäinkokeilussa.
+  Tauolla ja hylätyn äänen aikana se jää viimeksi hyväksytyn sävelen kohdalle.
+  Mikrofonin sulkeminen, sävelvalinnan tyhjennys tai asteikon vaihto poistaa sen.
+- Nuoli sijoitetaan nuotinpään mukaan ja seuraa nuottiväli-, koko- ja
+  rajausasetuksia myös uuden OSMD-ladonnan jälkeen.
+- Automaattinen keskitys on oletuksena päällä. X-käsisäätö toimii edelleen,
+  kun poistat asetuksista automaattisen vaakakeskityksen valinnan.
+- PWA-välimuistin versio on päivitetty. Korvaa GitHubissa vanhan julkaisun
+  tiedostot tämän kansion sisällöllä. Anna sivun päivittyä verkossa ja sulje
+  sekä avaa sovellus uudelleen. Kotinäytön ikoni säilyy samana.
+
+Tarkistus: 432 simuloitua geometriatapausta (6 asteikkoaluetta, 6 näyttöleveyttä,
+4 suurennusta ja 3 rajausta), kaikki asteikkojen kahdeksan nuolipaikkaa,
+nuolen säilyminen uudelleenladonnassa ja manuaalinen X/Y-säätö. Lisäksi
+hyväksyttyjen/hylättyjen äänten, tauon ja pysäytyksen kytkentä sekä offline-tuki.
+Säveltunnistusmoottori, vaihtosuoja ja hyväksytyt oletusasetukset ovat ennallaan.
+Varsinaista Safari/iPad-kokeilua ei voitu tehdä tässä ympäristössä.
+
+Alla edellisen version käyttöohjeet ja muutoshistoria.
+
 PWA JA UUSI IKONI – 29.9.2026
 
 Tämä paketti voidaan asentaa kotinäytölle omaksi Resonator-sovelluksekseen.

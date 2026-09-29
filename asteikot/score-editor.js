@@ -41,6 +41,8 @@
       this.assignSettings(osmd,display);this.build();this.populate();
       this.centerFrame=null;
       window.addEventListener('resize',()=>this.scheduleCenter());
+      window.addEventListener('pageshow',()=>this.scheduleCenter());
+      window.visualViewport?.addEventListener('resize',()=>this.scheduleCenter());
       if(window.ResizeObserver){
         this.resizeObserver=new window.ResizeObserver(()=>this.scheduleCenter());
         this.resizeObserver.observe(score.container);
@@ -147,18 +149,16 @@
         svg.style.transformOrigin='center center';
       }
       if(display.autoCenterX){
-        const svg=canvas.querySelector('svg'),center=svg?this.score.contentCenterX(svg):null;
-        // getScreenCTM includes viewBox fitting, cropping and CSS magnification.
-        // It maps SVG units to the same CSS-pixel coordinates as the viewport.
-        const matrix=svg?.getScreenCTM?.();
-        if(center!==null&&matrix){
+        const svg=canvas.querySelector('svg');
+        const bounds=this.score.contentScreenBounds(svg);
+        if(bounds){
           const panelRect=panel.getBoundingClientRect();
-          const target=document.body.classList.contains('dev-open')
-            ?panelRect.left+panelRect.width/2:window.innerWidth/2;
-          const correction=target-(matrix.a*center+matrix.e);
+          const target=panelRect.left+panelRect.width/2;
+          const correction=target-(bounds.left+bounds.right)/2;
           if(Number.isFinite(correction))svg.style.transform=`translate(${correction}px,${display.translateY}px) scale(${display.visualScale/100})`;
         }
       }
+      this.score.updateActiveNote();
     }
     ready(){this.isReady=true;this.score.updateViewport(this.osmd);this.applyDisplay();if(this.pending)this.requestLayout();else this.setStatus('Valmis · säädöt tallentuvat automaattisesti.');}
     requestLayout(){

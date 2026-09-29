@@ -82,6 +82,11 @@
       this.settings = cloneDefaults();
       this.renderToken = 0;
       this.osmdVersion = '';
+      this.activeNoteId = '';
+      this.noteArrow = document.createElement('span');
+      this.noteArrow.className = 'score-note-arrow';
+      this.noteArrow.setAttribute('aria-hidden', 'true');
+      this.noteArrow.hidden = true;
     }
 
     normalizeSettings(input = {}) {
@@ -294,6 +299,60 @@
       return bounds?(bounds.left+bounds.right)/2:null;
     }
 
+    noteNodes(frame) {
+      const scale=this.scales.find(item=>item.id===frame?.dataset.scale);
+      if(!frame||!scale)return [];
+      return [...frame.querySelectorAll('.vf-stavenote')]
+        .slice(this.settings.leadingSpacerBeats,this.settings.leadingSpacerBeats+scale.notes.length);
+    }
+
+    contentScreenBounds(frame) {
+      if(!frame)return null;
+      const geometry=this.spacingFrames.get(frame);
+      // Use rendered CSS-pixel rectangles, including nested SVG transforms and
+      // the CSS zoom. This does not depend on Safari's SVG getScreenCTM mapping.
+      const nodes=geometry
+        ?[frame.querySelector('.vf-clef'),...geometry.notes.flatMap(note=>note.parts.map(part=>part.node)),...geometry.staffLines.map(line=>line.node)]
+        :[frame.querySelector('.vf-measure')];
+      let left=Infinity,right=-Infinity;
+      for(const node of nodes){
+        if(!node)continue;
+        const rect=node.getBoundingClientRect();
+        if(!Number.isFinite(rect.left)||!Number.isFinite(rect.right)||rect.width<=0)continue;
+        left=Math.min(left,rect.left);right=Math.max(right,rect.right);
+      }
+      return Number.isFinite(left)&&right>left?{left,right}:null;
+    }
+
+    setActiveNote(id) {
+      this.activeNoteId=typeof id==='string'?id:'';
+      this.updateActiveNote();
+    }
+
+    updateActiveNote() {
+      this.noteArrow.hidden=true;
+      const frame=this.frames.get(this.current);
+      const scale=this.scales.find(item=>item.id===this.current);
+      const index=scale?.notes.findIndex(note=>note.id===this.activeNoteId)??-1;
+      if(!frame||index<0||!frame.isConnected)return;
+      const note=this.noteNodes(frame)[index];
+      const head=note?.querySelector('.vf-notehead');
+      if(!head)return;
+      const headRect=head.getBoundingClientRect();
+      const noteRect=note.getBoundingClientRect();
+      const canvasRect=this.container.getBoundingClientRect();
+      if(!(headRect.width>0&&canvasRect.width>0&&canvasRect.height>0))return;
+      // Position an HTML overlay in CSS pixels. Its size stays readable when
+      // the score zoom or crop changes, and its center follows the notehead.
+      const x=headRect.left+headRect.width/2-canvasRect.left;
+      const noteTop=Math.min(headRect.top,noteRect.top)-canvasRect.top;
+      const y=Math.max(4,noteTop-39);
+      if(!Number.isFinite(x)||!Number.isFinite(y))return;
+      this.noteArrow.style.left=`${x}px`;
+      this.noteArrow.style.top=`${y}px`;
+      this.noteArrow.hidden=false;
+    }
+
     async renderAll(settingsInput = {}) {
       const OSMD = window.opensheetmusicdisplay?.OpenSheetMusicDisplay;
       if (!OSMD) throw new Error('OSMD-kirjastoa ei löytynyt.');
@@ -371,6 +430,7 @@
         this.applyNoteSpacing(frame,settings);
       }
       for(const key of ['cropLeftPct','cropRightPct','cropTopPct','cropBottomPct','clefGapPercent','accidentalGapPercent','endGapPercent'])this.settings[key]=settings[key];
+      this.updateActiveNote();
     }
 
     async applySettings(settings) {
@@ -379,13 +439,14 @@
 
     show(scaleId) {
       this.wanted = scaleId;
-      if (this.current === scaleId) return;
+      if (this.current === scaleId) { this.updateActiveNote(); return; }
       const frame = this.frames.get(scaleId);
       if (!frame) return;
-      this.container.replaceChildren(frame);
+      this.container.replaceChildren(frame,this.noteArrow);
       this.container.setAttribute('aria-label', frame.dataset.label);
       this.container.dataset.scale = scaleId;
       this.current = scaleId;
+      this.updateActiveNote();
     }
 
     getSettings() {
