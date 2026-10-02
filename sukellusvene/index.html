@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#139ab4">
+  <meta name="application-name" content="Sukellusmeri">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sukellusmeri">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="description" content="Rauhallinen vedenalainen matka sukellusveneasemalta toiselle. Kahdeksan maisemaa, elävä vedenpinta ja pehmeä saapuminen telakalle.">
+  <title>Sukellusmeri</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23098da8'/%3E%3Cpath d='M10 28 Q21 17 32 28 T54 28 M10 42 Q21 31 32 42 T54 42' fill='none' stroke='%23c6ffff' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css?v=21">
+</head>
+<body>
+  <main aria-label="Vedenalainen matka lähtöasemalta paluuasemalle">
+    <canvas id="sea" role="img" aria-label="Lainehtiva vedenpinta, kaksi sukellusveneasemaa, koralliriutta, merikasvimetsä, laivan hylky, kivikaaret ja uponneen kaupungin rauniot"></canvas>
+    <div id="surface" aria-hidden="true" hidden><div class="surface-sheet"></div></div>
+    <div id="depth-lines" aria-hidden="true" hidden></div>
+    <div id="station-start" class="station" hidden><img id="station-start-image" src="assets/telakka-lahto.webp" alt="Lähtöasema" draggable="false"><span class="signal-light station-light-a" aria-hidden="true"></span><span class="signal-light station-light-b" aria-hidden="true"></span><span class="signal-light station-extra" aria-hidden="true" style="left:18.8%;top:10.6%;width:4.1%;height:2.4%;animation-delay:-0.20s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:18.8%;top:84%;width:4.1%;height:2.4%;animation-delay:-0.59s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:4%;top:48%;width:1.0%;height:17%;animation-delay:-0.98s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:15%;top:95%;width:2.5%;height:2.4%;animation-delay:-1.37s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:50.5%;top:95%;width:2.5%;height:2.4%;animation-delay:-1.76s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:87.1%;top:95%;width:2.5%;height:2.4%;animation-delay:-2.15s"></span></div>
+    <div id="station-end" class="station" hidden><img id="station-end-image" src="assets/telakka-paluu.webp" alt="Pääteasema" draggable="false"><span class="signal-light station-light-a" aria-hidden="true"></span><span class="signal-light station-light-b" aria-hidden="true"></span><span class="signal-light station-extra" aria-hidden="true" style="left:38.4%;top:25.1%;width:4.2%;height:2.4%;animation-delay:-0.20s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:60.8%;top:25.1%;width:4.2%;height:2.4%;animation-delay:-0.59s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:84.5%;top:74.5%;width:2%;height:2.8%;animation-delay:-0.98s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:10.2%;top:96%;width:2.3%;height:2.4%;animation-delay:-1.37s"></span><span class="signal-light station-extra" aria-hidden="true" style="left:81.8%;top:96%;width:2.3%;height:2.4%;animation-delay:-1.76s"></span></div>
+    <div id="encounters" aria-hidden="true" hidden></div>
+    <div id="submarine" hidden role="img" aria-label="Keltainen sukellusvene, jonka potkuri pyörii">
+      <svg class="sub-propeller" viewBox="0 0 100 100" aria-hidden="true">
+        <defs><linearGradient id="prop-metal"><stop stop-color="#8c7845"/><stop offset=".5" stop-color="#fff2c0"/><stop offset="1" stop-color="#baa467"/></linearGradient></defs>
+        <g class="prop-plane">
+          <ellipse class="prop-blur" cx="50" cy="50" rx="43" ry="43" fill="#ffeab5"/>
+          <g class="prop-blades">
+            <path d="M45 48 C37 35 34 13 44 7 C54 1 63 14 59 29 L54 49 Z M55 52 C63 65 66 87 56 93 C46 99 37 86 41 71 L46 51 Z" fill="url(#prop-metal)" stroke="#a58b48" stroke-width="2"/>
+            <circle cx="50" cy="50" r="8" fill="#eab830" stroke="#9a6b1d" stroke-width="2"/>
+          </g>
+        </g>
+      </svg>
+      <img id="submarine-image" src="assets/sukellusvene.webp" width="337" height="128" alt="" draggable="false">
+      <span class="signal-light sub-light" aria-hidden="true"></span>
+      <span id="submarine-note" aria-hidden="true" hidden></span>
+      <span id="mine-warning" aria-hidden="true" hidden>!</span>
+    </div>
+    <div id="scoreboard" hidden aria-label="Pistelaskuri"><span>Pisteet</span> <output id="score-value">0</output><label for="fuel-meter">Polttoaine</label><meter id="fuel-meter" min="0" max="100" low="25" high="100" optimum="70" value="70"></meter><output id="fuel-value">70 %</output></div>
+    <div id="game-feedback" role="status" aria-live="polite"></div>
+    <div id="fuel-empty" hidden><strong>Polttoaine loppui</strong><button id="fuel-retry" type="button">Uusi yritys</button></div>
+    <div id="loading" role="status">Meri avautuu…</div>
+    <div id="rotate-notice" hidden>Käännä laite vaakatasoon</div>
+    <div class="controls" aria-label="Maiseman ohjaus" hidden>
+      <button id="pause" type="button" aria-label="Pysäytä maisema"><span id="pause-icon" aria-hidden="true">Ⅱ</span><span id="pause-label">Tauko</span></button>
+      <div class="speed"><label for="speed">Vauhti <output id="speed-value" for="speed">40</output></label><input id="speed" type="range" min="10" max="150" value="40" step="1"></div>
+      <button id="notes-open" type="button" aria-controls="notes-panel">Sävelet</button>
+      <button id="mic-toggle" type="button" aria-pressed="false">Avaa mikki</button>
+      <button id="settings-open" type="button" aria-controls="settings-panel">Asetukset</button>
+      <div class="depth-controls" role="group" aria-label="Syvyys: Q syvimmällä, I pinnan lähellä">
+        <button type="button" data-depth="0" aria-pressed="false" aria-label="Q, F1, syvin taso"><kbd>Q</kbd><span>F₁</span></button>
+        <button type="button" data-depth="1" aria-pressed="false" aria-label="W, G1"><kbd>W</kbd><span>G₁</span></button>
+        <button type="button" data-depth="2" aria-pressed="false" aria-label="E, A1"><kbd>E</kbd><span>A₁</span></button>
+        <button type="button" data-depth="3" aria-pressed="false" aria-label="R, B1"><kbd>R</kbd><span>B₁</span></button>
+        <button type="button" data-depth="4" aria-pressed="false" aria-label="T, C2"><kbd>T</kbd><span>C₂</span></button>
+        <button type="button" data-depth="5" aria-pressed="false" aria-label="Y, D2"><kbd>Y</kbd><span>D₂</span></button>
+        <button type="button" data-depth="6" aria-pressed="false" aria-label="U, E2"><kbd>U</kbd><span>E₂</span></button>
+        <button type="button" data-depth="7" aria-pressed="false" aria-label="I, F2, ylin taso"><kbd>I</kbd><span>F₂</span></button>
+      </div>
+    </div>
+    <dialog id="notes-panel" aria-labelledby="notes-title">
+      <div class="notes-heading"><h2 id="notes-title">Valitse sävelet</h2><output id="note-count" aria-live="polite">8/8</output></div>
+      <label for="note-preset">Asteikko</label><select id="note-preset"></select>
+      <div id="custom-notes" hidden>
+        <div class="note-octave-row"><label for="note-octave">Oktaavi</label><select id="note-octave"><option value="0">Pieni · C₀–H₀</option><option value="1" selected>1 · C₁–H₁</option><option value="2">2 · C₂–H₂</option><option value="3">3 · C₃–H₃</option><option value="4">4 · C₄–H₄</option></select><button id="notes-clear" type="button">Tyhjennä</button></div>
+        <div id="note-grid" role="group" aria-label="Valitse säveliä tästä oktaavista"></div>
+      </div>
+      <p id="chosen-notes" aria-live="polite"></p>
+      <p class="notes-help">Valitse 1–8 säveltä. Käytössä ovat ylimmät syvyystasot, korkein sävel lähimpänä pintaa.</p>
+      <label class="mic-choice"><input id="use-microphone" type="checkbox" checked> Ohjaa soittamalla</label>
+      <p class="notes-help">Aloita avaa mikrofonin. Ole ensin hiljaa 1,5 sekuntia. Pitkä ääni nopeuttaa syvyyden vaihtoa. Voit myös käyttää näppäimiä tai sävelpainikkeita.</p>
+      <p class="notes-help">Kerää värikkäitä helmiä: pinnan lähellä 1 piste, syvemmällä enemmän ja pohjan mustasta helmestä 8 pistettä. Väistä miinoja (−1) ja tankkaa tynnyreistä, jotta pääset perille. Sävelnimet näkyvät esineiden päällä. Veneessä näkyy nykyisen säveltason nimi. Nimi vilkkuu punaisena, kun miina lähestyy samalla reitillä. Yhdellä sävelellä ei ole miinoja.</p>
+      <div class="notes-actions"><button id="notes-cancel" type="button" hidden>Peruuta</button><button id="notes-start" type="button">Aloita</button></div>
+    </dialog>
+    <dialog id="mic-panel" aria-labelledby="mic-title">
+      <h2 id="mic-title">Mikrofoniohjaus</h2>
+      <p id="mic-status" role="status" aria-live="polite"></p>
+      <progress id="mic-progress" max="1" value="0" aria-label="Taustakohinan mittaus"></progress>
+      <output id="mic-db"></output>
+      <div class="mic-actions"><button id="mic-retry" type="button" hidden>Avaa uudelleen</button><button id="mic-manual" type="button">Jatka painikkeilla</button></div>
+    </dialog>
+    <dialog id="settings-panel" aria-labelledby="settings-title">
+      <div class="settings-heading"><h2 id="settings-title">Asetukset</h2><span>Esikatselu · matka odottaa</span><button id="settings-close" type="button">Sulje</button></div>
+      <div class="settings-grid">
+        <fieldset><legend><button type="button" data-preview="start" aria-pressed="true">Lähtöasema</button></legend>
+          <label for="start-size">Koko <output id="start-size-value">100 %</output></label><input id="start-size" data-setting="startSize" type="range" min="85" max="150" value="100">
+          <label for="start-x">X-siirto <output id="start-x-value">0 %</output></label><input id="start-x" data-setting="startX" type="range" min="-25" max="25" value="0">
+          <label for="start-y">Y-siirto <output id="start-y-value">0 %</output></label><input id="start-y" data-setting="startY" type="range" min="-15" max="45" value="0">
+        </fieldset>
+        <fieldset><legend><button type="button" data-preview="end" aria-pressed="false">Pääteasema</button></legend>
+          <label for="end-size">Koko <output id="end-size-value">100 %</output></label><input id="end-size" data-setting="endSize" type="range" min="85" max="150" value="100">
+          <label for="end-x">X-siirto <output id="end-x-value">0 %</output></label><input id="end-x" data-setting="endX" type="range" min="-25" max="25" value="0">
+          <label for="end-y">Y-siirto <output id="end-y-value">0 %</output></label><input id="end-y" data-setting="endY" type="range" min="-15" max="45" value="0">
+        </fieldset>
+        <fieldset><legend>Veneen ohjaus</legend>
+          <label for="mic-margin">Mikrofonin herkkyys <output id="mic-margin-value">+10 dB</output></label><input id="mic-margin" type="range" min="4" max="10" value="10" step="1">
+          <p>Pienempi dB-arvo hyväksyy hiljaisemman äänen. Raja on mitatun pohjakohinan yläpuolella.</p>
+          <button id="install-app" type="button" hidden>Asenna sovellus</button>
+          <button id="update-app" type="button" hidden>Päivitä sovellus</button>
+          <p>iPhone ja iPad: avaa Safarissa, valitse Jaa → Lisää Koti-valikkoon.</p>
+          <p id="offline-status" role="status"></p>
+          <p>Q W E R T Y U I ohjaavat valittuja säveliä matalimmasta korkeimpaan. Sävelten määrä määrää käytössä olevat näppäimet.</p>
+          <p>Lyhyt painallus liikuttaa rauhallisesti. Pidä näppäintä tai painiketta pohjassa, niin siirtyminen nopeutuu. Matkalla vene pysyy vaakasuunnassa paikallaan. Lopussa se ajaa automaattisesti aseman sisälle.</p><button id="settings-reset" type="button">Palauta oletukset</button>
+        </fieldset>
+      </div>
+    </dialog>
+  </main>
+  <script src="renderer.js?v=5"></script>
+  <script src="journey.js?v=4"></script>
+  <script src="stations.js?v=7"></script>
+  <script src="settings.js?v=10"></script>
+  <script src="voyage.js?v=15"></script>
+  <script src="music.js?v=17"></script>
+  <script src="selection.js?v=14"></script>
+  <script src="encounters.js?v=19"></script>
+  <script src="resonator-engine.js?v=21"></script>
+  <script src="note-stability.js?v=21"></script>
+  <script src="microphone.js?v=21"></script>
+  <script src="app.js?v=21"></script>
+  <script src="pwa.js?v=21"></script>
+</body>
+</html>

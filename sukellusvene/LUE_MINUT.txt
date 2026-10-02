@@ -1,0 +1,41 @@
+SUKELLUSMERI v21 — Resonator + PWA
+
+Käynnistys ja asennus
+1. Julkaise tämän kansion sisältö HTTPS-sivustolla, esimerkiksi GitHub Pagesissa.
+   Säilytä assets- ja icons-kansiot sekä muut tiedostot samoissa suhteellisissa paikoissa.
+2. Avaa sivusto vaakatasossa. Valitse asteikko tai 1–8 omaa säveltä.
+3. Pidä ”Ohjaa soittamalla” valittuna ja paina Aloita. Salli mikrofonin käyttö.
+4. Ole hiljaa taustakohinan mittauksen ajan (1,5 sekuntia), sitten soita.
+
+iPhone/iPad: avaa osoite Safarissa → Jaa → Lisää Koti-valikkoon.
+Chrome/Edge: käytä selaimen asennustoimintoa tai pelin Asetukset → Asenna sovellus.
+Ensimmäisellä kerralla tarvitaan verkkoyhteys. Asetusten offline-ilmoitus kertoo,
+kun kuvat ja ohjelma on tallennettu. Päivitys tulee käyttöön Päivitä sovellus -napista
+(tämä lataa pelin uudelleen) tai kun vanha sovellus on suljettu.
+
+Pelkän index.html-tiedoston avaaminen levyltä ei riitä mikrofonille tai PWA:lle.
+Paikallinen testi, jos Python 3 on asennettu: aja tässä kansiossa
+python3 -m http.server 8000
+ja avaa http://localhost:8000 samalla tietokoneella.
+
+Ohjaus
+Soitettu sävel määrää syvyyden. Pidempi ääni nopeuttaa siirtymistä.
+Vene saa vaihtaa syvyyttä vasta päästyään ulos lähtöasemasta.
+Q W E R T Y U I ja ruudun sävelpainikkeet toimivat myös ilman mikrofonia.
+Mikrofonin voi sulkea Mikki päällä -napista. Herkkyys: Asetukset, +4–+10 dB
+mitatun pohjakohinan yläpuolella. Pienempi arvo hyväksyy hiljaisemman äänen.
+Kun sovellus käy taustalla, mikrofoni suljetaan. Palatessa avaa se uudelleen
+tai jatka painikkeilla. Asteikon vaihto säilyttää käynnissä olevan mikrofonin.
+
+Peli
+Helmien arvo kasvaa syvyyden mukaan 1–8 pisteeseen. Alin on musta helmi.
+Miinaan osuminen vähentää yhden pisteen, mutta matka jatkuu.
+Tynnyri lisää 25 prosenttiyksikköä polttoainetta. Aloitustankki on 70 %.
+Veneen sävelnimi kertoo nykyisen tason ja vilkkuu punaisena miinan lähestyessä
+samalla reitillä. Helmillä, tynnyreillä ja miinoilla on omat sävelnimensä.
+
+Tekniikka
+ResonatorStringEngine 0.5 ja ResonatorNoteStability on kopioitu muuttamattomina
+annetusta ResonatorEngine_OSMD_PWA_KESKITYS_NUOLI(1).zip-paketista.
+Peli käyttää valittujen sävelten tarkkoja MIDI-taajuuksia, myös oktaavialat erotellaan.
+Ääni käsitellään paikallisesti selaimessa; sitä ei tallenneta tai lähetetä palvelimelle.
