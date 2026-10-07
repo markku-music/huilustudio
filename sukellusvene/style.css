@@ -62,7 +62,7 @@ button{font:inherit;font-size:.94rem;color:white;background:#ffffff16;border:1px
 @media(max-height:500px){#notes-panel{padding:12px 18px}.notes-heading{margin-bottom:8px}.notes-heading h2{font-size:1.15rem}.note-octave-row{margin:8px 0}#chosen-notes{margin-top:8px}.notes-help{margin-bottom:8px}}
 @media(max-width:500px){#note-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.note-octave-row{flex-wrap:wrap}}
 
-.depth-controls{width:332px;min-width:332px;height:44px}
+.depth-controls{width:164px;min-width:164px;height:44px}
 
 .encounter{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}.encounter>img{display:block;width:100%;height:100%;object-fit:contain}
 #scoreboard{position:absolute;right:max(16px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));display:flex;align-items:center;gap:10px;padding:6px 12px;background:#073e50ed;border:1px solid #ffffff50;border-radius:12px;font-size:14px;pointer-events:none}#score-value{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff1b7;min-width:1.3em;text-align:center}
@@ -91,15 +91,10 @@ button{font:inherit;font-size:.94rem;color:white;background:#ffffff16;border:1px
 @keyframes boat-warning{0%,100%{opacity:.55}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){#mine-warning{animation:none}}
 
-/* Static pearl tints: surface white through gold, coral, pink, violet, blue,
-   emerald and the deepest black pearl. The texture and highlights stay intact. */
-.encounter.pearl[data-level="7"]>img{filter:none}
-.encounter.pearl[data-level="6"]>img{filter:sepia(1) saturate(3)}
-.encounter.pearl[data-level="5"]>img{filter:sepia(1) saturate(4) hue-rotate(320deg)}
-.encounter.pearl[data-level="4"]>img{filter:sepia(1) saturate(3) hue-rotate(280deg)}
-.encounter.pearl[data-level="3"]>img{filter:sepia(1) saturate(3) hue-rotate(220deg)}
-.encounter.pearl[data-level="2"]>img{filter:sepia(1) saturate(3) hue-rotate(160deg)}
-.encounter.pearl[data-level="1"]>img{filter:sepia(1) saturate(3) hue-rotate(95deg)}
+/* Four depth colours: surface white, gold, turquoise and deepest black. */
+.encounter.pearl[data-level="3"]>img{filter:none}
+.encounter.pearl[data-level="2"]>img{filter:sepia(1) saturate(3)}
+.encounter.pearl[data-level="1"]>img{filter:sepia(1) saturate(3) hue-rotate(130deg)}
 .encounter.pearl[data-level="0"]>img{filter:grayscale(1) brightness(.48) contrast(1.7)}
 .encounter-note{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;font-size:clamp(12px,1.75vh,18px);font-weight:800;line-height:1;color:#fff;text-shadow:-1px -1px 1px #002738,1px -1px 1px #002738,-1px 1px 1px #002738,1px 1px 1px #002738,0 0 4px #002738;pointer-events:none}
 .encounter.mine .encounter-note{color:#ffb3a5;animation:mine-note-alert 1.15s ease-in-out infinite;animation-play-state:paused;text-shadow:-1px -1px 1px #500a07,1px -1px 1px #500a07,-1px 1px 1px #500a07,1px 1px 1px #500a07,0 0 6px #ff342d}
@@ -113,9 +108,17 @@ button{font:inherit;font-size:.94rem;color:white;background:#ffffff16;border:1px
 @keyframes sub-note-warning{0%,100%{opacity:1}50%{opacity:.4}}
 @media(prefers-reduced-motion:reduce){#submarine.danger #submarine-note{animation:none}}
 
-.mic-choice{display:flex;align-items:center;gap:10px;margin:12px 0 6px;font-weight:600}
-.mic-choice input{width:20px;height:20px;margin:0;flex:none}
-#mic-toggle{min-width:104px}#mic-toggle[aria-pressed=true]{color:#073e50;background:#a6efee}
-#mic-panel{width:min(460px,calc(100% - 32px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #ffffff60;border-radius:18px;padding:20px;color:white;background:#073e50;box-shadow:0 12px 50px #00293666;text-align:center}
-#mic-panel::backdrop{background:#002c4380}#mic-title{font-size:1.3rem;margin:0 0 12px}#mic-status{line-height:1.45}#mic-progress{width:100%;height:14px;accent-color:#a6efee}#mic-db{display:block;color:#a6efee;margin-top:8px;font-variant-numeric:tabular-nums}.mic-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:18px}#mic-manual{font-size:.9rem}
-#install-app,#update-app{min-width:0;min-height:36px;margin:8px 0;font-size:.85rem}
+.damage-label{margin-left:6px}#damage-value{font-weight:750;font-variant-numeric:tabular-nums;color:#a6efee}
+#scoreboard[data-damage="1"] #damage-value{color:#ffd66e}
+#scoreboard[data-damage="2"] #damage-value,#scoreboard[data-damage="3"] #damage-value{color:#ff9986}
+#submarine.sinking .sub-light,#submarine.sunk .sub-light{display:none}
+main.sinking .controls{left:auto;right:max(16px,env(safe-area-inset-right))}
+main.sinking .controls>*:not(#pause){display:none}
+
+/* Two complementary jagged cuts through the damaged hull. */
+#submarine-wreck,.wreck-half{position:absolute;inset:0;z-index:2}
+.wreck-half{transform-origin:50% 50%;will-change:transform}
+.wreck-half img{display:block;width:100%;height:100%;object-fit:contain}
+#wreck-rear{clip-path:polygon(0 0,51% 0,49% 11%,52% 24%,48% 36%,51% 49%,48% 60%,51% 73%,49% 86%,51% 100%,0 100%)}
+#wreck-front{clip-path:polygon(51% 0,100% 0,100% 100%,51% 100%,49% 86%,51% 73%,48% 60%,51% 49%,48% 36%,52% 24%,49% 11%)}
+#submarine.broken .sub-propeller{display:none}

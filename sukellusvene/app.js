@@ -4,6 +4,8 @@
   const controls=document.querySelector('.controls'), pause=document.getElementById('pause');
   const speed=document.getElementById('speed'), surface=document.getElementById('surface');
   const submarine=document.getElementById('submarine'), submarineImage=document.getElementById('submarine-image');
+  const wreck=document.getElementById('submarine-wreck');
+  const wreckRear=document.getElementById('wreck-rear'),wreckFront=document.getElementById('wreck-front');
   const startStation=document.getElementById('station-start'), endStation=document.getElementById('station-end');
   const startStationImage=document.getElementById('station-start-image'),endStationImage=document.getElementById('station-end-image');
   const rotateNotice=document.getElementById('rotate-notice');
@@ -12,11 +14,6 @@
   let settings=window.SeaSettings.read(),settingsOpen=false,previewStation='start';
   let noteChoice=window.SeaMusic.read(),notesOpen=true,gameStarted=false;
   const notesButton=document.getElementById('notes-open');
-  const useMicrophone=document.getElementById('use-microphone'),micButton=document.getElementById('mic-toggle');
-  const micPanel=document.getElementById('mic-panel'),micStatus=document.getElementById('mic-status');
-  const micProgress=document.getElementById('mic-progress'),micDb=document.getElementById('mic-db');
-  const micRetry=document.getElementById('mic-retry'),micMargin=document.getElementById('mic-margin');
-  let microphone,micBusy=false,micMessage='';
   const encounters=new window.SeaEncounters();
   const encounterLayer=document.getElementById('encounters'),encounterNodes=new Map();
   const depthLines=document.getElementById('depth-lines'),depthLineNodes=[];
@@ -24,28 +21,33 @@
   const submarineNote=document.getElementById('submarine-note');
   const fuelValue=document.getElementById('fuel-value'),fuelMeter=document.getElementById('fuel-meter'),fuelEmpty=document.getElementById('fuel-empty');
   const scoreboard=document.getElementById('scoreboard'),scoreValue=document.getElementById('score-value'),feedback=document.getElementById('game-feedback');
+  const damageValue=document.getElementById('damage-value'),gameOverTitle=document.getElementById('game-over-title');
+  const submarineSprites=['assets/sukellusvene.webp','assets/sukellusvene-vaurio-1.png','assets/sukellusvene-vaurio-2.png'];
+  let displayedDamage=0,sinkStartY=0,sinkStartPitch=0;
   let coastSpeed=0,coastStartPosition=0;
   let selectedLevel=null,journeyStarted=false,boatY=null,heldInput=null,heldSeconds=0,depthVelocity=0,boatPitch=0;
-  const depthKeys='qwertyui';
+  const depthKeys='qwer';
   const depthButtons=Array.from(document.querySelectorAll('[data-depth]'));
-  const files=['meri-1.png',...Array.from({length:6},(_,i)=>`meri-${i+1}.png`),'meri-6.png'];
+  const files=Array.from({length:6},(_,i)=>`meri-${i+1}.png`);
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   let running=!reducedMotion.matches;
   let renderer, images, layout, position=0, lastTime=null, frameId=null, lost=false, wide=true;
   let dockStartY=0,dockStartPitch=0,departureComplete=false;
   let phase='cruise', phaseTime=0, smoothedSpeed=Number(speed.value)/900, lastPainted=null;
   const definitions=window.stationDefinitions;
-  function terminal(){return phase==='arrived'||phase==='stranded';}
-  function active(){return Boolean(renderer)&&running&&!micBusy&&!settingsOpen&&!notesOpen&&!document.hidden&&!lost&&wide;}
-  function depthActive(){return running&&phase==='cruise'&&Boolean(renderer)&&!micBusy&&!settingsOpen&&!notesOpen&&!document.hidden&&!lost&&wide;}
+  function terminal(){return phase==='arrived'||phase==='stranded'||phase==='sunk';}
+  function active(){return Boolean(renderer)&&running&&!settingsOpen&&!notesOpen&&!document.hidden&&!lost&&wide;}
+  function depthActive(){return phase==='cruise'&&Boolean(renderer)&&!settingsOpen&&!notesOpen&&!document.hidden&&!lost&&wide;}
   function targetY(){return !departureComplete||selectedLevel===null?layout.start.dockY:window.Voyage.depthY(selectedLevel,layout,controls.offsetHeight+32);}
   function depthMoving(){return depthActive()&&boatY!==null&&(boatY!==targetY()||depthVelocity!==0||boatPitch!==0);}
   function releaseDepth(input){if(input===undefined||heldInput===input){heldInput=null;heldSeconds=0;}}
   function syncMotion(){
-    surface.classList.toggle('moving',active()&&phase!=='stranded');
-    encounterLayer.classList.toggle('moving',active()&&!terminal());
-    submarine.classList.toggle('cruising',active()&&!terminal());
-    microphone?.setActive(active()&&phase==='cruise'&&departureComplete);
+    surface.classList.toggle('moving',active()&&!terminal());
+    encounterLayer.classList.toggle('moving',active()&&!terminal()&&phase!=='sinking');
+    submarine.classList.toggle('cruising',active()&&!terminal()&&phase!=='sinking');
+    submarine.classList.toggle('sinking',phase==='sinking');
+    submarine.classList.toggle('sunk',phase==='sunk');
+    document.querySelector('main').classList.toggle('sinking',phase==='sinking'||phase==='sunk');
   }
   function draw(force=false){
     if(!layout)return;
@@ -57,6 +59,7 @@
       else Object.assign(pose,window.Voyage.dockPose(phase==='arrived'?window.Voyage.dockDuration:phaseTime,layout,dockStartY,dockStartPitch));
       position=pose.position;
     }
+    drawWreck(pose);
     submarine.style.transform=`translate3d(${pose.x-layout.boatW/2}px,${pose.y-layout.boatH/2}px,0) rotate(${settingsOpen||reducedMotion.matches?0:(pose.pitch??boatPitch)}deg)`;
     const offset=pose.position*layout.step;
     startStation.style.transform=`translate3d(${layout.start.left-offset}px,${layout.start.top}px,0)`;
@@ -64,6 +67,19 @@
     drawEncounters();
     drawGuidance(pose);
     if(force||pose.position!==lastPainted){renderer.draw(pose.position);lastPainted=pose.position;}
+  }
+  function drawWreck(pose){
+    const sinking=!settingsOpen&&(phase==='sinking'||phase==='sunk');
+    const t=phase==='sunk'?1:Math.min(phaseTime/3.2,1);
+    const split=sinking?(phase==='sunk'?1:window.Voyage.ease((phaseTime-.18)/1.4)):0;
+    // The remaining momentum carries the boat half a hull length forward.
+    // Everything follows game time, so pause, resize and restart stay in sync.
+    if(sinking)pose.x+=layout.boatW*.5*(1-(1-t)**3);
+    submarineImage.hidden=split>0;wreck.hidden=split===0;
+    submarine.classList.toggle('broken',split>0);
+    if(split===0)return;
+    wreckRear.style.transform=`translate(${-layout.boatW*.025*split}px,${layout.boatH*.18*split}px) rotate(${-11*split}deg)`;
+    wreckFront.style.transform=`translate(${layout.boatW*.065*split}px,${layout.boatH*.08*split}px) rotate(${13*split}deg)`;
   }
   function drawGuidance(pose){
     const visible=gameStarted&&!settingsOpen&&!notesOpen&&phase==='cruise';
@@ -85,15 +101,21 @@
     }
     const danger=visible&&departureComplete&&hint.danger;
     warningLight.hidden=!danger;submarine.classList.toggle('danger',danger);
-    submarineNote.hidden=!gameStarted||settingsOpen||notesOpen;
+    submarineNote.hidden=!gameStarted||settingsOpen||notesOpen||phase==='sinking'||phase==='sunk';
     const name=window.SeaMusic.pitchName(noteChoice.notes[currentIndex]);
     if(submarineNote.textContent!==name)submarineNote.textContent=name;
-    submarine.setAttribute('aria-label','Sukellusvene, nykyinen säveltaso '+name+(danger?'. Varo miinaa.':''));
+    submarine.setAttribute('aria-label',phase==='sunk'?'Keskeltä katkennut sukellusvene merenpohjalla':phase==='sinking'?'Sukellusvene liukuu eteenpäin, katkeaa keskeltä ja uppoaa':'Sukellusvene, nykyinen säveltaso '+name+', osumia '+encounters.damage+'/3'+(danger?'. Varo miinaa.':''));
   }
   function drawEncounters(){
     const visible=gameStarted&&!settingsOpen&&!notesOpen;
     scoreboard.hidden=!visible;encounterLayer.hidden=!visible;
-    fuelEmpty.hidden=!visible||phase!=='stranded';
+    fuelEmpty.hidden=!visible||(phase!=='stranded'&&phase!=='sunk');
+    gameOverTitle.textContent=phase==='sunk'?'Alus upposi · Peli päättyi':'Polttoaine loppui';
+    const damageText=encounters.damage+' / 3';
+    if(damageValue.textContent!==damageText)damageValue.textContent=damageText;
+    scoreboard.dataset.damage=String(encounters.damage);
+    const spriteDamage=Math.min(encounters.damage,2);
+    if(displayedDamage!==spriteDamage){submarineImage.src=submarineSprites[spriteDamage];displayedDamage=spriteDamage;}
     if(scoreValue.textContent!==String(encounters.score))scoreValue.textContent=String(encounters.score);
     const percent=Math.ceil(encounters.fuel);
     if(fuelValue.textContent!==percent+' %')fuelValue.textContent=percent+' %';
@@ -127,9 +149,10 @@
     rotateNotice.hidden=wide;
     if(renderer&&!lost&&height){
       const previousHeight=layout?.height;
-      if(previousHeight){depthVelocity*=height/previousHeight;dockStartY*=height/previousHeight;}
+      if(previousHeight){depthVelocity*=height/previousHeight;dockStartY*=height/previousHeight;sinkStartY*=height/previousHeight;}
       layout=window.Voyage.layout(width,height,definitions,settings);
-      boatY=!departureComplete||selectedLevel===null?layout.start.dockY:Math.max(window.Voyage.depthY(7,layout,controls.offsetHeight+32),Math.min(window.Voyage.depthY(0,layout,controls.offsetHeight+32),(boatY??layout.start.dockY)*height/(previousHeight||height)));
+      if(phase==='sinking'||phase==='sunk')boatY=phase==='sunk'?seabedY():(boatY??layout.start.dockY)*height/(previousHeight||height);
+      else boatY=!departureComplete||selectedLevel===null?layout.start.dockY:Math.max(window.Voyage.depthY(3,layout,controls.offsetHeight+32),Math.min(window.Voyage.depthY(0,layout,controls.offsetHeight+32),(boatY??layout.start.dockY)*height/(previousHeight||height)));
       if(!journeyStarted){position=layout.startPosition;journeyStarted=true;}
       surface.style.setProperty('--scene-height',`${height}px`);
       renderer.resize(width,height);
@@ -142,7 +165,10 @@
     resetClock();
   }
   function schedule(){if(frameId===null&&((active()&&!terminal())||depthMoving()))frameId=requestAnimationFrame(frame);}
+  function seabedY(){return layout.height-layout.boatH;}
   function changePhase(next){
+    if(next==='sinking'){sinkStartY=boatY;sinkStartPitch=boatPitch;depthVelocity=0;releaseDepth();}
+    if(next==='sunk'){boatY=seabedY();boatPitch=0;encounters.hitTime=0;encounters.feedback='';encounters.feedbackTime=0;}
     if(next==='coasting'){coastSpeed=smoothedSpeed;coastStartPosition=position;releaseDepth();}
     if(next==='stranded'){depthVelocity=0;boatPitch=0;encounters.hitTime=0;}
     if(next==='docking'){dockStartY=boatY;dockStartPitch=boatPitch;releaseDepth();depthVelocity=0;selectedLevel=null;}
@@ -159,19 +185,25 @@
       const previousPosition=position;
       position=window.advanceJourney(position,layout.destination,smoothedSpeed,elapsed);
       encounters.consume(position-previousPosition);
-      if(!departureComplete&&window.Voyage.departureClear(position,layout)){departureComplete=true;syncMotion();}
+      if(!departureComplete&&window.Voyage.departureClear(position,layout))departureComplete=true;
       if(position>=layout.destination)changePhase('docking');
     }
     if(active()&&phase==='coasting'){
       const t=Math.min(phaseTime,1.5);
       position=coastStartPosition+coastSpeed*(t-t*t/3);
       const decay=Math.exp(-elapsed*8);
-      boatY=Math.max(window.Voyage.depthY(7,layout,controls.offsetHeight+32),Math.min(window.Voyage.depthY(0,layout,controls.offsetHeight+32),boatY+depthVelocity*(1-decay)/8));
+      boatY=Math.max(window.Voyage.depthY(3,layout,controls.offsetHeight+32),Math.min(window.Voyage.depthY(0,layout,controls.offsetHeight+32),boatY+depthVelocity*(1-decay)/8));
       depthVelocity*=decay;
       boatPitch*=Math.exp(-elapsed*8);
       if(phaseTime>=1.5)changePhase('stranded');
     }
     if(active()&&phase==='docking'&&phaseTime>=window.Voyage.dockDuration)changePhase('arrived');
+    if(active()&&phase==='sinking'){
+      const t=Math.min(phaseTime/3.2,1),fall=window.Voyage.ease(t);
+      boatY=sinkStartY+(seabedY()-sinkStartY)*fall;
+      boatPitch=sinkStartPitch*(1-fall)+6*Math.sin(Math.PI*t);
+      if(t>=1)changePhase('sunk');
+    }
     if(depthMoving()){
       const motion=window.Voyage.advanceDepth(boatY,targetY(),depthVelocity,layout.height,heldInput===null?null:heldSeconds,elapsed);
       boatY=motion.y;depthVelocity=motion.velocity;
@@ -182,7 +214,10 @@
     }
     if(active())encounters.update({seconds:elapsed,layout,position,boatY,pitch:boatPitch,bottomGap:controls.offsetHeight+32,departed:departureComplete,cruising:phase==='cruise'});
     else encounters.suspend();
-    if(active()&&phase==='cruise'&&encounters.fuel<=1e-8)changePhase('coasting');
+    if(active()&&phase==='cruise'){
+      if(encounters.damage>=3)changePhase('sinking');
+      else if(encounters.fuel<=1e-8)changePhase('coasting');
+    }
     draw();schedule();
   }
   function resetClock(){
@@ -191,7 +226,7 @@
     schedule();
   }
   function updatePause(){
-    const arrived=terminal(),failed=phase==='stranded';
+    const arrived=terminal(),failed=phase==='stranded'||phase==='sunk';
     document.getElementById('pause-icon').textContent=arrived?'↻':running?'Ⅱ':'▶';
     document.getElementById('pause-label').textContent=arrived?(failed?'Uusi yritys':'Uusi matka'):running?'Tauko':'Jatka';
     pause.setAttribute('aria-label',arrived?'Aloita uusi matka lähtöasemalta':running?'Pysäytä matka':'Jatka matkaa');
@@ -201,15 +236,13 @@
     for(const node of encounterNodes.values())node.remove();encounterNodes.clear();
     departureComplete=false;position=layout.startPosition;phaseTime=0;phase='cruise';selectedLevel=null;boatY=layout.start.dockY;depthVelocity=0;boatPitch=0;
     releaseDepth();updateDepthUI();running=true;smoothedSpeed=Number(speed.value)/900;draw(true);updatePause();resetClock();
-    microphone.setNotes(choice.notes);
-    if(useMicrophone.checked)microphone.start();else microphone.stop();
   }
   const notePicker=window.createNotePicker({onStart:startJourney,onCancel:()=>{notesOpen=false;draw();resetClock();notesButton.focus();}});
   function openNotes(){releaseDepth();notesOpen=true;draw();resetClock();notePicker.open(noteChoice,gameStarted);}
   notesButton.addEventListener('click',openNotes);
   document.getElementById('fuel-retry').addEventListener('click',()=>startJourney(noteChoice));
   pause.addEventListener('click',()=>{
-    if(phase==='stranded'){startJourney(noteChoice);return;}
+    if(phase==='stranded'||phase==='sunk'){startJourney(noteChoice);return;}
     if(phase==='arrived'){
       openNotes();return;
     }else running=!running;
@@ -289,49 +322,7 @@
   for(const button of previewButtons)button.addEventListener('click',()=>{previewStation=button.dataset.preview;updateSettingsUI();draw(true);});
   document.getElementById('settings-reset').addEventListener('click',()=>{settings={...window.SeaSettings.defaults};applySettings();});
   updateSettingsUI();
-  function updateMicrophone(state,message=''){
-    micMessage=message;micBusy=['opening','calibrating','error','interrupted'].includes(state);
-    micButton.textContent=state==='ready'?'Mikki päällä':'Avaa mikki';
-    micButton.setAttribute('aria-pressed',String(state==='ready'));
-    micStatus.textContent=message||(state==='opening'?'Salli mikrofonin käyttö…':state==='calibrating'?'Ole hiljaa hetki · mitataan taustakohinaa':'Mikrofoni valmis');
-    micRetry.hidden=state!=='error'&&state!=='interrupted';
-    micProgress.hidden=state!=='calibrating';micDb.hidden=state!=='calibrating';
-    if(state==='opening'){micProgress.value=0;micDb.textContent='';}
-    if(micBusy&&!document.hidden&&!micPanel.open)micPanel.showModal();
-    if(!micBusy&&micPanel.open)micPanel.close();
-    resetClock();
-  }
-  microphone=new window.SeaMicrophone({
-    onNote:midi=>{
-      if(!active()||!departureComplete||phase!=='cruise'||(heldInput!==null&&heldInput!=='mic'))return;
-      const index=noteChoice.notes.indexOf(midi);
-      if(index<0)return;
-      if(heldInput!=='mic'||selectedLevel!==window.SeaMusic.level(index,noteChoice.notes.length))selectDepth(index,'mic');
-    },
-    onRelease:()=>releaseDepth('mic'),onState:updateMicrophone,
-    onProgress:({progress,noiseRms})=>{
-      micProgress.value=progress;
-      const text=Math.round(progress*100)+' % · '+Math.round(20*Math.log10(Math.max(noiseRms,1e-6)))+' dB';
-      if(micDb.textContent!==text)micDb.textContent=text;
-    }
-  });
-  microphone.setNotes(noteChoice.notes);
-  micMargin.value=microphone.margin;document.getElementById('mic-margin-value').textContent='+'+microphone.margin+' dB';
-  micMargin.addEventListener('input',()=>{document.getElementById('mic-margin-value').textContent='+'+microphone.setMargin(Number(micMargin.value))+' dB';});
-  micButton.addEventListener('click',()=>{
-    if(microphone.state==='ready'){useMicrophone.checked=false;microphone.stop();}
-    else {useMicrophone.checked=true;microphone.start();}
-  });
-  const useButtons=()=>{useMicrophone.checked=false;microphone.stop();};
-  document.getElementById('mic-manual').addEventListener('click',useButtons);
-  micRetry.addEventListener('click',()=>microphone.start());
-  micPanel.addEventListener('cancel',event=>{event.preventDefault();useButtons();});
-  document.addEventListener('visibilitychange',()=>{
-    releaseDepth();
-    if(document.hidden)microphone.interrupt();else updateMicrophone(microphone.state,micMessage);
-    resetClock();
-  });
-  window.addEventListener('pagehide',()=>microphone.interrupt());
+  document.addEventListener('visibilitychange',()=>{releaseDepth();resetClock();});
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();releaseDepth();lost=true;resetClock();});
   canvas.addEventListener('webglcontextrestored',()=>{
     try{renderer.initializeGL();lost=false;resize();}catch{showError();}
@@ -341,6 +332,9 @@
   Promise.all([submarineImage.decode(),startStationImage.decode(),endStationImage.decode(),
     Promise.all(['pearl.webp','mine.webp','fuel.webp',...files].map(file=>new Promise((resolve,reject)=>{
       const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=`assets/${file}`;
+    }))),
+    Promise.all(submarineSprites.slice(1).map(src=>new Promise((resolve,reject)=>{
+      const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=src;
     })))
   ]).then(([, , , loaded])=>{
     images=loaded.slice(3);renderer=new window.SeaRenderer(canvas,images);resize();

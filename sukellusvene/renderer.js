@@ -23,7 +23,8 @@
     constructor(canvas, images) {
       this.canvas = canvas;
       this.images = images;
-      this.gl = canvas.getContext('webgl', { alpha: false, antialias: false,
+      // Local files cannot be used as WebGL textures in some browsers.
+      this.gl = location.protocol==='file:' ? null : canvas.getContext('webgl', { alpha: false, antialias: false,
         depth: false, stencil: false, preserveDrawingBuffer: false });
       if (this.gl) this.initializeGL();
       else this.initialize2D();
@@ -105,7 +106,7 @@
       }
       for (let n=first;n<=last;n++) {
         // Continue with quiet reef scenery outside the finite route, never another station.
-        const i = n < 0 ? 1 : n >= this.images.length ? this.images.length - 2 : n;
+        const i = ((n % this.images.length) + this.images.length) % this.images.length;
         const x = n * step - offset;
         if (gl) {
           gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);

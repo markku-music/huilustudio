@@ -1,0 +1,15 @@
+Sukellusmeri v21 – vauriokuvat
+
+Kuvat on tuotettu sisäänrakennetulla image_gen-kuvatyökalulla käyttäen
+alkuperäistä assets/sukellusvene.webp-kuvaa muokkauskohteena.
+Läpinäkyvä tausta on säilytetty.
+
+Tiedostot:
+assets/sukellusvene-vaurio-1.png
+assets/sukellusvene-vaurio-2.png
+
+Vauriovaiheen 1 lopullinen kehote:
+Use case: precise-object-edit. Asset type: transparent sprite for the existing children's submarine game. Edit target: the attached original yellow submarine. Create damage stage 1 after one mine collision. Keep exactly this same cute yellow submarine, facing right in strict side view, the same length-to-height proportions (337:128), position, framing and intact silhouette, yellow paint, two round cyan portholes, cream underside, fins, rear propeller shaft and periscope. Change only damage: a few clearly visible black scorch marks and dents on the yellow hull, scraped paint near the nose, and one small crack in the front porthole. Still fully navigable, modest damage. Single isolated submarine, fills width with minimal transparent margin, no effects outside silhouette, no water, no backdrop, no shadow, no typography, no extra objects. Real transparent alpha background.
+
+Vauriovaiheen 2 lopullinen kehote:
+Use case: precise-object-edit. Asset type: transparent sprite for the existing children's submarine game. Edit target: the attached original yellow submarine. Create damage stage 2 after two mine collisions. Keep exactly this same cute yellow submarine, facing right in strict side view, the same length-to-height proportions (337:128), position, framing, yellow paint, two round cyan portholes, cream underside, fins, rear propeller shaft and periscope. Make damage much more severe and unmistakable: several dark scorched and crumpled yellow hull panels, large cracks in both portholes, a torn panel exposing dark mechanical ribs near the nose, and a bent periscope. Keep boat in one piece and original overall silhouette, still recognizable. Child-friendly cartoon game sprite. Single isolated submarine, fills width with minimal transparent margin, no effects outside silhouette, no water, no backdrop, no shadow, no typography, no extra objects. Real transparent alpha background.

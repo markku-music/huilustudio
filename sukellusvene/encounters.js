@@ -5,20 +5,21 @@
   class SeaEncounters {
     constructor(random=Math.random){this.random=random;this.reset([]);}
     reset(notes,layout){
-      this.notes=[...notes];this.items=[];this.score=0;this.fuel=70;this.feedback='';this.feedbackTime=0;this.hitTime=0;this.previous=new Map();
+      this.notes=[...notes];this.items=[];this.score=0;this.fuel=70;this.damage=0;this.feedback='';this.feedbackTime=0;this.hitTime=0;this.previous=new Map();
       this.routeLength=layout?layout.destination-layout.startPosition:1;
       if(!layout||!notes.length)return;
       const exit=(layout.start.left+layout.start.width+layout.height*.015-(layout.playX-layout.boatW/2))/layout.step;
       const first=exit+.85;
       const last=Math.min(layout.destination-.8,(layout.endWorld-layout.height*.75-layout.playX)/layout.step);
-      const kinds=['pearl','fuel',notes.length>1?'mine':'pearl','fuel','fuel','pearl'];
-      let index=Math.max(0,notes.length-3);
+      // 12 pearls, 8 fuel barrels and 8 mines across the doubled journey.
+      const kinds=Array.from({length:4},()=>['pearl','fuel','mine','pearl','pearl','fuel','mine']).flat();
+      let index=2;
       this.items=kinds.map((kind,i)=>{
-        const choices=notes.map((_,n)=>n).filter(n=>Math.abs(n-index)<=2);
+        const choices=notes.map((_,n)=>n).filter(n=>Math.abs(n-index)<=1);
         if(kind!=='mine')index=choices[Math.min(choices.length-1,Math.floor(this.random()*choices.length))];
         const meet=first+(last-first)*i/(kinds.length-1);
         // Identity and image kind remain fixed for the object's entire lifetime.
-        return Object.freeze({id:i+1,kind,world:meet+layout.playX/layout.step,level:8-notes.length+index,midi:notes[index]});
+        return Object.freeze({id:i+1,kind,world:meet+layout.playX/layout.step,level:index,midi:notes[index]});
       });
       this.previous=new Map();
     }
@@ -54,14 +55,18 @@
       if(!cruising){this.suspend();return;}
       if(!departed||!this.notes.length){this.suspend();return;}
       this.items=this.items.filter(item=>{
+        if(this.damage>=3)return true;
         const g=this.geometry(item,layout,position,bottomGap),relative={x:g.x-layout.playX,y:g.y-boatY};
         if(this.contact(this.previous.get(item.id),relative,layout,item.kind,pitch)){
           if(item.kind==='pearl'){
-            const points=8-item.level;this.score+=points;
+            const points=4-item.level;this.score+=points;
             this.feedback=(item.level===0?'Musta helmi! +':'Helmi! +')+points;
           }
           else if(item.kind==='fuel'){this.fuel=Math.min(100,this.fuel+25);this.feedback='Tankattu +25 %';}
-          else {const lost=this.score>0;this.score=Math.max(0,this.score-1);this.hitTime=.9;this.feedback=lost?'Osuma −1':'Osuma · 0 pistettä';}
+          else {
+            this.damage=Math.min(3,this.damage+1);this.hitTime=.9;
+            this.feedback=['','Osuma 1/3 · Alus vaurioitui!','Osuma 2/3 · Vakava vaurio!','Osuma 3/3 · Alus uppoaa!'][this.damage];
+          }
           this.feedbackTime=1.8;this.previous.delete(item.id);return false;
         }
         if(g.x+g.size/2<0){this.previous.delete(item.id);return false;}

@@ -21,13 +21,15 @@
       end.dockX=end.left+(end.bay[0]+end.bay[2])*end.width/2;
       const playX=height*.035+boatW/2;
       const startPosition=(start.dockX-playX)/step;
-      const endWorld=7*step+height*.3;
-      return {width,height,boatH,boatW,waterY,step,start,end,playX,startPosition,endWorld,destination:(endWorld-end.left)/step};
+      const oldDestination=(7*step+height*.3-end.left)/step;
+      const destination=startPosition+2*(oldDestination-startPosition);
+      const endWorld=end.left+destination*step;
+      return {width,height,boatH,boatW,waterY,step,start,end,playX,startPosition,endWorld,destination};
     },
     depthY(level,l,bottomGap=90){
       const top=l.height*.065+l.boatH/2;
       const bottom=Math.max(top+l.height*.3,l.height-bottomGap-l.boatH/2);
-      return bottom-(bottom-top)*clamp(level,0,7)/7;
+      return bottom-(bottom-top)*clamp(level,0,3)/3;
     },
     advanceDepth(y,target,velocity,height,heldSeconds,seconds){
       if(seconds<=0)return {y,velocity};
