@@ -1,0 +1,265 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function validScore(data) {
+      return data.keys().hasAll([
+        'playerName',
+        'instrumentName',
+        'noteCount',
+        'timeMs',
+        'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'playerName',
+        'instrumentName',
+        'noteCount',
+        'timeMs',
+        'createdAt'
+      ])
+      && data.playerName is string
+      && data.playerName.size() >= 1
+      && data.playerName.size() <= 20
+      && data.instrumentName in [
+        'Huilu',
+        'Saksofoni',
+        'Klarinetti',
+        'Trumpetti',
+        'Käyrätorvi',
+        'Pasuuna'
+      ]
+      && data.noteCount is int
+      && data.noteCount in [3, 4, 5]
+      && data.timeMs is int
+      && data.timeMs >= 1000
+      && data.timeMs <= 600000
+      && data.createdAt is timestamp
+      && data.createdAt == request.time;
+    }
+
+    // Ylläpitäjälista luodaan vain Firebase Consolesta.
+    // Käyttäjä saa tarkistaa vain oman ylläpitäjädokumenttinsa.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /puhallinstarttiScores/{scoreId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && scoreId.matches(
+          request.auth.uid + '_[A-Za-z0-9-]{20,64}'
+        )
+        && validScore(request.resource.data);
+
+      allow update: if false;
+
+      // Vain /admins/{uid}-listalla oleva Firebase-käyttäjä saa resetoida.
+      allow delete: if isAdmin();
+    }
+
+    // Nuottipaja: add this match inside /databases/{database}/documents.
+    // Existing collection rules and the final deny-all match stay in place.
+    match /nuottipajaRoomsV1/{roomCode} {
+      function npSignedIn() {
+        return request.auth != null;
+      }
+
+      function npNow() {
+        return request.time.toMillis();
+      }
+
+      function npRecentMillis(value) {
+        // Allow small clock differences between the two devices.
+        return value is int
+          && value >= npNow() - 300000
+          && value <= npNow() + 300000;
+      }
+
+      function npValidPlayer(player) {
+        return player is map
+          && player.keys().hasAll(['role', 'joinedAt'])
+          && player.keys().hasOnly(['role', 'joinedAt'])
+          && player.role in ['pitch', 'duration']
+          && player.joinedAt is int
+          && player.joinedAt >= 0;
+      }
+
+      function npValidPlayers(players) {
+        return players is map
+          && players.size() >= 1
+          && players.size() <= 2
+          && npValidPlayer(players[players.keys()[0]])
+          && (players.size() == 1
+            || (npValidPlayer(players[players.keys()[1]])
+              && players[players.keys()[0]].role
+                != players[players.keys()[1]].role));
+      }
+
+      function npValidPair(pair) {
+        return pair is map
+          && pair.keys().hasAll(['pitch', 'duration'])
+          && pair.keys().hasOnly(['pitch', 'duration'])
+          && (pair.pitch == null || pair.pitch == 'G')
+          && (pair.duration == null || pair.duration == 1);
+      }
+
+      function npEmptyPair(pair) {
+        return pair.pitch == null && pair.duration == null;
+      }
+
+      function npValidRoom(data) {
+        return data.keys().hasAll([
+            'code', 'owner', 'players', 'pair', 'round',
+            'createdAt', 'updatedAt', 'expiresAt'
+          ])
+          && data.keys().hasOnly([
+            'code', 'owner', 'players', 'pair', 'round',
+            'createdAt', 'updatedAt', 'expiresAt'
+          ])
+          && roomCode.matches('^[0-9]{6}$')
+          && data.code == roomCode
+          && data.owner is string
+          && npValidPlayers(data.players)
+          && data.players.keys().hasAll([data.owner])
+          && npValidPair(data.pair)
+          && data.round is int
+          && data.round >= 1
+          && data.createdAt is int
+          && data.createdAt >= 0
+          && data.updatedAt is int
+          && data.expiresAt is int
+          && data.expiresAt == data.createdAt + 86400000;
+      }
+
+      function npMember(data) {
+        return data.players.keys().hasAll([request.auth.uid]);
+      }
+
+      function npCreate(data) {
+        return npValidRoom(data)
+          && data.owner == request.auth.uid
+          && data.players.keys().hasOnly([request.auth.uid])
+          && data.players[request.auth.uid].joinedAt == data.createdAt
+          && npEmptyPair(data.pair)
+          && data.round == 1
+          && npRecentMillis(data.createdAt)
+          && data.updatedAt == data.createdAt
+          && data.expiresAt > npNow();
+      }
+
+      function npCommonUpdate(before, after) {
+        return npValidRoom(after)
+          && before.expiresAt > npNow()
+          && after.code == before.code
+          && after.owner == before.owner
+          && after.createdAt == before.createdAt
+          && after.expiresAt == before.expiresAt
+          && npRecentMillis(after.updatedAt)
+          && after.diff(before).affectedKeys()
+            .hasOnly(['players', 'pair', 'round', 'updatedAt']);
+      }
+
+      function npJoin(before, after) {
+        return !npMember(before)
+          && before.players.size() == 1
+          && after.players.size() == 2
+          && after.players.diff(before.players).addedKeys()
+            .hasAll([request.auth.uid])
+          && after.players.diff(before.players).affectedKeys()
+            .hasOnly([request.auth.uid])
+          && npRecentMillis(after.players[request.auth.uid].joinedAt)
+          && npEmptyPair(after.pair)
+          && after.round == before.round + 1;
+      }
+
+      function npGuestLeave(before, after) {
+        return npMember(before)
+          && request.auth.uid != before.owner
+          && before.players.size() == 2
+          && after.players.size() == 1
+          && after.players.diff(before.players).removedKeys()
+            .hasAll([request.auth.uid])
+          && after.players.diff(before.players).affectedKeys()
+            .hasOnly([request.auth.uid])
+          && npEmptyPair(after.pair)
+          && after.round == before.round + 1;
+      }
+
+      function npRoleChange(before, after) {
+        return npMember(before)
+          && before.players.size() == 1
+          && after.players.size() == 1
+          && after.players.diff(before.players).affectedKeys()
+            .hasOnly([request.auth.uid])
+          && after.players[request.auth.uid].joinedAt
+            == before.players[request.auth.uid].joinedAt
+          && after.players[request.auth.uid].role
+            != before.players[request.auth.uid].role
+          && npEmptyPair(after.pair)
+          && after.round == before.round + 1;
+      }
+
+      function npSendPitch(before, after) {
+        return npMember(before)
+          && before.players.size() == 2
+          && before.players[request.auth.uid].role == 'pitch'
+          && after.players == before.players
+          && after.round == before.round
+          && after.pair.pitch == 'G'
+          && after.pair.duration == before.pair.duration;
+      }
+
+      function npSendDuration(before, after) {
+        return npMember(before)
+          && before.players.size() == 2
+          && before.players[request.auth.uid].role == 'duration'
+          && after.players == before.players
+          && after.round == before.round
+          && after.pair.duration == 1
+          && after.pair.pitch == before.pair.pitch;
+      }
+
+      function npReset(before, after) {
+        return npMember(before)
+          && after.players == before.players
+          && npEmptyPair(after.pair)
+          && after.round == before.round + 1;
+      }
+
+      // The code acts as an invitation. Exact-code reads, including a missing
+      // document, are needed for create/join transactions. No room enumeration.
+      allow get: if npSignedIn() && roomCode.matches('^[0-9]{6}$');
+      allow list: if false;
+
+      allow create: if npSignedIn() && npCreate(request.resource.data);
+
+      allow update: if npSignedIn()
+        && npCommonUpdate(resource.data, request.resource.data)
+        && (npJoin(resource.data, request.resource.data)
+          || npGuestLeave(resource.data, request.resource.data)
+          || npRoleChange(resource.data, request.resource.data)
+          || npSendPitch(resource.data, request.resource.data)
+          || npSendDuration(resource.data, request.resource.data)
+          || npReset(resource.data, request.resource.data));
+
+      // Leaving as owner closes the entire room. Only the owner can do that.
+      allow delete: if npSignedIn() && resource.data.owner == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
