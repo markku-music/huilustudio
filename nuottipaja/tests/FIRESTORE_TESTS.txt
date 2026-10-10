@@ -18,13 +18,12 @@ Ensimmäinen suoritus lataa virallisen paikallisen Firestore-emulaattorin.
 firestore-rules.test.mjs lukee ../firebase/firestore.rules-tiedoston suhteessa
 omaan sijaintiinsa ja lataa säännöt emulaattoriin ennen tarkistuksia.
 
-Viimeisin tulos: kaikki 35 tarkistusta läpäisty. Mukana ovat huoneen luonti,
+Aiemmat huonesäännöt läpäisivät 35 tarkistusta. Tämä versio käyttää erillistä Nuottipaja-projektia. Mukana ovat huoneen luonti,
 koodikohtaiset lukuoikeudet, huoneluettelon lukemisen esto, vastakkaisen roolin
 liittyminen, kolmannen pelaajan esto, toisen osuuden ja omistajan muuttamisen
 esto, oma sävel/aika-arvo, uudelleenaloitus, vanhan kierroksen torjunta,
 poistuminen, tehtävänvaihto yksin, vanhentunut huone ja kaksi samanaikaista
-viimeisestä pelaajapaikasta kilpailevaa Firebase-transaktiota. Myös aiemman
-Puhallinstartti-tulostaulun luonti- ja päivityssäännöt tarkistetaan.
+viimeisestä pelaajapaikasta kilpailevaa Firebase-transaktiota. Myös muiden kokoelmien kirjoituskielto tarkistetaan.
 
 Odotetuista kielletyistä kirjoituksista emulaattori tulostaa PERMISSION_DENIED.
 Onnistunut testi päättyy tekstiin "All 35 Firebase rule checks passed."

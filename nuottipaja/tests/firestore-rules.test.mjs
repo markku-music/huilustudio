@@ -81,10 +81,10 @@ try {
   assert.equal(Object.keys((await getDoc(room(owner,'345678'))).data().players).length,2);
   console.log('PASS race: exactly one remaining-seat winner');checks++;
 
-  await good('prior score creation remains allowed',setDoc(doc(owner,'puhallinstarttiScores','owner_abcdefghijklmnopqrstuvwx'),{
+  await bad('unrelated collection creation forbidden',setDoc(doc(owner,'puhallinstarttiScores','owner_abcdefghijklmnopqrstuvwx'),{
     playerName:'Testi',instrumentName:'Huilu',noteCount:3,timeMs:1200,createdAt:serverTimestamp()
   }));
-  await bad('prior score update remains forbidden',setDoc(doc(owner,'puhallinstarttiScores','owner_abcdefghijklmnopqrstuvwx'),{
+  await bad('unrelated collection update forbidden',setDoc(doc(owner,'puhallinstarttiScores','owner_abcdefghijklmnopqrstuvwx'),{
     playerName:'Testi',instrumentName:'Huilu',noteCount:3,timeMs:1500,createdAt:serverTimestamp()
   }));
   console.log(`All ${checks} Firebase rule checks passed.`);
