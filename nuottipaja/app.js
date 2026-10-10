@@ -1,8 +1,15 @@
+import {songById} from './songs.js';
+import {FluteInput} from './microphone.js';
 import { parseInvite, inviteChoice } from './invite.js';
 import { createUI } from './ui.js';
 import { connectFirebase, explainError } from './firebase-service.js';
 let selectedRole=null,service=null,room=null,unsubscribe=null,busy=false,closed=false,activeCode=null,cachedNotice=false;
-const SESSION='nuottipaja-room-v2';
+const SESSION='nuottipaja-room-v3';
+const pitchQueue=[];let draining=false,restSilence=0,lastRestKey=null;
+async function drainPitch(){if(draining)return;if(busy){setTimeout(drainPitch,35);return;}draining=true;while(pitchQueue.length){const item=pitchQueue.shift();if(!room||room.game.revision!==item.revision||room.game.phase!=='play'||room.game.finished.pitch)continue;await action(async()=>{const next=await service.answer(room.code,item.midi,item.revision,room.game.progress.pitch);if(next){room=next;ui.showRoom(next,service.uid);}});}draining=false;}
+const microphone=new FluteInput(midi=>{if(room?.game.phase==='play'&&Date.now()>=room.game.startAt&&room.players[service.uid].role==='pitch'&&!room.game.finished.pitch){pitchQueue.push({midi,revision:room.game.revision});drainPitch();}},midi=>{ui.showHeard(midi);if(midi!==null){restSilence=0;return;}const g=room?.game;if(!g||g.phase!=='play'||Date.now()<g.startAt||room.players[service.uid].role!=='pitch'||g.finished.pitch||songById(g.song).notes[g.progress.pitch]?.pitch!==-1){restSilence=0;return;}const key=g.revision+':'+g.progress.pitch;if(!restSilence)restSilence=performance.now();if(performance.now()-restSilence>180&&lastRestKey!==key){lastRestKey=key;pitchQueue.push({midi:-1,revision:g.revision});drainPitch();}});
+async function openMicrophone(){await microphone.start();ui.setMicrophone(true);}
+
 let pendingInvite = parseInvite(window.location.href), inviteUnsubscribe = null, inviteEpoch = 0;
 function endInvite(clearURL = false) { inviteEpoch++; inviteUnsubscribe?.(); inviteUnsubscribe = null; pendingInvite = null; if (clearURL) { const url = new URL(window.location.href); url.searchParams.delete('pin'); url.searchParams.delete('v'); history.replaceState(null, '', url.href); } }
 async function inspectInvite(code, generation = null) {
@@ -17,7 +24,7 @@ async function inspectInvite(code, generation = null) {
 }
 const storage={get(){try{return sessionStorage.getItem(SESSION);}catch{return null;}},set(code){try{sessionStorage.setItem(SESSION,code);}catch{}},clear(){try{sessionStorage.removeItem(SESSION);}catch{}}};
 async function action(fn){if(busy)return;busy=true;ui.setBusy(true);try{await fn();}catch(error){ui.showError(explainError(error));}finally{busy=false;ui.setBusy(false);}}
-function endWatch(){unsubscribe?.();unsubscribe=null;room=null;activeCode=null;}
+function endWatch(){pitchQueue.length=0;restSilence=0;lastRestKey=null;microphone.stop();ui.setMicrophone(false);unsubscribe?.();unsubscribe=null;room=null;activeCode=null;}
 function activate(state){endInvite(true);endWatch();closed=false;room=state;activeCode=state.code;selectedRole=state.players[service.uid].role;storage.set(state.code);ui.showRoom(state,service.uid);
  unsubscribe=service.watch(state.code,(state,metadata)=>{
   if(closed)return;
@@ -25,12 +32,17 @@ function activate(state){endInvite(true);endWatch();closed=false;room=state;acti
   if(!state||!state.players?.[service.uid]||state.expiresAt<=Date.now()){
     endWatch();storage.clear();ui.showMenu(selectedRole);ui.showNotice('Pelihuone on suljettu tai vanhentunut. Voit luoda uuden pelin.');return;
   }
-  room=state;selectedRole=state.players[service.uid].role;ui.showRoom(state,service.uid);
+  room=state;selectedRole=state.players[service.uid].role;if(state.game?.phase==='done'){microphone.stop();ui.setMicrophone(false);}ui.showRoom(state,service.uid);
   if(metadata.fromCache){cachedNotice=true;ui.showNotice('Varmistetaan yhteyttä. Valinnat vahvistetaan verkon kautta.');}
   else if(cachedNotice){cachedNotice=false;ui.showNotice('');}
  },error=>{ui.showError(explainError(error));});
 }
 const ui=createUI({
+ onMicrophone:()=>action(openMicrophone),
+ onChooseSong:(song,revision)=>action(async()=>{if(room)await service.choose(room.code,song,revision);}),
+ onApprove:revision=>action(async()=>{if(room){if(room.players[service.uid].role==='pitch')await openMicrophone();await service.approve(room.code,revision);}}),
+ onAnswer:(value,revision,index)=>action(async()=>{if(room)await service.answer(room.code,value,revision,index);}),
+ onRestart:revision=>action(async()=>{if(room){microphone.reset();await service.restart(room.code,revision);}}),
  onRole(role){endInvite(true);selectedRole=role;ui.showMenu(role);},
  onManualJoin(){endInvite(true);ui.showManualJoin();},
  onInspectInvite:code=>action(()=>inspectInvite(code)),

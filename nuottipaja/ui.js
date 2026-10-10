@@ -1,3 +1,6 @@
+import {SONGS,songById} from './songs.js';
+import {scoreSVG,rhythmIcon,noteName} from './score.js';
+import {elapsed} from './game-state.js';
 import { inviteURL, qrSVG } from './invite.js';
 const labels = { pitch: 'Sävel', duration: 'Aika-arvo' };
 const opposite = role => role === 'pitch' ? 'duration' : 'pitch';
@@ -12,6 +15,10 @@ export function createUI(callbacks = {}) {
   let currentRole = null;
   let busy = false;
   let lastRoomRender = null;
+  let gameState=null,gameRole=null,micOn=false;
+  const time=ms=>(ms/1000).toFixed(1).replace('.',',')+' s';
+  function updateLive(){if(!gameState)return;const g=gameState.game,song=songById(g.song),now=Date.now();const score=app.querySelector('#shared-score');if(score)score.innerHTML=scoreSVG(song,g,now);for(const r of ['pitch','duration']){const el=app.querySelector('#clock-'+r);if(el)el.textContent=time(elapsed(g,r,now));}const cd=app.querySelector('#countdown');if(cd){cd.hidden=g.phase!=='play'||now>=g.startAt;cd.textContent=Math.ceil((g.startAt-now)/1000);}for(const b of app.querySelectorAll('[data-answer]')){const disabled=g.phase!=='play'||now<g.startAt||!!g.finished[gameRole];b.dataset.disabled=String(disabled);b.disabled=busy||disabled;}const mb=app.querySelector('#mic');if(mb)mb.textContent=micOn?'Mikrofoni päällä ✓':'Avaa mikrofoni';}
+  setInterval(updateLive,120);
 
   document.getElementById('feedback-close').addEventListener('click', () => { feedback.hidden = true; });
 
@@ -32,6 +39,7 @@ export function createUI(callbacks = {}) {
     }
   }
   function paint(markup) {
+    gameState=null;
     app.innerHTML = markup;
     setBusy(busy);
   }
@@ -64,7 +72,7 @@ export function createUI(callbacks = {}) {
         <button type="button" id="choose-pitch" class="image-button pitch"><span class="sr-only">Sävel – soitan sävelet</span></button>
         <button type="button" id="choose-duration" class="image-button duration"><span class="sr-only">Aika-arvo – valitsen nuottien aika-arvot</span></button>
       </div>
-      <p class="home-caption">Kahden pelaajan yhteyskokeilu</p><button id="join-code-home" class="text-button home-join" type="button">Liity koodilla</button>
+      <button id="join-code-home" class="text-button home-join" type="button">Liity koodilla</button>
       <p class="working" role="status">Valmistellaan yhteyttä…</p>
     </section>`);
     listen('choose-pitch', 'onRole', 'pitch');
@@ -83,17 +91,17 @@ export function createUI(callbacks = {}) {
       <div class="panel menu-panel">
         <p class="eyebrow">Sinun tehtäväsi</p>
         <h2 class="role-title"><span class="role-symbol${duration ? ' duration' : ''}" aria-hidden="true">${duration ? '♩' : 'G'}</span>${labels[role]}</h2>
-        <p class="intro">${duration ? 'Sinä valitset nuotin aika-arvon. Pari antaa sille sävelen.' : 'Sinä annat nuotille sävelen. Pari valitsee sen aika-arvon.'}</p>
+        <p class="intro" hidden>${duration ? 'Sinä valitset nuotin aika-arvon. Pari antaa sille sävelen.' : 'Sinä annat nuotille sävelen. Pari valitsee sen aika-arvon.'}</p>
         <button id="create" type="button" class="button wide${duration ? ' orange' : ''}">Luo uusi peli</button>
         <div class="divider">tai liity parin peliin</div>
         <form id="join-form">
           <label for="room-code" class="input-label">Parilta saatu liittymiskoodi</label>
           <div class="code-entry"><input id="room-code" name="code" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" autocomplete="off" placeholder="3 numeroa" aria-describedby="code-help" required /><button id="join" type="submit" class="button${duration ? ' orange' : ''}">Liity</button></div>
-          <p id="code-help" class="small-note" style="margin-top:10px">Sama koodi yhdistää teidät. Huoneeseen mahtuu kaksi pelaajaa.</p>
+          <p hidden id="code-help" class="small-note" style="margin-top:10px">Sama koodi yhdistää teidät. Huoneeseen mahtuu kaksi pelaajaa.</p>
         </form>
         <p class="working" role="status">Yhdistetään…</p>
       </div>
-      <p class="small-note menu-footnote">Molemmat avaavat Nuottipajan omalla laitteellaan.</p>
+      <p hidden class="small-note menu-footnote">Molemmat avaavat Nuottipajan omalla laitteellaan.</p>
     </section>`);
     listen('back', 'onBack');
     listen('create', 'onCreate', role);
@@ -117,6 +125,7 @@ export function createUI(callbacks = {}) {
   }
 
   function showRoom(state, uid) {
+    if(Object.keys(state.players).length===2 && state.game)return showGame(state,uid);
     const players = state?.players || {};
     const ownPlayer = players[uid];
     const role = ownPlayer?.role || currentRole;
@@ -156,9 +165,9 @@ export function createUI(callbacks = {}) {
         ${invitation ? '' : `<div class="code-block"><p class="eyebrow">${entries.length < 2 ? 'Pelihuone' : 'Yhteinen pelihuone'}</p><h2 class="room-code">${escapeHTML(roomCode)}</h2></div>`}
         <div class="room-status${ready ? ' ready' : ''}" role="status"><span class="status-dot" aria-hidden="true"></span>${ready ? 'Pari mukana · 2/2' : `Odotetaan paria · ${entries.length}/2`}</div>
       </div>
-      <p class="room-instruction">${ready ? 'Teillä on yhteinen nuotti. Kokeilkaa lähettää sävel ja aika-arvo omilta laitteilta.' : `Pari skannaa QR-koodin tai avaa pelin ja valitsee Liity koodilla. Vapaa tehtävä on ${escapeHTML(labels[opposite(role)] || '')}.`}</p>
+      <p hidden class="room-instruction">${ready ? 'Teillä on yhteinen nuotti. Kokeilkaa lähettää sävel ja aika-arvo omilta laitteilta.' : `Pari skannaa QR-koodin tai avaa pelin ja valitsee Liity koodilla. Vapaa tehtävä on ${escapeHTML(labels[opposite(role)] || '')}.`}</p>
       <div class="roles">${roleCard('pitch')}${roleCard('duration')}</div>
-      <div class="panel test-panel">
+      <div hidden class="panel test-panel">
         <p class="eyebrow">Ensimmäinen yhteinen nuotti</p>
         <h2 class="test-title">Yhteyskokeilu</h2>
         <p class="test-subtitle">${role === 'pitch' ? 'Anna nuotille sävel G. Pari valitsee sen keston.' : 'Valitse neljäsosa. Pari antaa nuotille sävelen G.'}</p>
@@ -174,8 +183,8 @@ export function createUI(callbacks = {}) {
         <p class="test-hint">${role === 'pitch' ? 'Tässä kokeessa sävel annetaan painikkeella. Mikrofoni lisätään myöhemmin.' : 'Neljäsosanuotti kestää yhden iskun. Tässä kokeessa valittavana on yksi aika-arvo.'}</p>
         <p class="working" role="status">Päivitetään yhteistä nuottia…</p>
       </div>
-      <div class="room-actions"><button id="reset" class="text-button" type="button" ${disabled(!ready || !hasAnswer)}>Kokeile uudelleen</button>${callbacks.onChangeRole && entries.length < 2 ? '<button id="change-role" class="text-button" type="button">Vaihda omaa tehtävää</button>' : ''}</div>
-      <p class="small-note room-footnote">Valinnat näkyvät molemmilla laitteilla. Nimiä ei kysytä.</p>
+      <div hidden class="room-actions"><button id="reset" class="text-button" type="button" ${disabled(!ready || !hasAnswer)}>Kokeile uudelleen</button>${callbacks.onChangeRole && entries.length < 2 ? '<button id="change-role" class="text-button" type="button">Vaihda omaa tehtävää</button>' : ''}</div>
+      <p hidden class="small-note room-footnote">Valinnat näkyvät molemmilla laitteilla. Nimiä ei kysytä.</p>
     </section>`);
     app.querySelector('#copy-invite')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(invitation); showNotice('Kutsulinkki kopioitu.'); } catch { showNotice('Kopiointi ei onnistunut. Käytä QR-koodia tai PIN-koodia.'); } });
     listen('leave', 'onLeave');
@@ -184,6 +193,25 @@ export function createUI(callbacks = {}) {
     listen('reset', 'onReset');
     listen('change-role', 'onChangeRole', opposite(role));
   }
+
+  function showGame(state,uid){
+    const g=state.game,role=state.players[uid].role,song=songById(g.song);
+    const signature=JSON.stringify({g,uid,players:state.players});
+    if(lastRoomRender===signature){gameState=state;updateLive();return;}
+    lastRoomRender=signature;currentRole=role;const selecting=g.phase==='select',done=g.phase==='done';
+    const options=SONGS.map(s=>`<button class="song-choice${s.id===g.song?' selected':''}" data-song="${s.id}" ${!selecting?'disabled data-disabled="true"':''}><strong>${s.title}</strong><small>${s.measures.length} tahtia</small></button>`).join('');
+    const marks=['pitch','duration'].map(r=>`<span class="approval ${r}">${labels[r]} ${g.approved[r]?'✓':'○'}</span>`).join('');
+    const times=['pitch','duration'].map(r=>`<div class="clock ${r}"><small>${labels[r]}${r===role?' · sinä':''}</small><strong id="clock-${r}">${time(elapsed(g,r,Date.now()))}</strong><span>${g.progress[r]} / ${song.notes.length}${g.finished[r]?' ✓':''}</span></div>`).join('');
+    const inputs=role==='duration'?`<div class="rhythm-buttons">${[1,2].flatMap(d=>[false,true].map(rest=>`<button class="rhythm-button" data-answer="${rest?-d:d}" aria-label="${rest?'Tauko':'Nuotti'}, ${d===1?'neljäsosa':'puolikas'}">${rhythmIcon(d,rest)}<small>${rest?'Tauko · ':''}${d===1?'1 isku':'2 iskua'}</small></button>`)).join('')}</div>`:`<div class="mic-controls"><button id="mic" class="button">${micOn?'Mikrofoni päällä ✓':'Avaa mikrofoni'}</button><span id="heard" aria-live="off">—</span><button data-answer="-1" class="button secondary">Tauko</button></div><details class="test-controls"><summary>Testipainikkeet</summary><div class="pitch-buttons">${[...new Set(song.notes.filter(n=>!n.rest).map(n=>n.pitch))].sort((a,b)=>a-b).map(m=>`<button data-answer="${m}" class="button secondary">${noteName(m)}</button>`).join('')}</div></details>`;
+    paint(`<section class="page game-page">${pageHeader('Poistu','leave')}<div class="game-room-line"><span>Huone ${state.code}</span><span class="role-tag ${role}">${labels[role]}</span></div>${selecting?`<div class="song-picker">${options}</div><div class="approval-row">${marks}<button id="approve" class="button${role==='duration'?' orange':''}" ${g.approved[role]?'disabled data-disabled="true"':''}>${g.approved[role]?'Hyväksytty ✓':'Hyväksy kappale'}</button></div>`:`<h2 class="song-title">${song.title}</h2>`}<div class="clocks">${times}</div><div class="panel score-panel"><div id="shared-score">${scoreSVG(song,g)}</div><div id="countdown" ${selecting||done?'hidden':''}></div></div>${done?`<div class="result"><span>Yhteisaika</span><strong>${time(elapsed(g,'pitch',Date.now())+elapsed(g,'duration',Date.now()))}</strong><button id="new-game" class="button">Uusi kierros</button></div>`:inputs}</section>`);
+    gameState=state;gameRole=role;
+    listen('leave','onLeave');listen('approve','onApprove',g.revision);listen('new-game','onRestart',g.revision);listen('mic','onMicrophone');
+    for(const b of app.querySelectorAll('[data-song]'))b.addEventListener('click',()=>call('onChooseSong',b.dataset.song,g.revision));
+    for(const b of app.querySelectorAll('[data-answer]'))b.addEventListener('click',()=>call('onAnswer',Number(b.dataset.answer),g.revision,g.progress[role]));
+    updateLive();
+  }
+  function setMicrophone(value){micOn=value;updateLive();}
+  function showHeard(midi){const e=app.querySelector('#heard');if(e)e.textContent=noteName(midi);}
 
   function showRoleConflict(code, requestedRole) {
     const available = opposite(requestedRole);
@@ -230,5 +258,5 @@ export function createUI(callbacks = {}) {
     app.querySelector('#manual-form').addEventListener('submit', event => { event.preventDefault(); if (!busy && /^\d{3}$/.test(input.value)) call('onInspectInvite', input.value); });
   }
 
-  return { showHome, showMenu, showRoom, showRoleConflict, showInvite, showManualJoin, setBusy, showError, showNotice };
+  return { setMicrophone, showHeard, showHome, showMenu, showRoom, showRoleConflict, showInvite, showManualJoin, setBusy, showError, showNotice };
 }

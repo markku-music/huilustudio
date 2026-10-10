@@ -6,4 +6,4 @@ export const firebaseConfig = {
   messagingSenderId: "591336559430",
   appId: "1:591336559430:web:4291caa888f0b5e5914b47"
 };
-export const ROOM_COLLECTION = "nuottipajaRoomsV1";
+export const ROOM_COLLECTION = "nuottipajaRoomsV2";

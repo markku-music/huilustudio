@@ -1,8 +1,3 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Nuottipaja: add this match inside /databases/{database}/documents.
-    // Existing collection rules and the final deny-all match stay in place.
     match /nuottipajaRoomsV2/{roomCode} {
       function npSignedIn() {
         return request.auth != null;
@@ -298,7 +293,3 @@ service cloud.firestore {
       // Leaving as owner closes the entire room. Only the owner can do that.
       allow delete: if npSignedIn() && resource.data.owner == request.auth.uid;
     }
-
-    match /{document=**} { allow read, write: if false; }
-  }
-}

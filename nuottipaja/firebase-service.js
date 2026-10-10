@@ -1,3 +1,4 @@
+import {chooseSong,approveSong,answerGame,restartGame} from './game-state.js';
 import { firebaseConfig, ROOM_COLLECTION } from './firebase-config.js';
 import { createRoomState, joinRoomState, changeRoleState, sendAnswerState, resetRoomState, leaveRoomState, RoomError } from './room-state.js';
 const SDK_BASE = 'https://www.gstatic.com/firebasejs/10.12.5/';
@@ -52,6 +53,10 @@ export async function connectFirebase() {
     }
     return {
       uid:user.uid,
+      choose:(code,song,revision)=>transform(code,(room,now)=>chooseSong(room,user.uid,song,revision,now)),
+      approve:(code,revision)=>transform(code,(room,now)=>approveSong(room,user.uid,revision,now)),
+      answer:(code,value,revision,index)=>transform(code,(room,now)=>answerGame(room,user.uid,value,revision,index,now)),
+      restart:(code,revision)=>transform(code,(room,now)=>restartGame(room,user.uid,revision,now)),
       create,
       join:(code,role,generation)=>transform(code,(room,now)=>{if(generation != null && room?.createdAt !== generation)throw new RoomError('old-invite','Tämä kutsu on vanhentunut. Pyydä parilta uusi QR-koodi.');return joinRoomState(room,user.uid,role,now);}),
       watchInvite:(code,onRoom,onError)=>roomRef(code).onSnapshot({includeMetadataChanges:true},snapshot=>onRoom(snapshot.exists?snapshot.data():null,{fromCache:snapshot.metadata.fromCache}),onError),

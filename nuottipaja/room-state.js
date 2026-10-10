@@ -1,3 +1,4 @@
+import {freshGame} from './game-state.js';
 export const ROLES = ['pitch', 'duration'];
 export const ROOM_TTL = 24 * 60 * 60 * 1000;
 export class RoomError extends Error {
@@ -9,7 +10,7 @@ const blank = () => ({ pitch: null, duration: null });
 export function createRoomState(code, uid, role, now) {
   roleValid(role);
   if (!/^\d{3}$/.test(code)) fail('code', 'Koodissa pitää olla kolme numeroa.');
-  return { code, owner: uid, players: { [uid]: { role, joinedAt: now } }, pair: blank(), round: 1, createdAt: now, updatedAt: now, expiresAt: now + ROOM_TTL };
+  return { game: freshGame(), code, owner: uid, players: { [uid]: { role, joinedAt: now } }, pair: blank(), round: 1, createdAt: now, updatedAt: now, expiresAt: now + ROOM_TTL };
 }
 export function assertRoom(room, now) {
   if (!room) fail('not-found', 'Tällä koodilla ei löytynyt peliä. Tarkista koodi pariltasi.');
@@ -24,14 +25,14 @@ export function joinRoomState(room, uid, role, now) {
   const entries = Object.values(room.players);
   if (entries.length >= 2) fail('full', 'Pelihuone on täynnä. Siihen mahtuu kaksi pelaajaa.');
   if (entries.some(p => p.role === role)) fail('role-taken', `${role === 'pitch' ? 'Sävel' : 'Aika-arvo'} on jo varattu. Valitse toinen tehtävä ja liity samalla koodilla.`);
-  return { ...room, players: { ...room.players, [uid]: { role, joinedAt: now } }, pair: blank(), round: room.round + 1, updatedAt: now };
+  return { ...room, players: { ...room.players, [uid]: { role, joinedAt: now } }, game: freshGame(room.game?.song, (room.game?.revision || 0) + 1), pair: blank(), round: room.round + 1, updatedAt: now };
 }
 export function changeRoleState(room, uid, role, now) {
   roleValid(role); assertRoom(room, now);
   if (!room.players[uid]) fail('not-member', 'Et ole enää tässä pelihuoneessa.');
   if (Object.keys(room.players).length !== 1) fail('paired', 'Tehtävää voi vaihtaa, kun olet huoneessa yksin.');
   if (room.players[uid].role === role) return room;
-  return { ...room, players: { [uid]: { ...room.players[uid], role } }, pair: blank(), round: room.round + 1, updatedAt: now };
+  return { ...room, players: { [uid]: { ...room.players[uid], role } }, game: freshGame(room.game?.song, (room.game?.revision || 0) + 1), pair: blank(), round: room.round + 1, updatedAt: now };
 }
 export function sendAnswerState(room, uid, kind, value, expectedRound, now) {
   assertRoom(room, now);
@@ -47,11 +48,11 @@ export function resetRoomState(room, uid, expectedRound, now) {
   assertRoom(room, now);
   if (!room.players[uid]) fail('not-member', 'Et ole enää tässä pelihuoneessa.');
   if (room.round !== expectedRound) return room;
-  return { ...room, pair: blank(), round: room.round + 1, updatedAt: now };
+  return { ...room, game: freshGame(room.game?.song, (room.game?.revision || 0) + 1), pair: blank(), round: room.round + 1, updatedAt: now };
 }
 export function leaveRoomState(room, uid, now) {
   if (!room || !room.players[uid]) return room;
   if (room.owner === uid) return null;
   const players = { ...room.players }; delete players[uid];
-  return { ...room, players, pair: blank(), round: room.round + 1, updatedAt: now };
+  return { ...room, players, game: freshGame(room.game?.song, (room.game?.revision || 0) + 1), pair: blank(), round: room.round + 1, updatedAt: now };
 }

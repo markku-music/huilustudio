@@ -1,32 +1,13 @@
-NUOTTIPAJA 0.2.0 – QR-KOODI JA KOLMINUMEROINEN PIN
+# Nuottipaja 0.3.0
 
-GITHUB PAGES
-Pura zip. Kopioi sen koko sisältö huilustudio-repositorion päätasolle.
-index.html tulee suoraan päätasolle; dist-kansiota ei tarvita.
-Säilytä assets- ja vendor-kansiot sellaisinaan.
-Pelin osoite: https://markku-music.github.io/huilustudio/
+Kahden pelaajan MusicXML-peli. Neljä kappaletta: Maijan karitsa (4 tahtia), Satu meni saunaan (8), Ukko Nooa (12), Kevätsää (16). Alkuperäiset MusicXML-tiedostot ovat music-kansiossa. Pelin nuottitiedot on muunnettu niistä songs.js-tiedostoon. Kappaleet näytetään kokonaisina; kertausmerkkejä ei soiteta toista kertaa.
 
-PÄIVITÄ FIRESTORE-SÄÄNNÖT KERRAN
-Avaa Firebase-projekti Nuottipaja (nuottipaja-502d3).
-Valitse Cloud Firestore → Rules. Korvaa koko editorin sisältö tässä paketissa
-olevan firestore.rules-tiedoston sisällöllä. Paina Publish.
-Tämä tarvitaan kolminumeroisten PIN-koodien sallimiseksi.
-Anonyymi kirjautuminen ja tietokanta ovat jo käytössä.
-Ohjeen voi avata myös pelisivun kayttoonotto.html-osoitteesta.
+Kolminumeroinen PIN ja QR-kutsu. Kumpi tahansa valitsee kappaleen, ja molempien pitää hyväksyä sama valinta. Vaihto nollaa hyväksynnät. Sävelpelaajan hyväksyntä avaa mikrofonin. Molempien hyväksynnän jälkeen neljän sekunnin yhteinen lähtölaskenta. Kumpikin etenee omassa tahdissaan. Molempien ajat ja niiden summa näytetään. Sävelpelaaja artikuloi myös saman sävelen toistot; yhtä pitkää ääntä ei hyväksytä useana nuottina. Sävelpelaajan tauot hyväksytään lyhyestä hiljaisuudesta; Tauko-painike toimii myös. Aika-arvopelaaja valitsee nuotin/tauon ja yhden tai kaksi iskua.
 
-PELAAMINEN
-Valitse Sävel tai Aika-arvo ja Luo uusi peli.
-Pari skannaa odotusruudun ison QR-koodin omalla laitteellaan.
-Kutsusivu näyttää vapaan tehtävän. Paina Liity peliin.
-Varalla: pelin aloituksessa Liity koodilla → kolminumeroinen PIN → Liity peliin.
-PIN voi alkaa nollalla (esim. 034); kirjoita kaikki kolme numeroa.
-QR-kutsun PIN ja huoneen tunniste luetaan automaattisesti osoitteesta.
-Suljettu tai vanhentunut kutsu ei tarjoa paikkaa uudesta huoneesta.
-Poistu huoneesta vapauttaa paikan. Omistajan poistuminen sulkee koko huoneen.
+Mikrofonin YIN-tunnistus on uusi tämän version toteutus, ei aiempi ResonatorEngine. Ääntä ei lähetetä verkkoon. Toleranssi ±49 senttiä, A=440 Hz. Huilun G1–D2-alueen synteettiset näytteet testattu. Oikealla huilulla ja iPadilla on vielä tehtävä käytännön koe. Testipainikkeet ovat avattavassa osiossa. Kameratoimintoa ei ole.
 
-Tässä päivityksessä yhteyskokeilun G ja neljäsosa annetaan edelleen painikkeilla.
-Kappaleen kirjoitus, mikrofoni ja yksilöllisten aikojen yhteenlasku tehdään seuraavassa vaiheessa.
+Käyttöönotto: lataa dist-kansion sisältö GitHub-repositorion juureen. Julkaise firebase/firestore.rules kokonaisena Cloud Firestore → Rules -näkymässä. Tämä versio käyttää uutta nuottipajaRoomsV2-kokoelmaa. Firebase-konfiguraatio on sama oma projekti nuottipaja-502d3. Anonyymi kirjautuminen pitää olla sallittu. Mikrofoni tarvitsee HTTPS:n tai localhostin. Molemmat avaavat uuden version; tarvittaessa pakota sivun päivitys.
 
-Tarkistettu: 19 huonelogiikan testiä, 6 kutsutestiä, 44 Firestore-sääntötestiä.
-QR-kuvat luettiin myös riippumattomalla dekooderilla oikeiksi kutsulinkeiksi.
-Oikean laitteen kameraskannaus ja kahden laitteen käyttö kokeillaan päivityksen jälkeen.
+Ajat perustuvat laitteiden kelloihin ja sisältävät vastauksen verkkovahvistuksen. Pidä laitteiden automaattinen kellonaika käytössä. Ajat ovat harjoittelupelin aikoja, eivät kilpailukelpoisia palvelimella mitattuja tuloksia. Sivun päivitys palauttaa huoneen ja etenemisen; pelikello jatkuu. Mikrofonin voi avata uudelleen napista. Huone säilyy 24 tuntia; Poistu vapauttaa paikan. Huoneen luojan poistuminen sulkee huoneen.
+
+Validointi: node --test tests/game-state.test.mjs tests/room-state.test.mjs tests/invite.test.mjs. Firestore-emulaattoritesti tests/game-rules.test.mjs. Selaintestausta ei tehty tässä ympäristössä.
