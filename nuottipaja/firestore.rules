@@ -60,7 +60,7 @@ service cloud.firestore {
             'code', 'owner', 'players', 'pair', 'round',
             'createdAt', 'updatedAt', 'expiresAt'
           ])
-          && roomCode.matches('^[0-9]{6}$')
+          && roomCode.matches('^[0-9]{3}([0-9]{3})?$')
           && data.code == roomCode
           && data.owner is string
           && npValidPlayers(data.players)
@@ -172,26 +172,25 @@ service cloud.firestore {
 
       // The code acts as an invitation. Exact-code reads, including a missing
       // document, are needed for create/join transactions. No room enumeration.
-      allow get: if npSignedIn() && roomCode.matches('^[0-9]{6}$');
+      allow get: if npSignedIn() && roomCode.matches('^[0-9]{3}([0-9]{3})?$');
       allow list: if false;
 
       allow create: if npSignedIn() && npCreate(request.resource.data);
 
       allow update: if npSignedIn()
-        && npCommonUpdate(resource.data, request.resource.data)
+        && ((resource.data.expiresAt <= npNow() && npCreate(request.resource.data))
+          || (npCommonUpdate(resource.data, request.resource.data)
         && (npJoin(resource.data, request.resource.data)
           || npGuestLeave(resource.data, request.resource.data)
           || npRoleChange(resource.data, request.resource.data)
           || npSendPitch(resource.data, request.resource.data)
           || npSendDuration(resource.data, request.resource.data)
-          || npReset(resource.data, request.resource.data));
+          || npReset(resource.data, request.resource.data))));
 
       // Leaving as owner closes the entire room. Only the owner can do that.
       allow delete: if npSignedIn() && resource.data.owner == request.auth.uid;
     }
 
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }

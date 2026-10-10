@@ -1,0 +1,32 @@
+NUOTTIPAJA 0.2.0 – QR-KOODI JA KOLMINUMEROINEN PIN
+
+GITHUB PAGES
+Pura zip. Kopioi sen koko sisältö huilustudio-repositorion päätasolle.
+index.html tulee suoraan päätasolle; dist-kansiota ei tarvita.
+Säilytä assets- ja vendor-kansiot sellaisinaan.
+Pelin osoite: https://markku-music.github.io/huilustudio/
+
+PÄIVITÄ FIRESTORE-SÄÄNNÖT KERRAN
+Avaa Firebase-projekti Nuottipaja (nuottipaja-502d3).
+Valitse Cloud Firestore → Rules. Korvaa koko editorin sisältö tässä paketissa
+olevan firestore.rules-tiedoston sisällöllä. Paina Publish.
+Tämä tarvitaan kolminumeroisten PIN-koodien sallimiseksi.
+Anonyymi kirjautuminen ja tietokanta ovat jo käytössä.
+Ohjeen voi avata myös pelisivun kayttoonotto.html-osoitteesta.
+
+PELAAMINEN
+Valitse Sävel tai Aika-arvo ja Luo uusi peli.
+Pari skannaa odotusruudun ison QR-koodin omalla laitteellaan.
+Kutsusivu näyttää vapaan tehtävän. Paina Liity peliin.
+Varalla: pelin aloituksessa Liity koodilla → kolminumeroinen PIN → Liity peliin.
+PIN voi alkaa nollalla (esim. 034); kirjoita kaikki kolme numeroa.
+QR-kutsun PIN ja huoneen tunniste luetaan automaattisesti osoitteesta.
+Suljettu tai vanhentunut kutsu ei tarjoa paikkaa uudesta huoneesta.
+Poistu huoneesta vapauttaa paikan. Omistajan poistuminen sulkee koko huoneen.
+
+Tässä päivityksessä yhteyskokeilun G ja neljäsosa annetaan edelleen painikkeilla.
+Kappaleen kirjoitus, mikrofoni ja yksilöllisten aikojen yhteenlasku tehdään seuraavassa vaiheessa.
+
+Tarkistettu: 19 huonelogiikan testiä, 6 kutsutestiä, 44 Firestore-sääntötestiä.
+QR-kuvat luettiin myös riippumattomalla dekooderilla oikeiksi kutsulinkeiksi.
+Oikean laitteen kameraskannaus ja kahden laitteen käyttö kokeillaan päivityksen jälkeen.

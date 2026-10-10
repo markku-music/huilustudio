@@ -1,3 +1,4 @@
+import { inviteURL, qrSVG } from './invite.js';
 const labels = { pitch: 'Sävel', duration: 'Aika-arvo' };
 const opposite = role => role === 'pitch' ? 'duration' : 'pitch';
 const noteSVG = (small = false) => `<svg class="note-icon${small ? ' small' : ''}" viewBox="0 0 44 70" aria-hidden="true"><ellipse cx="15" cy="57" rx="12" ry="8.5" transform="rotate(-18 15 57)" fill="currentColor"/><path d="M25 57V4" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/></svg>`;
@@ -63,11 +64,12 @@ export function createUI(callbacks = {}) {
         <button type="button" id="choose-pitch" class="image-button pitch"><span class="sr-only">Sävel – soitan sävelet</span></button>
         <button type="button" id="choose-duration" class="image-button duration"><span class="sr-only">Aika-arvo – valitsen nuottien aika-arvot</span></button>
       </div>
-      <p class="home-caption">Kahden pelaajan yhteyskokeilu</p>
+      <p class="home-caption">Kahden pelaajan yhteyskokeilu</p><button id="join-code-home" class="text-button home-join" type="button">Liity koodilla</button>
       <p class="working" role="status">Valmistellaan yhteyttä…</p>
     </section>`);
     listen('choose-pitch', 'onRole', 'pitch');
     listen('choose-duration', 'onRole', 'duration');
+    listen('join-code-home', 'onManualJoin');
   }
 
   function showMenu(role) {
@@ -86,7 +88,7 @@ export function createUI(callbacks = {}) {
         <div class="divider">tai liity parin peliin</div>
         <form id="join-form">
           <label for="room-code" class="input-label">Parilta saatu liittymiskoodi</label>
-          <div class="code-entry"><input id="room-code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="6 numeroa" aria-describedby="code-help" required /><button id="join" type="submit" class="button${duration ? ' orange' : ''}">Liity</button></div>
+          <div class="code-entry"><input id="room-code" name="code" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" autocomplete="off" placeholder="3 numeroa" aria-describedby="code-help" required /><button id="join" type="submit" class="button${duration ? ' orange' : ''}">Liity</button></div>
           <p id="code-help" class="small-note" style="margin-top:10px">Sama koodi yhdistää teidät. Huoneeseen mahtuu kaksi pelaajaa.</p>
         </form>
         <p class="working" role="status">Yhdistetään…</p>
@@ -97,15 +99,15 @@ export function createUI(callbacks = {}) {
     listen('create', 'onCreate', role);
     const input = app.querySelector('#room-code');
     input.addEventListener('input', () => {
-      input.value = input.value.replace(/\D/g, '').slice(0, 6);
+      input.value = input.value.replace(/\D/g, '').slice(0, 3);
       input.setCustomValidity('');
     });
     app.querySelector('#join-form').addEventListener('submit', event => {
       event.preventDefault();
       if (busy) return;
       const code = input.value.trim();
-      if (!/^\d{6}$/.test(code)) {
-        input.setCustomValidity('Kirjoita kuusinumeroinen liittymiskoodi.');
+      if (!/^\d{3}$/.test(code)) {
+        input.setCustomValidity('Kirjoita kolminumeroinen liittymiskoodi.');
         input.reportValidity();
         return;
       }
@@ -133,6 +135,8 @@ export function createUI(callbacks = {}) {
     if (lastRoomRender === signature) return;
     lastRoomRender = signature;
     const roomCode = String(state?.code || '');
+    const invitation = state?.owner === uid && !ready ? inviteURL(window.location.href, roomCode, state.createdAt) : null;
+    const inviteCard = invitation ? `<div class="panel invitation-panel"><h2>Kutsu pari peliin</h2><p>Skannaa ja liity peliin</p><div class="room-qr">${qrSVG(invitation)}</div><p class="manual-pin">Tai liity käsin: <strong>${escapeHTML(roomCode)}</strong></p><button id="copy-invite" class="text-button" type="button">Kopioi kutsulinkki</button></div>` : ''; 
     const disabled = condition => condition ? 'data-disabled="true" disabled' : '';
     const roleCard = cardRole => {
       const present = cardRole === 'pitch' ? hasPitch : hasDuration;
@@ -147,11 +151,12 @@ export function createUI(callbacks = {}) {
 
     paint(`<section class="page">
       ${pageHeader('Poistu huoneesta', 'leave')}
+      ${inviteCard}
       <div class="room-head">
-        <div class="code-block"><p class="eyebrow">${entries.length < 2 ? 'Kerro tämä koodi parillesi' : 'Yhteinen pelihuone'}</p><h2 class="room-code">${escapeHTML(roomCode)}</h2></div>
+        ${invitation ? '' : `<div class="code-block"><p class="eyebrow">${entries.length < 2 ? 'Pelihuone' : 'Yhteinen pelihuone'}</p><h2 class="room-code">${escapeHTML(roomCode)}</h2></div>`}
         <div class="room-status${ready ? ' ready' : ''}" role="status"><span class="status-dot" aria-hidden="true"></span>${ready ? 'Pari mukana · 2/2' : `Odotetaan paria · ${entries.length}/2`}</div>
       </div>
-      <p class="room-instruction">${ready ? 'Teillä on yhteinen nuotti. Kokeilkaa lähettää sävel ja aika-arvo omilta laitteilta.' : `Pari valitsee omalla laitteellaan tehtävän ${escapeHTML(labels[opposite(role)] || '')} ja liittyy yllä olevalla koodilla.`}</p>
+      <p class="room-instruction">${ready ? 'Teillä on yhteinen nuotti. Kokeilkaa lähettää sävel ja aika-arvo omilta laitteilta.' : `Pari skannaa QR-koodin tai avaa pelin ja valitsee Liity koodilla. Vapaa tehtävä on ${escapeHTML(labels[opposite(role)] || '')}.`}</p>
       <div class="roles">${roleCard('pitch')}${roleCard('duration')}</div>
       <div class="panel test-panel">
         <p class="eyebrow">Ensimmäinen yhteinen nuotti</p>
@@ -172,6 +177,7 @@ export function createUI(callbacks = {}) {
       <div class="room-actions"><button id="reset" class="text-button" type="button" ${disabled(!ready || !hasAnswer)}>Kokeile uudelleen</button>${callbacks.onChangeRole && entries.length < 2 ? '<button id="change-role" class="text-button" type="button">Vaihda omaa tehtävää</button>' : ''}</div>
       <p class="small-note room-footnote">Valinnat näkyvät molemmilla laitteilla. Nimiä ei kysytä.</p>
     </section>`);
+    app.querySelector('#copy-invite')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(invitation); showNotice('Kutsulinkki kopioitu.'); } catch { showNotice('Kopiointi ei onnistunut. Käytä QR-koodia tai PIN-koodia.'); } });
     listen('leave', 'onLeave');
     listen('send-pitch', 'onSendPitch', 'G');
     listen('send-duration', 'onSendDuration', 1);
@@ -191,5 +197,38 @@ export function createUI(callbacks = {}) {
     listen('join-opposite', 'onJoin', code, available);
   }
 
-  return { showHome, showMenu, showRoom, showRoleConflict, setBusy, showError, showNotice };
+  function showInvite(code, choice = { status: 'loading' }) {
+    lastRoomRender = null;
+    const messages = {
+      loading: 'Tarkistetaan pelihuonetta…',
+      closed: 'Tämä pelihuone on suljettu tai vanhentunut.',
+      old: 'Tämä kutsu on vanhentunut. Pyydä parilta uusi QR-koodi.',
+      full: 'Pelihuoneessa on jo kaksi pelaajaa.'
+    };
+    const available = choice.status === 'available';
+    const resume = choice.status === 'resume';
+    paint(`<section class="page">${pageHeader('Takaisin aloitukseen')}<div class="panel menu-panel">
+      <p class="eyebrow">Pelihuone ${escapeHTML(code)}</p>
+      <h2>${available ? 'Parisi odottaa!' : resume ? 'Tervetuloa takaisin!' : 'Kutsu peliin'}</h2>
+      <p class="intro" role="status">${available ? `Vapaa tehtävä: <strong>${labels[choice.role]}</strong>` : resume ? `Oma tehtäväsi: <strong>${labels[choice.role]}</strong>` : messages[choice.status]}</p>
+      ${available || resume ? `<button id="join-invite" class="button wide${choice.role === 'duration' ? ' orange' : ''}" type="button">${resume ? 'Palaa peliin' : 'Liity peliin'}</button>` : ''}
+      <p class="working" role="status">Liitytään…</p></div></section>`);
+    listen('back', 'onBack');
+    listen('join-invite', 'onJoin', code, choice.role);
+  }
+
+  function showManualJoin() {
+    lastRoomRender = null;
+    clearFeedback();
+    paint(`<section class="page">${pageHeader('Takaisin aloitukseen')}<div class="panel menu-panel">
+      <h2>Liity koodilla</h2><p class="intro">Kirjoita parilta saatu kolminumeroinen PIN. Vapaa tehtävä tarkistetaan puolestasi.</p>
+      <form id="manual-form"><label class="input-label" for="manual-code">PIN-koodi</label><div class="code-entry"><input id="manual-code" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" placeholder="3 numeroa" autocomplete="off" required><button class="button" type="submit">Jatka</button></div></form>
+      <p class="working" role="status">Tarkistetaan…</p></div></section>`);
+    listen('back', 'onBack');
+    const input = app.querySelector('#manual-code');
+    input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0,3); });
+    app.querySelector('#manual-form').addEventListener('submit', event => { event.preventDefault(); if (!busy && /^\d{3}$/.test(input.value)) call('onInspectInvite', input.value); });
+  }
+
+  return { showHome, showMenu, showRoom, showRoleConflict, showInvite, showManualJoin, setBusy, showError, showNotice };
 }

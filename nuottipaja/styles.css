@@ -123,3 +123,11 @@ button:not(:disabled):active { transform: translateY(2px); }
   .image-button { min-height: 44px; top: 39%; height: 20%; }
 }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.home-join { display: block; margin: 10px auto 0; }
+.invitation-panel { max-width: 520px; margin: 0 auto 28px; text-align: center; }
+.invitation-panel h2 { margin: 0 0 10px; }
+.invitation-panel p { color: var(--muted); }
+.room-qr { width: min(300px, 100%); margin: 14px auto; padding: 8px; background: white; border-radius: 12px; }
+.room-qr svg { display: block; width: 100%; height: auto; }
+.manual-pin strong { color: var(--ink); font-size: 1.45rem; letter-spacing: .1em; white-space: nowrap; }

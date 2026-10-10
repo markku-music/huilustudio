@@ -27,13 +27,13 @@ export async function connectFirebase() {
     const user = auth.currentUser || (await auth.signInAnonymously()).user;
     const db = app.firestore();
     const roomRef = code => db.collection(ROOM_COLLECTION).doc(code);
-    const randomCode = () => { const a = new Uint32Array(1); do { crypto.getRandomValues(a); } while(a[0] >= 4294000000); return String(a[0] % 1000000).padStart(6,'0'); };
+    const randomCode = () => { const a = new Uint32Array(1); do { crypto.getRandomValues(a); } while(a[0] >= 4294967000); return String(a[0] % 1000).padStart(3,'0'); };
     async function create(role) {
-      for(let attempt=0;attempt<8;attempt++) {
+      for(let attempt=0;attempt<100;attempt++) {
         const code=randomCode(); const reference=roomRef(code);
         const state=await db.runTransaction(async tx => {
           const snapshot=await tx.get(reference);
-          if(snapshot.exists)return null;
+          if(snapshot.exists && snapshot.data().expiresAt > Date.now())return null;
           const fresh=createRoomState(code,user.uid,role,Date.now());tx.set(reference,fresh);return fresh;
         });
         if(state)return state;
@@ -53,7 +53,8 @@ export async function connectFirebase() {
     return {
       uid:user.uid,
       create,
-      join:(code,role)=>transform(code,(room,now)=>joinRoomState(room,user.uid,role,now)),
+      join:(code,role,generation)=>transform(code,(room,now)=>{if(generation != null && room?.createdAt !== generation)throw new RoomError('old-invite','Tämä kutsu on vanhentunut. Pyydä parilta uusi QR-koodi.');return joinRoomState(room,user.uid,role,now);}),
+      watchInvite:(code,onRoom,onError)=>roomRef(code).onSnapshot({includeMetadataChanges:true},snapshot=>onRoom(snapshot.exists?snapshot.data():null,{fromCache:snapshot.metadata.fromCache}),onError),
       changeRole:(code,role)=>transform(code,(room,now)=>changeRoleState(room,user.uid,role,now)),
       send:(code,kind,value,round)=>transform(code,(room,now)=>sendAnswerState(room,user.uid,kind,value,round,now)),
       reset:(code,round)=>transform(code,(room,now)=>resetRoomState(room,user.uid,round,now)),

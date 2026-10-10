@@ -1,11 +1,24 @@
+import { parseInvite, inviteChoice } from './invite.js';
 import { createUI } from './ui.js';
 import { connectFirebase, explainError } from './firebase-service.js';
 let selectedRole=null,service=null,room=null,unsubscribe=null,busy=false,closed=false,activeCode=null,cachedNotice=false;
-const SESSION='nuottipaja-room-v1';
+const SESSION='nuottipaja-room-v2';
+let pendingInvite = parseInvite(window.location.href), inviteUnsubscribe = null, inviteEpoch = 0;
+function endInvite(clearURL = false) { inviteEpoch++; inviteUnsubscribe?.(); inviteUnsubscribe = null; pendingInvite = null; if (clearURL) { const url = new URL(window.location.href); url.searchParams.delete('pin'); url.searchParams.delete('v'); history.replaceState(null, '', url.href); } }
+async function inspectInvite(code, generation = null) {
+  endInvite();
+  const epoch = inviteEpoch; pendingInvite = {code, generation}; ui.showInvite(code);
+  service = await connectFirebase();
+  if (epoch !== inviteEpoch) return;
+  inviteUnsubscribe = service.watchInvite(code, (state, meta) => {
+    if (epoch !== inviteEpoch || meta.fromCache) return;
+    ui.showInvite(code, inviteChoice(state, service.uid, generation));
+  }, error => { if (epoch === inviteEpoch) ui.showError(explainError(error)); });
+}
 const storage={get(){try{return sessionStorage.getItem(SESSION);}catch{return null;}},set(code){try{sessionStorage.setItem(SESSION,code);}catch{}},clear(){try{sessionStorage.removeItem(SESSION);}catch{}}};
 async function action(fn){if(busy)return;busy=true;ui.setBusy(true);try{await fn();}catch(error){ui.showError(explainError(error));}finally{busy=false;ui.setBusy(false);}}
 function endWatch(){unsubscribe?.();unsubscribe=null;room=null;activeCode=null;}
-function activate(state){endWatch();closed=false;room=state;activeCode=state.code;selectedRole=state.players[service.uid].role;storage.set(state.code);ui.showRoom(state,service.uid);
+function activate(state){endInvite(true);endWatch();closed=false;room=state;activeCode=state.code;selectedRole=state.players[service.uid].role;storage.set(state.code);ui.showRoom(state,service.uid);
  unsubscribe=service.watch(state.code,(state,metadata)=>{
   if(closed)return;
   if(!state&&metadata.fromCache)return;
@@ -18,12 +31,14 @@ function activate(state){endWatch();closed=false;room=state;activeCode=state.cod
  },error=>{ui.showError(explainError(error));});
 }
 const ui=createUI({
- onRole(role){selectedRole=role;ui.showMenu(role);},
- onBack(){if(!busy){selectedRole=null;ui.showHome();}},
+ onRole(role){endInvite(true);selectedRole=role;ui.showMenu(role);},
+ onManualJoin(){endInvite(true);ui.showManualJoin();},
+ onInspectInvite:code=>action(()=>inspectInvite(code)),
+ onBack(){if(!busy){endInvite(true);selectedRole=null;ui.showHome();}},
  onCreate:role=>action(async()=>{service=await connectFirebase();activate(await service.create(role));}),
  onJoin:(code,role)=>action(async()=>{
    service=await connectFirebase();
-   try{activate(await service.join(code,role));}
+   try{activate(await service.join(code,role,pendingInvite?.code === code ? pendingInvite.generation : null));}
    catch(error){if(error.code==='role-taken'){ui.showRoleConflict(code,role);return;}throw error;}
  }),
  onLeave:()=>action(async()=>{if(!service||!room)return;await service.leave(room.code);closed=true;endWatch();storage.clear();selectedRole=null;ui.showHome();ui.showNotice('Poistuit pelihuoneesta.');}),
@@ -36,7 +51,8 @@ ui.showHome();
 window.addEventListener('offline',()=>ui.showNotice('Verkkoyhteys katkesi. Huone odottaa yhteyden palaamista.'));
 window.addEventListener('online',()=>ui.showNotice('Verkko palasi. Yhteys pelihuoneeseen palautuu automaattisesti.'));
 const remembered=storage.get();
-if(/^\d{6}$/.test(remembered||''))action(async()=>{
+if (pendingInvite) { const invitation = pendingInvite; action(() => inspectInvite(invitation.code, invitation.generation)); }
+else if(/^\d{3}$/.test(remembered||''))action(async()=>{
  service=await connectFirebase();activeCode=remembered;
  await new Promise((resolve,reject)=>{
    let release,finished=false;

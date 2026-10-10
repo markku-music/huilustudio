@@ -8,7 +8,7 @@ const roleValid = role => { if (!ROLES.includes(role)) fail('role', 'Valitse ens
 const blank = () => ({ pitch: null, duration: null });
 export function createRoomState(code, uid, role, now) {
   roleValid(role);
-  if (!/^\d{6}$/.test(code)) fail('code', 'Koodissa pitää olla kuusi numeroa.');
+  if (!/^\d{3}$/.test(code)) fail('code', 'Koodissa pitää olla kolme numeroa.');
   return { code, owner: uid, players: { [uid]: { role, joinedAt: now } }, pair: blank(), round: 1, createdAt: now, updatedAt: now, expiresAt: now + ROOM_TTL };
 }
 export function assertRoom(room, now) {

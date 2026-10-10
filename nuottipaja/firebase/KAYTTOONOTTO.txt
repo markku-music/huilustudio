@@ -1,7 +1,0 @@
-NUOTTIPAJAN OMA FIREBASE: nuottipaja-502d3
-1. Authentication → Get started → Sign-in method → Anonymous → Enable → Save.
-2. Firestore Database → Create database. Valitse Standard edition ja Production mode, jos niitä kysytään. Valitse sijainniksi tarjolla oleva EU-alue.
-3. Firestore → Rules: korvaa oletussäännöt tämän kansion firestore.rules-tiedoston koko sisällöllä ja paina Publish.
-4. Avaa peli kahdella laitteella. Valitse vastakkaiset tehtävät ja liity huonekoodilla.
-Peli ei käytä Puhallinstarttia. Anonyymi kirjautuminen ei kysy pelaajan nimeä.
-Mikrofoni ei vielä ole käytössä. Sävel G ja neljäsosa annetaan painikkeilla.
