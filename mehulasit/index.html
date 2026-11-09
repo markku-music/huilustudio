@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest?v=juomalasipeli-mehulasit-v1">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/juomalasipeli-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/juomalasipeli-apple-180.png">
-<title>Viiden mehulasin peli – Resonator 1.5.2</title>
+<title>Viiden mehulasin peli – Resonator 1.5.4</title>
 <style>
 :root{
   --sky1:#8dd7ff;--sky2:#e9f8ff;--ink:#173f61;--panel:rgba(255,255,255,.92);
@@ -85,9 +85,9 @@ button{cursor:pointer}
 .error{color:#a13c3c;font-size:13px;font-weight:800;min-height:18px;margin:10px 0 0}
 #calOverlay{
   display:none;
-  position:absolute;
+  position:fixed;
   inset:0;
-  z-index:80;
+  z-index:51;
   align-items:center;
   justify-content:center;
   padding:20px;
@@ -108,16 +108,16 @@ button{cursor:pointer}
 
 .cal-ring-stage{
   position:relative;
-  width:180px;
-  height:180px;
+  width:180px !important;
+  height:180px !important;
   display:grid;
   place-items:center;
   overflow:visible;
-  background:transparent;
-  border:0;
-  border-radius:0;
-  box-shadow:none;
-  filter:none;
+  background:transparent !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  filter:none !important;
   transform:scale(.965);
   animation:calRingIn 220ms cubic-bezier(.2,.8,.2,1) forwards;
 }
@@ -198,8 +198,8 @@ button{cursor:pointer}
 @keyframes calRingIn{from{transform:scale(.955);opacity:.72}to{transform:scale(1);opacity:1}}
 
 @media(max-width:560px){.cal-ring-stage{
-  width:156px;
-  height:156px;
+  width:156px !important;
+  height:156px !important;
 }
 
 .cal-ring-wrap,
@@ -231,7 +231,7 @@ button{cursor:pointer}
     <div id="runClock" class="run-clock" aria-live="off">⏱ <span id="runClockValue">0,0 s</span></div>
 
     <div id="settingsPanel" class="settings-panel">
-      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">VERSIO 1.5.2 • RESONATOR</div>
+      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">VERSIO 1.5.4 • RESONATOR</div>
       <div class="setting">
         <div class="setting-head"><label for="glassScaleSlider">Lasien koko</label><span id="glassScaleValue" class="setting-value">250 %</span></div>
         <input id="glassScaleSlider" type="range" min="70" max="250" step="1" value="250">
@@ -294,6 +294,7 @@ button{cursor:pointer}
     </div>
   </div>
 
+  </div>
   <div id="calOverlay" aria-live="polite">
     <div class="cal-ring-stage" role="status" aria-label="Mikrofonin kalibrointi">
       <div class="cal-ring-wrap">
@@ -305,8 +306,6 @@ button{cursor:pointer}
         <div id="calDbValue" class="cal-db-readout">–</div>
       </div>
     </div>
-  </div>
-
   </div>
   <div id="rotateOverlay"><div class="overlay-card"><div id="rotateIcon">↻</div></div></div>
 </div>
@@ -320,7 +319,7 @@ const DESIGN_W=1366;
 const DESIGN_H=768;
 // Retain the original key so existing saved settings continue to load.
 const UI_SETTINGS_KEY='juomalasipeli-ui-scoreboard-1-4-3-isolated';
-const SETTINGS_VERSION='mehulasit-1.5.2';
+const SETTINGS_VERSION='mehulasit-1.5.4';
 const BREATH_GAP_SECONDS=.160;
 const MIC_CAL_WARMUP_MS=250,MIC_CAL_MEASURE_MS=1500,MIC_CAL_MARGIN_DB=10;
 const NOTES=[
@@ -358,8 +357,9 @@ const startOverlay=$('#startOverlay'),startError=$('#startError');
 const runClock=$('#runClock'),runClockValue=$('#runClockValue');
 const scoreOverlay=$('#scoreOverlay'),scoreChart=$('#scoreChart'),scoreTotal=$('#scoreTotal'),scoreIdealLine=$('#scoreIdealLine');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
-let engine=null,stability=null,ready=false,calibrationToken=0;
-let calibrationAnalyser=null,calibrationData=null,processAudio=null;
+let engine=null,stability=null,ready=false;
+let ctx=null,stream=null,micSource=null,analyser=null,timeData=null;
+let micLifecycleId=0,micStartPromise=null,calibrationBusy=false,dbThreshold=-70;
 let breathNotes=new Set(),quietSince=null;
 let breathCounts={G:0,A:0,H:0,C:0,D:0};
 let effectBuffer=null,effectSource=null,effectUntil=0,effectPauseAt=null;
@@ -628,9 +628,9 @@ function receiveSilence(){
   if(quietSince===null)quietSince=audioTime();
   stability.silence();
 }
-async function loadFullSound(){
+async function loadFullSound(context=ctx){
   const bytes=Uint8Array.from(atob(window.MEHULASIT_SOUND_BASE64),c=>c.charCodeAt(0));
-  effectBuffer=await engine.context.decodeAudioData(bytes.buffer);
+  effectBuffer=await context.decodeAudioData(bytes.buffer);
 }
 function playFullSound(){
   if(!effectBuffer||!engine?.context||document.hidden)return;
@@ -662,107 +662,187 @@ function stopFullSound(){
   if(effectSource){try{effectSource.stop()}catch(_){}effectSource=null}
   releaseEffectPause(performance.now());
 }
+function rmsDb(buf){
+  let s=0;
+  for(let i=0;i<buf.length;i++){const v=buf[i];s+=v*v}
+  const rms=Math.sqrt(s/buf.length)||1e-12;
+  return {rms,db:20*Math.log10(rms)};
+}
+function sleepMs(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function updateCalibrationVisual(db,progress){
   const p=clamp(progress,0,1);
-  calProgressRing.style.strokeDashoffset=(414.69-p*414.69).toFixed(2);
+  if(calProgressRing)calProgressRing.style.strokeDashoffset=(414.69-p*414.69).toFixed(2);
   const shown=Number.isFinite(db)?clamp(db,-90,-30):-90;
-  const eased=Math.pow(clamp((shown+90)/60,0,1),.62);
-  calPulse.style.transform=`scale(${(.72+.34*eased).toFixed(3)})`;
-  calPulse.style.opacity=(.24+.62*eased).toFixed(3);
-  calDbValue.textContent=Number.isFinite(db)?`${Math.round(shown)} dB`:'–';
+  const level=clamp((shown+90)/60,0,1);
+  const eased=Math.pow(level,.62);
+  if(calPulse){
+    calPulse.style.transform=`scale(${(0.72+0.34*eased).toFixed(3)})`;
+    calPulse.style.opacity=(0.24+0.62*eased).toFixed(3);
+  }
+  if(calDbValue)calDbValue.textContent=Number.isFinite(db)?`${Math.round(shown)} dB`:'–';
   calOverlay.classList.toggle('complete',p>=.999);
 }
-function beginCalibration(){
-  ++calibrationToken;ready=false;stopFullSound();resetBreathTracking();
-  startOverlay.style.display='none';
-  $('#recalBtn').disabled=true;
-  calOverlay.classList.remove('complete','closing');calOverlay.classList.add('show');
+async function calibrateMicrophoneNoiseFloor(lifecycleId=micLifecycleId){
+  if(!analyser||!timeData)return false;
+  pauseRecognition();
+  calOverlay.classList.remove('complete','closing');
+  calOverlay.classList.add('show');
   updateCalibrationVisual(-90,0);
-}
-function readCalibrationDb(){
-  calibrationAnalyser.getFloatTimeDomainData(calibrationData);
-  let sum=0;
-  for(const value of calibrationData)sum+=value*value;
-  return 20*Math.log10(Math.sqrt(sum/calibrationData.length)||1e-12);
-}
-function calibrationMedian(samples){
-  const sorted=[...samples].sort((a,b)=>a-b),mid=sorted.length>>1;
-  return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])/2;
-}
-async function calibrateMicrophoneNoiseFloor(){
-  if(!engine?.running||!calibrationAnalyser)return false;
-  beginCalibration();
-  const token=calibrationToken;
-  const active=()=>token===calibrationToken&&engine?.running;
-  // Stop recognition during measurement; the analyser still receives live audio.
-  engine.processor.onaudioprocess=event=>event.outputBuffer.getChannelData(0).fill(0);
-  // Paint the empty ring before starting the timed measurement.
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  if(!active())return false;
+
   const totalMs=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS;
   const overallStart=performance.now();
+
+  // Lämmittely: näytetään live-taso, mutta näitä näytteitä ei käytetä kynnyksen laskentaan.
   while(performance.now()-overallStart<MIC_CAL_WARMUP_MS){
-    if(!active())return false;
-    updateCalibrationVisual(readCalibrationDb(),(performance.now()-overallStart)/totalMs);
-    await new Promise(resolve=>setTimeout(resolve,33));
+    if(lifecycleId!==micLifecycleId)return false;
+    analyser.getFloatTimeDomainData(timeData);
+    const level=rmsDb(timeData);
+    const elapsed=performance.now()-overallStart;
+    updateCalibrationVisual(level.db,elapsed/totalMs);
+    await sleepMs(33);
   }
-  const samples=[],measureStart=performance.now();
+
+  const samples=[];
+  const measureStart=performance.now();
   while(performance.now()-measureStart<MIC_CAL_MEASURE_MS){
-    if(!active())return false;
-    const db=readCalibrationDb();
-    if(Number.isFinite(db))samples.push(db);
-    updateCalibrationVisual(db,(MIC_CAL_WARMUP_MS+performance.now()-measureStart)/totalMs);
-    await new Promise(resolve=>setTimeout(resolve,33));
+    if(lifecycleId!==micLifecycleId)return false;
+    analyser.getFloatTimeDomainData(timeData);
+    const level=rmsDb(timeData);
+    if(Number.isFinite(level.db))samples.push(level.db);
+    const elapsed=MIC_CAL_WARMUP_MS+(performance.now()-measureStart);
+    updateCalibrationVisual(level.db,elapsed/totalMs);
+    await sleepMs(33);
   }
-  if(!active())return false;
-  const noiseDb=samples.length?calibrationMedian(samples):-90;
-  const thresholdDb=samples.length?clamp(Math.round(noiseDb+MIC_CAL_MARGIN_DB),-70,-20):-70;
-  // Adapter to the unchanged Resonator 0.7.2: use the airplane's measured gate.
-  engine._noiseRms=Math.pow(10,noiseDb/20);
-  engine._gate=Math.pow(10,thresholdDb/20);
-  engine._resetAnalysisStates();
-  updateCalibrationVisual(noiseDb,1);
-  await new Promise(resolve=>setTimeout(resolve,300));
-  if(!active())return false;
+
+  if(lifecycleId!==micLifecycleId)return false;
+  if(!samples.length){dbThreshold=-70}
+  else{
+    samples.sort((a,b)=>a-b);
+    const mid=Math.floor(samples.length/2);
+    const noiseFloor=samples.length%2?samples[mid]:(samples[mid-1]+samples[mid])/2;
+    dbThreshold=Math.max(-70,Math.min(-20,Math.round(noiseFloor+MIC_CAL_MARGIN_DB)));
+  }
+  updateCalibrationVisual(samples.length?samples[Math.floor(samples.length/2)]:-90,1);
+  await sleepMs(300);
+  if(lifecycleId!==micLifecycleId)return false;
   calOverlay.classList.add('closing');
-  await new Promise(resolve=>setTimeout(resolve,150));
-  if(!active())return false;
-  resetBreathTracking();
-  engine.processor.onaudioprocess=processAudio;
+  await sleepMs(150);
+  if(lifecycleId!==micLifecycleId)return false;
+  resumeRecognition();
   calOverlay.classList.remove('show','complete','closing');
-  ready=true;$('#recalBtn').disabled=false;
   return true;
 }
-async function startMic(){
-  if(engine?.running)return true;
+// Game-specific connection points only. The calibration UI/measurement above
+// comes from lentokone3; no extra animation waits or sound decoding precede it.
+function pauseRecognition(){
+  ready=false;calibrationBusy=true;
+  if(engine)engine.running=false;
+  stopFullSound();resetBreathTracking();
+}
+function resumeRecognition(){
+  calibrationBusy=false;
+  if(!engine)return; // First start attaches Resonator after effect preloading.
+  engine._gate=Math.pow(10,dbThreshold/20);
+  engine._resetAnalysisStates();
+  resetBreathTracking();engine.running=true;ready=true;
+}
+function startRecognition(){
+  const lifecycleId=micLifecycleId;
   engine=new ResonatorStringEngine({targets:TARGETS,blockSize:256,calibrationMs:0,
     responseMs:1.8,toleranceCents:40,centerMatch:.955,edgeMatch:.998,
     minHalfPeriodEnergy:.32,noiseMarginDb:10,
     pitchMeterIntervalMs:22,pitchMeterWindowMs:16,pitchMeterSearchCents:140});
   stability=new ResonatorNoteStability({targets:TARGETS,dynamicsCompression:true});
+  engine._prepare(ctx.sampleRate);
+  engine.context=ctx;
   engine.addEventListener('input',e=>receiveInput(e.detail));
   engine.addEventListener('silence',receiveSilence);
-  try{
-    await engine.start();
-    processAudio=engine.processor.onaudioprocess;
-    engine.processor.onaudioprocess=event=>event.outputBuffer.getChannelData(0).fill(0);
-    calibrationAnalyser=engine.context.createAnalyser();
-    calibrationAnalyser.fftSize=8192;
-    calibrationData=new Float32Array(calibrationAnalyser.fftSize);
-    engine.source.connect(calibrationAnalyser);
-    await loadFullSound();
-    return await calibrateMicrophoneNoiseFloor();
-  }catch(error){
-    ++calibrationToken;ready=false;
-    calibrationAnalyser?.disconnect();calibrationAnalyser=null;calibrationData=null;processAudio=null;
-    engine.stop();throw error;
+  engine.processor=ctx.createScriptProcessor(engine.blockSize,1,1);
+  engine.silentGain=ctx.createGain();engine.silentGain.gain.value=0;
+  const activeEngine=engine;
+  engine.processor.onaudioprocess=event=>{
+    event.outputBuffer.getChannelData(0).fill(0);
+    if(lifecycleId!==micLifecycleId||!activeEngine.running)return;
+    activeEngine._process(event.inputBuffer.getChannelData(0));
+  };
+  micSource.connect(engine.processor);
+  engine.processor.connect(engine.silentGain);
+  engine.silentGain.connect(ctx.destination);
+  resumeRecognition();
+}
+function stopMic(){
+  ++micLifecycleId;micStartPromise=null;ready=false;calibrationBusy=false;
+  stopFullSound();resetBreathTracking();
+  if(engine){
+    engine.running=false;
+    if(engine.processor)engine.processor.onaudioprocess=null;
+    try{engine.processor?.disconnect()}catch{}
+    try{engine.silentGain?.disconnect()}catch{}
+  }
+  try{micSource?.disconnect()}catch{}
+  try{analyser?.disconnect()}catch{}
+  if(stream)for(const track of stream.getTracks())track.stop();
+  const previousContext=ctx;
+  engine=null;stability=null;ctx=null;stream=null;micSource=null;analyser=null;timeData=null;
+  calOverlay.classList.remove('show','complete','closing');
+  if(previousContext&&previousContext.state!=='closed'){
+    void previousContext.close().catch(err=>console.warn('Äänikontekstin sulkeminen epäonnistui:',err));
   }
 }
+
+function startMic(){
+  if(micStartPromise)return micStartPromise;
+  if(stream&&ctx?.state!=='closed'&&stream.getAudioTracks().some(track=>track.readyState==='live'))return Promise.resolve(true);
+  stopMic();
+  const lifecycleId=micLifecycleId;
+  const pending=(async()=>{
+    try{
+      if(!navigator.mediaDevices?.getUserMedia)throw new Error('Selain ei tue mikrofonikäyttöä.');
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      if(!AudioContextClass)throw new Error('Selain ei tue äänen käsittelyä.');
+      const context=new AudioContextClass();
+      ctx=context;
+      const resumed=context.state==='running'?Promise.resolve():context.resume();
+      const supported=navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{};
+      const constraints={echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+      if(supported.voiceIsolation)constraints.voiceIsolation=false;
+      const captured=navigator.mediaDevices.getUserMedia({audio:constraints}).then(capturedStream=>{
+        if(lifecycleId!==micLifecycleId){
+          capturedStream.getTracks().forEach(track=>track.stop());
+          throw new Error('Mikrofonin avaus peruttiin.');
+        }
+        stream=capturedStream;
+        return capturedStream;
+      });
+      const [,capturedStream]=await Promise.all([resumed,captured]);
+      if(lifecycleId!==micLifecycleId)throw new Error('Mikrofonin avaus peruttiin.');
+      micSource=context.createMediaStreamSource(capturedStream);
+      analyser=context.createAnalyser();
+      analyser.fftSize=8192;
+      analyser.smoothingTimeConstant=.08;
+      analyser.minDecibels=-110;
+      analyser.maxDecibels=-10;
+      micSource.connect(analyser);
+      timeData=new Float32Array(analyser.fftSize);
+      await calibrateMicrophoneNoiseFloor(lifecycleId);
+      if(lifecycleId!==micLifecycleId)throw new Error('Mikrofonin avaus peruttiin.');
+      return true;
+    }catch(err){
+      if(lifecycleId===micLifecycleId)stopMic();
+      throw err;
+    }
+  })();
+  micStartPromise=pending;
+  const release=()=>{if(micStartPromise===pending)micStartPromise=null;};
+  pending.then(release,release);
+  return pending;
+}
+
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){stopFullSound();resetBreathTracking()}
 });
-window.addEventListener('pagehide',()=>{++calibrationToken;ready=false;stopFullSound();calibrationAnalyser?.disconnect();calibrationAnalyser=null;calibrationData=null;processAudio=null;engine?.stop()});
-window.addEventListener('pageshow',event=>{if(event.persisted&&!engine?.running){calOverlay.classList.remove('show','complete','closing');startOverlay.style.display='flex';$('#startBtn').disabled=false}});
+window.addEventListener('pagehide',stopMic);
+window.addEventListener('pageshow',event=>{if(event.persisted&&!stream){calOverlay.classList.remove('show','complete','closing');startOverlay.style.display='flex';$('#startBtn').disabled=false}});
 
 $('#settingsBtn').addEventListener('click',()=>settingsPanel.classList.toggle('open'));
 glassScaleSlider.addEventListener('input',()=>{uiSettings.glassScale=Number(glassScaleSlider.value);applyUiSettings();saveUiSettings()});
@@ -780,8 +860,24 @@ window.addEventListener('resize',fitDesignToViewport,{passive:true});
 window.addEventListener('orientationchange',fitDesignToViewport,{passive:true});
 if(window.visualViewport)window.visualViewport.addEventListener('resize',fitDesignToViewport,{passive:true});
 
-$('#startBtn').addEventListener('click',async()=>{startError.textContent='';$('#startBtn').disabled=true;$('#startBtn').textContent='Avataan mikrofonia…';try{await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';$('#startBtn').disabled=false;calOverlay.classList.remove('show')}finally{$('#startBtn').textContent='Aloita'}});
-$('#recalBtn').addEventListener('click',()=>{if(ready&&engine?.running)void calibrateMicrophoneNoiseFloor()});
+$('#startBtn').addEventListener('click',async()=>{
+  startError.textContent='';$('#startBtn').disabled=true;startOverlay.style.display='none';
+  let lifecycleId;
+  try{
+    const opening=startMic();lifecycleId=micLifecycleId;
+    await opening;
+    if(lifecycleId!==micLifecycleId)return;
+    // Same order as airplane: calibration first, game effects second.
+    await loadFullSound(ctx);
+    if(lifecycleId!==micLifecycleId)return;
+    startRecognition();
+  }catch(err){
+    if(lifecycleId!==micLifecycleId&&stream)return;
+    stopMic();startOverlay.style.display='flex';
+    startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';
+  }finally{$('#startBtn').disabled=false}
+});
+$('#recalBtn').addEventListener('click',()=>{if(ready&&engine?.running&&!calibrationBusy)void calibrateMicrophoneNoiseFloor()});
 $('#resetFills').addEventListener('click',resetGame);
 $('#playAgainBtn').addEventListener('click',resetGame);
 $('#closeScoreBtn').addEventListener('click',()=>scoreOverlay.classList.remove('show'));
