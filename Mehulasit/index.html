@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest?v=juomalasipeli-mehulasit-v1">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/juomalasipeli-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/juomalasipeli-apple-180.png">
-<title>Viiden mehulasin peli – Resonator 1.5.1</title>
+<title>Viiden mehulasin peli – Resonator 1.5</title>
 <style>
 :root{
   --sky1:#8dd7ff;--sky2:#e9f8ff;--ink:#173f61;--panel:rgba(255,255,255,.92);
@@ -37,7 +37,7 @@ button{cursor:pointer}
 .controls{position:absolute;top:14px;right:18px;z-index:25;display:flex;gap:8px}
 .iconbtn{width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.88);color:var(--ink);box-shadow:0 4px 14px rgba(24,77,113,.12);font-size:20px;font-weight:900}
 .stage{position:absolute;left:16px;right:16px;top:24px;bottom:18px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;align-items:end;justify-items:center}
-.note-column{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;min-width:0}
+.note-column{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;min-width:0;--accent:#ffffff}
 .glass-wrap{position:relative;width:182px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center}
 .glass-scene{position:relative;width:100%;height:100%;filter:drop-shadow(0 12px 18px rgba(35,100,139,.16));border-radius:14% 14% 17% 17%;transition:transform .08s ease,filter .08s ease;transform:scale(var(--glass-user-scale));transform-origin:50% 100%}
 .glass-scene>img,.glass-scene>svg,.glass-sticker-wrap{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -46,6 +46,8 @@ button{cursor:pointer}
 .glass-sticker-wrap{z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:30% 15% 24%}
 .glass-sticker{width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.10));transform:scale(var(--label-user-scale));transform-origin:center center}
 .glass-front{z-index:4;object-fit:contain;pointer-events:none}
+.live-ring{display:none}
+.note-column.active .glass-scene{transform:scale(var(--glass-user-scale))}
 .settings-panel{position:absolute;top:66px;right:18px;z-index:95;width:330px;max-height:680px;overflow:auto;padding:16px;border-radius:18px;background:var(--panel);box-shadow:0 14px 34px rgba(24,77,113,.19);display:none;color:var(--ink)}
 .settings-panel.open{display:block}
 .setting{display:grid;gap:6px;margin-bottom:15px}
@@ -65,6 +67,7 @@ button{cursor:pointer}
 #scoreOverlay.show{display:flex}
 .score-card{position:relative;width:var(--score-width);max-width:92vw;padding:12px 18px 14px;border-radius:22px;background:rgba(255,255,255,.97);box-shadow:0 20px 55px rgba(23,63,97,.25);color:var(--ink);text-align:center}
 .score-settings-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(232,242,248,.96);color:var(--ink);font-size:15px;font-weight:950;z-index:2}
+.score-title,.score-ideal-label,.score-feedback,.score-sub{display:none}
 .score-total{margin:0 32px 2px;font-size:22px;font-weight:1000;font-variant-numeric:tabular-nums}
 .score-chart{position:relative;height:var(--score-chart-height);margin:0 4px 2px;padding:8px 16px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:var(--score-gap);align-items:end;border-bottom:3px solid rgba(23,63,97,.18)}
 .score-ideal-line{position:absolute;left:10px;right:10px;height:0;border-top:3px dashed rgba(23,63,97,.44);pointer-events:none}
@@ -75,11 +78,13 @@ button{cursor:pointer}
 .score-bar-item.practice .score-bar-shell{box-shadow:inset 0 0 0 3px rgba(255,255,255,.55),0 0 0 4px rgba(23,63,97,.14),0 7px 18px rgba(23,63,97,.2)}
 .score-bar-note{margin-top:5px;font-size:21px;font-weight:1000}
 .score-breaths{display:block;font-size:12px;font-weight:800;white-space:nowrap;margin-top:2px}
+.score-feedback{margin:12px 0 4px;font-size:20px;font-weight:950}
+.score-sub{margin:0;color:rgba(23,63,97,.72);font-size:13px;font-weight:750}
 .score-actions{display:flex;justify-content:center;gap:8px;margin-top:8px}
 .score-action{border:0;border-radius:11px;padding:8px 15px;font-weight:950;font-size:14px}
 .score-action.primary-action{background:#173f61;color:#fff}
 .score-action.secondary-action{background:#e8f2f8;color:#173f61}
-#startOverlay{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(92,177,227,.48);backdrop-filter:blur(7px)}
+#startOverlay,#calOverlay{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(92,177,227,.48);backdrop-filter:blur(7px)}
 .overlay-card{width:420px;border-radius:24px;padding:22px;background:rgba(255,255,255,.96);text-align:center;box-shadow:0 18px 55px rgba(27,81,116,.2)}
 .primary{border:0;border-radius:15px;padding:14px 26px;background:#173f61;color:white;font-weight:950;font-size:20px}
 .error{color:#a13c3c;font-size:13px;font-weight:800;min-height:18px;margin:10px 0 0}
@@ -108,16 +113,16 @@ button{cursor:pointer}
 
 .cal-ring-stage{
   position:relative;
-  width:180px;
-  height:180px;
+  width:180px !important;
+  height:180px !important;
   display:grid;
   place-items:center;
   overflow:visible;
-  background:transparent;
-  border:0;
-  border-radius:0;
-  box-shadow:none;
-  filter:none;
+  background:transparent !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  filter:none !important;
   transform:scale(.965);
   animation:calRingIn 220ms cubic-bezier(.2,.8,.2,1) forwards;
 }
@@ -198,8 +203,8 @@ button{cursor:pointer}
 @keyframes calRingIn{from{transform:scale(.955);opacity:.72}to{transform:scale(1);opacity:1}}
 
 @media(max-width:560px){.cal-ring-stage{
-  width:156px;
-  height:156px;
+  width:156px !important;
+  height:156px !important;
 }
 
 .cal-ring-wrap,
@@ -231,7 +236,7 @@ button{cursor:pointer}
     <div id="runClock" class="run-clock" aria-live="off">⏱ <span id="runClockValue">0,0 s</span></div>
 
     <div id="settingsPanel" class="settings-panel">
-      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">VERSIO 1.5.1 • RESONATOR</div>
+      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">VERSIO 1.5 • RESONATOR</div>
       <div class="setting">
         <div class="setting-head"><label for="glassScaleSlider">Lasien koko</label><span id="glassScaleValue" class="setting-value">250 %</span></div>
         <input id="glassScaleSlider" type="range" min="70" max="250" step="1" value="250">
@@ -307,6 +312,7 @@ button{cursor:pointer}
     </div>
   </div>
 
+
   </div>
   <div id="rotateOverlay"><div class="overlay-card"><div id="rotateIcon">↻</div></div></div>
 </div>
@@ -318,9 +324,8 @@ button{cursor:pointer}
 'use strict';
 const DESIGN_W=1366;
 const DESIGN_H=768;
-// Retain the original key so existing saved settings continue to load.
 const UI_SETTINGS_KEY='juomalasipeli-ui-scoreboard-1-4-3-isolated';
-const SETTINGS_VERSION='mehulasit-1.5.1';
+const SETTINGS_VERSION='mehulasit-1.5';
 const BREATH_GAP_SECONDS=.160;
 const NOTES=[
   {key:'G',target:440*2**(-2/12),sticker:'stickers/g.webp'},
@@ -355,7 +360,7 @@ const scoreWidthValue=$('#scoreWidthValue'),scoreHeightValue=$('#scoreHeightValu
 const settingsJson=$('#settingsJson'),settingsJsonStatus=$('#settingsJsonStatus');
 const startOverlay=$('#startOverlay'),startError=$('#startError');
 const runClock=$('#runClock'),runClockValue=$('#runClockValue');
-const scoreOverlay=$('#scoreOverlay'),scoreChart=$('#scoreChart'),scoreTotal=$('#scoreTotal'),scoreIdealLine=$('#scoreIdealLine');
+const scoreOverlay=$('#scoreOverlay'),scoreChart=$('#scoreChart'),scoreTotal=$('#scoreTotal'),scoreIdealLine=$('#scoreIdealLine'),scoreIdealLabel=$('#scoreIdealLabel'),scoreFeedback=$('#scoreFeedback');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
 let engine=null,stability=null,ready=false,calibrationToken=0;
 let breathNotes=new Set(),quietSince=null;
@@ -363,17 +368,18 @@ let breathCounts={G:0,A:0,H:0,C:0,D:0};
 let effectBuffer=null,effectSource=null,effectUntil=0,effectPauseAt=null;
 let visualDirty=true;
 let fills={G:0,A:0,H:0,C:0,D:0};
+let currentActiveKey=null,currentActiveMatch=0;
 let uiSettings={glassScale:250,labelScale:50,fillRate:20,scoreWidth:620,scoreChartHeight:240,scoreBarWidth:42,scoreGap:14};
 let runStartedAt=null,runEndedAt=null,activeAttemptKey=null,activeAttemptStartedAt=null;
 let noteTimes={G:0,A:0,H:0,C:0,D:0};
 let completedNotes={G:false,A:false,H:false,C:false,D:false};
-let runIdealSeconds=5;
+let runIdealSeconds=5,scoreShown=false;
 
 function formatSeconds(v){return `${Math.max(0,Number(v)||0).toFixed(1).replace('.',',')} s`}
 function resetPerformanceTracking(){
   runStartedAt=null;runEndedAt=null;activeAttemptKey=null;activeAttemptStartedAt=null;
   noteTimes={G:0,A:0,H:0,C:0,D:0};completedNotes={G:false,A:false,H:false,C:false,D:false};
-  runIdealSeconds=100/Math.max(1,uiSettings.fillRate);
+  runIdealSeconds=100/Math.max(1,uiSettings.fillRate);scoreShown=false;
   runClock.classList.remove('show');runClockValue.textContent='0,0 s';scoreOverlay.classList.remove('show');
 }
 function startRunIfNeeded(key,now){
@@ -399,6 +405,11 @@ function completeAttempt(key,now){
   completedNotes[key]=true;
   playFullSound();
 }
+function liveNoteTime(key,now){
+  let t=noteTimes[key]||0;
+  if(activeAttemptKey===key&&activeAttemptStartedAt!==null&&!completedNotes[key])t+=Math.max(0,(now-activeAttemptStartedAt)/1000);
+  return t;
+}
 function updateRunClock(now=performance.now()){
   if(runStartedAt===null||runEndedAt!==null)return;
   runClockValue.textContent=formatSeconds(((effectPauseAt??now)-runStartedAt)/1000);
@@ -406,10 +417,11 @@ function updateRunClock(now=performance.now()){
 function buildScoreboard(){
   const times=NOTES.map(n=>({key:n.key,time:noteTimes[n.key]||0,flavor:FLAVORS[n.key]}));
   const maxTime=Math.max(runIdealSeconds*2,...times.map(x=>x.time*1.12),1);
-  const worst=times.reduce((a,b)=>(b.time-runIdealSeconds)>(a.time-runIdealSeconds)?b:a,times[0]);
+  const worst=times.reduce((a,b)=>(b.time-runIdealSeconds)>(a.time-runIdealSeconds)?b:a,times[0]),worstExcess=Math.max(0,worst.time-runIdealSeconds),hasPractice=worstExcess>.35;
   if(scoreTotal)scoreTotal.textContent=formatSeconds(runEndedAt!==null&&runStartedAt!==null?(runEndedAt-runStartedAt)/1000:0);
+  if(scoreIdealLabel)scoreIdealLabel.textContent=`Ihanne ${formatSeconds(runIdealSeconds)}`;
   const bottomPct=clamp(runIdealSeconds/maxTime*100,0,100),plotHeight=Math.max(80,uiSettings.scoreChartHeight-88),plotBottom=52,idealBottom=plotBottom+(bottomPct/100)*plotHeight;
-  scoreIdealLine.style.bottom=`${idealBottom.toFixed(1)}px`;
+  scoreIdealLine.style.bottom=`${idealBottom.toFixed(1)}px`;if(scoreIdealLabel)scoreIdealLabel.style.bottom=`${idealBottom.toFixed(1)}px`;
   scoreChart.querySelectorAll('.score-bar-item').forEach(el=>el.remove());
   for(const item of times){
     const el=document.createElement('div');el.className='score-bar-item'+(item.key===worst.key?' practice':'');
@@ -418,22 +430,31 @@ function buildScoreboard(){
     el.innerHTML=`<div class="score-bar-time">${formatSeconds(item.time)}</div><div class="score-bar-area"><div class="score-bar-shell" style="height:${h.toFixed(2)}%"></div></div><div class="score-bar-note">${item.key}<span class="score-breaths">${breathCounts[item.key]} ${breathCounts[item.key]===1?'puhallus':'puhallusta'}</span></div>`;
     scoreChart.appendChild(el);
   }
+  if(scoreFeedback)scoreFeedback.textContent=hasPractice?`Harjoittele seuraavaksi: ${worst.key}`:'Kaikki äänet olivat tasaisia!';
 }
 function finishRun(now=performance.now()){
   if(runStartedAt===null||runEndedAt!==null)return;
   if(activeAttemptKey)commitActiveAttempt(now);
   runEndedAt=now;activeAttemptKey=null;activeAttemptStartedAt=null;
   updateRunClock(now);runClock.classList.remove('show');
-  buildScoreboard();scoreOverlay.classList.add('show');
+  buildScoreboard();scoreShown=true;scoreOverlay.classList.add('show');
 }
 function resetGame(){
   for(const n of NOTES)fills[n.key]=0;
   stopFullSound();
-  breathNotes.clear();quietSince=null;
+  currentActiveKey=null;currentActiveMatch=0;breathNotes.clear();quietSince=null;
   breathCounts={G:0,A:0,H:0,C:0,D:0};stability?.reset();
   resetPerformanceTracking();renderAll();
 }
 
+function clearLegacySettings(){
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const key=localStorage.key(i);
+      if(key&&key!==UI_SETTINGS_KEY&&key.startsWith('juomalasipeli-ui-'))localStorage.removeItem(key);
+    }
+  }catch(_){}
+}
 function loadUiSettings(){
   try{
     const raw=localStorage.getItem(UI_SETTINGS_KEY);
@@ -539,7 +560,8 @@ function buildGlasses(){
     const col=document.createElement('section');
     col.className='note-column';
     col.dataset.note=n.key;
-    col.innerHTML=`<div class="glass-wrap"><div class="glass-scene"><img class="glass-back" src="glass-empty.webp" alt=""><svg class="glass-juice" viewBox="0 0 1024 1536" aria-hidden="true"><defs><clipPath id="${clip}"><path d="M 268 154 L 756 154 L 756 1110 C 756 1200 741 1255 694 1293 C 650 1329 374 1329 330 1293 C 283 1255 268 1200 268 1110 Z"/></clipPath><clipPath id="${levelClip}"><rect data-role="level-rect" x="250" y="1330" width="524" height="0"/></clipPath></defs><g clip-path="url(#${clip})"><rect data-role="juice-fill" x="250" y="1330" width="524" height="0" fill="${flavor.juice}"/><g data-role="bubbles-layer" clip-path="url(#${levelClip})" opacity="0"><g data-role="micro-bubbles"></g><g data-role="stream-bubbles"></g><g data-role="large-bubbles"></g><g data-role="surface-bubbles"></g></g><ellipse data-role="juice-surface" cx="512" cy="1330" rx="236" ry="30" fill="${flavor.surface}" opacity="0"/><g data-role="top-bubbles"></g></g></svg><div class="glass-sticker-wrap"><img class="glass-sticker" src="${n.sticker}" alt=""></div><img class="glass-front" src="glass-front.png" alt=""></div></div>`;
+    col.style.setProperty('--accent',flavor.accent);
+    col.innerHTML=`<div class="glass-wrap"><div class="glass-scene"><img class="glass-back" src="glass-empty.webp" alt=""><svg class="glass-juice" viewBox="0 0 1024 1536" aria-hidden="true"><defs><clipPath id="${clip}"><path d="M 268 154 L 756 154 L 756 1110 C 756 1200 741 1255 694 1293 C 650 1329 374 1329 330 1293 C 283 1255 268 1200 268 1110 Z"/></clipPath><clipPath id="${levelClip}"><rect data-role="level-rect" x="250" y="1330" width="524" height="0"/></clipPath></defs><g clip-path="url(#${clip})"><rect data-role="juice-fill" x="250" y="1330" width="524" height="0" fill="${flavor.juice}"/><g data-role="bubbles-layer" clip-path="url(#${levelClip})" opacity="0"><g data-role="micro-bubbles"></g><g data-role="stream-bubbles"></g><g data-role="large-bubbles"></g><g data-role="surface-bubbles"></g></g><ellipse data-role="juice-surface" cx="512" cy="1330" rx="236" ry="30" fill="${flavor.surface}" opacity="0"/><g data-role="top-bubbles"></g></g></svg><div class="glass-sticker-wrap"><img class="glass-sticker" src="${n.sticker}" alt=""></div><img class="glass-front" src="glass-front.png" alt=""><div class="live-ring"></div></div></div>`;
     stage.appendChild(col);
     glassFx[n.key]={col,rising:[],surface:[],top:[],surfaceFizz:0,currentSurfaceY:GLASS_BOTTOM,currentVisualFill:0};
     initGlassBubbles(n.key,col);
@@ -558,7 +580,7 @@ function innerHalfWidthAtY(y){const t=clamp((GLASS_BOTTOM-y)/(GLASS_BOTTOM-GLASS
 function animateGlassEffects(now){
   finishEffectPause(now);
   updateRunClock(now);
-  if(visualDirty){visualDirty=false;renderAll()}
+  if(visualDirty){visualDirty=false;renderAll(currentActiveKey,currentActiveMatch)}
   const dt=Math.min(.05,(now-bubbleAnimationLast)/1000||.016);bubbleAnimationLast=now;
   for(const key of Object.keys(glassFx)){
     const fx=glassFx[key],active=fx.currentVisualFill>.1;
@@ -584,15 +606,21 @@ function animateGlassEffects(now){
   }
   requestAnimationFrame(animateGlassEffects);
 }
-function renderAll(){
+function renderAll(activeKey=null,match=null){
   let allFull=true;
   for(const n of NOTES){
-    const value=clamp(fills[n.key]||0,0,100);
-    updateGlassVisual(n.key,value);
-    if(value<100)allFull=false;
+    const col=stage.querySelector(`[data-note="${n.key}"]`),v=clamp(fills[n.key]||0,0,100);
+    updateGlassVisual(n.key,v);
+    col.classList.toggle('active',activeKey===n.key);
+    col.classList.toggle('good',activeKey===n.key&&match>=80);
+    if(v<100)allFull=false;
   }
-  if(allFull&&runStartedAt!==null&&runEndedAt===null)finishRun(performance.now());
+  if(allFull){
+    for(const n of NOTES){const col=stage.querySelector(`[data-note="${n.key}"]`);col.classList.add('good')}
+    if(runStartedAt!==null&&runEndedAt===null)finishRun(performance.now());
+  }
 }
+function clearLiveUi(){currentActiveKey=null;currentActiveMatch=0;visualDirty=true}
 function resetBreathTracking(){breathNotes.clear();quietSince=null;stability?.reset()}
 function audioTime(){return engine?.context?.currentTime||0}
 
@@ -604,13 +632,14 @@ function observeVoice(){
 }
 function receiveInput(detail){
   if(!ready||document.hidden)return;
-  if(effectPauseAt!==null){return}
+  if(effectPauseAt!==null){clearLiveUi();return}
   observeVoice();
-  if(!detail.accepted){stability.reject();return}
+  if(!detail.accepted){stability.reject();clearLiveUi();return}
   const accepted=stability.accept(detail);
-  if(!accepted){return}
+  if(!accepted){clearLiveUi();return}
   const key=accepted.action;
   if(!(key in fills))return;
+  currentActiveKey=key;currentActiveMatch=accepted.match*100;visualDirty=true;
   if(completedNotes[key]||runEndedAt!==null)return;
   const dt=Math.max(0,Math.min(.08,accepted.blockMs/1000));
   if(!dt)return;
@@ -618,13 +647,12 @@ function receiveInput(detail){
   startRunIfNeeded(key,activityAt);switchActiveAttempt(key,activityAt);
   if(!breathNotes.has(key)){breathNotes.add(key);breathCounts[key]++}
   fills[key]=clamp(fills[key]+uiSettings.fillRate*dt,0,100);
-  visualDirty=true;
   if(fills[key]>=100)completeAttempt(key,now);
 }
 function receiveSilence(){
   if(!ready||effectPauseAt!==null)return;
   if(quietSince===null)quietSince=audioTime();
-  stability.silence();
+  stability.silence();clearLiveUi();
 }
 async function loadFullSound(){
   const bytes=Uint8Array.from(atob(window.MEHULASIT_SOUND_BASE64),c=>c.charCodeAt(0));
@@ -654,7 +682,7 @@ function releaseEffectPause(now){
     runStartedAt+=pause;
     if(activeAttemptStartedAt!==null)activeAttemptStartedAt+=pause;
   }
-  effectPauseAt=null;effectUntil=0;quietSince=null;stability?.reset();
+  effectPauseAt=null;effectUntil=0;quietSince=null;stability?.reset();clearLiveUi();
 }
 function stopFullSound(){
   if(effectSource){try{effectSource.stop()}catch(_){}effectSource=null}
@@ -671,7 +699,7 @@ function updateCalibrationVisual(db,progress){
   calOverlay.classList.toggle('complete',p>=.999);
 }
 function beginCalibration(){
-  ++calibrationToken;ready=false;stopFullSound();resetBreathTracking();
+  ++calibrationToken;ready=false;stopFullSound();resetBreathTracking();clearLiveUi();
   $('#recalBtn').disabled=true;
   calOverlay.classList.remove('complete','closing');calOverlay.classList.add('show');
   updateCalibrationVisual(-90,0);
@@ -707,7 +735,7 @@ async function startMic(){
   catch(error){++calibrationToken;ready=false;engine.stop();throw error}
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){stopFullSound();resetBreathTracking()}
+  if(document.hidden){stopFullSound();resetBreathTracking();clearLiveUi()}
 });
 window.addEventListener('pagehide',()=>{++calibrationToken;ready=false;stopFullSound();engine?.stop()});
 window.addEventListener('pageshow',event=>{if(event.persisted&&!engine?.running){calOverlay.classList.remove('show','complete','closing');startOverlay.style.display='flex';$('#startBtn').disabled=false}});
@@ -734,9 +762,10 @@ $('#resetFills').addEventListener('click',resetGame);
 $('#playAgainBtn').addEventListener('click',resetGame);
 $('#closeScoreBtn').addEventListener('click',()=>scoreOverlay.classList.remove('show'));
 
-loadUiSettings();applyUiSettings();exportSettingsJson();fitDesignToViewport();resetPerformanceTracking();
+clearLegacySettings();loadUiSettings();applyUiSettings();exportSettingsJson();fitDesignToViewport();resetPerformanceTracking();
 buildGlasses();requestAnimationFrame(animateGlassEffects);
 })();
 </script>
+<script>/* BUILD 1.5: service worker intentionally disabled to prevent old-cache collisions. */</script>
 </body>
 </html>

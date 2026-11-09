@@ -1,6 +1,8 @@
-/* ResonatorEngine 0.7.2 + ResonatorNoteStability.
- * From Resonator_Selkea_UI_v1_6. Both class implementations are unchanged.
- * The unused ResonatorSession test-bench wrapper is omitted in Mehulasit.
+/* ResonatorEngine 0.7.2 — kahden tiedoston paketti.
+ * UI: index.html. Toiminta: tämä tiedosto. Ei ulkoisia kirjastoja.
+ * Lataa tavallisena scriptinä. ResonatorSession tarjoaa valmiit mittaustiedot.
+ * Alkuperäisen engine-tiedoston SHA-256: b0c6e6ca876d197bc3c2b88413ef36506f3976752445ec67c4eb9e361366141d
+ * Alkuperäisen vaihtosuojan SHA-256: d18db0e1db235cb1421807cc02c1a2219a3893b1351b59588834e0889a37b2b8
  */
 /*
  * ResonatorStringEngine 0.7.2
@@ -943,3 +945,312 @@
 
   window.ResonatorNoteStability=ResonatorNoteStability;
 })();
+
+/*
+ * ResonatorSession — testipenkki 1.3, kahden tiedoston paketti.
+ * Ei DOM-riippuvuuksia. UI käyttää getState()-tilannekuvaa ja change-tapahtumaa.
+ * API: start(), stop(), calibrateNoise(), calibrateA(), cancelTuningCalibration(), resetTuning(),
+ * setNoiseMarginDb(value), setStabilityEnabled(bool),
+ * setDynamicsCompression(bool), clearLog().
+ * Moottori 0.7.0 ja alkuperäinen vaihtosuoja on yhdistetty tähän tiedostoon
+ * muuttamatta niiden tunnistus- tai suojausalgoritmeja.
+ */
+(function (global) {
+  'use strict';
+  const NAMES = ['F¹', 'G¹', 'A¹', 'B¹', 'C²', 'D²', 'E²', 'F²'];
+  const TARGETS = Object.fromEntries([65, 67, 69, 70, 72, 74, 76, 77].map(
+    (midi, i) => [String(i), 440 * 2 ** ((midi - 69) / 12)]));
+  const db = rms => Number.isFinite(rms) && rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+  const now = () => performance.now();
+
+  class ResonatorSession extends EventTarget {
+    constructor() {
+      super();
+      this.engine = new global.ResonatorStringEngine({
+        targets: TARGETS, blockSize: 256, calibrationMs: 1500,
+        responseMs: 1.8, toleranceCents: 40, centerMatch: .955, edgeMatch: .998,
+        minHalfPeriodEnergy: .32, noiseMarginDb: 8,
+        pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 140
+      });
+      this.stability = new global.ResonatorNoteStability({ targets: TARGETS, dynamicsCompression: true });
+      this.stabilityEnabled = true;
+      this.phase = 'stopped';
+      this.ready = this.opening = false;
+      this.requestId = this.tuningRequest = 0;
+      this.openTimer = null;
+      this.analyser = this.analyserSource = this.meterBuffer = null;
+      this.noiseRms = this.gate = this.fallbackRms = null;
+      this.fallbackAt = -Infinity;
+      this.noiseProgress = this.tuningProgress = 0;
+      this.status = { code: 'idle' };
+      this.tuningStatus = { code: 'closed' };
+      this.logs = [];
+      this.logRevision = this.targetsRevision = 0;
+      this._clearSound();
+      this._listen();
+    }
+
+    _notify() { this.dispatchEvent(new CustomEvent('change')); }
+    _log(code, data = {}) {
+      this.logs.unshift({ code, ...data, at: Date.now() });
+      this.logs.length = Math.min(this.logs.length, 100);
+      ++this.logRevision;
+    }
+    _clearSound(keepNote = false) {
+      this.pitch = this.accepted = this.lastInput = null;
+      this.pitchAt = this.acceptedAt = -Infinity;
+      this._pitchCandidate = null; this._pitchCandidateAt = -Infinity;
+      if (!keepNote) this.displayed = null;
+      this.stability.reset();
+      this.decisionMs = this.decisionKind = null;
+    }
+    _detachMeter() {
+      if (this.analyserSource && this.analyser) {
+        try { this.analyserSource.disconnect(this.analyser); } catch (_) {}
+      }
+      if (this.analyser) { try { this.analyser.disconnect(); } catch (_) {} }
+      this.analyser = this.analyserSource = this.meterBuffer = null;
+      this.fallbackRms = null;
+      this.fallbackAt = -Infinity;
+    }
+    _attachMeter() {
+      this._detachMeter();
+      try {
+        // Parallel meter branch; does not change the detector's audio path.
+        this.analyser = this.engine.context.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.meterBuffer = new Float32Array(this.analyser.fftSize);
+        this.analyserSource = this.engine.source;
+        this.analyserSource.connect(this.analyser);
+      } catch (_) {
+        this._detachMeter();
+        this._log('meter-fallback');
+      }
+    }
+    _receiveLevel(detail) {
+      if (Number.isFinite(detail.rms)) {
+        this.fallbackRms = detail.rms;
+        this.fallbackAt = now();
+      }
+      if (Number.isFinite(detail.gate)) this.gate = detail.gate;
+    }
+    _receivePitch(detail) {
+      this._receiveLevel(detail);
+      const time = now();
+      // This confirmation applies only to the displayed Hz value. The detector's
+      // input/trigger events and the note-stability filter are not delayed.
+      const valid = this.ready && !this.engine.tuningCalibrating &&
+        Number.isFinite(detail.frequency) && detail.frequency > 0 &&
+        Number.isFinite(detail.match) && detail.match >= 0.9 &&
+        Number.isFinite(detail.rms) && this.gate !== null && detail.rms >= this.gate;
+      const previous = this._pitchCandidate;
+      const confirmed = valid && previous && time - this._pitchCandidateAt <= 100 &&
+        Math.abs(1200 * Math.log2(detail.frequency / previous.frequency)) <= 70;
+      this._pitchCandidate = valid ? detail : null;
+      this._pitchCandidateAt = valid ? time : -Infinity;
+      this.pitch = confirmed ? detail : null;
+      this.pitchAt = confirmed ? time : -Infinity;
+    }
+    _readLevel(time) {
+      if (this.analyser && this.engine.running) {
+        try {
+          this.analyser.getFloatTimeDomainData(this.meterBuffer);
+          let energy = 0;
+          for (const sample of this.meterBuffer) energy += sample * sample;
+          return Math.sqrt(energy / this.meterBuffer.length);
+        } catch (_) { this._detachMeter(); }
+      }
+      return this.engine.running && time - this.fallbackAt < 200 ? this.fallbackRms : null;
+    }
+
+    // Snapshot exposes measurements in physical units, never DOM elements or pixels.
+    getState(time = now()) {
+      const engine = this.engine, tuning = engine.tuningCalibrating;
+      const level = this._readLevel(time);
+      const aboveGate = level !== null && this.gate !== null && level >= this.gate;
+      const hasPitch = !!(this.ready && !tuning && aboveGate && this.pitch && time - this.pitchAt < 100);
+      const hasAccepted = this.ready && !tuning && this.accepted !== null && time - this.acceptedAt < 200;
+      const hasNote = this.ready && !tuning && this.displayed !== null;
+      const waiting = hasNote && hasAccepted && this.displayed !== this.accepted;
+      const rejected = this.ready && !tuning && !hasAccepted && (hasPitch || aboveGate);
+      const targets = Object.entries(engine.nominalTargets).map(([id, nominal]) => ({
+        id, name: NAMES[id] || id, nominal, frequency: engine.targets[id]
+      }));
+      const note = hasNote ? targets.find(target => target.id === this.displayed) || null : null;
+      return {
+        version: engine.version, phase: this.phase, ready: this.ready,
+        opening: this.opening, running: engine.running, tuning,
+        status: { ...this.status }, tuningStatus: { ...this.tuningStatus },
+        noiseProgress: this.noiseProgress, tuningProgress: this.tuningProgress,
+        referenceA: engine.referenceA, referenceCents: 1200 * Math.log2(engine.referenceA / 440),
+        noiseMarginDb: engine.noiseMarginDb,
+        stabilityEnabled: this.stabilityEnabled, dynamicsCompression: this.stability.dynamicsCompression,
+        levelDb: level === null ? null : db(level),
+        noiseDb: this.noiseRms === null ? null : db(this.noiseRms),
+        gateDb: this.gate === null ? null : db(this.gate), aboveGate: this.ready && aboveGate,
+        pitch: hasPitch ? { ...this.pitch, anchorName: NAMES[this.pitch.anchor] || this.pitch.anchor,
+          normalizedFrequency: this.pitch.frequency * 440 / engine.referenceA } : null,
+        note, accepted: hasAccepted ? { id: this.accepted, name: NAMES[this.accepted] || this.accepted } : null,
+        decisionMs: hasAccepted ? this.decisionMs : null,
+        decisionKind: hasAccepted ? this.decisionKind : null,
+        waiting, rejected, targets, targetsRevision: this.targetsRevision,
+        logs: this.logs.slice(), logRevision: this.logRevision
+      };
+    }
+
+    async start() {
+      if (this.opening || this.engine.running) return;
+      const request = ++this.requestId;
+      this.opening = true; this.ready = false; this.phase = 'requesting-microphone';
+      this.noiseRms = this.gate = null;
+      this._clearSound(); this.noiseProgress = 0;
+      this.status = { code: 'requesting' };
+      this.openTimer = setTimeout(() => {
+        if (request !== this.requestId) return;
+        this.stop();
+        this.status = { code: 'open-timeout', error: true };
+        this._notify();
+      }, 20000);
+      this._notify();
+      try {
+        // Called synchronously from the UI gesture, before the first await.
+        await this.engine.start();
+        if (request !== this.requestId) return;
+        clearTimeout(this.openTimer); this.openTimer = null;
+        this.opening = false; this._attachMeter(); this._notify();
+      } catch (error) {
+        if (request !== this.requestId) return;
+        clearTimeout(this.openTimer); this.openTimer = null;
+        this.opening = this.ready = false; this.phase = 'stopped';
+        this._detachMeter(); this._clearSound();
+        this.status = { code: 'mic-error', error: true, name: error.name, message: error.message || String(error) };
+        this._log('mic-error', this.status); this._notify();
+      }
+    }
+    stop() {
+      ++this.requestId; ++this.tuningRequest;
+      clearTimeout(this.openTimer); this.openTimer = null;
+      this._detachMeter(); this.engine.stop();
+      this.opening = this.ready = false; this.phase = 'stopped';
+      this.noiseRms = this.gate = null;
+      this._clearSound();
+      this.status = { code: 'stopped' };
+      this.tuningStatus = { code: 'closed-retained' };
+      this._notify();
+    }
+    setNoiseMarginDb(value) {
+      const result = this.engine.setNoiseMarginDb(value);
+      this._notify(); return result;
+    }
+    calibrateNoise() {
+      if (!this.ready || this.opening || this.engine.tuningCalibrating) return false;
+      return this.engine.calibrateNoise();
+    }
+    async calibrateA() {
+      const request = ++this.tuningRequest;
+      this._clearSound(); this.tuningProgress = 0;
+      try { await this.engine.calibrateA(); }
+      catch (error) {
+        if (request !== this.tuningRequest || error.name === 'AbortError') return;
+        this.tuningStatus = { code: 'error', message: error.message || String(error) };
+      }
+      if (request === this.tuningRequest) this._notify();
+    }
+    cancelTuningCalibration() { this.engine.cancelTuningCalibration(); }
+    resetTuning() {
+      ++this.tuningRequest; this.engine.resetTuning(); this._clearSound();
+      this.tuningStatus = { code: 'reset' }; this._notify();
+    }
+    setStabilityEnabled(enabled) {
+      this.stabilityEnabled = Boolean(enabled);
+      this.stability.reset();
+      if (this.ready && !this.engine.tuningCalibrating && this.accepted !== null && now() - this.acceptedAt < 200) {
+        this.displayed = this.accepted;
+        if (this.stabilityEnabled && this.lastInput) this.stability.accept(this.lastInput);
+      }
+      this._log('stability', { enabled: this.stabilityEnabled }); this._notify();
+    }
+    setDynamicsCompression(enabled) {
+      this.stability.setDynamicsCompression(enabled);
+      this._log('dynamics', { enabled: this.stability.dynamicsCompression }); this._notify();
+    }
+    clearLog() { this.logs.length = 0; ++this.logRevision; this._notify(); }
+
+    _listen() {
+      const on = (name, listener) => this.engine.addEventListener(name, event => listener(event.detail));
+      on('state', d => {
+        this.phase = d.state; this.ready = this.phase === 'running';
+        if (Number.isFinite(d.noiseRms)) this.noiseRms = d.noiseRms;
+        if (Number.isFinite(d.gate)) this.gate = d.gate;
+        if (this.phase === 'running') {
+          this.status = { code: 'running' }; this.tuningStatus = { code: 'ready' };
+          this._log('running', { gateDb: db(this.gate) });
+        } else if (this.phase === 'calibrating') {
+          this._clearSound();
+          this.noiseRms = this.gate = null; this.noiseProgress = 0;
+          this.status = { code: 'noise-start' }; this.tuningStatus = { code: 'noise-wait' };
+          this._log('noise-start');
+        } else if (this.phase === 'stopped') {
+          this.ready = this.opening = false;
+          this._detachMeter(); this._clearSound(); this._log('stopped');
+        }
+        this._notify();
+      });
+      on('calibrationprogress', d => {
+        this.noiseRms = d.noiseRms; this.noiseProgress = d.progress;
+        this.status = { code: 'noise-progress', progress: d.progress };
+      });
+      on('thresholdchange', d => { this.gate = d.gate; this.noiseRms = d.noiseRms; });
+      on('tuningstate', d => {
+        this._clearSound(); this.tuningStatus = { code: d.state, message: d.message };
+        if (d.state === 'calibrating') this._log('tuning-start');
+        else if (d.state === 'cancelled') this._log('tuning-cancelled');
+        else if (d.state !== 'completed') this._log('tuning-message', { message: d.message });
+        this._notify();
+      });
+      on('tuningprogress', d => {
+        this.tuningProgress = d.progress;
+        this.tuningStatus = { code: 'progress', frequency: d.frequency, progress: d.progress, status: d.status };
+      });
+      on('tuningchange', d => {
+        this._clearSound(); ++this.targetsRevision;
+        this._log('tuning-change', { referenceA: d.referenceA }); this._notify();
+      });
+      on('targetschange', () => {
+        this._clearSound(); this.stability.targets = this.engine.nominalTargets;
+        ++this.targetsRevision; this._notify();
+      });
+      on('pitch', d => this._receivePitch(d));
+      on('input', d => {
+        this._receiveLevel(d);
+        const oldNote = this.displayed, oldAccepted = this.accepted;
+        const oldDecision = this.decisionMs, oldKind = this.decisionKind;
+        this.lastInput = d;
+        if (d.accepted === true) {
+          this.accepted = d.action; this.acceptedAt = now();
+          this.decisionMs = d.decisionMs; this.decisionKind = d.decisionKind;
+        } else { this.accepted = this.decisionMs = this.decisionKind = null; }
+        if (this.stabilityEnabled) {
+          if (d.accepted === true) {
+            const stable = this.stability.accept(d);
+            if (stable) this.displayed = stable.action;
+          } else this.stability.reject();
+        } else if (this.accepted !== null) this.displayed = this.accepted;
+        if (this.displayed !== oldNote && this.displayed !== null && this.stabilityEnabled) {
+          this._log('display-note', { name: NAMES[this.displayed] || this.displayed });
+        }
+        // Note decisions do not wait for a UI animation frame.
+        if (this.displayed !== oldNote || this.accepted !== oldAccepted || this.decisionMs !== oldDecision || this.decisionKind !== oldKind) this._notify();
+      });
+      on('trigger', d => this._log('trigger', {
+        name: NAMES[d.action] || d.action, decisionMs: d.decisionMs
+      }));
+      on('silence', d => { this._receiveLevel(d); this._clearSound(true); this._notify(); });
+      on('error', d => {
+        this.status = { code: 'error', error: true, message: d.message };
+        this._log('error', { message: d.message }); this._notify();
+      });
+    }
+  }
+  global.ResonatorSession = ResonatorSession;
+})(typeof window !== 'undefined' ? window : globalThis);

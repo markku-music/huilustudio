@@ -1,4 +1,4 @@
-MEHULASIT 1.5.1
+MEHULASIT 1.5
 
 Pura koko ZIP ja avaa Mehulasit/index.html tai siirrä Mehulasit-kansion
 sisältö verkkopalvelimelle. Verkkokäytössä mikrofoni vaatii HTTPS:n
@@ -6,14 +6,13 @@ sisältö verkkopalvelimelle. Verkkokäytössä mikrofoni vaatii HTTPS:n
 
 UUTTA
 - Lähetetyn Resonator Selkeä UI 1.6 -paketin ResonatorEngine 0.7.2.
-  Tunnistin ja sävelvaihtosuoja on säilytetty muuttamattomina.
-  Käyttämätön ResonatorSession-testipenkkiosa on poistettu paketista.
+  Alkuperäinen resonator-engine.js on säilytetty muuttamattomana.
   Peli käyttää moottoria ja sen sävelvaihtosuojaa omilla kohdesävelillään:
   G1, A1, H1, C2, D2; A = 440 Hz, toleranssiasetus 40 senttiä.
   Testipenkin F-duurin kohdekarttaa ei käytetä pelissä.
 - Lähetetty Lamppu-ääni soi kerran jokaisen lasin täyttyessä.
-  Ääni on muunnettu yhteensopivaan 16-bittiseen WAV-muotoon ja tallennettu
-  audio-data.js:ssä, joten äänen lataaminen ei vaadi fetch-kutsua.
+  Ääni on muunnettu yhteensopivaan 16-bittiseen WAV-muotoon ja mukana
+  myös audio-data.js:ssä, joten äänen lataaminen ei vaadi fetch-kutsua.
 - Tulostaulussa jokaisen sävelen alla näkyy lasiin tarvittu puhallusmäärä.
 - Lentokone3:n kalibrointirengas, äänenvoimakkuuteen reagoiva pulssi,
   dB-lukema, vihreä valmistuminen ja häivytys.
@@ -37,8 +36,8 @@ SÄILYTETTY
 Lasit, etiketit, mehu ja kuplat, vaakasuuntainen näkymä, säädettävä
 täyttönopeus, lasi- ja etikettikoot, tulostaulun aikapalkit ja JSON-asetukset.
 Aiemman version tallennetut koko- ja nopeusasetukset säilyvät samassa
-selaimessa ja samassa osoitteessa. Service workeria ei rekisteröidä,
-kuten versioissa 1.4.3 ja 1.5. Käyttämätön sw.js on poistettu.
+selaimessa ja samassa osoitteessa. Service workerin rekisteröinti on
+edelleen pois päältä, kuten alkuperäisessä 1.4.3-versiossa.
 
 TARKISTUS
 Tunnistus tarkistettu synteettisillä äänillä näytetaajuuksilla 44,1 ja 48 kHz:
@@ -46,11 +45,3 @@ G, A, H, C ja D tunnistuvat; B ja ylempi G hylätään näissä kokeissa.
 Puhallusten katkokset, legatopaluu, laskurien nollaus, täyttymisen
 kertaluonteisuus, efektin aikainen suoja ja tulosmäärät tarkistettu
 ohjelmallisesti. Käytännön huilu-, mikrofoni- ja laitetesti tarvitaan vielä.
-
-SIIVOUS 1.5.1
-Poistettu vanha kalibrointitausta, neljä käyttämätöntä kuvaketta,
-äänitiedoston erillinen kaksoiskappale ja käyttämätön sw.js.
-Poistettu testipenkin käyttämätön ResonatorSession sekä vanhojen
-piilotettujen tulostekstien, korostusten ja muuttujien jäänteet.
-Aiemman version omat asetukset latautuvat edelleen samalla avaimella.
-Muiden vanhojen peliversioiden asetuksia ei enää poisteta käynnistyksessä.
