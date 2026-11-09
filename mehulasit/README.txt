@@ -1,4 +1,4 @@
-MEHULASIT 1.5.1
+MEHULASIT 1.5.2
 
 Pura koko ZIP ja avaa Mehulasit/index.html tai siirrä Mehulasit-kansion
 sisältö verkkopalvelimelle. Verkkokäytössä mikrofoni vaatii HTTPS:n
@@ -17,7 +17,8 @@ UUTTA
 - Tulostaulussa jokaisen sävelen alla näkyy lasiin tarvittu puhallusmäärä.
 - Lentokone3:n kalibrointirengas, äänenvoimakkuuteen reagoiva pulssi,
   dB-lukema, vihreä valmistuminen ja häivytys.
-  Rengas seuraa moottorin todellista 1,5 sekunnin kohinamittausta.
+  Rengas seuraa kulunutta aikaa: 250 ms lämmittely + 1,5 s kohinamittaus.
+  Kohinakynnys lasketaan lentokonepelin tavoin live-mittausten mediaanista.
 
 PUHALLUSTEN LASKENTA
 Puhallus lasketaan, kun hyväksytty sävel todella täyttää keskeneräistä
@@ -54,3 +55,14 @@ Poistettu testipenkin käyttämätön ResonatorSession sekä vanhojen
 piilotettujen tulostekstien, korostusten ja muuttujien jäänteet.
 Aiemman version omat asetukset latautuvat edelleen samalla avaimella.
 Muiden vanhojen peliversioiden asetuksia ei enää poisteta käynnistyksessä.
+
+KALIBROINNIN AJOITUSKORJAUS 1.5.2
+Kalibrointi käyttää lentokonepelin ajastusta ja mittaustapaa.
+Mikrofonin avauksen ajan Aloita-painikkeessa lukee Avataan mikrofonia.
+Rengas käynnistyy vasta, kun mikrofoni ja äänen lataus ovat valmiit.
+250 ms lämmittely näkyy renkaassa mutta ei kuulu kohinamittaukseen.
+Sen jälkeen kohinaa mitataan 1,5 s, 33 ms välein. Mittausten mediaaniin
+lisätään 10 dB ja kynnys rajataan välille -70…-20 dB, kuten lentokoneessa.
+Valmis rengas on vihreä 300 ms ja häipyy 150 ms:ssa. Tunnistus pysyy
+pysäytettynä koko kalibroinnin ajan. Sama toiminta uudelleenkalibroinnissa.
+Resonatorin tunnistuskoodia ei muutettu.

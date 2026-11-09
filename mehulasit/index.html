@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest?v=juomalasipeli-mehulasit-v1">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/juomalasipeli-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/juomalasipeli-apple-180.png">
-<title>Viiden mehulasin peli – Resonator 1.5.1</title>
+<title>Viiden mehulasin peli – Resonator 1.5.2</title>
 <style>
 :root{
   --sky1:#8dd7ff;--sky2:#e9f8ff;--ink:#173f61;--panel:rgba(255,255,255,.92);
@@ -231,7 +231,7 @@ button{cursor:pointer}
     <div id="runClock" class="run-clock" aria-live="off">⏱ <span id="runClockValue">0,0 s</span></div>
 
     <div id="settingsPanel" class="settings-panel">
-      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">VERSIO 1.5.1 • RESONATOR</div>
+      <div style="font-size:12px;font-weight:900;opacity:.62;margin-bottom:8px">VERSIO 1.5.2 • RESONATOR</div>
       <div class="setting">
         <div class="setting-head"><label for="glassScaleSlider">Lasien koko</label><span id="glassScaleValue" class="setting-value">250 %</span></div>
         <input id="glassScaleSlider" type="range" min="70" max="250" step="1" value="250">
@@ -320,8 +320,9 @@ const DESIGN_W=1366;
 const DESIGN_H=768;
 // Retain the original key so existing saved settings continue to load.
 const UI_SETTINGS_KEY='juomalasipeli-ui-scoreboard-1-4-3-isolated';
-const SETTINGS_VERSION='mehulasit-1.5.1';
+const SETTINGS_VERSION='mehulasit-1.5.2';
 const BREATH_GAP_SECONDS=.160;
+const MIC_CAL_WARMUP_MS=250,MIC_CAL_MEASURE_MS=1500,MIC_CAL_MARGIN_DB=10;
 const NOTES=[
   {key:'G',target:440*2**(-2/12),sticker:'stickers/g.webp'},
   {key:'A',target:440,sticker:'stickers/a.webp'},
@@ -358,6 +359,7 @@ const runClock=$('#runClock'),runClockValue=$('#runClockValue');
 const scoreOverlay=$('#scoreOverlay'),scoreChart=$('#scoreChart'),scoreTotal=$('#scoreTotal'),scoreIdealLine=$('#scoreIdealLine');
 const calOverlay=$('#calOverlay'),calProgressRing=$('#calRingProgress'),calPulse=$('#calPulse'),calDbValue=$('#calDbValue');
 let engine=null,stability=null,ready=false,calibrationToken=0;
+let calibrationAnalyser=null,calibrationData=null,processAudio=null;
 let breathNotes=new Set(),quietSince=null;
 let breathCounts={G:0,A:0,H:0,C:0,D:0};
 let effectBuffer=null,effectSource=null,effectUntil=0,effectPauseAt=null;
@@ -672,44 +674,94 @@ function updateCalibrationVisual(db,progress){
 }
 function beginCalibration(){
   ++calibrationToken;ready=false;stopFullSound();resetBreathTracking();
+  startOverlay.style.display='none';
   $('#recalBtn').disabled=true;
   calOverlay.classList.remove('complete','closing');calOverlay.classList.add('show');
   updateCalibrationVisual(-90,0);
 }
-async function endCalibration(noiseRms){
+function readCalibrationDb(){
+  calibrationAnalyser.getFloatTimeDomainData(calibrationData);
+  let sum=0;
+  for(const value of calibrationData)sum+=value*value;
+  return 20*Math.log10(Math.sqrt(sum/calibrationData.length)||1e-12);
+}
+function calibrationMedian(samples){
+  const sorted=[...samples].sort((a,b)=>a-b),mid=sorted.length>>1;
+  return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])/2;
+}
+async function calibrateMicrophoneNoiseFloor(){
+  if(!engine?.running||!calibrationAnalyser)return false;
+  beginCalibration();
   const token=calibrationToken;
-  updateCalibrationVisual(20*Math.log10(Math.max(1e-12,noiseRms||1e-12)),1);
-  await new Promise(r=>setTimeout(r,300));
-  if(token!==calibrationToken)return;
+  const active=()=>token===calibrationToken&&engine?.running;
+  // Stop recognition during measurement; the analyser still receives live audio.
+  engine.processor.onaudioprocess=event=>event.outputBuffer.getChannelData(0).fill(0);
+  // Paint the empty ring before starting the timed measurement.
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  if(!active())return false;
+  const totalMs=MIC_CAL_WARMUP_MS+MIC_CAL_MEASURE_MS;
+  const overallStart=performance.now();
+  while(performance.now()-overallStart<MIC_CAL_WARMUP_MS){
+    if(!active())return false;
+    updateCalibrationVisual(readCalibrationDb(),(performance.now()-overallStart)/totalMs);
+    await new Promise(resolve=>setTimeout(resolve,33));
+  }
+  const samples=[],measureStart=performance.now();
+  while(performance.now()-measureStart<MIC_CAL_MEASURE_MS){
+    if(!active())return false;
+    const db=readCalibrationDb();
+    if(Number.isFinite(db))samples.push(db);
+    updateCalibrationVisual(db,(MIC_CAL_WARMUP_MS+performance.now()-measureStart)/totalMs);
+    await new Promise(resolve=>setTimeout(resolve,33));
+  }
+  if(!active())return false;
+  const noiseDb=samples.length?calibrationMedian(samples):-90;
+  const thresholdDb=samples.length?clamp(Math.round(noiseDb+MIC_CAL_MARGIN_DB),-70,-20):-70;
+  // Adapter to the unchanged Resonator 0.7.2: use the airplane's measured gate.
+  engine._noiseRms=Math.pow(10,noiseDb/20);
+  engine._gate=Math.pow(10,thresholdDb/20);
+  engine._resetAnalysisStates();
+  updateCalibrationVisual(noiseDb,1);
+  await new Promise(resolve=>setTimeout(resolve,300));
+  if(!active())return false;
   calOverlay.classList.add('closing');
-  await new Promise(r=>setTimeout(r,150));
-  if(token!==calibrationToken)return;
+  await new Promise(resolve=>setTimeout(resolve,150));
+  if(!active())return false;
+  resetBreathTracking();
+  engine.processor.onaudioprocess=processAudio;
   calOverlay.classList.remove('show','complete','closing');
-  resetBreathTracking();ready=true;$('#recalBtn').disabled=false;
+  ready=true;$('#recalBtn').disabled=false;
+  return true;
 }
 async function startMic(){
   if(engine?.running)return true;
-  engine=new ResonatorStringEngine({targets:TARGETS,blockSize:256,calibrationMs:1500,
+  engine=new ResonatorStringEngine({targets:TARGETS,blockSize:256,calibrationMs:0,
     responseMs:1.8,toleranceCents:40,centerMatch:.955,edgeMatch:.998,
     minHalfPeriodEnergy:.32,noiseMarginDb:10,
     pitchMeterIntervalMs:22,pitchMeterWindowMs:16,pitchMeterSearchCents:140});
   stability=new ResonatorNoteStability({targets:TARGETS,dynamicsCompression:true});
   engine.addEventListener('input',e=>receiveInput(e.detail));
   engine.addEventListener('silence',receiveSilence);
-  engine.addEventListener('calibrationprogress',e=>{
-    updateCalibrationVisual(20*Math.log10(Math.max(1e-12,e.detail.noiseRms)),e.detail.progress);
-  });
-  engine.addEventListener('state',e=>{
-    if(e.detail.state==='calibrating')beginCalibration();
-    if(e.detail.state==='running')void endCalibration(e.detail.noiseRms);
-  });
-  try{await engine.start();await loadFullSound();return true}
-  catch(error){++calibrationToken;ready=false;engine.stop();throw error}
+  try{
+    await engine.start();
+    processAudio=engine.processor.onaudioprocess;
+    engine.processor.onaudioprocess=event=>event.outputBuffer.getChannelData(0).fill(0);
+    calibrationAnalyser=engine.context.createAnalyser();
+    calibrationAnalyser.fftSize=8192;
+    calibrationData=new Float32Array(calibrationAnalyser.fftSize);
+    engine.source.connect(calibrationAnalyser);
+    await loadFullSound();
+    return await calibrateMicrophoneNoiseFloor();
+  }catch(error){
+    ++calibrationToken;ready=false;
+    calibrationAnalyser?.disconnect();calibrationAnalyser=null;calibrationData=null;processAudio=null;
+    engine.stop();throw error;
+  }
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){stopFullSound();resetBreathTracking()}
 });
-window.addEventListener('pagehide',()=>{++calibrationToken;ready=false;stopFullSound();engine?.stop()});
+window.addEventListener('pagehide',()=>{++calibrationToken;ready=false;stopFullSound();calibrationAnalyser?.disconnect();calibrationAnalyser=null;calibrationData=null;processAudio=null;engine?.stop()});
 window.addEventListener('pageshow',event=>{if(event.persisted&&!engine?.running){calOverlay.classList.remove('show','complete','closing');startOverlay.style.display='flex';$('#startBtn').disabled=false}});
 
 $('#settingsBtn').addEventListener('click',()=>settingsPanel.classList.toggle('open'));
@@ -728,8 +780,8 @@ window.addEventListener('resize',fitDesignToViewport,{passive:true});
 window.addEventListener('orientationchange',fitDesignToViewport,{passive:true});
 if(window.visualViewport)window.visualViewport.addEventListener('resize',fitDesignToViewport,{passive:true});
 
-$('#startBtn').addEventListener('click',async()=>{startError.textContent='';$('#startBtn').disabled=true;startOverlay.style.display='none';try{await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';$('#startBtn').disabled=false;calOverlay.classList.remove('show')}});
-$('#recalBtn').addEventListener('click',()=>{if(ready&&engine?.running)engine.calibrateNoise()});
+$('#startBtn').addEventListener('click',async()=>{startError.textContent='';$('#startBtn').disabled=true;$('#startBtn').textContent='Avataan mikrofonia…';try{await startMic()}catch(err){startOverlay.style.display='flex';startError.textContent=err?.message||'Mikrofonia ei saatu käyttöön.';$('#startBtn').disabled=false;calOverlay.classList.remove('show')}finally{$('#startBtn').textContent='Aloita'}});
+$('#recalBtn').addEventListener('click',()=>{if(ready&&engine?.running)void calibrateMicrophoneNoiseFloor()});
 $('#resetFills').addEventListener('click',resetGame);
 $('#playAgainBtn').addEventListener('click',resetGame);
 $('#closeScoreBtn').addEventListener('click',()=>scoreOverlay.classList.remove('show'));
