@@ -1,0 +1,77 @@
+// Complete rules for the NEW Pelimaailma project only.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow write, list: if false;
+    }
+    match /scores/{scoreId} {
+  function mhNotes(m) {
+    return m is map && m.keys().hasAll(['G','A','H','C','D'])
+      && m.keys().hasOnly(['G','A','H','C','D']);
+  }
+  function mhCount(n) { return n is int && n >= 1 && n <= 100000; }
+  function mhSeconds(n, maxSeconds) { return n is number && n >= 0 && n <= maxSeconds; }
+  function mhSettings(s) {
+    return s is map
+      && s.keys().hasAll(['threshold','tolerance','history','slowQuality','fullQuality','minSpeed','gateDb'])
+      && s.keys().hasOnly(['threshold','tolerance','history','slowQuality','fullQuality','minSpeed','gateDb'])
+      && s.threshold == 0.35 && s.tolerance == 55 && s.history == 6
+      && s.slowQuality == 0.996 && s.fullQuality == 0.9995 && s.minSpeed == 0.15
+      && s.gateDb is number && s.gateDb >= -70 && s.gateDb <= -20;
+  }
+  function mhScore(d) {
+    let timePoints = d.timeMs < 25000 ? 100.0 : 2500000.0 / d.timeMs;
+    let breathPoints = 500.0 / d.breathTotal;
+    let rawPoints = (timePoints + breathPoints) / 2.0;
+    return d.keys().hasAll(['playerName','instrumentName','clientScoreId','uid','createdAt',
+        'gameId','boardId','rankValue','scoreValue','scoreUnit',
+        'timeMs','points','rawPoints','timePoints','breathPoints','breathTotal','breaths',
+        'noteSeconds','rulesVersion','engineVersion','playMode','gameVersion','sampleRate','engineSettings','targets'])
+      && d.keys().hasOnly(['playerName','instrumentName','clientScoreId','uid','createdAt',
+        'gameId','boardId','rankValue','scoreValue','scoreUnit',
+        'timeMs','points','rawPoints','timePoints','breathPoints','breathTotal','breaths',
+        'noteSeconds','rulesVersion','engineVersion','playMode','gameVersion','sampleRate','engineSettings','targets'])
+      && d.uid == request.auth.uid
+      && d.clientScoreId is string && d.clientScoreId.matches('[A-Za-z0-9-]{20,64}')
+      && scoreId == request.auth.uid + '_' + d.gameId + '_' + d.clientScoreId
+      && d.gameId == 'mehulasit' && d.boardId == 'yin12-continuous-v1'
+      && d.rankValue == d.rawPoints && d.scoreValue == d.points && d.scoreUnit == 'pistettä'
+      && d.playerName is string && d.playerName.size() >= 1 && d.playerName.size() <= 20
+      && d.playerName.matches('.*[^ ].*')
+      && d.instrumentName in ['Huilu','Saksofoni','Klarinetti','Trumpetti','Käyrätorvi','Pasuuna']
+      && d.rulesVersion == 'mehulasit-score-v1'
+      && d.engineVersion == 'yin-bench-1.2' && d.playMode == 'continuous-v1'
+      && d.gameVersion is string && d.gameVersion.size() >= 1 && d.gameVersion.size() <= 20
+      && d.createdAt is timestamp && d.createdAt == request.time
+      && d.timeMs is number && d.timeMs >= 24900 && d.timeMs <= 86400000
+      && mhNotes(d.breaths)
+      && mhCount(d.breaths.G) && mhCount(d.breaths.A) && mhCount(d.breaths.H)
+      && mhCount(d.breaths.C) && mhCount(d.breaths.D)
+      && d.breathTotal is int
+      && d.breathTotal == d.breaths.G + d.breaths.A + d.breaths.H + d.breaths.C + d.breaths.D
+      && d.timePoints is number && d.timePoints >= timePoints - 0.000001 && d.timePoints <= timePoints + 0.000001
+      && d.breathPoints is number && d.breathPoints >= breathPoints - 0.000001 && d.breathPoints <= breathPoints + 0.000001
+      && d.rawPoints is number && d.rawPoints >= rawPoints - 0.000001 && d.rawPoints <= rawPoints + 0.000001
+      && d.points is int && d.points >= 0 && d.points <= 100
+      && d.points == math.round(d.rawPoints)
+      && mhNotes(d.noteSeconds)
+      && mhSeconds(d.noteSeconds.G,d.timeMs / 1000.0) && mhSeconds(d.noteSeconds.A,d.timeMs / 1000.0)
+      && mhSeconds(d.noteSeconds.H,d.timeMs / 1000.0) && mhSeconds(d.noteSeconds.C,d.timeMs / 1000.0)
+      && mhSeconds(d.noteSeconds.D,d.timeMs / 1000.0)
+      && d.sampleRate is number && d.sampleRate >= 8000 && d.sampleRate <= 384000
+      && mhSettings(d.engineSettings)
+      && d.targets == {'G':390.9783096102657,'A':435.9136184358308,'H':493.27278117625264,'C':521.7425815931465,'D':590.9565023710167};
+  }
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.query.limit != null && request.query.limit <= 50;
+      // Add a separately validated branch for every future game.
+      allow create: if request.auth != null && mhScore(request.resource.data);
+      allow update: if false;
+      allow delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

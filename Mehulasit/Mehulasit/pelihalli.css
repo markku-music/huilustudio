@@ -1,0 +1,21 @@
+/* Shared Pelihalli button v1. No framework or JavaScript dependency. */
+.pelihalli-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  box-sizing:border-box;min-height:44px;padding:8px 15px;
+  border:2px solid rgba(255,255,255,.92);border-radius:14px;
+  background:#173f61;color:#fff;
+  box-shadow:0 3px 0 #0c293f,0 5px 15px rgba(15,47,72,.18);
+  font:800 15px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  text-decoration:none;white-space:nowrap;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.pelihalli-button:visited{color:#fff}
+.pelihalli-button__icon{display:block;width:24px;height:24px;flex:0 0 24px}
+.pelihalli-button:focus-visible{outline:3px solid #f5b942;outline-offset:3px}
+@media(hover:hover){.pelihalli-button:hover{background:#22557c}}
+.pelihalli-button:active{transform:translateY(2px);box-shadow:0 1px 0 #0c293f}
+/* Optional fixed position for the in-game link; outside the scaled game. */
+.pelihalli-nav{
+  position:fixed;top:max(8px,env(safe-area-inset-top));
+  left:max(12px,env(safe-area-inset-left));z-index:45;
+}

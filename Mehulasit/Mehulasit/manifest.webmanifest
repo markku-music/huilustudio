@@ -2,7 +2,7 @@
   "id": "./juomalasipeli-mehulasit-v1",
   "name": "Juomalasipeli",
   "short_name": "Mehulasit",
-  "description": "G, A, H, C ja D täyttävät viisi eriväristä poreilevaa mehulasia vakauspainotetulla H1–H8-äänimoottorilla.",
+  "description": "Täytä viisi mehulasia sävelillä G, A, H, C ja D. Äänen jaksollisuuteen perustuva täyttönopeus, täyttymisääni sekä ajan ja lasikohtaisten puhallusten yhteispisteet.",
   "lang": "fi",
   "start_url": "./?app=juomalasipeli-mehulasit",
   "scope": "./",
