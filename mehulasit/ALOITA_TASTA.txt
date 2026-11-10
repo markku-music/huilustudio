@@ -1,0 +1,48 @@
+PELIMAAILMA 1.0 — MEHULASIT 1.9
+
+Yhteinen tulospalvelu ja kaikkien pelien tulossivu.
+
+TILANNE
+Firebase-projekti pelimaailma-a667b on luotu. Sen julkiset Web-asetukset
+on lisätty tiedostoon yhteiset/firebase-config.js. Firestore ja Anonymous-
+kirjautuminen on otettu käyttöön käyttäjän ilmoituksen mukaan.
+Julkaise vielä säännöt, luo indeksi ja siirrä sivustot verkkoon alla olevilla
+ohjeilla. Tallennusta oikeaan projektiin ei ole vielä kokeiltu.
+
+MITÄ MUKANA ON
+- Mehulasit/: pelattava Mehulasit 1.9 ja tuloksen tallennus.
+- tulokset/: yhteinen tulossivu, kunkin pelin kolme parasta suoritusta,
+  50 tuloksen näkymä ja kaikkien pelien 20 uusinta suoritusta.
+- yhteiset/: yksi Firebase-asetustiedosto, yhteinen yhteyskoodi ja peliluettelo.
+- firebase/: uuden tietokannan täydelliset säännöt ja hakuindeksi.
+
+Mehulasit on ensimmäinen liitettävä peli. Muiden pelien kortit ovat
+paikkavarauksia, ja ne on merkitty "Liitetään myöhemmin". Niiden omia
+pelitiedostoja tai tietokantoja ei ole muutettu. Pelien pisteitä ei lasketa
+yhteen: esimerkiksi aika ja pisteet ovat eri mittareita. Tulossivu näyttää
+kunkin pelin oman mittarin. Sama pelaaja voi saada useita suorituksia listalle.
+
+KÄYTTÖÖNOTTO KÄSIN FIREBASE-KONSOLISSA
+1. Avaa https://console.firebase.google.com/project/pelimaailma-a667b/overview
+   ja Firestore Database > Rules (Säännöt).
+   Korvaa editorin koko sisältö firebase/firestore.rules-tiedoston sisällöllä.
+   Paina Publish (Julkaise). Säännöt on tarkoitettu tähän uuteen projektiin.
+2. Avaa Firestore Database > Indexes (Indeksit) > Composite (Yhdistelmäindeksit)
+   ja Add index (Lisää indeksi).
+   Collection ID: scores
+   Kentät tässä järjestyksessä:
+     gameId     Ascending
+     boardId    Ascending
+     rankValue  Descending
+   Query scope: Collection
+   Luo indeksi ja odota, että sen tila on Enabled (Käytössä).
+   Sama määritys löytyy tiedostosta firebase/firestore.indexes.json.
+3. Julkaise Mehulasit/, yhteiset/ ja tulokset/ saman hakemiston alle
+   HTTPS-palvelimelle. Esimerkiksi huilustudio/Mehulasit/,
+   huilustudio/yhteiset/ ja huilustudio/tulokset/. Säilytä nimet ja kirjainkoko.
+   Älä korvaa olemassa olevan Pelihallin etusivua tällä paketilla.
+4. Lisää Pelihalliin linkki tulokset/-sivulle. Pelin tulostaulussa linkki on jo.
+5. Pelaa ja tallenna yksi oikea kierros. Tarkista sen näkyminen pelin
+   tulostaulussa ja yhteisellä sivulla myös toisella laitteella.
+
+Tarkemmat tiedot: TIETOMALLI.txt ja TARKISTUKSET.txt.
