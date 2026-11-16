@@ -1,0 +1,5 @@
+Target hit: third impact extracted from clang_metal_(hit).wav by Godowan.
+Source: https://freesound.org/people/Godowan/sounds/240463/
+Original file supplied by the user: 240463__godowan__clang_metal_hit.wav
+Edits: third impact isolated at 5.3285 seconds, 0.85-second clip, 70 ms tail fade.
+Outside accepted area: second impact from the same source, extracted at 2.8501 s, 0.85-second clip with 70 ms tail fade.

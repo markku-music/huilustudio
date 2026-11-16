@@ -1,0 +1,33 @@
+SÄVELAMMUNTA – VERSIO 10
+
+Pura zip ennen käyttöä. Kaikki pelin tarvitsemat kuvat, äänet ja koodit
+ovat mukana. Säilytä tiedostojen ja assets-kansion keskinäinen rakenne.
+
+PELAA
+Avaa index.html selaimessa hiirikokeeseen.
+Mikrofonikokeeseen voit käyttää julkaistua peliä:
+https://talvitaulut-hiirikoe.mkhirvonen.chatgpt.site
+
+PAIKALLINEN PALVELIN
+Jos Python 3 on asennettuna, avaa pääte puretussa Savelammunta_v10-kansiossa
+ja suorita:
+
+python3 -m http.server 8000 --bind 127.0.0.1
+
+Avaa selaimessa http://localhost:8000 ja paina Avaa mikrofoni.
+Salli selaimen pyytämä mikrofonilupa. Sulje palvelin päätteessä Ctrl+C:llä.
+
+OHJAUS
+Valitse sävelet taulujen yläpuolelta. Äänen alkaessa tähtäin nousee.
+Alavire vie vasemmalle, ylävire oikealle. Äänen loppuessa ammutaan.
+Tavoitekesto määräytyy temposta ja nuotin pituudesta.
+Hiirikokeessa pidä taulua painettuna, tähtää sivusuunnassa ja vapauta.
+
+Hyväksytty osuma sulkee valkoisen läpän. Ohi menneestä jää pieni jälki.
+Uusi kierros tyhjentää taulut ja sulkee mikrofonin.
+
+Versiossa 10 vireseuranta perustuu vanhan asteikkopelin versiosta 1.0.11
+löytyneeseen portaattomaan mittariin. Mukana ovat myös version 09
+äänen alkuun ja loppuun perustuva tähtäys sekä mikrofonin avauskorjaus.
+
+Äänitiedoston lähdetiedot: assets/audio-source.txt
