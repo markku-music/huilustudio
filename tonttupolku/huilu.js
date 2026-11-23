@@ -1,63 +1,72 @@
 'use strict';
 
-// Huilututka 0.7.2 supplies confirmed attacks and connected pitch changes.
-// Send gestures across the audio thread boundary, not its diagnostic graphs.
-function fluteGestures(send) {
-  let ready = false, sounding = null, quietSince = null, unclearSince = null;
-
-  return function consume(frame) {
-    if (frame.phase === 'calibration') return;
-    if (!ready) {
-      ready = true;
-      send('ready');
-    }
-
-    const change = frame.legatoChange || frame.octaveChange;
-    const event = frame.event || frame.reattack || change;
-    if (event) {
-      const kind = change && sounding !== null ? 'legato' : 'attack';
-      sounding = event.midi;
-      quietSince = unclearSince = null;
-      send(kind, sounding);
-      return;
-    }
-
-    if (frame.phase === 'held' && (sounding === null || frame.pitch.midi === sounding)) {
-      if (sounding === null) {
-        // After sustained unpitched noise the detector may retain its old lock.
-        sounding = frame.pitch.midi;
-        send('attack', sounding);
-      }
-      quietSince = unclearSince = null;
-      return;
-    }
-    if (sounding === null) return;
-
-    if (frame.phase === 'quiet') quietSince ??= frame.time;
-    else quietSince = null;
-    unclearSince ??= frame.time;
-    // Match the engine's 70 ms quiet reset. Also release in a noisy room when
-    // no pitch remains, allowing a brief uncertain frame during a finger change.
-    if ((quietSince !== null && frame.time - quietSince >= 70) || frame.time - unclearSince >= 150) {
-      sounding = quietSince = unclearSince = null;
+// Both browser audio paths feed identical 256-sample blocks to the Juoksu DSP.
+function createFluteInput(rate, targets, send) {
+  let sounding = null, candidate = null, evidence = 0, unclear = 0;
+  let accepted = null;
+  const block = new Float32Array(256);
+  const blockMs = block.length * 1000 / rate;
+  let used = 0;
+  function releaseNote() {
+    candidate = null;
+    evidence = unclear = 0;
+    if (sounding !== null) {
+      sounding = null;
       send('release');
+    }
+  }
+  const engine = createJuoksuResonator(rate, targets, (type, detail) => {
+    if (type === 'state' && detail.state === 'running') send('ready');
+    if (type === 'silence') releaseNote();
+    if (type === 'input' && detail.accepted) accepted = Number(detail.action);
+  });
+  function processBlock() {
+    accepted = null;
+    engine._process(block);
+    if (accepted === null) {
+      candidate = null;
+      evidence = 0;
+      if (sounding !== null && (unclear += blockMs) >= 150) releaseNote();
+      return;
+    }
+    unclear = 0;
+    if (accepted !== candidate) {
+      candidate = accepted;
+      evidence = 0;
+    }
+    evidence += blockMs;
+    if (candidate !== sounding && evidence >= 10) {
+      const kind = sounding === null ? 'attack' : 'legato';
+      sounding = candidate;
+      send(kind, sounding);
+    }
+  }
+  return function push(pcm) {
+    for (let i = 0; i < pcm.length;) {
+      const count = Math.min(block.length - used, pcm.length - i);
+      block.set(pcm.subarray(i, i + count), used);
+      used += count;
+      i += count;
+      if (used === block.length) {
+        processBlock();
+        used = 0;
+      }
     }
   };
 }
 
 function registerFluteInput() {
   class FluteInput extends AudioWorkletProcessor {
-    constructor() {
+    constructor(options) {
       super();
-      this.engine = createFluteEngine(sampleRate);
-      this.consume = fluteGestures((kind, midi) => this.port.postMessage({kind, midi}));
+      this.push = createFluteInput(sampleRate, options.processorOptions.targets, (kind, midi) => this.port.postMessage({kind, midi}));
       this.running = true;
       this.port.onmessage = e => { if (e.data === 'stop') this.running = false; };
     }
     process(inputs) {
       if (!this.running) return false;
       const pcm = inputs[0]?.[0];
-      if (pcm) this.engine.push(pcm, this.consume);
+      if (pcm) this.push(pcm);
       return true;
     }
   }
@@ -67,7 +76,7 @@ function registerFluteInput() {
 const fluteModules = new WeakMap();
 function loadFluteWorklet(ctx) {
   if (!fluteModules.has(ctx)) {
-    const code = [createFluteEngine.toString(), fluteGestures.toString(),
+    const code = [createJuoksuResonator.toString(), createFluteInput.toString(),
       '(' + registerFluteInput.toString() + ')()'].join(';\n');
     const url = URL.createObjectURL(new Blob([code], {type:'text/javascript'}));
     const loaded = ctx.audioWorklet.addModule(url)
@@ -85,7 +94,7 @@ class Huilumikrofoni {
     this.session = null;
   }
 
-  async start(ctx) {
+  async start(ctx, targets) {
     this.stop();
     const s = {ctx};
     this.session = s;
@@ -127,19 +136,19 @@ class Huilumikrofoni {
         try {
           await loadFluteWorklet(ctx);
           if (!active()) return;
-          s.processor = new AudioWorkletNode(ctx, 'tonttupolku-huilu');
+          s.processor = new AudioWorkletNode(ctx, 'tonttupolku-huilu', {processorOptions:{targets}});
           s.processor.port.onmessage = e => input(e.data.kind, e.data.midi);
-          s.processor.onprocessorerror = () => fail('Huilututkan kuuntelu keskeytyi. Käynnistä se uudelleen.');
+          s.processor.onprocessorerror = () => fail('Huilun kuuntelu keskeytyi. Käynnistä se uudelleen.');
         } catch (err) {
           if (!active()) return;
           if (!ctx.createScriptProcessor) throw err;
         }
       }
       if (!s.processor) {
-        const engine = createFluteEngine(ctx.sampleRate), consume = fluteGestures(input);
-        s.processor = ctx.createScriptProcessor(512, 1, 1);
+        const push = createFluteInput(ctx.sampleRate, targets, input);
+        s.processor = ctx.createScriptProcessor(256, 1, 1);
         s.processor.onaudioprocess = e => {
-          if (active()) engine.push(e.inputBuffer.getChannelData(0), consume);
+          if (active()) push(e.inputBuffer.getChannelData(0));
         };
       }
       s.mute = ctx.createGain();

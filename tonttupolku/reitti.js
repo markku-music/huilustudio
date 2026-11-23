@@ -112,7 +112,7 @@ function refresh(){
   }
 }
 setup.addEventListener('input',e=>{
-  if(e.target.name==='controller'){stopFlute();micError=''}
+  if(e.target.name==='controller'||(e.target.name==='pitches'&&micState!=='off')){stopFlute();micError=''}
   sounds.activate();refresh();
 });
 audioButton.addEventListener('click',()=>{sounds.toggle();audioButton.setAttribute('aria-pressed',String(sounds.enabled))});
@@ -122,7 +122,11 @@ setup.addEventListener('submit',e=>{
   if(micState!=='off'){stopFlute();refresh();return}
   micError='';micState='permission';
   sounds.calibrating=true;sounds.mix();refresh();
-  try{microphone.start(sounds.context())}catch(err){fluteInterrupted(err.message)}
+  const pitches=selectedPitches();
+  const targets=Object.fromEntries(Object.entries(fluteNotes)
+    .filter(([,note])=>pitches.includes(note))
+    .map(([midi])=>[midi,440*2**((Number(midi)-69)/12)]));
+  try{microphone.start(sounds.context(),targets)}catch(err){fluteInterrupted(err.message)}
 });
 function startJourney(){
   const pitches=selectedPitches(),hard=setup.elements.difficulty.value==='hard';
