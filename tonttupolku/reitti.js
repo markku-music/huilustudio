@@ -65,8 +65,8 @@ function visit(n){
   showCamera();refresh();
 }
 function enterCabin(){
-  stopFlute();
   inCabin=true;
+  stopFlute();
   if(game.total===game.goal){started=false;resumeAt=1}
   cabin.hidden=false;play.hidden=true;
   startButton.focus({preventScroll:true});refresh();
@@ -113,7 +113,7 @@ function refresh(){
 }
 setup.addEventListener('input',e=>{
   if(e.target.name==='controller'||(e.target.name==='pitches'&&micState!=='off')){stopFlute();micError=''}
-  sounds.activate();refresh();
+  refresh();
 });
 audioButton.addEventListener('click',()=>{sounds.toggle();audioButton.setAttribute('aria-pressed',String(sounds.enabled))});
 setup.addEventListener('submit',e=>{
@@ -138,7 +138,8 @@ function startJourney(){
 }
 function stopFlute(){
   microphone.stop();micState='off';
-  sounds.calibrating=false;sounds.mix();
+  sounds.calibrating=false;
+  if(inCabin)sounds.close();else sounds.mix();
 }
 function fluteInterrupted(message){
   micError=message;
@@ -284,11 +285,25 @@ window.addEventListener('blur',cancelControl);
 function pauseInput(){
   if(micState!=='off')fluteInterrupted('');
   else cancelControl();
+  sounds.close();
 }
-document.addEventListener('visibilitychange',()=>{lastTime=0;if(document.hidden)pauseInput();sounds.mix()});
+function resumeGameAudio(){
+  if(!document.hidden&&!inCabin&&sounds.enabled&&sounds.ctx?.state!=='running'){
+    sounds.activate();
+    sounds.mix();
+  }
+}
+document.addEventListener('visibilitychange',()=>{
+  lastTime=0;
+  if(document.hidden)pauseInput();else resumeGameAudio();
+});
 window.addEventListener('pagehide',pauseInput);
+window.addEventListener('pageshow',resumeGameAudio);
+// Some browsers require a new gesture to resume audio after an app switch.
+window.addEventListener('pointerdown',resumeGameAudio);
+window.addEventListener('keydown',resumeGameAudio);
 function tick(now){
-  if(inCabin){lastTime=0;sounds.update('cabin');requestAnimationFrame(tick);return}
+  if(inCabin){lastTime=0;requestAnimationFrame(tick);return}
   const dt=lastTime?Math.min(250,now-lastTime):0;lastTime=now;
   const wasSite=game.index,site=game.site,oldCount=site?.count,oldCargo=site?.cargo;
   game.advance(dt);
