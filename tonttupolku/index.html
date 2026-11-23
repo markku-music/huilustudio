@@ -11,18 +11,22 @@
   <script defer src="tonde.js"></script>
   <script defer src="retki.js"></script>
   <script defer src="maisema.js"></script>
-  <script defer src="aanet.js?v=1.1.1"></script>
+  <script defer src="aanet.js"></script>
   <script defer src="resonator-engine.js"></script>
-  <script defer src="huilu.js"></script>
-  <script defer src="reitti.js?v=1.1.1"></script>
+  <script defer src="reitti.js"></script>
 </head>
 <body>
 <main>
   <section id="cabin" aria-labelledby="title">
-    <img class="cabin-art" src="kuvat/joulupukin-tupa.webp" width="1846" height="852" alt="Joulupukki näyttää Ylermille, kuinka kivilaatat ladotaan vierekkäin.">
-    <small class="game-version">v1.1.1</small>
+    <img class="cabin-art" src="kuvat/joulupukin-tupa.webp" width="1846" height="852" alt="Joulupukki näyttää Tondelle, kuinka kivilaatat ladotaan vierekkäin.">
+    <aside id="resonator-dev" aria-label="Resonator Huilu 1.10"></aside>
     <form id="setup">
+      <small class="version">Resonator Huilu 1.10</small>
       <h1 id="title">Tonttupolku</h1>
+      <fieldset><legend>Ohjaus</legend>
+        <div class="choices"><label><input type="radio" name="controller" value="flute" checked><span>Huilu</span></label>
+        <label><input type="radio" name="controller" value="manual"><span>Näppäimet / kosketus</span></label></div>
+      </fieldset>
       <fieldset><legend>Sävelet</legend>
         <div class="choices pitches">
           <label><input type="radio" name="pitches" value="3"><span>3 säveltä<small>HAG</small></span></label>
@@ -34,10 +38,6 @@
         <div class="choices"><label><input type="radio" name="difficulty" value="easy" checked><span>Helppo</span></label>
         <label><input type="radio" name="difficulty" value="hard"><span>Vaikea</span></label></div>
       </fieldset>
-      <fieldset><legend>Ohjaus</legend>
-        <div class="choices"><label><input type="radio" name="controller" value="flute" checked><span>Huilu</span></label>
-        <label><input type="radio" name="controller" value="manual"><span>Näppäimet ja kosketus</span></label></div>
-      </fieldset>
       <div class="launch"><button id="start" disabled>Korjaa tonttupolku</button>
         <button type="button" id="sound" aria-label="Peliäänet" aria-pressed="true" title="Peliäänet">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -45,15 +45,14 @@
           </svg>
         </button>
       </div>
-      <p id="mic-info" role="status" aria-live="polite">Salli mikrofoni ja ole aluksi hiljaa 1,5 sekuntia.</p>
+      <p id="mic-status" role="status">Ole aluksi hiljaa 1,5 sekuntia. Soita nostosävel ja vaihda koloon legatolla.</p>
       <p id="load-error" role="alert" hidden>Pelikuvien lataus epäonnistui. Lataa sivu uudelleen.</p>
     </form>
   </section>
   <section id="play" aria-label="Tonttupolun pelimaisema" hidden>
     <div class="stage">
-      <img id="panorama" src="Tonttupolku_panoraama.webp" width="3376" height="390" alt="Kolme kivityömaata joulupukin tuvan ja lelupajan välillä." draggable="false">
       <div class="viewport" id="viewport" tabindex="0" aria-label="Vieritettävä maisema">
-        <div class="world">
+        <div class="world"><img id="panorama" src="Tonttupolku_panoraama.webp" width="3376" height="390" alt="Kolme kivityömaata joulupukin tuvan ja lelupajan välillä." draggable="false">
           <div id="pad" role="group" aria-label="Nosturin ohjaus" hidden>
             <button type="button" data-key="G"></button><button type="button" data-key="A"></button>
             <button type="button" data-key="H"></button><button type="button" data-key="C"></button>
