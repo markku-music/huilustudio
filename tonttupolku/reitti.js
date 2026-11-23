@@ -5,8 +5,11 @@ const sounds=new PeliAanet();
 const stops=Array.from(document.querySelectorAll('nav button'));
 const keys=Array.from(document.querySelectorAll('[data-key]'));
 const setup=document.querySelector('#setup');
-const ui={status:document.querySelector('#status'),pad:document.querySelector('#pad')};
+const ui={status:document.querySelector('#status'),pad:document.querySelector('#pad'),mic:document.querySelector('#mic-info')};
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),game=new Retki();
+const fluteNotes={67:'G',69:'A',71:'H',72:'C',74:'D'};
+const microphone=new Huilumikrofoni(fluteEvent,fluteInterrupted);
+let micState='off',micError='';
 let inCabin=true,started=false,resumeAt=1;
 let scene=null,drag=null,source=null,heldKey=null,heldPointer=null,lastTime=0,lastUI='',lastPaint='',failed=false;
 let touchCandidate=null,touchTimer=null,assistHold=null;
@@ -46,19 +49,21 @@ function cancelControl(){
   clearTouchCandidate();
   if(source)game.site?.release();source=null;heldKey=null;heldPointer=null;assistHold=null;
 }
+function rememberWorksite(){
+  const previous=game.trip?.station??game.station;
+  if(previous===0)return;
+  resumeAt=previous<4&&!game.sites[previous-1].complete?previous:game.nextStation();
+}
 function visit(n){
   if(!scene||inCabin)return;
   cancelControl();
-  if(n===0){
-    const previous=game.trip?.station??game.station;
-    if(previous>0&&previous<4&&!game.sites[previous-1].complete)resumeAt=previous;
-    else resumeAt=game.nextStation();
-  }
+  if(n===0)rememberWorksite();
   game.visit(n,reduced.matches);
   if(n===0&&!game.trip)enterCabin();
   showCamera();refresh();
 }
 function enterCabin(){
+  stopFlute();
   inCabin=true;
   if(game.total===game.goal){started=false;resumeAt=1}
   cabin.hidden=false;play.hidden=true;
@@ -68,10 +73,19 @@ function selectedPitches(){return SAVELPELIT[setup.elements.pitches.value]}
 function refresh(){
   const s=game.site,trip=game.trip;
   const state=[inCabin,started,game.station,game.total,s?.text,s?.phase,s?.choice,s?.pickupNote,
-    trip?.station,!!scene,failed,setup.elements.pitches.value,game.pitches.length].join('|');
+    trip?.station,!!scene,failed,setup.elements.pitches.value,game.pitches.length,
+    setup.elements.controller.value,micState,micError].join('|');
   if(state===lastUI)return;lastUI=state;
   startButton.disabled=!scene;
   startButton.textContent=started?(selectedPitches()===game.pitches?'Jatka korjaamista':'Aloita uusi peli'):'Korjaa tonttupolku';
+  const fluteMode=setup.elements.controller.value==='flute';
+  ui.mic.hidden=!fluteMode;
+  if(inCabin&&fluteMode){
+    const micText=micError||(micState==='permission'?'Odotetaan mikrofonilupaa…':
+      micState==='calibrating'?'Kuunnellaan huoneen ääntä. Ole hetki hiljaa…':'Salli mikrofoni ja ole aluksi hiljaa 1,5 sekuntia.');
+    if(ui.mic.textContent!==micText)ui.mic.textContent=micText;
+    if(micState!=='off')startButton.textContent='Peruuta';
+  }
   document.querySelector('#load-error').hidden=!failed;
   ui.status.textContent=inCabin?'Joulupukin tupa':game.finished?'Kaikki laatat paikallaan. Reitti lelupajalle on valmis.':
     s?(s.text||(s.complete?'Työmaa valmis.':'Työmaa '+game.station+'. Nostosävel '+s.pickupNote+'.')):trip?'Matkalla.':'Lelupaja';
@@ -79,7 +93,7 @@ function refresh(){
     if((trip?.station??game.station)===i)b.setAttribute('aria-current','location');else b.removeAttribute('aria-current');
     b.classList.toggle('complete',i>0&&i<4&&game.sites[i-1].complete);
   });
-  ui.pad.hidden=inCabin||!s||s.complete;
+  ui.pad.hidden=fluteMode||inCabin||!s||s.complete;
   if(ui.pad.hidden)return;
   const worldX=WORKS[game.index],bubble=puhekuplanPaikka();
   for(const btn of keys){
@@ -95,22 +109,67 @@ function refresh(){
     btn.setAttribute('aria-label',note+(pickup?', nosta laatta puhekuplasta':', vapaa kolo'));
   }
 }
-setup.addEventListener('input',()=>{sounds.activate();refresh()});
+setup.addEventListener('input',e=>{
+  if(e.target.name==='controller'){stopFlute();micError=''}
+  sounds.activate();refresh();
+});
 audioButton.addEventListener('click',()=>{sounds.toggle();audioButton.setAttribute('aria-pressed',String(sounds.enabled))});
 setup.addEventListener('submit',e=>{
   e.preventDefault();if(!scene||!inCabin)return;
+  if(setup.elements.controller.value!=='flute'){startJourney();return}
+  if(micState!=='off'){stopFlute();refresh();return}
+  micError='';micState='permission';
+  sounds.calibrating=true;sounds.mix();refresh();
+  try{microphone.start(sounds.context())}catch(err){fluteInterrupted(err.message)}
+});
+function startJourney(){
   const pitches=selectedPitches(),hard=setup.elements.difficulty.value==='hard';
   sounds.activate();
   if(!started||pitches!==game.pitches){game.reset(pitches,hard);scene.tonde.reset();resumeAt=1}
   game.requireSustain=hard;for(const site of game.sites)site.requireSustain=hard;
   started=true;inCabin=false;cabin.hidden=true;play.hidden=false;lastPaint='';scene.resize();
   visit(resumeAt);viewport.focus({preventScroll:true});
-});
+}
+function stopFlute(){
+  microphone.stop();micState='off';
+  sounds.calibrating=false;sounds.mix();
+}
+function fluteInterrupted(message){
+  micError=message;
+  if(inCabin){stopFlute();refresh();return}
+  cancelControl();rememberWorksite();game.visit(0,true);enterCabin();
+}
+function fluteEvent(kind,midi){
+  if(kind==='calibrating'){micState='calibrating';refresh();return}
+  if(kind==='ready'){
+    if(!inCabin||micState!=='calibrating'||document.hidden)return;
+    micState='playing';sounds.calibrating=false;sounds.mix();startJourney();return;
+  }
+  const site=game.site;
+  if(micState!=='playing'||inCabin||document.hidden||!site)return;
+  if(kind==='release'){release('flute');return}
+  const note=fluteNotes[midi];
+  if(source!=='flute'){
+    if(kind==='attack'&&note===site.pickupNote)take('flute',note);
+    return;
+  }
+  if(!site.choice){
+    // Re-tonguing the pickup can begin the same pair again. Only a connected
+    // change from that pickup can select a free destination.
+    if(kind==='attack'&&note===site.pickupNote)return;
+    if(kind==='legato'&&site.slots[note]===false){
+      choose(note);
+      if(!site.requireSustain)release('flute');
+      return;
+    }
+  }
+  release('flute');
+}
 stops.forEach((b,i)=>b.addEventListener('click',()=>visit(i)));
 function take(method,note){
   if(source||!scene||!game.site?.take(note))return false;
   heldKey=note;source=method;
-  if(method==='keys'){game.follow=true;game.camera=STOPS[game.station]-422;showCamera()}
+  if(method==='keys'||method==='flute'){game.follow=true;game.camera=STOPS[game.station]-422;showCamera()}
   refresh();return true;
 }
 function release(method){
@@ -178,7 +237,7 @@ for(const name of ['pointercancel','lostpointercapture'])ui.pad.addEventListener
 document.addEventListener('keydown',e=>{
   if(inCabin||setup.contains(e.target)||e.ctrlKey||e.metaKey||e.altKey)return;
   const k=e.key.toUpperCase();
-  if(game.pitches.includes(k)){
+  if(setup.elements.controller.value==='manual'&&game.pitches.includes(k)){
     if(!game.site||game.site.complete)return;
     e.preventDefault();if(e.repeat)return;document.body.dataset.mode='keys';
     if(source==='keys'){
@@ -216,14 +275,21 @@ viewport.addEventListener('wheel',e=>{
 },{passive:false});
 new ResizeObserver(showCamera).observe(viewport);
 window.addEventListener('blur',cancelControl);
-document.addEventListener('visibilitychange',()=>{lastTime=0;if(document.hidden)cancelControl();sounds.mix()});
+function pauseInput(){
+  if(micState!=='off')fluteInterrupted('');
+  else cancelControl();
+}
+document.addEventListener('visibilitychange',()=>{lastTime=0;if(document.hidden)pauseInput();sounds.mix()});
+window.addEventListener('pagehide',pauseInput);
 function tick(now){
   if(inCabin){lastTime=0;sounds.update('cabin');requestAnimationFrame(tick);return}
   const dt=lastTime?Math.min(250,now-lastTime):0;lastTime=now;
   const wasSite=game.index,site=game.site,oldCount=site?.count,oldCargo=site?.cargo;
   game.advance(dt);
+  if(source==='flute'&&!site?.held)release('flute');
   if(game.index!==wasSite)cancelControl();
   if(!game.trip&&game.station===0){enterCabin();requestAnimationFrame(tick);return}
+  if(game.finished&&micState==='playing')stopFlute();
   sounds.update(game.trip?'travel':game.station===4?'workshop':'work',site,oldCount,oldCargo);
   if(game.follow&&Math.abs(viewport.scrollLeft-game.camera*scale())>0.75)showCamera();
   refresh();

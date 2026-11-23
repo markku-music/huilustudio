@@ -2,14 +2,21 @@
 // Short original foley synthesized locally, independent of the game's clock.
 class PeliAanet {
   constructor(){this.enabled=true;this.place='';this.nextCrackle=0}
+  context(){
+    if(!this.ctx||this.ctx.state==='closed'){
+      const Audio=window.AudioContext||window.webkitAudioContext;
+      if(!Audio)throw Error('Selain ei tue huilun kuuntelua. Voit valita näppäimet ja kosketuksen.');
+      this.ctx=new Audio({latencyHint:'interactive'});
+      this.output=this.air=null;
+    }
+    return this.ctx;
+  }
   activate(){
     if(!this.enabled)return;
-    const Audio=window.AudioContext||window.webkitAudioContext;
-    if(!Audio)return;
     try{
-      if(!this.ctx){
-        const ctx=new Audio();this.ctx=ctx;
-        this.output=ctx.createGain();this.output.gain.value=.26;this.output.connect(ctx.destination);
+      const ctx=this.context();
+      if(!this.output){
+        this.output=ctx.createGain();this.output.gain.value=this.calibrating?0:.26;this.output.connect(ctx.destination);
         this.noise=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
         const samples=this.noise.getChannelData(0);
         for(let i=0;i<samples.length;i++)samples[i]=Math.random()*2-1;
@@ -24,12 +31,12 @@ class PeliAanet {
   toggle(){this.enabled=!this.enabled;if(this.enabled)this.activate();this.mix()}
   mix(){
     if(!this.ctx||!this.air)return;
-    const on=this.enabled&&!document.hidden,t=this.ctx.currentTime;
+    const on=this.enabled&&!this.calibrating&&!document.hidden,t=this.ctx.currentTime;
     this.output.gain.setTargetAtTime(on ? .26 : 0,t,.03);
     this.air.gain.setTargetAtTime(this.place==='travel' ? .17 : 0,t,.28);
   }
   pulse(frequency,length,volume,delay=0,noisy=false){
-    if(!this.enabled||this.ctx?.state!=='running'||document.hidden)return;
+    if(!this.enabled||this.calibrating||!this.output||this.ctx.state!=='running'||document.hidden)return;
     const ctx=this.ctx,t=ctx.currentTime+delay,amp=ctx.createGain();
     const src=noisy?ctx.createBufferSource():ctx.createOscillator();
     let node=src;

@@ -79,7 +79,7 @@ class Nosturi {
     if(!this.held||!this.notes.includes(key)||key===this.pickupNote||this.choice)return false;
     if(this.slots[key]){this.text=key+' on jo täynnä. Valitse vapaa paikka.';return false}
     this.choice=key;
-    this.text=this.requireSustain?'Pidä '+key+' pohjassa, kunnes laatta on kolossa.':'Kivi siirtyy '+key+'-paikkaan.';
+    this.text=this.requireSustain?'Pidä sävel '+key+', kunnes laatta on kolossa.':'Kivi siirtyy '+key+'-paikkaan.';
     if(this.phase==='hold')this.carry();
     return true;
   }
@@ -128,7 +128,7 @@ class Nosturi {
       case 'home':{
         const retry=this.requireSustain&&this.choice&&!this.slots[this.choice];
         this.park();
-        if(retry)this.text='Nosta uudelleen sävelellä '+this.pickupNote+'. Pidä kohdesävel pohjassa laskun loppuun.';
+        if(retry)this.text='Nosta uudelleen sävelellä '+this.pickupNote+'. Jatka kohdesäveltä laskun loppuun.';
         break;
       }
     }
