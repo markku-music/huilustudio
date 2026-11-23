@@ -8,7 +8,8 @@ function puhekuplanPaikka(){
   return {x:face.x+31,y:face.y-32};
 }
 class TondenOhjaus {
-  constructor(image){
+  constructor(image,travelSheet=null){
+    this.travelSheet=travelSheet;
     this.image=image;
     this.buffer=document.createElement('canvas');
     this.buffer.width=704;this.buffer.height=489;
@@ -69,6 +70,24 @@ class TondenOhjaus {
     const lever1=clamp(.87*vx-.34*vy+working*.33);
     const lever2=clamp(.94*vy-.52*vx-working*.29);
     this.front+=(lever1-this.front)*follow;this.back+=(lever2-this.back)*follow;
+    const parked=(phase==='idle'||phase==='done')&&(this.lastKey===null||typeof this.lastKey==='number');
+    if(this.travelSheet&&(phase==='travel'||parked)){
+      // Select the closest painted driving pose, including on a mid-trip change of course.
+      // The crane still follows its exact trajectory on every frame.
+      let best=0,least=Infinity;
+      for(let i=0;i<AJOKUVAT.length;i++){
+        const [angle,front,back,eyeX,eyeY]=AJOKUVAT[i];
+        const error=((this.angle-angle)*100)**2+((this.front-front)*24)**2+
+          ((this.back-back)*19)**2+((this.eyeX-eyeX)*3)**2+((this.eyeY-eyeY)*3)**2;
+        if(error<least){best=i;least=error}
+      }
+      if(best!==this.lastKey){
+        this.prepareBuffer();
+        this.brush.drawImage(this.travelSheet,(best%8)*300,Math.floor(best/8)*252,300,252,-32,-32,400,336);
+        this.lastKey=best;
+      }
+      return;
+    }
     // Quantization avoids redrawing hundreds of mesh faces while the crane is still.
     const key=[this.angle*110,this.front*35,this.back*35,this.eyeX*9,this.eyeY*9].map(Math.round).join(',');
     if(key!==this.lastKey){this.lastKey=key;this.render()}
@@ -105,11 +124,15 @@ class TondenOhjaus {
     g.beginPath();g.arc(ix-rx*.13,iy-ry*.27,Math.max(.5,rx*.16),0,2*Math.PI);g.fillStyle='#fff4dc';g.fill();
     g.restore();
   }
-  render(){
-    const g=this.brush,c=Math.cos(this.angle),s=Math.sin(this.angle);
+  prepareBuffer(){
+    const g=this.brush;
     g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,704,489);g.translate(32,32);
     g.drawImage(this.image,335,0,305,425,335,0,305,425);
     g.drawImage(this.image,0,282,336,143,0,282,336,143);
+  }
+  render(){
+    this.prepareBuffer();
+    const c=Math.cos(this.angle),s=Math.sin(this.angle);
     for(const v of this.vertices)this.transform(v,c,s);
     for(const t of this.triangles)this.face(t);
     this.eye(196,68,3.4,4.3,c,s);this.eye(183,75,5.2,5.9,c,s);

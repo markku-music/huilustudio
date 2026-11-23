@@ -26,7 +26,7 @@ function lavanVarjo(capacity){
 class Maisema {
   constructor(canvas,images){
     this.canvas=canvas;this.g=canvas.getContext('2d');this.images=images;
-    this.tonde=new TondenOhjaus(images.tonde);
+    this.tonde=new TondenOhjaus(images.tonde,images['tonde-ajo']);
     this.resize();new ResizeObserver(()=>this.resize()).observe(canvas);
   }
   resize(){

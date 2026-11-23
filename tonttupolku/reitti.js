@@ -324,8 +324,11 @@ function tick(now){
   requestAnimationFrame(tick);
 }
 refresh();
-Promise.all(['tonde','lava','kivi'].map(name=>new Promise((done,fail)=>{
-  const img=new Image();img.onload=()=>done([name,img]);img.onerror=fail;img.src='kuvat/'+name+'.webp';
+Promise.all(['tonde','tonde-ajo','lava','kivi'].map(name=>new Promise((done,fail)=>{
+  const img=new Image();img.onload=async()=>{
+    if(name==='tonde-ajo'&&img.decode){try{await img.decode()}catch{ /* onload already succeeded */ }}
+    done([name,img]);
+  };img.onerror=fail;img.src='kuvat/'+name+'.webp';
 }))).then(entries=>{
   const images=Object.fromEntries(entries);
   scene=new Maisema(document.querySelector('#scene'),images);
