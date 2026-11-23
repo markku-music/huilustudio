@@ -1,5 +1,7 @@
 'use strict';
 const viewport=document.querySelector('#viewport'),cabin=document.querySelector('#cabin'),play=document.querySelector('#play');
+const panorama=document.querySelector('#panorama');
+let panoramaCamera=null;
 const startButton=document.querySelector('#start'),audioButton=document.querySelector('#sound');
 const sounds=new PeliAanet();
 const stops=Array.from(document.querySelectorAll('nav button'));
@@ -291,9 +293,14 @@ function tick(now){
   if(!game.trip&&game.station===0){enterCabin();requestAnimationFrame(tick);return}
   if(game.finished&&micState==='playing')stopFlute();
   sounds.update(game.trip?'travel':game.station===4?'workshop':'work',site,oldCount,oldCargo);
-  if(game.follow&&Math.abs(viewport.scrollLeft-game.camera*scale())>0.75)showCamera();
   refresh();
-  const p=game.cranePose,camera=scrollPosition();
+  const p=game.cranePose,camera=game.follow?game.camera:scrollPosition();
+  if(camera!==panoramaCamera){
+    // Keep the native scroller aligned for input. Draw all layers at the exact camera position.
+    if(game.follow)showCamera();
+    panorama.style.transform=`translate3d(${-100*camera/3376}%,0,0)`;
+    panoramaCamera=camera;
+  }
   drawSnow(reduced.matches||game.trip?.paused?0:dt,camera);
   // The rig's gaze and hands keep easing briefly after the crane stops.
   const key=[camera,game.actor,game.index,game.total,p.phase,p.x,p.y,p.grip,p.roadWeight,p.choice,p.pickupNote,scene.canvas.width,scene.canvas.height].join('|');
