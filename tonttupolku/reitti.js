@@ -1,5 +1,7 @@
 'use strict';
 const viewport=document.querySelector('#viewport'),cabin=document.querySelector('#cabin'),play=document.querySelector('#play');
+const panorama=document.querySelector('#panorama');
+let panoramaCamera=null;
 const startButton=document.querySelector('#start'),audioButton=document.querySelector('#sound');
 const sounds=new PeliAanet();
 const stops=Array.from(document.querySelectorAll('nav button'));
@@ -265,6 +267,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('keyup',e=>{if(e.key.toUpperCase()===heldKey)release('keys')});
 viewport.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0||e.target.closest('[data-key]'))return;
+  if(game.follow)showCamera();
   game.follow=false;if(e.pointerType==='touch')return;
   drag={id:e.pointerId,x:e.clientX,start:scrollPosition()};
   viewport.setPointerCapture(e.pointerId);viewport.classList.add('dragging');
@@ -296,14 +299,20 @@ window.addEventListener('pagehide',()=>{suspendInput();sounds.close()});
 function tick(now){
   if(inCabin){lastTime=0;sounds.update('cabin');requestAnimationFrame(tick);return}
   const dt=lastTime?Math.min(250,now-lastTime):0;lastTime=now;
-  const wasSite=game.index,site=game.site,oldCount=site?.count,oldCargo=site?.cargo;
+  const travelling=!!game.trip,wasSite=game.index,site=game.site,oldCount=site?.count,oldCargo=site?.cargo;
   game.advance(dt);
   if(game.index!==wasSite)cancelControl();
   if(!game.trip&&game.station===0){enterCabin();requestAnimationFrame(tick);return}
   sounds.update(game.trip?'travel':game.station===4?'workshop':'work',site,oldCount,oldCargo);
-  if(game.follow&&Math.abs(viewport.scrollLeft-game.camera*scale())>0.75)showCamera();
   refresh();
-  const p=game.cranePose,camera=scrollPosition();
+  const p=game.cranePose,camera=game.follow?game.camera:scrollPosition();
+  if(camera!==panoramaCamera){
+    panorama.style.transform=`translate3d(${-100*camera/3376}%,0,0)`;
+    panoramaCamera=camera;
+  }
+  // The moving scene uses fractional world coordinates. Sync the native
+  // hit targets once the journey ends, or when the player takes over.
+  if(game.follow&&travelling&&!game.trip)showCamera();
   drawSnow(reduced.matches||game.trip?.paused?0:dt,camera);
   // The rig's gaze and hands keep easing briefly after the crane stops.
   const key=[camera,game.actor,game.index,game.total,p.phase,p.x,p.y,p.grip,p.roadWeight,p.choice,p.pickupNote,scene.canvas.width,scene.canvas.height].join('|');

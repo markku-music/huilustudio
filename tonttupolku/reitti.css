@@ -15,8 +15,8 @@ fieldset{padding:0;margin:0;border:0;min-width:0}legend{font-size:clamp(13px,1.6
 #start:hover{background:#98452e}#start:disabled{opacity:.6}#sound{width:clamp(44px,4cqw,64px);background:#27362cef;color:#f5dfae}
 #sound svg{width:55%;vertical-align:middle}#sound[aria-pressed=true] .mute,#sound[aria-pressed=false] .waves{display:none}
 #play{width:min(100vw,calc((100svh - 50px - env(safe-area-inset-bottom))*2.1641))}
-.stage,.world{position:relative}.stage{aspect-ratio:844/390}.viewport{height:100%;overflow:auto hidden;scrollbar-width:none;cursor:grab;overscroll-behavior:contain}
-.viewport::-webkit-scrollbar{display:none}.world{width:400%;height:100%}.world img{width:100%;height:100%;display:block;pointer-events:none}
+.stage,.world,.viewport{position:relative}.stage{aspect-ratio:844/390;overflow:hidden;overflow:clip}.viewport{height:100%;overflow:auto hidden;scrollbar-width:none;cursor:grab;overscroll-behavior:contain}
+.viewport::-webkit-scrollbar{display:none}.world{width:400%;height:100%}#panorama{position:absolute;top:0;left:0;width:400%;height:100%;display:block;pointer-events:none;will-change:transform}
 .viewport,.world{-webkit-user-select:none;user-select:none}.viewport.dragging{cursor:grabbing}
 #scene,#lumisade,#pad{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #pad button{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;background:transparent;border:0;padding:0;color:transparent;border-radius:4px;-webkit-tap-highlight-color:transparent}

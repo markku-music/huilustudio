@@ -1,7 +1,7 @@
 'use strict';
 // Short original foley synthesized locally, independent of the game's clock.
 class PeliAanet {
-  constructor(){this.enabled=true;this.place='';this.nextCrackle=0}
+  constructor(){this.enabled=true;this.place=''}
   activate(){
     if(!this.enabled)return;
     const Audio=window.AudioContext||window.webkitAudioContext;
@@ -23,7 +23,7 @@ class PeliAanet {
   }
   close(){
     if(this.ctx)this.ctx.close().catch(()=>{});
-    this.ctx=this.air=this.output=this.noise=null;this.place='';this.nextCrackle=0;
+    this.ctx=this.air=this.output=this.noise=null;this.place='';
   }
   toggle(){this.enabled=!this.enabled;if(this.enabled)this.activate();this.mix()}
   mix(){
@@ -51,9 +51,6 @@ class PeliAanet {
     if(this.place!==place){
       this.place=place;this.mix();
       if(place==='workshop'){this.pulse(460,.08,.45);this.pulse(350,.09,.38,.18);this.pulse(1600,.26,.18,.47,true)}
-    }
-    if(place==='cabin'&&this.ctx?.state==='running'&&this.ctx.currentTime>=this.nextCrackle){
-      this.pulse(1000+Math.random()*900,.04,.09,0,true);this.nextCrackle=this.ctx.currentTime+1+Math.random()*3;
     }
     if(!site||place!=='work')return;
     if(!oldCargo&&site.cargo)this.pulse(1500,.05,.34,0,true);
