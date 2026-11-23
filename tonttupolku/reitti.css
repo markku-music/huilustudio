@@ -1,0 +1,32 @@
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#15231f;color:#fff3d8}
+*{box-sizing:border-box}body{margin:0}main{min-height:100svh;display:grid;place-items:center}
+[hidden]{display:none!important}button,input{font:inherit}button,label{cursor:pointer}button{touch-action:manipulation}
+button:focus-visible,input:focus-visible+span,.viewport:focus-visible{outline:3px solid #ffe396;outline-offset:-3px}
+#cabin{width:min(100vw,216.65svh);position:relative;container-type:inline-size}
+.cabin-art{width:100%;height:auto;display:block}
+.game-version{position:absolute;top:max(8px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));padding:2px 5px;border-radius:3px;background:rgba(25,30,25,.72);color:#e7e3d4;font:400 11px/1.3 system-ui,sans-serif;pointer-events:none}
+#setup{position:absolute;left:5.1%;width:37%;inset-block:0;display:flex;flex-direction:column;justify-content:center;gap:clamp(5px,1cqw,16px)}
+#mic-info{margin:0;color:#ffe8bc;font-size:clamp(13px,1.4cqw,21px);line-height:1.25;text-shadow:0 1px 3px #24170e}
+h1{font:700 clamp(32px,5.3cqw,94px)/1 Georgia,serif;letter-spacing:-.045em;margin:0 0 .12em;color:#ffe6ac;text-shadow:0 2px 6px #21170a}
+fieldset{padding:0;margin:0;border:0;min-width:0}legend{font-size:clamp(13px,1.6cqw,25px);font-weight:650;padding:0;margin-bottom:.35em;text-shadow:0 1px 3px #111}
+.choices,.launch{display:flex;gap:clamp(4px,.6cqw,11px);align-items:stretch}.choices label{flex:1;position:relative}
+.choices input{position:absolute;opacity:0}.choices span{height:100%;min-height:44px;padding:.42em .12em;display:grid;place-content:center;text-align:center;border:1px solid #a29065;border-radius:7px;background:#20352cf0;color:#f9efd6;font-size:clamp(13px,1.5cqw,23px);font-weight:650;line-height:1.2}
+.choices small{font-size:.74em;font-weight:500;letter-spacing:.05em}.choices input:checked+span{color:#332a1a;background:#ecd5a3;border-color:#fff0c2;box-shadow:inset 0 -2px #c3a26a}
+#start,#sound{border:1px solid #d59d6c;border-radius:8px;min-height:44px}.launch{margin-top:.25em}
+#start{flex:1;background:#883b2b;color:#ffefd1;padding:.55em .35em;font:700 clamp(15px,2cqw,33px)/1.1 Georgia,serif;box-shadow:inset 0 -2px #602c22}
+#start:hover{background:#98452e}#start:disabled{opacity:.6}#sound{width:clamp(44px,4cqw,64px);background:#27362cef;color:#f5dfae}
+#sound svg{width:55%;vertical-align:middle}#sound[aria-pressed=true] .mute,#sound[aria-pressed=false] .waves{display:none}
+#play{width:min(100vw,calc((100svh - 50px - env(safe-area-inset-bottom))*2.1641))}
+.stage,.world,.viewport{position:relative}.stage{aspect-ratio:844/390;overflow:clip}.viewport{height:100%;overflow:auto hidden;scrollbar-width:none;cursor:grab;overscroll-behavior:contain}
+.viewport::-webkit-scrollbar{display:none}.world{width:400%;height:100%}
+#panorama{position:absolute;top:0;left:0;width:400%;height:100%;pointer-events:none;will-change:transform}
+.viewport,.world{-webkit-user-select:none;user-select:none}.viewport.dragging{cursor:grabbing}
+#scene,#lumisade,#pad{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#pad button{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;background:transparent;border:0;padding:0;color:transparent;border-radius:4px;-webkit-tap-highlight-color:transparent}
+nav{height:calc(50px + env(safe-area-inset-bottom));padding:2px max(8px,env(safe-area-inset-right)) calc(2px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));display:flex;justify-content:center;align-items:center;background:#1b322a}
+nav button{min-height:44px;min-width:44px;width:min(15%,86px);border:0;background:transparent;color:#f1ead4;font-weight:600;border-radius:22px}
+nav button[aria-current]{color:#2d372c;background:#ecd7a7}nav button.complete{text-decoration:underline;text-underline-offset:.32em;text-decoration-color:#c1a164}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);margin:0}
+@media(orientation:portrait){#cabin{width:100vw;background:#24332b}.cabin-art{width:100%;aspect-ratio:1.8;object-fit:cover;object-position:right}
+#setup{position:relative;left:auto;width:min(92%,420px);margin:auto;padding:20px 0 26px;gap:14px}#play{width:100vw}}
+@media(max-height:340px) and (orientation:landscape){#setup{gap:4px}.choices span{min-height:32px}h1{font-size:30px}.launch{margin:0}}
