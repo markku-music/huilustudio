@@ -1,6 +1,6 @@
 'use strict';
 const NUOTIT=['G','A','H','C','D'];
-const SAVELPELIT={3:['G','A','H'],4:['A','H','C','D'],5:NUOTIT};
+const SAVELPELIT={3:['G','A','H'],4:['C','H','A','G'],5:NUOTIT};
 function sekoita(nuotit){
   const tulos=[...nuotit];
   for(let i=tulos.length-1;i>0;i--){
