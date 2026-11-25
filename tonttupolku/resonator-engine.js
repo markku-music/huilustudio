@@ -77,6 +77,7 @@
       this.pitchMeterIntervalMs = Number.isFinite(+options.pitchMeterIntervalMs) ? clamp(+options.pitchMeterIntervalMs, 12, 60) : 22;
       this.pitchMeterWindowMs = Number.isFinite(+options.pitchMeterWindowMs) ? clamp(+options.pitchMeterWindowMs, 10, 24) : 16;
       this.pitchMeterSearchCents = Number.isFinite(+options.pitchMeterSearchCents) ? clamp(+options.pitchMeterSearchCents, 110, 180) : 140;
+      this.inputPaused = false;
       this.running = false;
 
       this.context = null;
@@ -225,7 +226,7 @@
 
     resetTuning() { return this.setTuningReference(440); }
 
-    calibrateA({ stableMs = 500, timeoutMs = 12000 } = {}) {
+    calibrateA({ stableMs = 500, timeoutMs = 12000, concertMidi = null, finishOnRelease = false } = {}) {
       if (this._tuningCalibration) return this._tuningCalibration.promise;
       if (!this.running || this._calibrationSamples < this._calibrationTargetSamples) {
         return Promise.reject(new Error('Avaa mikrofoni ja odota pohjakohinamittauksen valmistumista.'));
@@ -234,23 +235,28 @@
           !Number.isFinite(timeoutMs) || timeoutMs < stableMs + 1000 || timeoutMs > 60000) {
         return Promise.reject(new RangeError('Tarkista kalibroinnin kesto ja aikaraja.'));
       }
-      // This temporary A-only analyser exists only during explicit calibration.
-      // No additional pitch analysis runs during ordinary note recognition.
+      // A game may offer an in-range instrument note alongside concert A4.
+      if (concertMidi !== null && !this._nominalTargets[concertMidi]) {
+        return Promise.reject(new RangeError('Kalibrointisävel puuttuu soittimen äänialasta.'));
+      }
       const probe = new ResonatorStringEngine({
-        targets: { A: 440 }, blockSize: this.blockSize,
-        rmsResponseMs: this.rmsResponseMs,
-        pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16,
-        pitchMeterSearchCents: 180
+        chromatic: concertMidi !== null,
+        targets: concertMidi === null ? { A: 440 } : this.nominalTargets,
+        blockSize: this.blockSize, rmsResponseMs: this.rmsResponseMs,
+        pitchMeterIntervalMs: 22, pitchMeterWindowMs: 16, pitchMeterSearchCents: 180
       });
       probe._prepare(this.sampleRate);
       probe._gate = this._gate;
       let resolve, reject;
       const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
-      const session = { probe, stableMs, readings: [], promise, resolve, reject, timer: null };
+      const session = { probe, stableMs, concertMidi, finishOnRelease, pendingHz: null, quietSamples: 0, toneRms: 0, lastGoodSample: -Infinity, lastAnchor: null, readings: [], promise, resolve, reject, timer: null };
+      // Smooth broadband breath noise before estimating the calibration period.
+      session.lowPass = probe.chromatic ? 1 - Math.exp(-2 * Math.PI * 2400 / this.sampleRate) : 1;
+      session.filtered = 0;
       this._tuningCalibration = session;
       session.timer = setTimeout(() => {
         if (this._tuningCalibration !== session) return;
-        const error = new Error('Vakaata A¹-säveltä ei löytynyt. Soita tasaisesti ja yritä uudelleen.');
+        const error = new Error('Mittaus päättyi. Kokeile uudelleen ja lopeta ääni pyydettäessä.');
         error.name = 'TimeoutError';
         this._finishTuning(null, error);
       }, timeoutMs);
@@ -290,36 +296,57 @@
     _processTuning(input) {
       const session = this._tuningCalibration;
       const probe = session.probe;
-      for (let i = 0; i < input.length; i++) probe._processSample(input[i]);
+      for (let i = 0; i < input.length; i++) {
+        session.filtered += session.lowPass * (input[i] - session.filtered);
+        probe._processSample(session.filtered);
+      }
       if (probe._samplesSeen - probe._lastPitchSample < probe._pitchEverySamples) return;
+      const elapsedSamples = Math.min(probe._pitchEverySamples + input.length, probe._samplesSeen - probe._lastPitchSample);
       probe._lastPitchSample = probe._samplesSeen;
       const rms = Math.sqrt(Math.max(0, probe._rms2));
+      if (probe.chromatic) probe._measureChromatic();
       const estimate = rms >= this._gate ? probe._estimateContinuousPitch('A') : null;
-      let valid = estimate && estimate.frequency >= 399.9 && estimate.frequency <= 480.1 && estimate.match >= 0.98;
+      const anchor = probe.chromatic && estimate ? Number(estimate.anchor) : 69;
+      const referenceHz = estimate && estimate.frequency * 2 ** ((69 - anchor) / 12);
+      const minMatch = probe.chromatic ? 0.93 : 0.98;
+      let valid = estimate && (anchor === 69 || anchor === session.concertMidi) &&
+        referenceHz >= 399.9 && referenceHz <= 480.1 && estimate.match >= minMatch;
       if (valid) {
-        // Reject upper-octave aliases: a true A¹ must differ at half its period.
+        // Reject upper-octave aliases at half the measured period.
         const halfLag = Math.round(this.sampleRate / (2 * estimate.frequency));
         valid = 2 * (1 - probe._periodMatch(halfLag)) >= this.minHalfPeriodEnergy;
       }
+      if (session.pendingHz !== null) {
+        // A breath tail or room noise may stay above the startup noise gate.
+        const stillPlaying = valid && anchor === session.lastAnchor && rms >= session.toneRms * 0.16;
+        session.quietSamples = stillPlaying ? 0 : session.quietSamples + elapsedSamples;
+        if (session.quietSamples >= this.sampleRate * 0.16) this._finishTuning(session.pendingHz);
+        return;
+      }
+      if (probe._samplesSeen - session.lastGoodSample > this.sampleRate * 0.09 ||
+          (valid && anchor !== session.lastAnchor)) session.readings = [];
       if (!valid) {
-        session.readings = [];
+        if (!probe.chromatic) session.readings = [];
         this._emit('tuningprogress', {
           progress: 0, frequency: null, spreadCents: null,
           stableMs: 0, requiredStableMs: session.stableMs, status: 'waiting'
         });
         return;
       }
-      const reading = { frequency: estimate.frequency, sample: probe._samplesSeen };
+      session.lastGoodSample = probe._samplesSeen;
+      session.lastAnchor = anchor;
+      const reading = { frequency: referenceHz, sample: probe._samplesSeen };
       session.readings.push(reading);
       const frequencies = session.readings.map(r => r.frequency);
       const spread = 1200 * Math.log2(Math.max(...frequencies) / Math.min(...frequencies));
-      if (spread > 12) session.readings = [reading];
+      const maxSpread = probe.chromatic ? 38 : 12;
+      if (spread > maxSpread) session.readings = [reading];
       const elapsed = (reading.sample - session.readings[0].sample) / this.sampleRate * 1000;
       const progress = Math.min(1, elapsed / session.stableMs);
       this._emit('tuningprogress', {
         progress, frequency: estimate.frequency, spreadCents: spread,
         stableMs: elapsed, requiredStableMs: session.stableMs,
-        status: spread > 12 ? 'unstable' : 'collecting'
+        status: spread > maxSpread ? 'unstable' : 'collecting'
       });
       // A listener may cancel or replace the session synchronously.
       if (this._tuningCalibration !== session || progress < 1) return;
@@ -327,7 +354,11 @@
       const middle = Math.floor(sorted.length / 2);
       const median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
       // Allow sub-Hz estimator rounding at the inclusive range endpoints.
-      this._finishTuning(clamp(median, 400, 480));
+      if (session.finishOnRelease) {
+        session.toneRms = rms;
+        session.pendingHz = clamp(median, 400, 480);
+        this._emit('tuningprogress', { progress: 1, frequency: median, status: 'release' });
+      } else this._finishTuning(clamp(median, 400, 480));
     }
 
     _resetDecisionTiming() {
@@ -617,11 +648,14 @@
             cents = delta;
           }
         }
+        // The tuner also shows notes that fall outside the game's acceptance window.
+        if (Math.abs(cents) <= Math.max(50, this.toleranceCents)) {
+          this._chromaticPitch = {frequency, centsFromAnchor: cents, match, anchor: result.best};
+        }
         if (Math.abs(cents) <= this.toleranceCents) {
           result.match = match;
           result.offsetCents = cents;
           result.halfEnergy = 1 - scores[Math.max(this._minLag, Math.round((i + shift) / 2))];
-          this._chromaticPitch = {frequency, centsFromAnchor: cents, match, anchor: result.best};
         }
         break;
       }
@@ -666,7 +700,7 @@
     }
 
     _process(input) {
-      if (!this.running) return;
+      if (!this.running || this.inputPaused) return;
       if (this._tuningCalibration) {
         this._processTuning(input);
         return;
@@ -814,6 +848,7 @@
         // Create/resume from the button gesture, before awaiting microphone permission.
         const context = new AC({ latencyHint: 'interactive' });
         this.context = context;
+        this.inputPaused = false;
         const resumed = context.state === 'running' ? Promise.resolve() : context.resume();
         // Request permission in the same user gesture; do not wait for resume.
         const captured = global.navigator.mediaDevices.getUserMedia({
@@ -1049,6 +1084,7 @@
   const db = rms => Number.isFinite(rms) && rms > 0 ? 20 * Math.log10(rms) : -Infinity;
   const now = () => performance.now();
 
+  const DEFAULT_NEEDLE_SOFTNESS = 200;
   const gameSettings = [
     {key:'noiseMarginDb', label:'Herkkyys (kohinamarginaali)', defaultValue:8, min:4, max:10, unit:'dB', method:'setNoiseMarginDb',
       description:'Pienempi marginaali hyväksyy hiljaisemman soiton. Suurempi vaatii selvemmän eron huoneen pohjakohinaan.'},
@@ -1059,7 +1095,9 @@
     {key:'releaseDelayMs', label:'Sammutusviive', defaultValue:100, min:0, max:100, step:1, unit:'ms', method:'setReleaseDelayMs',
       description:'Aika hiljaisuuden havaitsemisesta näyttösävelen tyhjentämiseen. Nolla tyhjentää heti.'},
     {key:'referenceA', label:'A-viritystaso', defaultValue:440, min:400, max:480, unit:'Hz', method:'setTuningReference',
-      description:'Kaikkien sävelten viritys perustuu tähän a¹:n taajuuteen. Arvon voi myös mitata soittamalla kalibrointiäänen.'}
+      description:'Kaikkien sävelten viritys perustuu tähän a¹:n taajuuteen. Arvon voi myös mitata soittamalla kalibrointiäänen.'},
+    {key:'needleSoftness', label:'Neulan lisäpehmennys', defaultValue:DEFAULT_NEEDLE_SOFTNESS, min:0, max:200, step:1, unit:'%', method:'setNeedleSoftness',
+      description:'Rauhoittaa viritysneulan liikettä pitkällä äänellä. Uusi sävel näkyy heti tunnistuksen jälkeen.'}
   ];
 
   class ResonatorSession extends EventTarget {
@@ -1074,6 +1112,7 @@
       this.stability = new global.ResonatorNoteStability({ targets: TARGETS, dynamicsCompression: true });
       this.stabilityEnabled = true;
       this.releaseDelayMs = 100;
+      this.needleSoftness = DEFAULT_NEEDLE_SOFTNESS;
       this._silenceSince = null;
       this._releaseTimer = null;
       this.phase = 'stopped';
@@ -1116,6 +1155,7 @@
       else this._releaseTimer = setTimeout(release, remaining);
     }
     _clearSound(keepNote = false) {
+      this._needle = null;
       if (!keepNote) this._cancelNoteRelease();
       this.pitch = this.accepted = this.lastInput = null;
       this.pitchAt = this.acceptedAt = -Infinity;
@@ -1183,12 +1223,53 @@
       return this.engine.running && time - this.fallbackAt < 200 ? this.fallbackRms : null;
     }
 
+    _currentPitch(time, aboveGate) {
+      return this.ready && !this.engine.tuningCalibrating && aboveGate &&
+        time - this.pitchAt < 100 ? this.pitch : null;
+    }
+
+    // Sample once per animation frame. No DOM or animation loop is required by the session.
+    getNeedleCents(time = now()) {
+      if (!this.ready || this.engine.tuningCalibrating) {
+        this._needle = null;
+        return null;
+      }
+      const level = this._readLevel(time);
+      const aboveGate = level !== null && this.gate !== null && level >= this.gate;
+      const pitch = this._currentPitch(time, aboveGate);
+      const valid = Number.isFinite(pitch?.centsFromAnchor) &&
+        (this.displayed === null || this.displayed === pitch.anchor);
+      const n = this._needle;
+      if (valid) {
+        if (!n || n.note !== pitch.anchor) {
+          const cents = pitch.centsFromAnchor;
+          this._needle = {note:pitch.anchor, cents, lead:cents, target:cents, frame:time, lastValid:time};
+          return cents;
+        }
+        n.target = pitch.centsFromAnchor;
+        n.lastValid = time;
+      } else if (!(n && !pitch && aboveGate && this.displayed === n.note && time - n.lastValid < 75)) {
+        this._needle = null;
+        return null;
+      }
+      if (time > n.frame) {
+        const smallMotion = 1 / (1 + ((n.target - n.cents) / 6) ** 2);
+        const responseMs = 27 + 48 * smallMotion + 160 * (this.needleSoftness / 100) * smallMotion ** 2;
+        const step = (time - n.frame) / responseMs, decay = Math.exp(-step);
+        const leadError = n.lead - n.target;
+        n.cents = n.target + ((n.cents - n.target) + leadError * step) * decay;
+        n.lead = n.target + leadError * decay;
+        n.frame = time;
+      }
+      return n.cents;
+    }
+
     // Snapshot exposes measurements in physical units, never DOM elements or pixels.
     getState(time = now()) {
       const engine = this.engine, tuning = engine.tuningCalibrating;
       const level = this._readLevel(time);
       const aboveGate = level !== null && this.gate !== null && level >= this.gate;
-      const hasPitch = !!(this.ready && !tuning && aboveGate && this.pitch && time - this.pitchAt < 100);
+      const hasPitch = !!this._currentPitch(time, aboveGate);
       const hasAccepted = this.ready && !tuning && this.accepted !== null && time - this.acceptedAt < 200;
       const hasNote = this.ready && !tuning && this.displayed !== null;
       const waiting = hasNote && hasAccepted && this.displayed !== this.accepted;
@@ -1205,6 +1286,7 @@
         referenceA: engine.referenceA, referenceCents: 1200 * Math.log2(engine.referenceA / 440),
         noiseMarginDb: engine.noiseMarginDb, releaseDelayMs: this.releaseDelayMs,
         stabilityEnabled: this.stabilityEnabled, dynamicsCompression: this.stability.dynamicsCompression,
+        needleSoftness: this.needleSoftness,
         levelDb: level === null ? null : db(level),
         noiseDb: this.noiseRms === null ? null : db(this.noiseRms),
         gateDb: this.gate === null ? null : db(this.gate), aboveGate: this.ready && aboveGate,
@@ -1322,13 +1404,22 @@
         stabilityEnabled: this.stabilityEnabled,
         dynamicsCompression: this.stability.dynamicsCompression,
         releaseDelayMs: this.releaseDelayMs,
-        referenceA: this.engine.referenceA
+        referenceA: this.engine.referenceA,
+        needleSoftness: this.needleSoftness
       };
       return gameSettings.map(setting => ({
         ...setting, type: typeof setting.defaultValue, value: values[setting.key]
       }));
     }
     setTuningReference(hz) { return this.engine.setTuningReference(hz); }
+    setNeedleSoftness(value) {
+      const percent = Number(value);
+      if (Number.isFinite(percent)) {
+        this.needleSoftness = Math.max(0, Math.min(200, Math.round(percent)));
+        this._notify();
+      }
+      return this.needleSoftness;
+    }
     setReleaseDelayMs(value) {
       const ms = Number(value);
       if (!Number.isFinite(ms)) return this.releaseDelayMs;
@@ -1345,15 +1436,25 @@
       if (!this.ready || this.opening || this.engine.tuningCalibrating) return false;
       return this.engine.calibrateNoise();
     }
-    async calibrateA() {
+    async calibrateA(options) {
       const request = ++this.tuningRequest;
       this._clearSound(); this.tuningProgress = 0;
-      try { await this.engine.calibrateA(); }
+      try { await this.engine.calibrateA(options); }
       catch (error) {
         if (request !== this.tuningRequest || error.name === 'AbortError') return;
         this.tuningStatus = { code: 'error', message: error.message || String(error) };
       }
       if (request === this.tuningRequest) this._notify();
+    }
+    setInputPaused(paused) {
+      if (!this.engine.running || this.engine.inputPaused === paused) return;
+      this.engine.inputPaused = paused;
+      if (paused) {
+        ++this.tuningRequest;
+        this.engine.cancelTuningCalibration();
+        this.engine._resetAnalysisStates();
+        this._clearSound();
+      }
     }
     cancelTuningCalibration() { this.engine.cancelTuningCalibration(); }
     resetTuning() {

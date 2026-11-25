@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1a241f">
   <title>Tonttupolku</title>
-  <link rel="stylesheet" href="reitti.css">
+  <link rel="stylesheet" href="reitti.css?v=1.2.8">
   <script defer src="asetukset.js"></script>
   <script defer src="nosto.js?v=1.2.3"></script>
   <script defer src="ajoasennot.js"></script>
@@ -13,8 +13,8 @@
   <script defer src="retki.js"></script>
   <script defer src="maisema.js?v=1.2.2"></script>
   <script defer src="aanet.js"></script>
-  <script defer src="resonator-engine.js"></script>
-  <script defer src="reitti.js?v=1.2.2"></script>
+  <script defer src="resonator-engine.js?v=1.2.12"></script>
+  <script defer src="reitti.js?v=1.2.13"></script>
 </head>
 <body>
 <main>
@@ -22,17 +22,27 @@
     <img class="cabin-art" src="kuvat/joulupukin-tupa.webp" width="1846" height="852" alt="Joulupukki näyttää Tondelle, kuinka kivilaatat ladotaan vierekkäin.">
     <aside id="resonator-dev" aria-label="Resonator Huilu 1.10"></aside>
     <form id="setup">
-      <small class="version">Tonttupolku 1.2.3 · Resonator Huilu 1.10</small>
+      <small class="version">Tonttupolku 1.2.13 · Resonator Huilu 1.10</small>
       <h1 id="title">Tonttupolku</h1>
       <fieldset><legend>Ohjaus</legend>
-        <div class="choices"><label><input type="radio" name="controller" value="flute" checked><span>Huilu</span></label>
+        <div class="choices"><label><input type="radio" name="controller" value="flute" checked><span>Soitin</span></label>
         <label><input type="radio" name="controller" value="manual"><span>Näppäimet / kosketus</span></label></div>
       </fieldset>
+      <label id="instrument-row" for="instrument">Soittimen vire
+        <select id="instrument" name="instrument">
+          <option value="0">C · huilu, oboe</option>
+          <option value="-2">B♭ · klarinetti, trumpetti</option>
+          <option value="-9">E♭ · alttosaksofoni</option>
+          <option value="-7">F · käyrätorvi</option>
+          <option value="12">C · piccolo, sopraanonokkahuilu</option>
+          <option value="trombone">C · pasuuna</option>
+        </select>
+      </label>
       <fieldset><legend>Sävelet</legend>
         <div class="choices pitches">
-          <label><input type="radio" name="pitches" value="3"><span>3 säveltä<small>HAG</small></span></label>
-          <label><input type="radio" name="pitches" value="4"><span>4 säveltä<small>CHAG</small></span></label>
-          <label><input type="radio" name="pitches" value="5" checked><span>5 säveltä<small>G A H C D</small></span></label>
+          <label><input type="radio" name="pitches" value="3"><span>3 säveltä</span></label>
+          <label><input type="radio" name="pitches" value="4"><span>4 säveltä</span></label>
+          <label><input type="radio" name="pitches" value="5" checked><span>5 säveltä</span></label>
         </div>
       </fieldset>
       <fieldset><legend>Vaikeustaso</legend>
@@ -46,6 +56,12 @@
           </svg>
         </button>
       </div>
+      <div id="tuning-row">
+        <label id="retune-row" hidden><input type="checkbox" id="retune"> Kalibroi uudelleen pelin alussa</label>
+        <output id="reference-a" aria-label="Viritystaso" aria-live="off">A = 440 Hz</output>
+        <button type="button" id="reset-a" hidden>Palauta 440 Hz</button>
+      </div>
+      <progress id="tuning-progress" aria-label="A-kalibroinnin eteneminen" max="1" value="0" hidden></progress>
       <p id="mic-status" role="status">Ole aluksi hiljaa 1,5 sekuntia. Soita nostosävel ja vaihda koloon legatolla.</p>
       <p id="load-error" role="alert" hidden>Pelikuvien lataus epäonnistui. Lataa sivu uudelleen.</p>
     </form>
@@ -63,6 +79,9 @@
         </div>
       </div>
       <canvas id="lumisade" width="844" height="390" aria-hidden="true"></canvas><canvas id="scene" aria-hidden="true"></canvas>
+      <div id="tuner" hidden role="meter" aria-label="Vire, senttiä" aria-valuemin="-50" aria-valuemax="50" aria-valuetext="Ei ääntä">
+        <div class="tuner-scale"><i class="tuner-center"></i><i id="tuner-needle" hidden></i></div>
+      </div>
     </div>
     <nav aria-label="Polun kohteet">
       <button type="button" aria-label="Joulupukin tupa">Tupa</button><button type="button" aria-label="Työmaa 1">1</button>

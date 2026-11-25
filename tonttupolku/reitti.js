@@ -11,7 +11,68 @@ const ui={status:document.querySelector('#status'),pad:document.querySelector('#
 const micStatus=document.querySelector('#mic-status');
 const resonator=new ResonatorSession();
 resonator.mountDeveloperSettings(document.querySelector('#resonator-dev'));
-const fluteNotes={67:'G',69:'A',71:'H',72:'C',74:'D'};
+const instrumentRow=document.querySelector('#instrument-row');
+const standardTargets=resonator.engine.nominalTargets;
+function targetsFrom(lowestMidi){
+  const targets={...standardTargets};
+  for(let midi=lowestMidi;midi<59;midi++)targets[midi]=440*2**((midi-69)/12);
+  return targets;
+}
+const upperNotes={67:'G',69:'A',71:'H',72:'C',74:'D'};
+const cToGNotes={60:'C',62:'D',64:'E',65:'F',67:'G'};
+const cToGGames={3:['C','D','E'],4:['C','D','E','F'],5:['C','D','E','F','G']};
+const tromboneNotes={46:'B',48:'c',50:'d',51:'es',53:'f',55:'g'};
+const tromboneGames={3:['B','c','d'],4:['B','c','d','es'],5:['B','c','d','f','g']};
+const targetsFromBFlat=targetsFrom(58);
+const instruments={
+  '0':{offset:0,notes:upperNotes,games:SAVELPELIT,targets:standardTargets},
+  '-2':{offset:-2,notes:cToGNotes,games:cToGGames,targets:targetsFromBFlat},
+  '-9':{offset:-9,notes:upperNotes,games:SAVELPELIT,targets:targetsFromBFlat},
+  '-7':{offset:-7,notes:cToGNotes,games:cToGGames,targets:targetsFrom(53)},
+  '12':{offset:12,notes:upperNotes,games:SAVELPELIT,targets:standardTargets},
+  trombone:{offset:0,notes:tromboneNotes,games:tromboneGames,targets:targetsFrom(46)}
+};
+const calibrationNotes={
+  '0':[69,'a¹'], '-2':[58,'c¹'], '-9':[58,'g¹'], '-7':[53,'c¹'],
+  '12':[81,'a¹'], trombone:[46,'suuri B']
+};
+const tuningRow=document.querySelector('#tuning-row'),retune=document.querySelector('#retune');
+const retuneRow=document.querySelector('#retune-row'),tuningProgress=document.querySelector('#tuning-progress');
+const resetA=document.querySelector('#reset-a'),referenceA=document.querySelector('#reference-a');
+const tuner=document.querySelector('#tuner'),needle=document.querySelector('#tuner-needle');
+const referenceKey='tonttupolku.a-reference.v1';
+let hasReference=false,micGeneration=0,releasePrompt=false,lastCents=null;
+try{
+  const saved=Number(sessionStorage.getItem(referenceKey));
+  if(saved>=400&&saved<=480){resonator.setTuningReference(saved);hasReference=true}
+}catch{ /* Keep the reference in memory when tab storage is unavailable. */ }
+function rememberReference(){
+  hasReference=true;retune.checked=false;
+  try{sessionStorage.setItem(referenceKey,String(resonator.engine.referenceA))}catch{}
+}
+function hzText(){
+  return resonator.engine.referenceA.toLocaleString('fi-FI',{maximumFractionDigits:1})+' Hz';
+}
+function drawTuner(now){
+  const value=resonator.getNeedleCents(now);
+  const cents=value===null?null:Math.max(-50,Math.min(50,Math.round(value)));
+  if(cents===lastCents)return;
+  lastCents=cents;needle.hidden=cents===null;
+  if(cents===null){
+    tuner.removeAttribute('aria-valuenow');tuner.setAttribute('aria-valuetext','Ei ääntä');return;
+  }
+  needle.style.left=(50+cents)+'%';tuner.setAttribute('aria-valuenow',String(cents));
+  tuner.setAttribute('aria-valuetext',cents+' senttiä');
+}
+let activeInstrument=instruments['0'];
+function configureInstrument(){
+  const next=instruments[setup.elements.instrument.value];
+  if(next.targets!==activeInstrument.targets)resonator.engine.setTargets(next.targets);
+  activeInstrument=next;
+}
+function noteForInstrument(midi){
+  return activeInstrument.notes[Number(midi)-activeInstrument.offset];
+}
 let micMode='off',micError='',lastFluteId=null,watchdog=0,track=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),game=new Retki();
 let inCabin=true,started=false,resumeAt=1;
@@ -71,20 +132,34 @@ function enterCabin(){
   cabin.hidden=false;play.hidden=true;
   startButton.focus({preventScroll:true});refresh();
 }
-function selectedPitches(){return SAVELPELIT[setup.elements.pitches.value]}
+function selectedPitches(){
+  const games=setup.elements.controller.value==='manual'?SAVELPELIT:instruments[setup.elements.instrument.value].games;
+  return games[setup.elements.pitches.value];
+}
 function refresh(){
   const s=game.site,trip=game.trip;
   const state=[inCabin,started,game.station,game.total,s?.text,s?.phase,s?.choice,s?.pickupNote,
-    trip?.station,!!scene,failed,setup.elements.pitches.value,game.pitches.length,setup.elements.controller.value,micMode,micError].join('|');
+    trip?.station,!!scene,failed,setup.elements.instrument.value,setup.elements.pitches.value,game.pitches.length,setup.elements.controller.value,micMode,resonator.engine.running,micError,hasReference,retune.checked,releasePrompt,resonator.engine.referenceA].join('|');
   if(state===lastUI)return;lastUI=state;
   startButton.disabled=!scene;
   startButton.textContent=started?(selectedPitches()===game.pitches?'Jatka korjaamista':'Aloita uusi peli'):'Korjaa tonttupolku';
   const flute=setup.elements.controller.value==='flute';
+  instrumentRow.hidden=tuningRow.hidden=!flute;
+  tuner.hidden=!flute||inCabin;
+  referenceA.textContent='A = '+hzText();
+  const listening=inCabin&&micMode!=='off';
+  setup.classList.toggle('listening',listening);
+  retuneRow.hidden=!hasReference;
+  resetA.hidden=listening||!hasReference||Math.abs(resonator.engine.referenceA-440)<.001;
+  tuningProgress.hidden=micMode!=='tuning';
   micStatus.hidden=!flute;
   micStatus.textContent=micError||(micMode==='request'?'Salli mikrofonin käyttö selaimessa.':
-    micMode==='calibration'?'Mitataan pohjakohinaa. Ole hetki hiljaa.':
-    'Ole aluksi hiljaa 1,5 sekuntia. Soita nostosävel ja vaihda koloon legatolla.');
-  if(inCabin&&micMode!=='off')startButton.textContent='Peruuta';
+    micMode==='calibration'?'Ole hetki hiljaa. Mitataan huoneen pohjakohinaa.':
+    micMode==='tuning'?(releasePrompt?'Lopeta ääni. Peli alkaa, kun ääni päättyy.':tuningInstruction()):
+    resonator.engine.running?(hasReference&&!retune.checked?'Mikrofoni on päällä. A = '+hzText()+'.':'Mikrofoni on päällä. Peli pyytää kalibrointisävelen.'):
+    hasReference&&!retune.checked?'Peli käyttää viritystasoa A = '+hzText()+'.':
+    'Aluksi mitataan pohjakohina. Sen jälkeen peli pyytää kalibrointisävelen.');
+  if(listening)startButton.textContent='Peruuta';
   document.querySelector('#load-error').hidden=!failed;
   ui.status.textContent=inCabin?'Joulupukin tupa':game.finished?'Kaikki laatat paikallaan. Reitti lelupajalle on valmis.':
     s?(s.text||(s.complete?'Työmaa valmis.':'Työmaa '+game.station+'. Nostosävel '+s.pickupNote+'.')):trip?'Matkalla.':'Lelupaja';
@@ -109,7 +184,7 @@ function refresh(){
   }
 }
 setup.addEventListener('input',e=>{
-  if(e.target.name==='controller'){stopListening();micError=''}
+  if(e.target.name==='controller'||e.target.name==='instrument'){stopListening();micError=''}
   refresh();
 });
 audioButton.addEventListener('click',()=>{sounds.toggle();audioButton.setAttribute('aria-pressed',String(sounds.enabled))});
@@ -117,9 +192,68 @@ setup.addEventListener('submit',e=>{
   e.preventDefault();if(!scene||!inCabin)return;
   if(setup.elements.controller.value==='manual'){startJourney();return}
   if(micMode!=='off'){stopListening();refresh();return}
-  micMode='request';micError='';sounds.calibrating=true;sounds.activate();sounds.mix();refresh();
-  resonator.start();
+  openMicrophone();
 });
+function tuningInstruction(){
+  const [,name]=calibrationNotes[setup.elements.instrument.value];
+  return 'Soita '+name+' tasaisesti ja odota lopetusmerkkiä.';
+}
+resetA.addEventListener('click',()=>{
+  if(micMode!=='off')return;
+  resonator.resetTuning();micError='';refresh();
+});
+resonator.engine.addEventListener('tuningchange',()=>{
+  if(inCabin&&micMode==='off'){rememberReference();refresh()}
+});
+resonator.engine.addEventListener('tuningprogress',e=>{
+  if(micMode!=='tuning')return;
+  tuningProgress.value=e.detail.progress;
+  const release=e.detail.status==='release';
+  if(release!==releasePrompt){releasePrompt=release;refresh()}
+});
+async function measureReference(){
+  const generation=micGeneration;
+  const [concertMidi]=calibrationNotes[setup.elements.instrument.value];
+  micMode='tuning';tuningProgress.value=0;refresh();
+  await resonator.calibrateA({concertMidi,stableMs:420,timeoutMs:30000,finishOnRelease:true});
+  if(generation!==micGeneration)return;
+  if(resonator.tuningStatus.code!=='completed'){
+    micError=resonator.tuningStatus.message||'Mittaus keskeytyi. Aloita uudelleen.';
+    stopListening();refresh();return;
+  }
+  rememberReference();beginPlaying();
+}
+function beginPlaying(){
+  micMode='playing';sounds.calibrating=false;sounds.mix();startJourney();
+}
+function microphoneReady(){
+  clearTimeout(watchdog);
+  if(!hasReference||retune.checked)measureReference();else beginPlaying();
+}
+function awaitNoiseCalibration(){
+  micMode='calibration';
+  clearTimeout(watchdog);
+  watchdog=setTimeout(()=>micFailure('Pohjakohinan mittaus keskeytyi. Tarkista mikrofoni.'),8000);
+  refresh();
+}
+async function openMicrophone(){
+  const engine=resonator.engine;
+  if(engine.running&&(track?.readyState==='ended'||engine.context?.state==='closed'))stopListening(true);
+  configureInstrument();releasePrompt=false;
+  micMode='request';micError='';sounds.calibrating=true;sounds.activate();sounds.mix();refresh();
+  if(!engine.running){resonator.start();return}
+  const generation=micGeneration;
+  try{
+    if(engine.context.state!=='running')await engine.context.resume();
+  }catch{
+    if(generation===micGeneration)micFailure('Mikrofoni ei jatkanut kuuntelua. Aloita peli uudelleen.');
+    return;
+  }
+  if(generation!==micGeneration)return;
+  if(track?.muted){microphoneMuted();return}
+  resonator.setInputPaused(false);
+  if(resonator.ready)microphoneReady();else awaitNoiseCalibration();
+}
 function startJourney(){
   const pitches=selectedPitches(),hard=setup.elements.difficulty.value==='hard';
   sounds.activate();
@@ -128,17 +262,26 @@ function startJourney(){
   started=true;inCabin=false;cabin.hidden=true;play.hidden=false;lastPaint='';scene.resize();
   visit(resumeAt);viewport.focus({preventScroll:true});
 }
-function stopListening(){
-  const wasOn=micMode!=='off';
+function stopListening(closeCapture=false){
+  ++micGeneration;releasePrompt=false;
+  const pending=micMode==='request'&&!resonator.engine.running;
   micMode='off';lastFluteId=null;clearTimeout(watchdog);
-  if(track){track.onended=track.onmute=null;track=null}
-  if(wasOn)resonator.stop();
+  if(closeCapture||pending){
+    if(track){track.onended=track.onmute=track.onunmute=null;track=null}
+    resonator.stop();
+  }else resonator.setInputPaused(true);
   sounds.calibrating=false;sounds.mix();
 }
 function micFailure(message){
-  micError=message;
-  if(!inCabin)visit(0,true);
-  else stopListening();
+  const wasPlaying=micMode==='playing';
+  micError=message;stopListening(true);
+  if(wasPlaying&&!inCabin)visit(0,true);
+  refresh();
+}
+function microphoneMuted(){
+  const wasPlaying=micMode==='playing';
+  micError='Mikrofoni on tilapäisesti mykistetty.';
+  if(wasPlaying&&!inCabin)visit(0,true);else stopListening();
   refresh();
 }
 resonator.engine.addEventListener('silence',()=>{lastFluteId=null});
@@ -152,21 +295,23 @@ resonator.addEventListener('change',()=>{
     micFailure(messages[s.status.name]||s.status.message||'Mikrofoni ei vastannut. Yritä uudelleen.');return;
   }
   if(micMode==='request'&&s.phase==='calibrating'){
-    micMode='calibration';track=resonator.engine.stream?.getAudioTracks()[0];
-    if(track)track.onended=track.onmute=()=>micFailure('Mikrofoni keskeytyi. Avaa kuuntelu uudelleen.');
-    watchdog=setTimeout(()=>micFailure('Kalibrointi keskeytyi. Tarkista mikrofoni.'),8000);
-    refresh();
+    track=resonator.engine.stream?.getAudioTracks()[0];
+    if(track){
+      track.onended=()=>micFailure('Mikrofoniyhteys päättyi. Avaa mikrofoni aloittamalla peli.');
+      track.onmute=microphoneMuted;
+      track.onunmute=()=>{micError='';refresh()};
+    }
+    awaitNoiseCalibration();
+    if(track?.muted)microphoneMuted();
   }
-  if(micMode==='calibration'&&s.ready){
-    clearTimeout(watchdog);micMode='playing';sounds.calibrating=false;startJourney();return;
-  }
+  if(micMode==='calibration'&&s.ready){microphoneReady();return}
   if(micMode!=='playing'||inCabin||document.hidden)return;
   // The session owns note stability and the release grace period. A confirmed
   // silence starts a new phrase even if the displayed note is still visible.
   if(!s.note){lastFluteId=null;release('flute');return}
   if(s.accepted?.id!==s.note.id||s.note.id===lastFluteId)return;
   const attack=lastFluteId===null;lastFluteId=s.note.id;
-  const site=game.site,note=fluteNotes[s.note.id];
+  const site=game.site,note=noteForInstrument(s.note.id);
   if(!site)return;
   if(source==='flute'&&attack)release('flute');
   if(!source){if(attack&&note===site.pickupNote)take('flute',note);return}
@@ -295,9 +440,10 @@ function suspendInput(){
   }
 }
 document.addEventListener('visibilitychange',()=>{lastTime=0;if(document.hidden)suspendInput();sounds.mix()});
-window.addEventListener('pagehide',()=>{suspendInput();sounds.close()});
+window.addEventListener('pagehide',()=>{suspendInput();stopListening(true);sounds.close();refresh()});
 function tick(now){
   if(inCabin){lastTime=0;sounds.update('cabin');requestAnimationFrame(tick);return}
+  if(micMode==='playing')drawTuner(now);
   const dt=lastTime?Math.min(250,now-lastTime):0;lastTime=now;
   const travelling=!!game.trip,wasSite=game.index,site=game.site,oldCount=site?.count,oldCargo=site?.cargo;
   game.advance(dt);

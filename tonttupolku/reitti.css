@@ -40,3 +40,24 @@ nav button[aria-current]{color:#2d372c;background:#ecd7a7}nav button.complete{te
 @media(orientation:landscape) and (max-height:460px){#setup{justify-content:safe center;overflow-y:auto}.choices span{min-height:32px}}
 
 .version{font-size:clamp(10px,1.25cqw,15px);opacity:.8;margin-bottom:-.35em}
+
+#instrument-row{display:flex;align-items:center;gap:.55em;font-size:clamp(13px,1.5cqw,23px);font-weight:650}
+#instrument-row select{flex:1;min-width:0;max-width:100%;font:inherit;color:#f9efd6;background:#20352c;border:1px solid #a29065;border-radius:7px;padding:.35em}
+#instrument-row select:focus-visible{outline:3px solid #ffe396;outline-offset:-3px}
+@media(orientation:landscape){#setup{justify-content:safe center;overflow-y:auto}}
+
+#tuning-row{display:flex;align-items:center;flex-wrap:wrap;gap:.4em .7em;font-size:clamp(12px,1.45cqw,18px)}
+#tuning-row button{border:1px solid #a29065;border-radius:7px;padding:.42em .65em;background:#20352c;color:#f9efd6;font:inherit}
+#reference-a{font-variant-numeric:tabular-nums;color:#ffe7af}
+#tuner{position:absolute;top:3%;left:50%;transform:translateX(-50%);width:clamp(115px,23%,220px);padding:6px 10px;border:1px solid #a29065;border-radius:8px;background:#142b25ed;pointer-events:none}
+.tuner-scale{height:14px;position:relative;background:repeating-linear-gradient(to right,#dbc7a0 0 1px,transparent 1px 10%) left center / 100% 5px no-repeat;border-right:1px solid #dbc7a0}
+.tuner-scale::before{content:"";position:absolute;inset:0 45%;background:#6aa58466;border-radius:2px}
+.tuner-center,#tuner-needle{position:absolute;top:0;bottom:0;width:2px;left:50%;transform:translateX(-50%);background:#91d2a0}
+#tuner-needle{width:4px;background:#ffe098;border-radius:2px;box-shadow:0 0 2px #000}
+
+#retune-row{display:inline-flex;align-items:center;gap:.3em;min-height:32px}
+#tuning-progress{width:100%;accent-color:#ebd09c}
+#setup.listening>fieldset,#setup.listening>#instrument-row,#setup.listening>#tuning-row,#setup.listening #sound{display:none}
+#setup.listening #mic-status{order:1;font-size:clamp(16px,2cqw,26px)}
+#setup.listening #tuning-progress{order:2}
+#setup.listening .launch{order:3}
